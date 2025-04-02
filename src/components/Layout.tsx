@@ -5,6 +5,7 @@ import Sidebar from '@/components/Sidebar';
 import { Button } from '@/components/ui/button';
 import { Menu, Settings } from 'lucide-react';
 import { useAuthContext } from '@/context/AuthContext';
+import Logo from './Logo';
 
 const Layout = () => {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -25,7 +26,9 @@ const Layout = () => {
             >
               <Menu className="w-5 h-5" />
             </Button>
-            <h1 className="text-xl font-semibold hidden md:block">WrenchFlow Pro</h1>
+            <div className="hidden md:block">
+              <Logo />
+            </div>
             {currentUser?.organizationId && (
               <span className="ml-2 text-muted-foreground hidden md:block">
                 | {currentUser.role === 'owner' && 'Admin'} Dashboard

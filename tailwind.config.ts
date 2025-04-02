@@ -63,12 +63,13 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				// Custom colors for our app
-				"wrench-blue": "#2563eb",
-				"wrench-light-blue": "#60a5fa",
-				"wrench-dark": "#1e293b",
-				"wrench-gray": "#64748b",
-				"wrench-light": "#f8fafc",
+				// Custom colors for our app - updated for Garage Pro
+				"garage-black": "#111111",
+				"garage-dark-gray": "#333333",
+				"garage-gray": "#666666",
+				"garage-light-gray": "#F5F5F5",
+				"garage-blue": "#3b82f6",
+				"garage-light-blue": "#93c5fd",
 				"status-open": "#f59e0b",
 				"status-in-progress": "#3b82f6",
 				"status-completed": "#10b981",

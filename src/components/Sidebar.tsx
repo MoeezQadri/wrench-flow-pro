@@ -8,13 +8,12 @@ import {
   Wrench, 
   ShoppingBag, 
   Calendar, 
-  DollarSign, 
+  DollarSign,
   Settings, 
   Menu, 
   X,
   ClipboardCheck,
   UserCog,
-  Building,
   CalendarCheck,
   Wallet,
   HelpCircle,
@@ -22,17 +21,17 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getCurrentUser, hasPermission } from '@/services/data-service';
-import { PermissionValue, RolePermissionMap, UserRole } from '@/types';
 import { useAuthContext } from '@/context/AuthContext';
 import { toast } from 'sonner';
+import Logo from './Logo';
 
 // Define our types for the permission system
-type ResourceKey = keyof RolePermissionMap;
+type ResourceKey = keyof typeof getCurrentUser().permissionMap;
 
 // Define permission interface
 interface NavItemPermission {
   resource: ResourceKey;
-  action: keyof RolePermissionMap[ResourceKey] & string;
+  action: string;
 }
 
 // Define our navItems with correct typing
@@ -147,10 +146,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
       {/* Sidebar */}
       <div className={`fixed md:static inset-y-0 left-0 z-50 flex flex-col w-64 bg-sidebar text-sidebar-foreground transition-transform duration-300 transform ${isMobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
         <div className="flex items-center justify-between p-4 border-b border-sidebar-border">
-          <div className="flex items-center">
-            <Building className="w-6 h-6 text-wrench-light-blue" />
-            <span className="ml-2 font-bold text-xl">WrenchFlow Pro</span>
-          </div>
+          <Logo textColor="text-sidebar-foreground" />
           <Button 
             variant="ghost" 
             size="icon" 

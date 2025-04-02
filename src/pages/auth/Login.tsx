@@ -5,10 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Building, LogIn } from 'lucide-react';
+import { LogIn } from 'lucide-react';
 import { toast } from 'sonner';
 import { loginUser } from '@/services/auth-service';
 import { useAuthContext } from '@/context/AuthContext';
+import Logo from '@/components/Logo';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -45,9 +46,8 @@ const Login = () => {
       <div className="w-full max-w-md p-4">
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
-            <Building size={48} className="text-wrench-light-blue" />
+            <Logo size="lg" />
           </div>
-          <h1 className="text-3xl font-bold">WrenchFlow Pro</h1>
           <p className="text-muted-foreground">Automotive workshop management system</p>
         </div>
         
