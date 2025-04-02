@@ -7,7 +7,7 @@ interface PrivateRouteProps {
 }
 
 const PrivateRoute = ({ children }: PrivateRouteProps) => {
-  const { isAuthenticated, currentUser } = useAuthContext();
+  const { isAuthenticated, currentUser, isSuperAdmin } = useAuthContext();
   const location = useLocation();
 
   // If not authenticated, redirect to login
@@ -18,9 +18,9 @@ const PrivateRoute = ({ children }: PrivateRouteProps) => {
   // For superadmin routes, check if user has superadmin access
   if (location.pathname.startsWith('/superadmin')) {
     // Check if user is a superuser or has superadmin privileges
-    const isSuperAdmin = currentUser?.role === 'superuser' || currentUser?.isSuperAdmin;
+    const userIsSuperAdmin = currentUser?.role === 'superuser' || isSuperAdmin;
     
-    if (!isSuperAdmin) {
+    if (!userIsSuperAdmin) {
       return <Navigate to="/" replace />;
     }
   }

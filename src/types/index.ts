@@ -1,4 +1,3 @@
-
 export type InvoiceStatus = 'open' | 'in-progress' | 'completed' | 'paid' | 'partial';
 
 export type UserRole = 'owner' | 'manager' | 'mechanic' | 'foreman' | 'superuser';
@@ -16,6 +15,7 @@ export interface User {
   resetToken?: string; // For password reset
   resetTokenExpires?: string; // Expiration for reset token
   mustChangePassword?: boolean; // For forcing password change
+  isSuperAdmin?: boolean; // Added for superadmin access
 }
 
 export interface Organization {

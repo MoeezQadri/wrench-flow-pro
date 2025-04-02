@@ -39,6 +39,7 @@ const ExpenseDialog = ({ open, onOpenChange, onSave, expense }: ExpenseDialogPro
         amount: data.amount,
         description: data.description,
         paymentMethod: data.paymentMethod,
+        paymentStatus: 'pending', // Add default payment status
         vendorId: data.vendorId !== "none" ? data.vendorId : undefined,
         vendorName: vendor?.name,
       };

@@ -1,4 +1,3 @@
-
 import { User, UserRole, RolePermissionMap as TypesRolePermissionMap, Expense, Vendor, Part, Mechanic, Task, Invoice, InvoiceItem, Customer, Vehicle, Attendance } from '@/types';
 
 // Ensure we're using the correct RolePermissionMap type
@@ -63,7 +62,7 @@ export const addCustomer = (customer: Omit<Customer, "id">): Customer => {
   const newCustomer: Customer = {
     id: generateId("customer"),
     ...customer,
-    vehicles: []
+    vehicles: [], // Initialize with empty array to avoid type errors
   };
   customers.push(newCustomer);
   return newCustomer;
@@ -75,7 +74,8 @@ export const addVehicle = (customerId: string, vehicle: Omit<Vehicle, "id">): Ve
   
   const newVehicle: Vehicle = {
     id: generateId("vehicle"),
-    ...vehicle
+    ...vehicle,
+    customerId, // Ensure customerId is set
   };
   
   if (!customer.vehicles) {
@@ -100,7 +100,7 @@ export const getCustomerAnalytics = (customerId: string) => {
   // Implement real analytics in a real app
   const customerInvoices = invoices.filter(inv => inv.customerId === customerId);
   const totalSpent = customerInvoices.reduce((total, inv) => 
-    total + calculateInvoiceTotal(inv), 0);
+    total + calculateInvoiceTotal(inv).total, 0);
   
   return {
     totalSpent,
@@ -117,10 +117,22 @@ export const getCustomerAnalytics = (customerId: string) => {
   };
 };
 
-export const calculateInvoiceTotal = (invoice: Invoice): number => {
-  return invoice.items.reduce((total, item) => {
+export const calculateInvoiceTotal = (invoice: Invoice) => {
+  const subtotal = invoice.items.reduce((total, item) => {
     return total + (item.price * item.quantity);
   }, 0);
+  
+  // Calculate tax amount
+  const taxAmount = subtotal * (invoice.taxRate / 100);
+  
+  // Calculate total
+  const total = subtotal + taxAmount;
+  
+  return {
+    subtotal,
+    taxAmount,
+    total
+  };
 };
 
 export const calculateDashboardMetrics = () => {
@@ -128,7 +140,7 @@ export const calculateDashboardMetrics = () => {
   const pendingInvoices = invoices.filter(inv => inv.status === 'open' || inv.status === 'in-progress');
   
   return {
-    totalRevenue: completedInvoices.reduce((total, inv) => total + calculateInvoiceTotal(inv), 0),
+    totalRevenue: completedInvoices.reduce((total, inv) => total + calculateInvoiceTotal(inv).total, 0),
     pendingInvoices: pendingInvoices.length,
     activeCustomers: customers.length,
     completedTasks: tasks.filter(task => task.status === 'completed').length,
@@ -159,7 +171,7 @@ export const getPayables = () => {
   const total = payableItems.reduce((sum, item) => sum + item.amount, 0);
   
   return {
-    total: total,
+    total,
     items: payableItems
   };
 };
@@ -167,10 +179,16 @@ export const getPayables = () => {
 export const getReceivables = () => {
   // Calculate actual receivables based on unpaid invoices
   const receivableItems = invoices.filter(inv => inv.status !== 'paid');
-  const total = receivableItems.reduce((sum, inv) => sum + calculateInvoiceTotal(inv), 0);
+  
+  // Fix the calculation of total receivables
+  const total = receivableItems.reduce((sum, inv) => {
+    const invTotal = calculateInvoiceTotal(inv).total;
+    const paidAmount = inv.payments.reduce((sum, payment) => sum + payment.amount, 0);
+    return sum + (invTotal - paidAmount);
+  }, 0);
   
   return {
-    total: total,
+    total,
     items: receivableItems
   };
 };
@@ -181,13 +199,13 @@ export const getPartExpenses = () => {
   const total = partItems.reduce((sum, item) => sum + item.amount, 0);
   
   return {
-    total: total,
+    total,
     items: partItems
   };
 };
 
 // Attendance functions
-export const recordAttendance = (attendance: {
+export const recordAttendance = (attendanceData: {
   mechanicId: string;
   date: string;
   checkIn: string;
@@ -195,14 +213,14 @@ export const recordAttendance = (attendance: {
 }): Attendance => {
   const newAttendance: Attendance = {
     id: generateId("attendance"),
-    mechanicId: attendance.mechanicId,
-    date: attendance.date,
-    checkIn: attendance.checkIn,
-    status: attendance.status || 'pending',
+    mechanicId: attendanceData.mechanicId,
+    date: attendanceData.date,
+    checkIn: attendanceData.checkIn,
+    status: attendanceData.status || 'pending',
   };
   
   // Push the new attendance record to the array
-  global.attendance.push(newAttendance);
+  attendance.push(newAttendance);
   return newAttendance;
 };
 
@@ -381,4 +399,3 @@ export const getRolePermissions = (role: UserRole): TypesRolePermissionMap | und
 
   return rolePermissions[role];
 };
-

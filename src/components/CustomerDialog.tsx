@@ -46,6 +46,7 @@ const CustomerDialog = ({ open, onOpenChange, onCustomerAdded }: CustomerDialogP
         address: data.address
       };
       
+      // Call addCustomer with the customer data directly
       const newCustomer = addCustomer(customerData);
       
       // Then add all vehicles for this customer if any exist
@@ -62,7 +63,8 @@ const CustomerDialog = ({ open, onOpenChange, onCustomerAdded }: CustomerDialogP
             color: vehicle.color
           };
           
-          addVehicle(vehicleData);
+          // Pass customerId and vehicle data to addVehicle
+          addVehicle(newCustomer.id, vehicleData);
         });
       }
       

@@ -90,7 +90,8 @@ const VehicleDialog = ({
         licensePlate: data.licensePlate,
       };
       
-      const newVehicle = addVehicle(vehicleData);
+      // Pass customerId as first argument and vehicle data as second
+      const newVehicle = addVehicle(customerId, vehicleData);
       
       onVehicleAdded(newVehicle);
       form.reset();
