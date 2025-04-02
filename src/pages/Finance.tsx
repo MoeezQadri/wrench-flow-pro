@@ -40,6 +40,7 @@ import {
   expenses, 
   getCustomers, 
   getExpensesByDateRange, 
+  getPartExpenses, 
   getPayables, 
   getPaymentsByDateRange, 
   getReceivables, 
@@ -48,8 +49,6 @@ import {
 } from "@/services/data-service";
 import { InvoiceStatus, Expense } from "@/types";
 import ExpenseDialog from "@/components/expense/ExpenseDialog";
-
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
 // Define types for payable and receivable items
 type PayableItem = {
