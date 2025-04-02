@@ -18,7 +18,7 @@ const PrivateRoute = ({ children }: PrivateRouteProps) => {
   // For superadmin routes, check if user has superadmin access
   if (location.pathname.startsWith('/superadmin')) {
     // Check if user is a superuser or has superadmin privileges
-    const isSuperAdmin = currentUser?.role === 'superuser' || (currentUser as any)?.isSuperAdmin;
+    const isSuperAdmin = currentUser?.role === 'superuser' || currentUser?.isSuperAdmin;
     
     if (!isSuperAdmin) {
       return <Navigate to="/" replace />;

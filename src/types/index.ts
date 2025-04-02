@@ -1,3 +1,4 @@
+
 export type InvoiceStatus = 'open' | 'in-progress' | 'completed' | 'paid' | 'partial';
 
 export type UserRole = 'owner' | 'manager' | 'mechanic' | 'foreman' | 'superuser';
@@ -48,7 +49,7 @@ export interface Customer {
   email: string;
   phone: string;
   address: string;
-  vehicles?: string[]; // IDs of vehicles belonging to this customer
+  vehicles?: Vehicle[]; // Changed from string[] to Vehicle[]
   totalVisits?: number; // Total number of times customer has visited
   lifetimeValue?: number; // Total amount spent by customer
   lastVisit?: string; // Date of last visit
@@ -155,6 +156,7 @@ export interface Expense {
   amount: number;
   description: string;
   paymentMethod: 'cash' | 'card' | 'bank-transfer';
+  paymentStatus: 'paid' | 'pending' | 'overdue'; // Added payment status 
   vendorId?: string;
   vendorName?: string;
 }

@@ -35,9 +35,15 @@ export const getVehiclesByCustomerId = (customerId: string): Vehicle[] => {
   return customer?.vehicles || [];
 };
 
-export const getVehicleById = (customerId: string, vehicleId: string): Vehicle | undefined => {
-  const customer = getCustomerById(customerId);
-  return customer?.vehicles?.find(v => v.id === vehicleId);
+export const getVehicleById = (vehicleId: string): Vehicle | undefined => {
+  // Search through all customers for the vehicle
+  for (const customer of customers) {
+    if (customer.vehicles) {
+      const vehicle = customer.vehicles.find(v => v.id === vehicleId);
+      if (vehicle) return vehicle;
+    }
+  }
+  return undefined;
 };
 
 export const getMechanicById = (id: string): Mechanic | undefined => {
@@ -149,11 +155,11 @@ export const getPaymentsByDateRange = (startDate: string, endDate: string): any[
 
 export const getPayables = () => {
   // Calculate actual payables based on expenses
-  const payableItems = expenses.filter(e => e.paymentMethod === 'bank-transfer' && !e.paid);
+  const payableItems = expenses.filter(e => e.paymentStatus !== 'paid');
   const total = payableItems.reduce((sum, item) => sum + item.amount, 0);
   
   return {
-    total,
+    total: total,
     items: payableItems
   };
 };
@@ -164,7 +170,7 @@ export const getReceivables = () => {
   const total = receivableItems.reduce((sum, inv) => sum + calculateInvoiceTotal(inv), 0);
   
   return {
-    total,
+    total: total,
     items: receivableItems
   };
 };
@@ -175,30 +181,34 @@ export const getPartExpenses = () => {
   const total = partItems.reduce((sum, item) => sum + item.amount, 0);
   
   return {
-    total,
+    total: total,
     items: partItems
   };
 };
 
 // Attendance functions
-export const recordAttendance = (
-  mechanicId: string, 
-  date: string, 
-  checkIn: string, 
-  status: 'pending' | 'approved' | 'rejected' = 'pending'
-): Attendance => {
+export const recordAttendance = (attendance: {
+  mechanicId: string;
+  date: string;
+  checkIn: string;
+  status?: 'pending' | 'approved' | 'rejected';
+}): Attendance => {
   const newAttendance: Attendance = {
     id: generateId("attendance"),
-    mechanicId,
-    date,
-    checkIn,
-    status
+    mechanicId: attendance.mechanicId,
+    date: attendance.date,
+    checkIn: attendance.checkIn,
+    status: attendance.status || 'pending',
   };
-  attendance.push(newAttendance);
+  
+  // Push the new attendance record to the array
+  global.attendance.push(newAttendance);
   return newAttendance;
 };
 
-export const approveAttendance = (attendanceId: string): boolean => {
+export const approveAttendance = (
+  attendanceId: string
+): boolean => {
   const record = attendance.find(a => a.id === attendanceId);
   if (record) {
     record.status = 'approved';
@@ -371,3 +381,4 @@ export const getRolePermissions = (role: UserRole): TypesRolePermissionMap | und
 
   return rolePermissions[role];
 };
+

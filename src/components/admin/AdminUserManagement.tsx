@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -288,7 +287,7 @@ const AdminUserManagement = () => {
                       <TableCell>{org.activeSeats} / {org.seats}</TableCell>
                       <TableCell>{new Date(org.createdAt).toLocaleDateString()}</TableCell>
                       <TableCell>
-                        <Badge variant={org.status === 'active' ? 'success' : 'destructive'}>
+                        <Badge variant={org.status === 'active' ? 'default' : 'destructive'}>
                           {org.status === 'active' ? 'Active' : 'Inactive'}
                         </Badge>
                       </TableCell>

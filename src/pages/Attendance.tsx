@@ -19,9 +19,9 @@ import {
   approveAttendance, 
   getMechanicById, 
   getCurrentUser, 
-  hasPermission,
-  Attendance
+  hasPermission 
 } from "@/services/data-service";
+import { Attendance } from "@/types";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,7 +40,6 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 
 const AttendancePage = () => {
-  // Changed to use the Attendance type from data-service
   const [attendanceList, setAttendanceList] = useState<Attendance[]>(() => attendance);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [notes, setNotes] = useState<string>("");
@@ -72,7 +71,7 @@ const AttendancePage = () => {
     return true;
   }).filter(record => record.date === formattedDate);
 
-  const handleApprove = (id: string, status: 'approved' | 'rejected') => {
+  const handleApprove = (id: string) => {
     if (!canApproveAttendance) {
       toast.error("You don't have permission to approve attendance records");
       return;
@@ -84,7 +83,7 @@ const AttendancePage = () => {
         record.id === id 
           ? { 
               ...record, 
-              status, 
+              status: 'approved', 
               approvedBy: currentUser.id,
               notes: notes || record.notes
             } 
@@ -93,9 +92,9 @@ const AttendancePage = () => {
     );
     
     // In a real app, this would call an API
-    approveAttendance(id, currentUser.id, status, notes);
+    approveAttendance(id);
     
-    toast.success(`Attendance ${status}`);
+    toast.success("Attendance approved");
     setNotes("");
   };
 
@@ -202,73 +201,26 @@ const AttendancePage = () => {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem 
-                                className="text-green-600 cursor-pointer"
-                                onClick={() => handleApprove(record.id, 'approved')}
+                                className="flex items-center text-green-600"
+                                onClick={() => handleApprove(record.id)}
                               >
-                                <CheckCircle className="h-4 w-4 mr-2" />
+                                <CheckCircle className="mr-2 h-4 w-4" />
                                 Approve
                               </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                className="text-red-600 cursor-pointer"
-                                onClick={() => handleApprove(record.id, 'rejected')}
-                              >
-                                <XCircle className="h-4 w-4 mr-2" />
-                                Reject
-                              </DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              <Popover>
-                                <PopoverTrigger asChild>
-                                  <DropdownMenuItem 
-                                    className="cursor-pointer"
-                                    onSelect={(e) => e.preventDefault()}
-                                  >
-                                    <ClipboardCheck className="h-4 w-4 mr-2" />
-                                    Add Notes
-                                  </DropdownMenuItem>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-80">
-                                  <div className="space-y-2">
-                                    <h4 className="font-medium">Attendance Notes</h4>
-                                    <Textarea 
-                                      placeholder="Add notes about this attendance record"
-                                      value={notes}
-                                      onChange={(e) => setNotes(e.target.value)}
-                                    />
-                                    <div className="flex justify-end space-x-2">
-                                      <Button 
-                                        variant="outline" 
-                                        size="sm"
-                                        onClick={() => setNotes("")}
-                                      >
-                                        Cancel
-                                      </Button>
-                                      <Button 
-                                        size="sm"
-                                        onClick={() => {
-                                          handleApprove(record.id, 'approved');
-                                        }}
-                                      >
-                                        Save & Approve
-                                      </Button>
-                                    </div>
-                                  </div>
-                                </PopoverContent>
-                              </Popover>
+                              <div className="p-2">
+                                <Textarea
+                                  placeholder="Add notes..."
+                                  className="min-h-[80px] w-[200px]"
+                                  value={notes}
+                                  onChange={(e) => setNotes(e.target.value)}
+                                />
+                              </div>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         ) : (
-                          <span className="text-muted-foreground text-sm">
-                            {record.status === 'approved' ? (
-                              <span className="flex items-center justify-end">
-                                <CheckCircle className="h-4 w-4 mr-1 text-green-500" />
-                                Approved
-                              </span>
-                            ) : (
-                              <span className="flex items-center justify-end">
-                                <XCircle className="h-4 w-4 mr-1 text-red-500" />
-                                Rejected
-                              </span>
-                            )}
+                          <span className="text-xs text-muted-foreground">
+                            {record.status === 'approved' ? 'Approved' : 'Rejected'}
                           </span>
                         )}
                       </TableCell>
@@ -278,10 +230,10 @@ const AttendancePage = () => {
               })}
               {filteredAttendance.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={canApproveAttendance ? 7 : 6} className="text-center py-6">
+                  <TableCell colSpan={canApproveAttendance ? 7 : 6} className="text-center py-8">
                     <div className="flex flex-col items-center justify-center text-muted-foreground">
-                      <Clock className="w-12 h-12 mb-2 text-muted-foreground/60" />
-                      <p>No attendance records found</p>
+                      <ClipboardCheck className="h-12 w-12 mb-2 opacity-20" />
+                      <p>No attendance records found for this date</p>
                     </div>
                   </TableCell>
                 </TableRow>
