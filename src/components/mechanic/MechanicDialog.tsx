@@ -64,7 +64,7 @@ const MechanicDialog = ({ open, onOpenChange, onSave, mechanic }: MechanicDialog
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[600px] w-full">
         <DialogHeader>
           <DialogTitle>{isEditing ? "Edit Mechanic" : "Add New Mechanic"}</DialogTitle>
           <DialogDescription>
