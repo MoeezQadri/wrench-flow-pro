@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Mechanic } from "@/types";
 import MechanicForm, { MechanicFormValues } from "./MechanicForm";
-import { generateId } from "@/services/data-service";
+import { generateId, getCurrentUser, hasPermission } from "@/services/data-service";
 
 interface MechanicDialogProps {
   open: boolean;
@@ -24,12 +24,24 @@ interface MechanicDialogProps {
 const MechanicDialog = ({ open, onOpenChange, onSave, mechanic }: MechanicDialogProps) => {
   const isEditing = !!mechanic;
   const formId = "mechanic-form";
+  const currentUser = getCurrentUser();
+  
+  // Check if user has permission to manage mechanics
+  const canManageMechanics = hasPermission(currentUser, 'mechanics', 'manage');
+  
+  if (!canManageMechanics) {
+    return null;
+  }
 
   const handleSubmit = (data: MechanicFormValues) => {
     try {
+      // Ensure all required fields are provided
       const newMechanic: Mechanic = {
         id: mechanic?.id || generateId("mechanic"),
-        ...data
+        name: data.name,
+        specialization: data.specialization,
+        hourlyRate: data.hourlyRate,
+        isActive: data.isActive
       };
       
       onSave(newMechanic);

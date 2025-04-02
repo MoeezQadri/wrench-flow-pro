@@ -6,20 +6,57 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Plus, Pencil, Calendar, CalendarCheck } from "lucide-react";
 import { toast } from "sonner";
 import TaskDialog from "@/components/task/TaskDialog";
-import { tasks, mechanics, getMechanicById } from "@/services/data-service";
+import TaskCheckInOut from "@/components/task/TaskCheckInOut";
+import { tasks, mechanics, getMechanicById, getCurrentUser, hasPermission } from "@/services/data-service";
 import { Task } from "@/types";
 
 const Tasks = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | undefined>(undefined);
   const [tasksList, setTasksList] = useState<Task[]>(tasks);
+  const [selectedTaskForTimeTracking, setSelectedTaskForTimeTracking] = useState<Task | null>(null);
+  const currentUser = getCurrentUser();
+
+  // Check permissions
+  const canViewTasks = hasPermission(currentUser, 'tasks', 'view');
+  const canManageTasks = hasPermission(currentUser, 'tasks', 'manage');
+  
+  // For mechanics, filter tasks to only show their own
+  const filteredTasks = currentUser.role === 'mechanic' && currentUser.mechanicId 
+    ? tasksList.filter(task => task.mechanicId === currentUser.mechanicId)
+    : tasksList;
+
+  if (!canViewTasks) {
+    return (
+      <div className="flex justify-center items-center h-96">
+        <p className="text-muted-foreground">You don't have permission to view tasks.</p>
+      </div>
+    );
+  }
 
   const handleAddTask = () => {
+    if (!canManageTasks && currentUser.role !== 'mechanic') {
+      toast.error("You don't have permission to add tasks");
+      return;
+    }
+    
     setSelectedTask(undefined);
     setIsDialogOpen(true);
   };
 
   const handleEditTask = (task: Task) => {
+    // Mechanics can only edit their own tasks
+    if (currentUser.role === 'mechanic' && task.mechanicId !== currentUser.mechanicId) {
+      toast.error("You can only edit your own tasks");
+      return;
+    }
+    
+    // Managers and owners can edit any task
+    if (currentUser.role !== 'mechanic' && !canManageTasks) {
+      toast.error("You don't have permission to edit tasks");
+      return;
+    }
+    
     setSelectedTask(task);
     setIsDialogOpen(true);
   };
@@ -35,6 +72,13 @@ const Tasks = () => {
         return [...prev, task];
       }
     });
+  };
+
+  const handleTimeTrackingUpdate = (updatedTask: Task) => {
+    setTasksList(prev => 
+      prev.map(task => task.id === updatedTask.id ? updatedTask : task)
+    );
+    setSelectedTaskForTimeTracking(null);
   };
 
   const getStatusBadgeClass = (status: 'pending' | 'in-progress' | 'completed') => {
@@ -54,11 +98,20 @@ const Tasks = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold tracking-tight">Tasks</h1>
-        <Button onClick={handleAddTask}>
-          <Plus className="mr-1 h-4 w-4" />
-          Add Task
-        </Button>
+        {(canManageTasks || currentUser.role === 'mechanic') && (
+          <Button onClick={handleAddTask}>
+            <Plus className="mr-1 h-4 w-4" />
+            Add Task
+          </Button>
+        )}
       </div>
+
+      {selectedTaskForTimeTracking && (
+        <TaskCheckInOut 
+          task={selectedTaskForTimeTracking}
+          onUpdate={handleTimeTrackingUpdate}
+        />
+      )}
 
       <Card>
         <CardHeader className="pb-2">
@@ -77,7 +130,7 @@ const Tasks = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {tasksList.map((task) => {
+              {filteredTasks.map((task) => {
                 const mechanic = getMechanicById(task.mechanicId);
                 
                 return (
@@ -97,31 +150,49 @@ const Tasks = () => {
                     <TableCell>{task.hoursEstimated}</TableCell>
                     <TableCell>{task.hoursSpent || "—"}</TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEditTask(task)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
+                      <div className="flex justify-end space-x-1">
+                        {/* Time tracking button for mechanics */}
+                        {currentUser.role === 'mechanic' && currentUser.mechanicId === task.mechanicId && task.status !== 'completed' && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setSelectedTaskForTimeTracking(task)}
+                          >
+                            <Calendar className="h-4 w-4" />
+                          </Button>
+                        )}
+                        
+                        {/* Edit button */}
+                        {((canManageTasks) || (currentUser.role === 'mechanic' && currentUser.mechanicId === task.mechanicId)) && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEditTask(task)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
               })}
-              {tasksList.length === 0 && (
+              {filteredTasks.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-6">
                     <div className="flex flex-col items-center justify-center text-muted-foreground">
                       <CalendarCheck className="w-12 h-12 mb-2 text-muted-foreground/60" />
                       <p>No tasks found</p>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="mt-2"
-                        onClick={handleAddTask}
-                      >
-                        Add your first task
-                      </Button>
+                      {(canManageTasks || currentUser.role === 'mechanic') && (
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="mt-2"
+                          onClick={handleAddTask}
+                        >
+                          Add your first task
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>

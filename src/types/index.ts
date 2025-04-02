@@ -1,5 +1,40 @@
 export type InvoiceStatus = 'open' | 'in-progress' | 'completed' | 'paid' | 'partial';
 
+export type UserRole = 'owner' | 'manager' | 'mechanic';
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  mechanicId?: string; // If role is mechanic, this links to their mechanic profile
+  isActive: boolean;
+  lastLogin?: string;
+}
+
+export interface Organization {
+  id: string;
+  name: string;
+  subscriptionLevel: 'basic' | 'professional' | 'enterprise';
+  subscriptionStatus: 'active' | 'trial' | 'expired';
+  trialEndsAt?: string;
+  logo?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+}
+
+export interface Attendance {
+  id: string;
+  mechanicId: string;
+  date: string;
+  checkIn: string;
+  checkOut?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  approvedBy?: string; // Manager or Owner ID
+  notes?: string;
+}
+
 export interface Customer {
   id: string;
   name: string;
@@ -131,3 +166,55 @@ export interface CustomerAnalytics {
   vehicles: Vehicle[];
   invoiceHistory: Invoice[];
 }
+
+export interface PermissionMap {
+  [key: string]: boolean | PermissionMap;
+}
+
+export const rolePermissions: Record<UserRole, PermissionMap> = {
+  owner: {
+    dashboard: true,
+    customers: { view: true, manage: true },
+    invoices: { view: true, manage: true },
+    mechanics: { view: true, manage: true },
+    tasks: { view: true, manage: true },
+    parts: { view: true, manage: true },
+    expenses: { view: true, manage: true },
+    reports: { view: true },
+    attendance: { view: true, manage: true, approve: true },
+    settings: { view: true, manage: true },
+    organization: { view: true, manage: true },
+    users: { view: true, manage: true },
+    subscription: { view: true, manage: true }
+  },
+  manager: {
+    dashboard: true,
+    customers: { view: true, manage: true },
+    invoices: { view: true, manage: true },
+    mechanics: { view: true, manage: true },
+    tasks: { view: true, manage: true },
+    parts: { view: true, manage: true },
+    expenses: { view: true, manage: true },
+    reports: { view: true },
+    attendance: { view: true, manage: true, approve: true },
+    settings: { view: false, manage: false },
+    organization: { view: true, manage: false },
+    users: { view: true, manage: false },
+    subscription: { view: true, manage: false }
+  },
+  mechanic: {
+    dashboard: false,
+    customers: { view: true, manage: false },
+    invoices: { view: false, manage: false },
+    mechanics: { view: false, manage: false },
+    tasks: { view: true, manage: 'own' },
+    parts: { view: true, manage: false },
+    expenses: { view: false, manage: false },
+    reports: { view: false },
+    attendance: { view: 'own', manage: 'own', approve: false },
+    settings: { view: false, manage: false },
+    organization: { view: false, manage: false },
+    users: { view: false, manage: false },
+    subscription: { view: false, manage: false }
+  }
+};

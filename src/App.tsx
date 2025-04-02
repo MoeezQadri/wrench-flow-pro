@@ -19,6 +19,8 @@ import Mechanics from "@/pages/Mechanics";
 import Tasks from "@/pages/Tasks";
 import Parts from "@/pages/Parts";
 import Expenses from "@/pages/Expenses";
+import Attendance from "@/pages/Attendance";
+import Users from "@/pages/Users";
 import { useState } from "react";
 
 const App = () => {
@@ -42,6 +44,8 @@ const App = () => {
               <Route path="/tasks" element={<Tasks />} />
               <Route path="/parts" element={<Parts />} />
               <Route path="/expenses" element={<Expenses />} />
+              <Route path="/attendance" element={<Attendance />} />
+              <Route path="/users" element={<Users />} />
               <Route path="/settings" element={<div className="p-6">Settings page coming soon</div>} />
               <Route path="/reports" element={<Reports />} />
               <Route path="/reports/attendance" element={<AttendanceReport />} />

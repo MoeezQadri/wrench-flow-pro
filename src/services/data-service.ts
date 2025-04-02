@@ -11,8 +11,108 @@ import {
   DashboardMetrics,
   CustomerAnalytics,
   InvoiceStatus,
-  Vendor
+  Vendor,
+  User,
+  Organization,
+  Attendance
 } from '@/types';
+
+// Add users data
+export const users: User[] = [
+  {
+    id: 'user-1',
+    name: 'Shop Owner',
+    email: 'owner@wrenchflow.com',
+    role: 'owner',
+    isActive: true,
+    lastLogin: '2024-06-15T08:30:00Z'
+  },
+  {
+    id: 'user-2',
+    name: 'Shop Manager',
+    email: 'manager@wrenchflow.com',
+    role: 'manager',
+    isActive: true,
+    lastLogin: '2024-06-15T09:00:00Z'
+  },
+  {
+    id: 'user-3',
+    name: 'Mike Johnson',
+    email: 'mike@wrenchflow.com',
+    role: 'mechanic',
+    mechanicId: 'mechanic-1',
+    isActive: true,
+    lastLogin: '2024-06-15T07:45:00Z'
+  },
+  {
+    id: 'user-4',
+    name: 'Sarah Lee',
+    email: 'sarah@wrenchflow.com',
+    role: 'mechanic',
+    mechanicId: 'mechanic-2',
+    isActive: true,
+    lastLogin: '2024-06-15T08:15:00Z'
+  },
+  {
+    id: 'user-5',
+    name: 'David Kim',
+    email: 'david@wrenchflow.com',
+    role: 'mechanic',
+    mechanicId: 'mechanic-3',
+    isActive: false,
+    lastLogin: '2024-05-20T09:30:00Z'
+  }
+];
+
+// Organization data
+export const organization: Organization = {
+  id: 'org-1',
+  name: 'WrenchFlow Auto Shop',
+  subscriptionLevel: 'professional',
+  subscriptionStatus: 'active',
+  address: '123 Repair Street, Fixville, CA 94123',
+  phone: '555-123-4567',
+  email: 'info@wrenchflow.com'
+};
+
+// Attendance data
+export const attendance: Attendance[] = [
+  {
+    id: 'attendance-1',
+    mechanicId: 'mechanic-1',
+    date: '2024-06-15',
+    checkIn: '08:00',
+    checkOut: '17:00',
+    status: 'approved',
+    approvedBy: 'user-2',
+    notes: 'On time'
+  },
+  {
+    id: 'attendance-2',
+    mechanicId: 'mechanic-2',
+    date: '2024-06-15',
+    checkIn: '08:15',
+    checkOut: '17:30',
+    status: 'approved',
+    approvedBy: 'user-2'
+  },
+  {
+    id: 'attendance-3',
+    mechanicId: 'mechanic-1',
+    date: '2024-06-14',
+    checkIn: '07:55',
+    checkOut: '16:45',
+    status: 'approved',
+    approvedBy: 'user-2'
+  },
+  {
+    id: 'attendance-4',
+    mechanicId: 'mechanic-3',
+    date: '2024-06-14',
+    checkIn: '09:30',
+    status: 'pending'
+  }
+];
 
 // Mock Data
 export const customers: Customer[] = [
@@ -599,3 +699,130 @@ export function getPayables(): Expense[] {
   // In a real system, you might have unpaid expenses. For this mock, we'll return all expenses
   return expenses;
 }
+
+// User and role helpers
+export const getCurrentUser = (): User => {
+  // In a real app, this would come from authentication
+  // For demo purposes, we'll return the shop manager by default
+  return users.find(u => u.id === 'user-2')!;
+};
+
+export const getUserById = (id: string): User | undefined => {
+  return users.find(user => user.id === id);
+};
+
+export const getUserByEmail = (email: string): User | undefined => {
+  return users.find(user => user.email === email);
+};
+
+export const getMechanicUser = (mechanicId: string): User | undefined => {
+  return users.find(user => user.mechanicId === mechanicId);
+};
+
+export const hasPermission = (
+  user: User, 
+  resource: string, 
+  action: string
+): boolean => {
+  const perms = rolePermissions[user.role];
+  if (!perms) return false;
+  
+  const resourcePerms = perms[resource];
+  if (typeof resourcePerms === 'boolean') return resourcePerms;
+  if (!resourcePerms) return false;
+  
+  const actionPerm = resourcePerms[action];
+  if (typeof actionPerm === 'boolean') return actionPerm;
+  if (actionPerm === 'own') {
+    // For "own" permissions, we need to check if the resource belongs to the user
+    // This would be implemented differently depending on the resource
+    return true;
+  }
+  return false;
+};
+
+// Attendance helpers
+export const getAttendanceByMechanic = (mechanicId: string): Attendance[] => {
+  return attendance.filter(a => a.mechanicId === mechanicId);
+};
+
+export const getAttendanceByDate = (date: string): Attendance[] => {
+  return attendance.filter(a => a.date === date);
+};
+
+export const recordAttendance = (data: Omit<Attendance, 'id'>): Attendance => {
+  const newAttendance: Attendance = {
+    id: generateId('attendance'),
+    ...data
+  };
+  
+  attendance.push(newAttendance);
+  return newAttendance;
+};
+
+export const approveAttendance = (id: string, managerId: string, status: 'approved' | 'rejected', notes?: string): Attendance | undefined => {
+  const attendanceRecord = attendance.find(a => a.id === id);
+  if (!attendanceRecord) return undefined;
+  
+  attendanceRecord.status = status;
+  attendanceRecord.approvedBy = managerId;
+  if (notes) attendanceRecord.notes = notes;
+  
+  return attendanceRecord;
+};
+
+export const getTasksByMechanic = (mechanicId: string): Task[] => {
+  return tasks.filter(task => task.mechanicId === mechanicId);
+};
+
+export interface PermissionMap {
+  [key: string]: boolean | PermissionMap;
+}
+
+export const rolePermissions: Record<User['role'], PermissionMap> = {
+  owner: {
+    dashboard: true,
+    customers: { view: true, manage: true },
+    invoices: { view: true, manage: true },
+    mechanics: { view: true, manage: true },
+    tasks: { view: true, manage: true },
+    parts: { view: true, manage: true },
+    expenses: { view: true, manage: true },
+    reports: { view: true },
+    attendance: { view: true, manage: true, approve: true },
+    settings: { view: true, manage: true },
+    organization: { view: true, manage: true },
+    users: { view: true, manage: true },
+    subscription: { view: true, manage: true }
+  },
+  manager: {
+    dashboard: true,
+    customers: { view: true, manage: true },
+    invoices: { view: true, manage: true },
+    mechanics: { view: true, manage: true },
+    tasks: { view: true, manage: true },
+    parts: { view: true, manage: true },
+    expenses: { view: true, manage: true },
+    reports: { view: true },
+    attendance: { view: true, manage: true, approve: true },
+    settings: { view: false, manage: false },
+    organization: { view: true, manage: false },
+    users: { view: true, manage: false },
+    subscription: { view: true, manage: false }
+  },
+  mechanic: {
+    dashboard: false,
+    customers: { view: true, manage: false },
+    invoices: { view: false, manage: false },
+    mechanics: { view: false, manage: false },
+    tasks: { view: true, manage: 'own' },
+    parts: { view: true, manage: false },
+    expenses: { view: false, manage: false },
+    reports: { view: false },
+    attendance: { view: 'own', manage: 'own', approve: false },
+    settings: { view: false, manage: false },
+    organization: { view: false, manage: false },
+    users: { view: false, manage: false },
+    subscription: { view: false, manage: false }
+  }
+};

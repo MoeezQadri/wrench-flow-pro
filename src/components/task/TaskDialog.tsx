@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Task } from "@/types";
 import TaskForm, { TaskFormValues } from "./TaskForm";
-import { generateId } from "@/services/data-service";
+import { generateId, getCurrentUser, hasPermission } from "@/services/data-service";
 
 interface TaskDialogProps {
   open: boolean;
@@ -24,12 +24,30 @@ interface TaskDialogProps {
 const TaskDialog = ({ open, onOpenChange, onSave, task }: TaskDialogProps) => {
   const isEditing = !!task;
   const formId = "task-form";
+  const currentUser = getCurrentUser();
+  
+  // Check if user has permission to edit this task
+  const canEdit = hasPermission(currentUser, 'tasks', 'manage') ||
+    (currentUser.role === 'mechanic' && 
+     currentUser.mechanicId === task?.mechanicId && 
+     hasPermission(currentUser, 'tasks', 'manage'));
+
+  if (!canEdit) {
+    return null;
+  }
 
   const handleSubmit = (data: TaskFormValues) => {
     try {
+      // Ensure all required fields are provided
       const newTask: Task = {
         id: task?.id || generateId("task"),
-        ...data
+        title: data.title,
+        description: data.description,
+        mechanicId: data.mechanicId,
+        status: data.status,
+        hoursEstimated: data.hoursEstimated,
+        hoursSpent: data.hoursSpent,
+        invoiceId: data.invoiceId,
       };
       
       onSave(newTask);
