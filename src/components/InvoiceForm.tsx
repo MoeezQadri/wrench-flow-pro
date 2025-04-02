@@ -187,23 +187,21 @@ const InvoiceForm = () => {
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
           <div className="grid gap-6 md:grid-cols-2">
             {/* Customer Selection */}
-            <div className="flex space-x-2 items-end">
-              <div className="flex-1">
-                <FormField
-                  control={form.control}
-                  name="customerId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Customer</FormLabel>
-                      <Select 
-                        onValueChange={field.onChange} 
+            <FormField
+              control={form.control}
+              name="customerId"
+              render={({ field }) => (
+                <FormItem className="space-y-2">
+                  <FormLabel>Customer</FormLabel>
+                  <div className="flex items-center gap-2">
+                    <FormControl className="flex-1">
+                      <Select
+                        onValueChange={field.onChange}
                         value={field.value}
                       >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a customer" />
-                          </SelectTrigger>
-                        </FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a customer" />
+                        </SelectTrigger>
                         <SelectContent>
                           {customers.map((customer) => (
                             <SelectItem key={customer.id} value={customer.id}>
@@ -212,65 +210,68 @@ const InvoiceForm = () => {
                           ))}
                         </SelectContent>
                       </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <Button
-                type="button"
-                size="icon"
-                variant="outline"
-                onClick={() => setCustomerDialogOpen(true)}
-                className="mb-2"
-              >
-                <UserPlus className="h-4 w-4" />
-              </Button>
-            </div>
+                    </FormControl>
+                    <Button
+                      type="button"
+                      onClick={() => setCustomerDialogOpen(true)}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      <UserPlus className="h-4 w-4 mr-1" />
+                      Add
+                    </Button>
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             {/* Vehicle Selection */}
-            <div className="flex space-x-2 items-end">
-              <div className="flex-1">
-                <FormField
-                  control={form.control}
-                  name="vehicleId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Vehicle</FormLabel>
-                      <Select 
-                        onValueChange={field.onChange} 
+            <FormField
+              control={form.control}
+              name="vehicleId"
+              render={({ field }) => (
+                <FormItem className="space-y-2">
+                  <FormLabel>Vehicle</FormLabel>
+                  <div className="flex items-center gap-2">
+                    <FormControl className="flex-1">
+                      <Select
+                        onValueChange={field.onChange}
                         value={field.value}
                         disabled={!watchCustomerId}
                       >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder={watchCustomerId ? "Select a vehicle" : "Select a customer first"} />
-                          </SelectTrigger>
-                        </FormControl>
+                        <SelectTrigger>
+                          <SelectValue
+                            placeholder={
+                              watchCustomerId
+                                ? "Select a vehicle"
+                                : "Select a customer first"
+                            }
+                          />
+                        </SelectTrigger>
                         <SelectContent>
                           {vehicles.map((vehicle) => (
                             <SelectItem key={vehicle.id} value={vehicle.id}>
-                              {vehicle.make} {vehicle.model} ({vehicle.year}) - {vehicle.licensePlate}
+                              {vehicle.make} {vehicle.model} ({vehicle.year}) -{" "}
+                              {vehicle.licensePlate}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <Button
-                type="button"
-                size="icon"
-                variant="outline"
-                onClick={() => setVehicleDialogOpen(true)}
-                disabled={!watchCustomerId}
-                className="mb-2"
-              >
-                <Car className="h-4 w-4" />
-              </Button>
-            </div>
+                    </FormControl>
+                    <Button
+                      type="button"
+                      onClick={() => setVehicleDialogOpen(true)}
+                      disabled={!watchCustomerId}
+                      className="bg-orange-500 hover:bg-orange-600"
+                    >
+                      <Car className="h-4 w-4 mr-1" />
+                      Add
+                    </Button>
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             {/* Invoice Date */}
             <FormField
