@@ -23,6 +23,7 @@ import { RolePermissionMap } from '@/types';
 
 // Explicitly define the resource types to avoid type errors
 type ResourceKey = keyof RolePermissionMap;
+type ActionKey = string;
 
 // Define nav items with permission requirements
 const navItems = [
@@ -30,61 +31,61 @@ const navItems = [
     name: 'Dashboard', 
     path: '/', 
     icon: <LayoutDashboard className="w-5 h-5" />,
-    permission: { resource: 'dashboard' as ResourceKey, action: 'view' }
+    permission: { resource: 'dashboard' as ResourceKey, action: 'view' as ActionKey }
   },
   { 
     name: 'Invoices', 
     path: '/invoices', 
     icon: <FileText className="w-5 h-5" />,
-    permission: { resource: 'invoices' as ResourceKey, action: 'view' }
+    permission: { resource: 'invoices' as ResourceKey, action: 'view' as ActionKey }
   },
   { 
     name: 'Customers', 
     path: '/customers', 
     icon: <Users className="w-5 h-5" />,
-    permission: { resource: 'customers' as ResourceKey, action: 'view' }
+    permission: { resource: 'customers' as ResourceKey, action: 'view' as ActionKey }
   },
   { 
     name: 'Mechanics', 
     path: '/mechanics', 
     icon: <Wrench className="w-5 h-5" />,
-    permission: { resource: 'mechanics' as ResourceKey, action: 'view' }
+    permission: { resource: 'mechanics' as ResourceKey, action: 'view' as ActionKey }
   },
   { 
     name: 'Tasks', 
     path: '/tasks', 
     icon: <CalendarCheck className="w-5 h-5" />,
-    permission: { resource: 'tasks' as ResourceKey, action: 'view' }
+    permission: { resource: 'tasks' as ResourceKey, action: 'view' as ActionKey }
   },
   { 
     name: 'Parts', 
     path: '/parts', 
     icon: <ShoppingBag className="w-5 h-5" />,
-    permission: { resource: 'parts' as ResourceKey, action: 'view' }
+    permission: { resource: 'parts' as ResourceKey, action: 'view' as ActionKey }
   },
   { 
     name: 'Expenses', 
     path: '/expenses', 
     icon: <DollarSign className="w-5 h-5" />,
-    permission: { resource: 'expenses' as ResourceKey, action: 'view' }
+    permission: { resource: 'expenses' as ResourceKey, action: 'view' as ActionKey }
   },
   { 
     name: 'Attendance', 
     path: '/attendance', 
     icon: <ClipboardCheck className="w-5 h-5" />,
-    permission: { resource: 'attendance' as ResourceKey, action: 'view' }
+    permission: { resource: 'attendance' as ResourceKey, action: 'view' as ActionKey }
   },
   { 
     name: 'Users', 
     path: '/users', 
     icon: <UserCog className="w-5 h-5" />,
-    permission: { resource: 'users' as ResourceKey, action: 'view' }
+    permission: { resource: 'users' as ResourceKey, action: 'view' as ActionKey }
   },
   { 
     name: 'Settings', 
     path: '/settings', 
     icon: <Settings className="w-5 h-5" />,
-    permission: { resource: 'settings' as ResourceKey, action: 'view' }
+    permission: { resource: 'settings' as ResourceKey, action: 'view' as ActionKey }
   },
 ];
 
@@ -99,7 +100,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
   
   // Filter nav items based on user permissions
   const filteredNavItems = navItems.filter(item => 
-    hasPermission(currentUser, item.permission.resource as ResourceKey, item.permission.action)
+    hasPermission(currentUser, item.permission.resource, item.permission.action)
   );
 
   return (
