@@ -29,7 +29,13 @@ const EditInvoice = () => {
           return;
         }
         
-        setInvoice(foundInvoice);
+        // Ensure the found invoice matches the expected type by making required fields explicit
+        const typedInvoice: Invoice = {
+          ...foundInvoice,
+          notes: foundInvoice.notes || '', // Ensure notes is never undefined
+        };
+        
+        setInvoice(typedInvoice);
       } else {
         toast.error("Invoice not found.");
         navigate("/invoices");

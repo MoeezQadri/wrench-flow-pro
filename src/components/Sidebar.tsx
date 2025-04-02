@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
@@ -109,11 +110,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
   const location = useLocation();
   const currentUser = getCurrentUser();
   
-  // Fixed the type issue by casting resource to the correct type
+  // Fixed the type issue by properly typing resource as ResourceKey
   const filteredNavItems = navItems.filter(item => {
     return hasPermission(
       currentUser, 
-      item.permission.resource, 
+      item.permission.resource,  // This now matches the ResourceKey type
       item.permission.action
     );
   });
