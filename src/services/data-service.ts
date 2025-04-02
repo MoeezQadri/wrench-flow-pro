@@ -250,7 +250,6 @@ export const invoices: Invoice[] = [
     },
     status: 'completed',
     date: '2024-03-10',
-    dueDate: '2024-03-31',
     items: ['item-1', 'item-2', 'item-3', 'item-4'].map(id => invoiceItems.find(item => item.id === id)!),
     notes: 'Standard service completed. Customer approved additional brake check.',
     taxRate: 0.075,
@@ -268,7 +267,6 @@ export const invoices: Invoice[] = [
     },
     status: 'in-progress',
     date: '2024-03-15',
-    dueDate: '2024-04-05',
     items: [],
     notes: 'Diagnosing electrical issue. Will update customer with findings.',
     taxRate: 0.075,
@@ -286,7 +284,6 @@ export const invoices: Invoice[] = [
     },
     status: 'open',
     date: '2024-03-20',
-    dueDate: '2024-04-10',
     items: [],
     notes: 'Scheduled for oil change and tire rotation.',
     taxRate: 0.075,
@@ -302,6 +299,22 @@ export const payments: Payment[] = [
     method: 'card',
     date: '2024-03-10',
     notes: 'Paid in full via credit card.',
+  },
+  {
+    id: 'payment-2',
+    invoiceId: 'invoice-2',
+    amount: 50,
+    method: 'cash',
+    date: '2024-03-15',
+    notes: 'Partial payment in cash.',
+  },
+  {
+    id: 'payment-3',
+    invoiceId: 'invoice-3',
+    amount: 200,
+    method: 'bank-transfer',
+    date: '2024-03-20',
+    notes: 'Deposit via bank transfer.',
   },
 ];
 
@@ -321,6 +334,22 @@ export const expenses: Expense[] = [
     amount: 1500,
     description: 'Monthly rent for the workshop space.',
     paymentMethod: 'bank-transfer',
+  },
+  {
+    id: 'expense-3',
+    date: '2024-03-10',
+    category: 'Parts',
+    amount: 750,
+    description: 'Bulk order of brake pads and oil filters.',
+    paymentMethod: 'card',
+  },
+  {
+    id: 'expense-4',
+    date: '2024-03-15',
+    category: 'Tools',
+    amount: 350,
+    description: 'New diagnostic equipment.',
+    paymentMethod: 'card',
   },
 ];
 
@@ -448,4 +477,39 @@ export function getCustomers() {
 
 export function getVehiclesByCustomerId(customerId: string) {
   return vehicles.filter(vehicle => vehicle.customerId === customerId);
+}
+
+// New functions for finance report filtering
+export function getPaymentsByDateRange(startDate: string, endDate: string): Payment[] {
+  return payments.filter(payment => {
+    return payment.date >= startDate && payment.date <= endDate;
+  });
+}
+
+export function getExpensesByDateRange(startDate: string, endDate: string): Expense[] {
+  return expenses.filter(expense => {
+    return expense.date >= startDate && expense.date <= endDate;
+  });
+}
+
+export function getPartExpenses(): Expense[] {
+  return expenses.filter(expense => expense.category === 'Parts');
+}
+
+export function getInvoicesByDateRange(startDate: string, endDate: string): Invoice[] {
+  return invoices.filter(invoice => {
+    return invoice.date >= startDate && invoice.date <= endDate;
+  });
+}
+
+export function getReceivables(): Invoice[] {
+  return invoices.filter(invoice => 
+    invoice.status !== 'paid' && 
+    (invoice.status === 'completed' || invoice.status === 'partial')
+  );
+}
+
+export function getPayables(): Expense[] {
+  // In a real system, you might have unpaid expenses. For this mock, we'll return all expenses
+  return expenses;
 }

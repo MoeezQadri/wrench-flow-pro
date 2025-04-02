@@ -1,3 +1,4 @@
+
 export type InvoiceStatus = 'open' | 'in-progress' | 'completed' | 'paid' | 'partial';
 
 export interface Customer {
