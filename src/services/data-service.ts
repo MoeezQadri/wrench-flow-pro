@@ -35,12 +35,9 @@ export const getVehiclesByCustomerId = (customerId: string): Vehicle[] => {
   return customer?.vehicles || [];
 };
 
-export const getVehicleById = (id: string): Vehicle | undefined => {
-  for (const customer of customers) {
-    const vehicle = customer.vehicles?.find(v => v.id === id);
-    if (vehicle) return vehicle;
-  }
-  return undefined;
+export const getVehicleById = (customerId: string, vehicleId: string): Vehicle | undefined => {
+  const customer = getCustomerById(customerId);
+  return customer?.vehicles?.find(v => v.id === vehicleId);
 };
 
 export const getMechanicById = (id: string): Mechanic | undefined => {
@@ -95,10 +92,22 @@ export const addVendor = (vendor: Omit<Vendor, "id">): Vendor => {
 // Analytics functions
 export const getCustomerAnalytics = (customerId: string) => {
   // Implement real analytics in a real app
+  const customerInvoices = invoices.filter(inv => inv.customerId === customerId);
+  const totalSpent = customerInvoices.reduce((total, inv) => 
+    total + calculateInvoiceTotal(inv), 0);
+  
   return {
-    totalSpent: Math.floor(Math.random() * 10000),
-    invoiceCount: Math.floor(Math.random() * 20),
-    lastVisit: new Date().toISOString()
+    totalSpent,
+    invoiceCount: customerInvoices.length,
+    lastVisit: customerInvoices.length > 0 
+      ? Math.max(...customerInvoices.map(inv => new Date(inv.date).getTime())).toString()
+      : null,
+    // Additional data for CustomerDetail page
+    lifetimeValue: totalSpent,
+    totalInvoices: customerInvoices.length,
+    averageInvoiceValue: customerInvoices.length > 0 ? totalSpent / customerInvoices.length : 0,
+    vehicles: getVehiclesByCustomerId(customerId),
+    invoiceHistory: customerInvoices
   };
 };
 
@@ -109,57 +118,81 @@ export const calculateInvoiceTotal = (invoice: Invoice): number => {
 };
 
 export const calculateDashboardMetrics = () => {
-  // Mock implementation
+  const completedInvoices = invoices.filter(inv => inv.status === 'completed' || inv.status === 'paid');
+  const pendingInvoices = invoices.filter(inv => inv.status === 'open' || inv.status === 'in-progress');
+  
   return {
-    totalRevenue: Math.floor(Math.random() * 50000),
-    pendingInvoices: Math.floor(Math.random() * 15),
-    activeCustomers: Math.floor(Math.random() * 200),
-    completedTasks: Math.floor(Math.random() * 100)
+    totalRevenue: completedInvoices.reduce((total, inv) => total + calculateInvoiceTotal(inv), 0),
+    pendingInvoices: pendingInvoices.length,
+    activeCustomers: customers.length,
+    completedTasks: tasks.filter(task => task.status === 'completed').length,
+    activeJobs: pendingInvoices.length,
+    mechanicEfficiency: 85 // Mock value, in a real app would be calculated
   };
 };
 
 export const getExpensesByDateRange = (startDate: string, endDate: string): Expense[] => {
   // Filter expenses by date range in a real implementation
-  return expenses;
+  return expenses.filter(expense => {
+    const expenseDate = new Date(expense.date);
+    return expenseDate >= new Date(startDate) && expenseDate <= new Date(endDate);
+  });
 };
 
 export const getPaymentsByDateRange = (startDate: string, endDate: string): any[] => {
   // Filter payments by date range in a real implementation
-  return payments;
+  return payments.filter(payment => {
+    const paymentDate = new Date(payment.date);
+    return paymentDate >= new Date(startDate) && paymentDate <= new Date(endDate);
+  });
 };
 
 export const getPayables = () => {
-  // Mock implementation
+  // Calculate actual payables based on expenses
+  const payableItems = expenses.filter(e => e.paymentMethod === 'bank-transfer' && !e.paid);
+  const total = payableItems.reduce((sum, item) => sum + item.amount, 0);
+  
   return {
-    total: Math.floor(Math.random() * 5000),
-    items: []
+    total,
+    items: payableItems
   };
 };
 
 export const getReceivables = () => {
-  // Mock implementation
+  // Calculate actual receivables based on unpaid invoices
+  const receivableItems = invoices.filter(inv => inv.status !== 'paid');
+  const total = receivableItems.reduce((sum, inv) => sum + calculateInvoiceTotal(inv), 0);
+  
   return {
-    total: Math.floor(Math.random() * 8000),
-    items: []
+    total,
+    items: receivableItems
   };
 };
 
 export const getPartExpenses = () => {
-  // Mock implementation
+  // Calculate expenses related to parts
+  const partItems = expenses.filter(e => e.category === 'parts');
+  const total = partItems.reduce((sum, item) => sum + item.amount, 0);
+  
   return {
-    total: Math.floor(Math.random() * 3000),
-    items: []
+    total,
+    items: partItems
   };
 };
 
 // Attendance functions
-export const recordAttendance = (mechanicId: string, type: 'check-in' | 'check-out'): Attendance => {
+export const recordAttendance = (
+  mechanicId: string, 
+  date: string, 
+  checkIn: string, 
+  status: 'pending' | 'approved' | 'rejected' = 'pending'
+): Attendance => {
   const newAttendance: Attendance = {
     id: generateId("attendance"),
     mechanicId,
-    timestamp: new Date().toISOString(),
-    type,
-    approved: false
+    date,
+    checkIn,
+    status
   };
   attendance.push(newAttendance);
   return newAttendance;
@@ -168,7 +201,7 @@ export const recordAttendance = (mechanicId: string, type: 'check-in' | 'check-o
 export const approveAttendance = (attendanceId: string): boolean => {
   const record = attendance.find(a => a.id === attendanceId);
   if (record) {
-    record.approved = true;
+    record.status = 'approved';
     return true;
   }
   return false;

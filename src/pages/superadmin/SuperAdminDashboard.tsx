@@ -5,12 +5,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuthContext } from '@/context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, BarChart, Users, CreditCard, Settings, LogOut, Activity, LineChart, PieChart, MousePointer, Package } from 'lucide-react';
+import { AlertTriangle, BarChart, Users, CreditCard, Settings, LogOut, Activity, LineChart, PieChart, MousePointer, Package, Shield } from 'lucide-react';
 import AdminMetricsPanel from '@/components/admin/AdminMetricsPanel';
 import AdminUserManagement from '@/components/admin/AdminUserManagement';
 import AdminPaymentManagement from '@/components/admin/AdminPaymentManagement';
 import AdminAnalyticsIntegration from '@/components/admin/AdminAnalyticsIntegration';
 import SubscriptionPlansManagement from '@/components/admin/SubscriptionPlansManagement';
+import RolesManagementTab from '@/components/settings/RolesManagementTab';
 
 const SuperAdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('metrics');
@@ -65,7 +66,7 @@ const SuperAdminDashboard = () => {
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid grid-cols-6 md:w-fit">
+            <TabsList className="grid grid-cols-7 md:w-fit">
               <TabsTrigger value="metrics">
                 <BarChart className="h-4 w-4 mr-2" />
                 Metrics
@@ -81,6 +82,10 @@ const SuperAdminDashboard = () => {
               <TabsTrigger value="subscriptions">
                 <Package className="h-4 w-4 mr-2" />
                 Subscriptions
+              </TabsTrigger>
+              <TabsTrigger value="roles">
+                <Shield className="h-4 w-4 mr-2" />
+                Roles
               </TabsTrigger>
               <TabsTrigger value="settings">
                 <Settings className="h-4 w-4 mr-2" />
@@ -106,6 +111,10 @@ const SuperAdminDashboard = () => {
 
             <TabsContent value="subscriptions" className="space-y-6">
               <SubscriptionPlansManagement />
+            </TabsContent>
+            
+            <TabsContent value="roles" className="space-y-6">
+              <RolesManagementTab />
             </TabsContent>
             
             <TabsContent value="settings" className="space-y-6">
