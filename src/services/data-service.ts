@@ -175,15 +175,9 @@ export const getReceivables = (): Invoice[] => {
   return invoices.filter(inv => inv.status !== 'paid');
 };
 
-export const getPartExpenses = () => {
-  // Calculate expenses related to parts
-  const partItems = expenses.filter(e => e.category === 'parts');
-  const total = partItems.reduce((sum, item) => sum + item.amount, 0);
-  
-  return {
-    total,
-    items: partItems
-  };
+export const getPartExpenses = (): Expense[] => {
+  // Return expenses related to parts
+  return expenses.filter(e => e.category === 'parts');
 };
 
 // Attendance functions

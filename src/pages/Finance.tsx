@@ -42,7 +42,6 @@ import {
   getExpensesByDateRange, 
   getPayables, 
   getPaymentsByDateRange, 
-  getPartExpenses, 
   getReceivables, 
   invoices, 
   payments 
