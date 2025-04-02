@@ -27,7 +27,10 @@ const ExpenseDialog = ({ open, onOpenChange, onSave, expense }: ExpenseDialogPro
 
   const handleSubmit = (data: ExpenseFormValues) => {
     try {
-      const vendor = data.vendorId ? getVendorById(data.vendorId) : undefined;
+      // Only attempt to get vendor if vendorId is provided and not "none"
+      const vendor = data.vendorId && data.vendorId !== "none" 
+        ? getVendorById(data.vendorId) 
+        : undefined;
       
       const newExpense: Expense = {
         id: expense?.id || generateId("expense"),
@@ -36,7 +39,7 @@ const ExpenseDialog = ({ open, onOpenChange, onSave, expense }: ExpenseDialogPro
         amount: data.amount,
         description: data.description,
         paymentMethod: data.paymentMethod,
-        vendorId: data.vendorId,
+        vendorId: data.vendorId !== "none" ? data.vendorId : undefined,
         vendorName: vendor?.name,
       };
       
@@ -76,7 +79,7 @@ const ExpenseDialog = ({ open, onOpenChange, onSave, expense }: ExpenseDialogPro
                   amount: expense.amount,
                   description: expense.description,
                   paymentMethod: expense.paymentMethod,
-                  vendorId: expense.vendorId,
+                  vendorId: expense.vendorId || "none",
                 }
               : undefined
           }

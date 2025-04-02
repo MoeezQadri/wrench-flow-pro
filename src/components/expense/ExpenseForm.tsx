@@ -54,7 +54,7 @@ const ExpenseForm = ({ defaultValues, onSubmit, formId }: ExpenseFormProps) => {
       amount: 0,
       description: "",
       paymentMethod: "cash",
-      vendorId: "",
+      vendorId: "none", // Changed empty string to "none"
     },
   });
 
@@ -221,7 +221,7 @@ const ExpenseForm = ({ defaultValues, onSubmit, formId }: ExpenseFormProps) => {
                 <Select 
                   onValueChange={field.onChange} 
                   defaultValue={field.value} 
-                  value={field.value || ""}
+                  value={field.value || "none"}
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -229,7 +229,7 @@ const ExpenseForm = ({ defaultValues, onSubmit, formId }: ExpenseFormProps) => {
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
+                    <SelectItem value="none">None</SelectItem>
                     {vendors.map((vendor) => (
                       <SelectItem key={vendor.id} value={vendor.id}>
                         {vendor.name}
