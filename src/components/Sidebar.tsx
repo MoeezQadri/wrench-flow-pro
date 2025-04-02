@@ -111,7 +111,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
   const location = useLocation();
   const currentUser = getCurrentUser();
   
-  // Fix the type error by ensuring proper type checking
+  // Fix the type error by properly checking the resource key
   const filteredNavItems = navItems.filter(item => 
     hasPermission(
       currentUser, 
