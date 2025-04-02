@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useNavigate } from 'react-router-dom';
 import Sidebar from '@/components/Sidebar';
 import { Button } from '@/components/ui/button';
 import { Menu, Settings } from 'lucide-react';
@@ -10,6 +10,7 @@ import Logo from './Logo';
 const Layout = () => {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const { currentUser } = useAuthContext();
+  const navigate = useNavigate();
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -39,7 +40,7 @@ const Layout = () => {
             <Button 
               variant="ghost"
               size="icon"
-              onClick={() => window.location.href = '/organization-settings'}
+              onClick={() => navigate('/settings')}
             >
               <Settings className="w-5 h-5" />
             </Button>

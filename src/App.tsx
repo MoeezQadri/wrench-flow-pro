@@ -36,7 +36,7 @@ import Finance from "@/pages/Finance";
 import Attendance from "@/pages/Attendance";
 import Users from "@/pages/Users";
 import Help from "@/pages/Help";
-import OrganizationSettings from "@/pages/OrganizationSettings";
+import Settings from "@/pages/Settings";
 
 const App = () => {
   // Create a new QueryClient instance inside the component
@@ -69,8 +69,7 @@ const App = () => {
                 <Route path="/finance" element={<Finance />} />
                 <Route path="/attendance" element={<Attendance />} />
                 <Route path="/users" element={<Users />} />
-                <Route path="/settings" element={<div className="p-6">Settings page coming soon</div>} />
-                <Route path="/organization-settings" element={<OrganizationSettings />} />
+                <Route path="/settings" element={<Settings />} />
                 <Route path="/help" element={<Help />} />
                 <Route path="/reports" element={<Reports />} />
                 <Route path="/reports/attendance" element={<AttendanceReport />} />
