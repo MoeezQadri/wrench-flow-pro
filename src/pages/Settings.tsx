@@ -2,14 +2,21 @@
 import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Building, CreditCard, User, FileText, Lock } from 'lucide-react';
+import { Building, CreditCard, User, FileText, Lock, ShieldCheck } from 'lucide-react';
 import OrganizationSettingsTab from '@/components/settings/OrganizationSettingsTab';
 import SubscriptionSettingsTab from '@/components/settings/SubscriptionSettingsTab';
 import AccountSettingsTab from '@/components/settings/AccountSettingsTab';
 import InvoiceSettingsTab from '@/components/settings/InvoiceSettingsTab';
+import RolesManagementTab from '@/components/settings/RolesManagementTab';
+import { useAuthContext } from '@/context/AuthContext';
+import { hasPermission } from '@/services/data-service';
 
 const Settings = () => {
   const [activeTab, setActiveTab] = useState('organization');
+  const { currentUser } = useAuthContext();
+  
+  // Check if current user has permission to manage roles
+  const canManageRoles = hasPermission(currentUser, 'roles', 'manage');
 
   return (
     <div className="space-y-6">
@@ -35,6 +42,12 @@ const Settings = () => {
             <FileText className="w-4 h-4 mr-2" />
             Invoicing
           </TabsTrigger>
+          {canManageRoles && (
+            <TabsTrigger value="roles" className="data-[state=active]:bg-muted">
+              <ShieldCheck className="w-4 h-4 mr-2" />
+              Roles
+            </TabsTrigger>
+          )}
         </TabsList>
         
         {/* Organization Settings Tab */}
@@ -56,6 +69,13 @@ const Settings = () => {
         <TabsContent value="invoicing" className="space-y-6">
           <InvoiceSettingsTab />
         </TabsContent>
+        
+        {/* Roles Management Tab */}
+        {canManageRoles && (
+          <TabsContent value="roles" className="space-y-6">
+            <RolesManagementTab />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );

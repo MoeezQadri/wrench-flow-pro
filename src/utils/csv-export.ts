@@ -58,3 +58,77 @@ export const downloadCSV = (content: string, filename: string): void => {
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 };
+
+/**
+ * Formats a value for CSV export
+ * Handles different data types appropriately
+ */
+export const formatValueForCSV = (value: any): string => {
+  if (value === null || value === undefined) {
+    return '';
+  }
+  
+  if (typeof value === 'object') {
+    if (value instanceof Date) {
+      return value.toISOString();
+    }
+    // Convert objects to JSON strings
+    return JSON.stringify(value);
+  }
+  
+  return String(value);
+};
+
+/**
+ * Enhanced CSV export with additional options
+ */
+export const exportToCSV = <T extends Record<string, any>>(
+  data: T[], 
+  filename: string,
+  options?: {
+    headers?: string[];
+    headerMap?: Record<string, string>;
+    formatter?: (item: T) => Record<string, any>;
+  }
+): void => {
+  if (data.length === 0) {
+    return;
+  }
+  
+  let exportData = data;
+  
+  // Apply custom formatter if provided
+  if (options?.formatter) {
+    exportData = data.map(options.formatter) as T[];
+  }
+  
+  // Determine headers
+  let headers = options?.headers || Object.keys(exportData[0]);
+  
+  // Create header row with mapped names if provided
+  const headerRow = headers.map(header => {
+    if (options?.headerMap && options.headerMap[header]) {
+      return options.headerMap[header];
+    }
+    return header;
+  }).join(',');
+  
+  // Create data rows
+  const rows = exportData.map(item => {
+    return headers.map(header => {
+      const value = formatValueForCSV(item[header]);
+      
+      // Escape quotes and wrap in quotes if contains comma, newline or quote
+      if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+        return `"${value.replace(/"/g, '""')}"`;
+      }
+      return value;
+    }).join(',');
+  });
+  
+  // Combine header and rows
+  const csvContent = [headerRow, ...rows].join('\n');
+  
+  // Download the CSV
+  downloadCSV(csvContent, filename);
+};
