@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -12,6 +11,7 @@ import {
   Car,
   FileText,
   DollarSign,
+  Download,
   X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -53,6 +53,7 @@ import {
 } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { customers, getCustomerAnalytics, getVehiclesByCustomerId, addCustomer, addVehicle } from '@/services/data-service';
+import { objectsToCSV, downloadCSV } from '@/utils/csv-export';
 
 // Define the form validation schema using Zod
 const customerSchema = z.object({
@@ -170,6 +171,33 @@ const Customers = () => {
     );
   });
   
+  // Handle CSV export
+  const handleExportCSV = () => {
+    // Create a simplified version of customer data for export
+    const exportData = customers.map(customer => {
+      const analytics = getCustomerAnalytics(customer.id);
+      return {
+        Name: customer.name,
+        Email: customer.email,
+        Phone: customer.phone,
+        Address: customer.address,
+        LastVisit: customer.lastVisit || 'N/A',
+        TotalVisits: analytics.totalInvoices,
+        LifetimeValue: `$${analytics.lifetimeValue.toFixed(2)}`,
+        Vehicles: getVehiclesByCustomerId(customer.id).length
+      };
+    });
+    
+    // Convert to CSV and download
+    const csv = objectsToCSV(exportData);
+    downloadCSV(csv, 'customers.csv');
+    
+    toast({
+      title: "Export Successful",
+      description: `${exportData.length} customers exported to CSV`,
+    });
+  };
+  
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex justify-between items-center">
@@ -177,10 +205,16 @@ const Customers = () => {
           <h1 className="text-3xl font-bold">Customers</h1>
           <p className="text-muted-foreground">Manage workshop customers</p>
         </div>
-        <Button onClick={() => setIsDialogOpen(true)}>
-          <PlusCircle className="mr-2 h-4 w-4" />
-          New Customer
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleExportCSV}>
+            <Download className="mr-2 h-4 w-4" />
+            Export CSV
+          </Button>
+          <Button onClick={() => setIsDialogOpen(true)}>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            New Customer
+          </Button>
+        </div>
       </div>
       
       <div className="flex flex-col sm:flex-row gap-4">
