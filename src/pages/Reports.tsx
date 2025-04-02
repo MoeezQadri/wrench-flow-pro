@@ -28,7 +28,7 @@ const Reports = () => {
       title: "Invoicing Summary",
       description: "Overview of invoices by status and payment",
       icon: <FileText className="h-8 w-8 text-primary" />,
-      path: "/reports/finance"
+      path: "/reports/invoicing"
     }
   ];
 
