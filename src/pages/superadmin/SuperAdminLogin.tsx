@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { ShieldAlert, AlertTriangle } from 'lucide-react';
 import { useAuthContext } from '@/context/AuthContext';
+import { Session } from '@supabase/supabase-js';
 
 const SUPER_ADMIN_USERNAME = "superadmin";
 const SUPER_ADMIN_PASSWORD = "superuser123"; // In a real app, this would be hashed and stored securely
@@ -43,13 +44,27 @@ const SuperAdminLogin = () => {
         lastLogin: new Date().toISOString()
       };
       
-      // Create a mock session
-      const mockSession = {
+      // Create a proper mock session that matches Supabase's Session type
+      const mockSession: Session = {
         access_token: `superadmin-${Date.now()}`,
-        token_type: 'bearer',
+        refresh_token: `refresh-${Date.now()}`,
         expires_in: 3600,
-        refresh_token: '',
-        user: superUser
+        expires_at: Math.floor(Date.now() / 1000) + 3600,
+        token_type: 'bearer',
+        user: {
+          id: superUser.id,
+          email: superUser.email,
+          app_metadata: { provider: 'superadmin' },
+          user_metadata: { 
+            name: superUser.name,
+            role: superUser.role,
+            isActive: superUser.isActive 
+          },
+          aud: 'authenticated',
+          created_at: new Date().toISOString(),
+          role: '',
+          identities: []
+        }
       };
       
       // Update auth context
