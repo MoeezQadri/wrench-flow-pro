@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
@@ -16,7 +15,8 @@ import {
   UserCog,
   Building,
   CalendarCheck,
-  Wallet
+  Wallet,
+  HelpCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getCurrentUser, hasPermission } from '@/services/data-service';
@@ -98,6 +98,12 @@ const navItems = [
     path: '/settings', 
     icon: <Settings className="w-5 h-5" />,
     permission: { resource: 'settings' as ResourceKey, action: 'view' }
+  },
+  { 
+    name: 'Help', 
+    path: '/help', 
+    icon: <HelpCircle className="w-5 h-5" />,
+    permission: { resource: 'dashboard' as ResourceKey, action: 'view' } // Using dashboard permission so most users can see help
   },
 ];
 
