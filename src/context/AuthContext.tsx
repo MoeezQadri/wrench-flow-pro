@@ -1,7 +1,8 @@
 
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { User } from '@/types';
-import { getUserFromToken } from '@/services/auth-service';
+import { Session } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AnalyticsConfig {
   trackingId: string;
@@ -13,11 +14,11 @@ interface AnalyticsConfig {
 interface AuthContextValue {
   currentUser: User | null;
   setCurrentUser: React.Dispatch<React.SetStateAction<User | null>>;
-  token: string | null;
-  setToken: React.Dispatch<React.SetStateAction<string | null>>;
+  session: Session | null;
+  setSession: React.Dispatch<React.SetStateAction<Session | null>>;
   isAuthenticated: boolean;
   isSuperAdmin: boolean;
-  logout: () => void;
+  logout: () => Promise<void>;
   analyticsConfig: AnalyticsConfig;
   updateAnalyticsConfig: (config: Partial<AnalyticsConfig>) => void;
 }
@@ -25,11 +26,11 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue>({
   currentUser: null,
   setCurrentUser: () => {},
-  token: null,
-  setToken: () => {},
+  session: null,
+  setSession: () => {},
   isAuthenticated: false,
   isSuperAdmin: false,
-  logout: () => {},
+  logout: async () => {},
   analyticsConfig: {
     trackingId: '',
     enabled: false,
@@ -47,7 +48,7 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [analyticsConfig, setAnalyticsConfig] = useState<AnalyticsConfig>({
     trackingId: '',
@@ -57,18 +58,47 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   });
 
   useEffect(() => {
-    // Check for stored tokens on mount
-    const storedToken = localStorage.getItem('authToken');
-    const superadminToken = localStorage.getItem('superadminToken');
-    
-    // Prioritize superadmin token if it exists
-    const tokenToUse = superadminToken || storedToken;
-    
-    if (tokenToUse) {
-      setToken(tokenToUse);
-      const user = getUserFromToken(tokenToUse);
-      setCurrentUser(user);
-    }
+    // Set up auth state listener first
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, newSession) => {
+        setSession(newSession);
+        
+        if (newSession?.user) {
+          const user: User = {
+            id: newSession.user.id,
+            email: newSession.user.email || '',
+            name: newSession.user.user_metadata?.name || newSession.user.email?.split('@')[0] || '',
+            role: newSession.user.user_metadata?.role || 'owner',
+            isActive: true,
+            organizationId: newSession.user.user_metadata?.organization_id || undefined,
+            lastLogin: new Date().toISOString()
+          };
+          setCurrentUser(user);
+        } else {
+          setCurrentUser(null);
+        }
+      }
+    );
+
+    // Then check for existing session
+    supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
+      setSession(initialSession);
+      
+      if (initialSession?.user) {
+        const user: User = {
+          id: initialSession.user.id,
+          email: initialSession.user.email || '',
+          name: initialSession.user.user_metadata?.name || initialSession.user.email?.split('@')[0] || '',
+          role: initialSession.user.user_metadata?.role || 'owner',
+          isActive: true,
+          organizationId: initialSession.user.user_metadata?.organization_id || undefined,
+          lastLogin: new Date().toISOString()
+        };
+        setCurrentUser(user);
+      }
+      
+      setLoading(false);
+    });
     
     // Check for stored analytics config
     const storedAnalyticsConfig = localStorage.getItem('analyticsConfig');
@@ -80,7 +110,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     }
     
-    setLoading(false);
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
   
   // Update analytics config
@@ -92,11 +124,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     });
   };
 
-  const logout = () => {
+  const logout = async () => {
+    await supabase.auth.signOut();
     setCurrentUser(null);
-    setToken(null);
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('superadminToken');
+    setSession(null);
   };
 
   const isSuperAdmin = currentUser?.role === 'superuser';
@@ -110,8 +141,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       value={{
         currentUser,
         setCurrentUser,
-        token,
-        setToken,
+        session,
+        setSession,
         isAuthenticated: !!currentUser,
         isSuperAdmin,
         logout,

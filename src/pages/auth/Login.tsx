@@ -7,35 +7,50 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { LogIn } from 'lucide-react';
 import { toast } from 'sonner';
-import { loginUser } from '@/services/auth-service';
 import { useAuthContext } from '@/context/AuthContext';
 import Logo from '@/components/Logo';
+import { supabase } from '@/integrations/supabase/client';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const { setCurrentUser, setToken } = useAuthContext();
+  const { setCurrentUser, setSession } = useAuthContext();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
     try {
-      const { user, token } = loginUser(email, password);
-      setCurrentUser(user);
-      setToken(token);
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
       
-      // Store in localStorage for persistence
-      localStorage.setItem('authToken', token);
+      if (error) throw error;
       
-      toast.success('Logged in successfully');
-      
-      // Redirect to dashboard
-      navigate('/');
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Login failed');
+      if (data.user && data.session) {
+        // Update auth context
+        setSession(data.session);
+        setCurrentUser({
+          id: data.user.id,
+          email: data.user.email || '',
+          name: data.user.user_metadata?.name || data.user.email?.split('@')[0] || '',
+          role: data.user.user_metadata?.role || 'owner',
+          isActive: true,
+          organizationId: data.user.user_metadata?.organization_id,
+          lastLogin: new Date().toISOString()
+        });
+        
+        toast.success('Logged in successfully');
+        
+        // Redirect to dashboard
+        navigate('/');
+      }
+    } catch (error: any) {
+      console.error('Login error:', error);
+      toast.error(error.message || 'Login failed');
     } finally {
       setIsLoading(false);
     }

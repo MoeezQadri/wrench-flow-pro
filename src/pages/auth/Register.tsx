@@ -7,17 +7,18 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Building } from 'lucide-react';
 import { toast } from 'sonner';
-import { registerOrganization } from '@/services/auth-service';
 import { useAuthContext } from '@/context/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 const Register = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [organizationName, setOrganizationName] = useState('My Garage');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const { setCurrentUser, setToken } = useAuthContext();
+  const { setCurrentUser, setSession } = useAuthContext();
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,33 +36,45 @@ const Register = () => {
     setIsLoading(true);
     
     try {
-      // Use default values for organization details but use the provided name
-      const organizationName = "My Garage";
-      const country = "United States";
-      const currency = "USD";
-      const ownerName = name || email.split('@')[0]; // Use provided name or fallback to email
-      
-      const { organization, user, token } = registerOrganization(
-        organizationName,
-        country,
-        currency,
-        ownerName,
+      // Register the user with Supabase
+      const { data, error } = await supabase.auth.signUp({
         email,
-        password
-      );
+        password,
+        options: {
+          data: {
+            name,
+            organization_id: organizationName,
+            role: 'owner'
+          }
+        }
+      });
       
-      setCurrentUser(user);
-      setToken(token);
+      if (error) throw error;
       
-      // Store in localStorage for persistence
-      localStorage.setItem('authToken', token);
-      
-      toast.success('Registration successful');
-      
-      // Redirect to dashboard
-      navigate('/');
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Registration failed');
+      if (data.user && data.session) {
+        // Update auth context
+        setSession(data.session);
+        setCurrentUser({
+          id: data.user.id,
+          email: data.user.email || '',
+          name: data.user.user_metadata?.name || '',
+          role: 'owner',
+          isActive: true,
+          organizationId: organizationName,
+          lastLogin: new Date().toISOString()
+        });
+        
+        toast.success('Registration successful!');
+        
+        // Redirect to dashboard
+        navigate('/');
+      } else {
+        // Show email confirmation message if no session (email confirmation required)
+        toast.success('Registration successful! Please check your email to confirm your account.');
+      }
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      toast.error(error.message || 'Registration failed');
     } finally {
       setIsLoading(false);
     }
@@ -93,6 +106,18 @@ const Register = () => {
                   placeholder="John Doe" 
                   value={name}
                   onChange={(e) => setName(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="organizationName">Garage Name</Label>
+                <Input 
+                  id="organizationName" 
+                  type="text" 
+                  placeholder="My Garage" 
+                  value={organizationName}
+                  onChange={(e) => setOrganizationName(e.target.value)}
                   required
                 />
               </div>
