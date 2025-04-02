@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
@@ -21,71 +20,70 @@ import { Button } from '@/components/ui/button';
 import { getCurrentUser, hasPermission } from '@/services/data-service';
 import { RolePermissionMap } from '@/types';
 
-// Explicitly define the resource types to avoid type errors
+// Correctly define our type based on the structure of RolePermissionMap
 type ResourceKey = keyof RolePermissionMap;
-type ActionKey = string;
 
-// Define nav items with permission requirements
+// Define our navItems with correct typing for the permission properties
 const navItems = [
   { 
     name: 'Dashboard', 
     path: '/', 
     icon: <LayoutDashboard className="w-5 h-5" />,
-    permission: { resource: 'dashboard' as ResourceKey, action: 'view' as ActionKey }
+    permission: { resource: 'dashboard' as ResourceKey, action: 'view' }
   },
   { 
     name: 'Invoices', 
     path: '/invoices', 
     icon: <FileText className="w-5 h-5" />,
-    permission: { resource: 'invoices' as ResourceKey, action: 'view' as ActionKey }
+    permission: { resource: 'invoices' as ResourceKey, action: 'view' }
   },
   { 
     name: 'Customers', 
     path: '/customers', 
     icon: <Users className="w-5 h-5" />,
-    permission: { resource: 'customers' as ResourceKey, action: 'view' as ActionKey }
+    permission: { resource: 'customers' as ResourceKey, action: 'view' }
   },
   { 
     name: 'Mechanics', 
     path: '/mechanics', 
     icon: <Wrench className="w-5 h-5" />,
-    permission: { resource: 'mechanics' as ResourceKey, action: 'view' as ActionKey }
+    permission: { resource: 'mechanics' as ResourceKey, action: 'view' }
   },
   { 
     name: 'Tasks', 
     path: '/tasks', 
     icon: <CalendarCheck className="w-5 h-5" />,
-    permission: { resource: 'tasks' as ResourceKey, action: 'view' as ActionKey }
+    permission: { resource: 'tasks' as ResourceKey, action: 'view' }
   },
   { 
     name: 'Parts', 
     path: '/parts', 
     icon: <ShoppingBag className="w-5 h-5" />,
-    permission: { resource: 'parts' as ResourceKey, action: 'view' as ActionKey }
+    permission: { resource: 'parts' as ResourceKey, action: 'view' }
   },
   { 
     name: 'Expenses', 
     path: '/expenses', 
     icon: <DollarSign className="w-5 h-5" />,
-    permission: { resource: 'expenses' as ResourceKey, action: 'view' as ActionKey }
+    permission: { resource: 'expenses' as ResourceKey, action: 'view' }
   },
   { 
     name: 'Attendance', 
     path: '/attendance', 
     icon: <ClipboardCheck className="w-5 h-5" />,
-    permission: { resource: 'attendance' as ResourceKey, action: 'view' as ActionKey }
+    permission: { resource: 'attendance' as ResourceKey, action: 'view' }
   },
   { 
     name: 'Users', 
     path: '/users', 
     icon: <UserCog className="w-5 h-5" />,
-    permission: { resource: 'users' as ResourceKey, action: 'view' as ActionKey }
+    permission: { resource: 'users' as ResourceKey, action: 'view' }
   },
   { 
     name: 'Settings', 
     path: '/settings', 
     icon: <Settings className="w-5 h-5" />,
-    permission: { resource: 'settings' as ResourceKey, action: 'view' as ActionKey }
+    permission: { resource: 'settings' as ResourceKey, action: 'view' }
   },
 ];
 
@@ -98,9 +96,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
   const location = useLocation();
   const currentUser = getCurrentUser();
   
-  // Filter nav items based on user permissions
+  // Filter nav items based on user permissions - use type assertion to fix the type error
   const filteredNavItems = navItems.filter(item => 
-    hasPermission(currentUser, item.permission.resource, item.permission.action)
+    hasPermission(currentUser, item.permission.resource, item.permission.action as string)
   );
 
   return (
