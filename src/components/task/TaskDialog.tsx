@@ -58,11 +58,12 @@ const TaskDialog = ({ open, onOpenChange, onSave, task }: TaskDialogProps) => {
         status: data.status,
         hoursEstimated: data.hoursEstimated,
         hoursSpent: data.hoursSpent,
-        invoiceId: data.invoiceId,
+        // Set invoiceId to undefined if "none" is selected
+        invoiceId: data.invoiceId === "none" ? undefined : data.invoiceId,
       };
       
       // Update the invoice if task is completed
-      if (isBeingCompleted && data.invoiceId) {
+      if (isBeingCompleted && data.invoiceId && data.invoiceId !== "none") {
         updateInvoiceOnTaskCompletion(data.invoiceId, newTask);
       }
       

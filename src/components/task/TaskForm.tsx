@@ -206,7 +206,7 @@ const TaskForm = ({ defaultValues, onSubmit, formId, userRole }: TaskFormProps) 
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="">Not linked to an invoice</SelectItem>
+                    <SelectItem value="none">Not linked to an invoice</SelectItem>
                     {availableInvoices.map((invoice) => (
                       <SelectItem key={invoice.id} value={invoice.id}>
                         {invoice.id} - {invoice.vehicleInfo.make} {invoice.vehicleInfo.model}
