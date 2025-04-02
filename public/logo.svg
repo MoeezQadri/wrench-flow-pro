@@ -1,6 +1,6 @@
 
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
-  <circle cx="100" cy="100" r="90" fill="white" stroke="black" stroke-width="4"/>
-  <path d="M60,160 Q80,70 140,40" fill="none" stroke="black" stroke-width="4" stroke-linecap="round"/>
-  <line x1="100" y1="100" x2="100" y2="160" stroke="black" stroke-width="2" stroke-dasharray="5,5"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-car">
+  <path d="M14 16H9m10 0h3v-3.15a1 1 0 0 0-.84-.99L16 11l-2.7-3.6a1 1 0 0 0-.8-.4H5.24a2 2 0 0 0-1.8 1.1l-.8 1.63A6 6 0 0 0 2 12.42V16h2"/>
+  <circle cx="6.5" cy="16.5" r="2.5"/>
+  <circle cx="16.5" cy="16.5" r="2.5"/>
 </svg>

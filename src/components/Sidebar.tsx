@@ -25,8 +25,11 @@ import { useAuthContext } from '@/context/AuthContext';
 import { toast } from 'sonner';
 import Logo from './Logo';
 
+// Import the necessary type
+import { RolePermissionMap } from '@/types';
+
 // Define our types for the permission system
-type ResourceKey = string;
+type ResourceKey = keyof RolePermissionMap;
 
 // Define permission interface
 interface NavItemPermission {
@@ -40,73 +43,73 @@ const navItems = [
     name: 'Dashboard', 
     path: '/', 
     icon: <LayoutDashboard className="w-5 h-5" />,
-    permission: { resource: 'dashboard', action: 'view' }
+    permission: { resource: 'dashboard' as ResourceKey, action: 'view' }
   },
   { 
     name: 'Invoices', 
     path: '/invoices', 
     icon: <FileText className="w-5 h-5" />,
-    permission: { resource: 'invoices', action: 'view' }
+    permission: { resource: 'invoices' as ResourceKey, action: 'view' }
   },
   { 
     name: 'Customers', 
     path: '/customers', 
     icon: <Users className="w-5 h-5" />,
-    permission: { resource: 'customers', action: 'view' }
+    permission: { resource: 'customers' as ResourceKey, action: 'view' }
   },
   { 
     name: 'Mechanics', 
     path: '/mechanics', 
     icon: <Wrench className="w-5 h-5" />,
-    permission: { resource: 'mechanics', action: 'view' }
+    permission: { resource: 'mechanics' as ResourceKey, action: 'view' }
   },
   { 
     name: 'Tasks', 
     path: '/tasks', 
     icon: <CalendarCheck className="w-5 h-5" />,
-    permission: { resource: 'tasks', action: 'view' }
+    permission: { resource: 'tasks' as ResourceKey, action: 'view' }
   },
   { 
     name: 'Parts', 
     path: '/parts', 
     icon: <ShoppingBag className="w-5 h-5" />,
-    permission: { resource: 'parts', action: 'view' }
+    permission: { resource: 'parts' as ResourceKey, action: 'view' }
   },
   { 
     name: 'Finance', 
     path: '/finance', 
     icon: <Wallet className="w-5 h-5" />,
-    permission: { resource: 'finance', action: 'view' }
+    permission: { resource: 'finance' as ResourceKey, action: 'view' }
   },
   { 
     name: 'Attendance', 
     path: '/attendance', 
     icon: <ClipboardCheck className="w-5 h-5" />,
-    permission: { resource: 'attendance', action: 'view' }
+    permission: { resource: 'attendance' as ResourceKey, action: 'view' }
   },
   { 
     name: 'Users', 
     path: '/users', 
     icon: <UserCog className="w-5 h-5" />,
-    permission: { resource: 'users', action: 'view' }
+    permission: { resource: 'users' as ResourceKey, action: 'view' }
   },
   { 
     name: 'Reports', 
     path: '/reports', 
     icon: <FileText className="w-5 h-5" />,
-    permission: { resource: 'reports', action: 'view' }
+    permission: { resource: 'reports' as ResourceKey, action: 'view' }
   },
   { 
     name: 'Settings', 
     path: '/settings', 
     icon: <Settings className="w-5 h-5" />,
-    permission: { resource: 'settings', action: 'view' }
+    permission: { resource: 'settings' as ResourceKey, action: 'view' }
   },
   { 
     name: 'Help', 
     path: '/help', 
     icon: <HelpCircle className="w-5 h-5" />,
-    permission: { resource: 'dashboard', action: 'view' } // Using dashboard permission so most users can see help
+    permission: { resource: 'dashboard' as ResourceKey, action: 'view' } // Using dashboard permission so most users can see help
   },
 ];
 

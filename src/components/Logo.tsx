@@ -1,5 +1,5 @@
 
-import { Road } from 'lucide-react';
+import { Car } from 'lucide-react';
 
 interface LogoProps {
   className?: string;
@@ -18,7 +18,7 @@ const Logo = ({ className = "", showText = true, size = "md", textColor = "text-
   return (
     <div className={`flex items-center ${className}`}>
       <div className={`relative ${sizeClasses[size].container} rounded-full border-2 border-current flex items-center justify-center bg-white`}>
-        <Road 
+        <Car 
           className={`${sizeClasses[size].icon} text-current absolute`} 
           strokeWidth={2.5} 
         />
