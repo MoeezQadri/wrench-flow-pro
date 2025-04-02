@@ -140,7 +140,7 @@ const Customers = () => {
         customerId: newCustomer.id
       };
       
-      const newVehicle = addVehicle(vehicleData);
+      const newVehicle = addVehicle(vehicleData.customerId, vehicleData);
       
       // Display success message including vehicle
       toast({

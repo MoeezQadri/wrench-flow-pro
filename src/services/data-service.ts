@@ -68,14 +68,14 @@ export const addCustomer = (customer: Omit<Customer, "id">): Customer => {
   return newCustomer;
 };
 
-export const addVehicle = (customerId: string, vehicle: Omit<Vehicle, "id">): Vehicle => {
+export const addVehicle = (customerId: string, vehicle: Omit<Vehicle, "id" | "customerId">): Vehicle => {
   const customer = getCustomerById(customerId);
   if (!customer) throw new Error("Customer not found");
   
   const newVehicle: Vehicle = {
     id: generateId("vehicle"),
-    ...vehicle,
-    customerId, // Ensure customerId is set
+    customerId, // Set from parameter
+    ...vehicle
   };
   
   if (!customer.vehicles) {
@@ -165,32 +165,14 @@ export const getPaymentsByDateRange = (startDate: string, endDate: string): any[
   });
 };
 
-export const getPayables = () => {
-  // Calculate actual payables based on expenses
-  const payableItems = expenses.filter(e => e.paymentStatus !== 'paid');
-  const total = payableItems.reduce((sum, item) => sum + item.amount, 0);
-  
-  return {
-    total,
-    items: payableItems
-  };
+export const getPayables = (): Expense[] => {
+  // Return actual payables based on expenses that aren't paid
+  return expenses.filter(e => e.paymentStatus !== 'paid');
 };
 
-export const getReceivables = () => {
-  // Calculate actual receivables based on unpaid invoices
-  const receivableItems = invoices.filter(inv => inv.status !== 'paid');
-  
-  // Fix the calculation of total receivables
-  const total = receivableItems.reduce((sum, inv) => {
-    const invTotal = calculateInvoiceTotal(inv).total;
-    const paidAmount = inv.payments.reduce((sum, payment) => sum + payment.amount, 0);
-    return sum + (invTotal - paidAmount);
-  }, 0);
-  
-  return {
-    total,
-    items: receivableItems
-  };
+export const getReceivables = (): Invoice[] => {
+  // Return actual receivables based on unpaid invoices
+  return invoices.filter(inv => inv.status !== 'paid');
 };
 
 export const getPartExpenses = () => {
