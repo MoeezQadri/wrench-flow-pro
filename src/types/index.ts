@@ -236,7 +236,7 @@ export const rolePermissions: Record<UserRole, RolePermissionMap> = {
     tasks: { view: true, manage: 'own' },
     parts: { view: true, manage: false },
     expenses: { view: false, manage: false },
-    reports: { view: false },
+    reports: { view: 'own' }, // Allow mechanics to view their own reports
     attendance: { view: 'own', manage: 'own', approve: false },
     settings: { view: false, manage: false },
     organization: { view: false, manage: false },

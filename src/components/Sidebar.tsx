@@ -21,67 +21,70 @@ import { Button } from '@/components/ui/button';
 import { getCurrentUser, hasPermission } from '@/services/data-service';
 import { RolePermissionMap } from '@/types';
 
+// Explicitly define the resource types to avoid type errors
+type ResourceKey = keyof RolePermissionMap;
+
 // Define nav items with permission requirements
 const navItems = [
   { 
     name: 'Dashboard', 
     path: '/', 
     icon: <LayoutDashboard className="w-5 h-5" />,
-    permission: { resource: 'dashboard' as keyof RolePermissionMap, action: 'view' }
+    permission: { resource: 'dashboard' as ResourceKey, action: 'view' }
   },
   { 
     name: 'Invoices', 
     path: '/invoices', 
     icon: <FileText className="w-5 h-5" />,
-    permission: { resource: 'invoices' as keyof RolePermissionMap, action: 'view' }
+    permission: { resource: 'invoices' as ResourceKey, action: 'view' }
   },
   { 
     name: 'Customers', 
     path: '/customers', 
     icon: <Users className="w-5 h-5" />,
-    permission: { resource: 'customers' as keyof RolePermissionMap, action: 'view' }
+    permission: { resource: 'customers' as ResourceKey, action: 'view' }
   },
   { 
     name: 'Mechanics', 
     path: '/mechanics', 
     icon: <Wrench className="w-5 h-5" />,
-    permission: { resource: 'mechanics' as keyof RolePermissionMap, action: 'view' }
+    permission: { resource: 'mechanics' as ResourceKey, action: 'view' }
   },
   { 
     name: 'Tasks', 
     path: '/tasks', 
     icon: <CalendarCheck className="w-5 h-5" />,
-    permission: { resource: 'tasks' as keyof RolePermissionMap, action: 'view' }
+    permission: { resource: 'tasks' as ResourceKey, action: 'view' }
   },
   { 
     name: 'Parts', 
     path: '/parts', 
     icon: <ShoppingBag className="w-5 h-5" />,
-    permission: { resource: 'parts' as keyof RolePermissionMap, action: 'view' }
+    permission: { resource: 'parts' as ResourceKey, action: 'view' }
   },
   { 
     name: 'Expenses', 
     path: '/expenses', 
     icon: <DollarSign className="w-5 h-5" />,
-    permission: { resource: 'expenses' as keyof RolePermissionMap, action: 'view' }
+    permission: { resource: 'expenses' as ResourceKey, action: 'view' }
   },
   { 
     name: 'Attendance', 
     path: '/attendance', 
     icon: <ClipboardCheck className="w-5 h-5" />,
-    permission: { resource: 'attendance' as keyof RolePermissionMap, action: 'view' }
+    permission: { resource: 'attendance' as ResourceKey, action: 'view' }
   },
   { 
     name: 'Users', 
     path: '/users', 
     icon: <UserCog className="w-5 h-5" />,
-    permission: { resource: 'users' as keyof RolePermissionMap, action: 'view' }
+    permission: { resource: 'users' as ResourceKey, action: 'view' }
   },
   { 
     name: 'Settings', 
     path: '/settings', 
     icon: <Settings className="w-5 h-5" />,
-    permission: { resource: 'settings' as keyof RolePermissionMap, action: 'view' }
+    permission: { resource: 'settings' as ResourceKey, action: 'view' }
   },
 ];
 
