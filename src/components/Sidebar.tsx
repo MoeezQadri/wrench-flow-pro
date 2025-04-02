@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
@@ -24,8 +25,8 @@ import { useAuthContext } from '@/context/AuthContext';
 import { toast } from 'sonner';
 import Logo from './Logo';
 
-// Import the necessary type
-import { RolePermissionMap } from '@/types';
+// Import the RolePermissionMap from data-service instead of types
+import type { RolePermissionMap } from '@/services/data-service';
 
 // Define our types for the permission system
 type ResourceKey = keyof RolePermissionMap;
