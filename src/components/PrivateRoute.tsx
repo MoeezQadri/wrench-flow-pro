@@ -21,6 +21,11 @@ const PrivateRoute = ({ children }: PrivateRouteProps) => {
     return <Navigate to="/superadmin/dashboard" replace />;
   }
 
+  // If regular user trying to access superadmin routes, redirect to dashboard
+  if (!isSuperAdmin && location.pathname.startsWith('/superadmin')) {
+    return <Navigate to="/" replace />;
+  }
+
   return <>{children}</>;
 };
 

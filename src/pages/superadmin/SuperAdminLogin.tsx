@@ -1,12 +1,12 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { ShieldAlert } from 'lucide-react';
+import { ShieldAlert, AlertTriangle } from 'lucide-react';
 import { useAuthContext } from '@/context/AuthContext';
 
 const SUPER_ADMIN_USERNAME = "superadmin";
@@ -17,7 +17,14 @@ const SuperAdminLogin = () => {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const { setCurrentUser, setToken } = useAuthContext();
+  const { setCurrentUser, setToken, currentUser, isAuthenticated } = useAuthContext();
+
+  // If already authenticated as superuser, redirect to dashboard
+  useEffect(() => {
+    if (isAuthenticated && currentUser?.role === 'superuser') {
+      navigate('/superadmin/dashboard');
+    }
+  }, [isAuthenticated, currentUser, navigate]);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,6 +100,16 @@ const SuperAdminLogin = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                 />
+              </div>
+
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-md">
+                <div className="flex items-start">
+                  <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 mr-2" />
+                  <p className="text-sm text-amber-800">
+                    This portal is restricted to system administrators only. 
+                    Regular users should login through the main application.
+                  </p>
+                </div>
               </div>
             </CardContent>
             
