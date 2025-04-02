@@ -40,9 +40,17 @@ const MechanicDialog = ({ open, onOpenChange, onSave, mechanic }: MechanicDialog
         id: mechanic?.id || generateId("mechanic"),
         name: data.name,
         specialization: data.specialization,
-        hourlyRate: data.hourlyRate,
+        address: data.address,
+        phone: data.phone,
+        idCardImage: data.idCardImage,
+        employmentType: data.employmentType,
         isActive: data.isActive
       };
+      
+      // Only add contractor rate if the employment type is contractor
+      if (data.employmentType === 'contractor' && data.contractorRate !== undefined) {
+        newMechanic.contractorRate = data.contractorRate;
+      }
       
       onSave(newMechanic);
       toast.success(`Mechanic ${isEditing ? "updated" : "added"} successfully!`);
@@ -71,7 +79,11 @@ const MechanicDialog = ({ open, onOpenChange, onSave, mechanic }: MechanicDialog
               ? {
                   name: mechanic.name,
                   specialization: mechanic.specialization,
-                  hourlyRate: mechanic.hourlyRate,
+                  address: mechanic.address,
+                  phone: mechanic.phone,
+                  idCardImage: mechanic.idCardImage,
+                  employmentType: mechanic.employmentType,
+                  contractorRate: mechanic.contractorRate,
                   isActive: mechanic.isActive,
                 }
               : undefined

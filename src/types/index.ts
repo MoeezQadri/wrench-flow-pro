@@ -62,7 +62,11 @@ export interface Mechanic {
   id: string;
   name: string;
   specialization: string;
-  hourlyRate: number;
+  address: string;
+  phone: string;
+  idCardImage?: string;
+  employmentType: 'contractor' | 'fulltime';
+  contractorRate?: number; // Rate for contractors if employmentType is 'contractor'
   isActive: boolean;
 }
 

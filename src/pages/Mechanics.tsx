@@ -3,11 +3,12 @@ import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Pencil, Wrench } from "lucide-react";
+import { Plus, Pencil, Wrench, IdCard, Phone, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import MechanicDialog from "@/components/mechanic/MechanicDialog";
 import { mechanics } from "@/services/data-service";
 import { Mechanic } from "@/types";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const Mechanics = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -37,6 +38,14 @@ const Mechanics = () => {
     });
   };
 
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(part => part[0])
+      .join('')
+      .toUpperCase();
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -55,9 +64,10 @@ const Mechanics = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
+                <TableHead>Mechanic</TableHead>
+                <TableHead>Contact Information</TableHead>
                 <TableHead>Specialization</TableHead>
-                <TableHead>Hourly Rate</TableHead>
+                <TableHead>Employment</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -65,9 +75,51 @@ const Mechanics = () => {
             <TableBody>
               {mechanicsList.map((mechanic) => (
                 <TableRow key={mechanic.id}>
-                  <TableCell className="font-medium">{mechanic.name}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <Avatar>
+                        <AvatarImage src={mechanic.idCardImage} alt={mechanic.name} />
+                        <AvatarFallback>{getInitials(mechanic.name)}</AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="font-medium">{mechanic.name}</p>
+                        <div className="flex items-center text-xs text-muted-foreground">
+                          <IdCard className="h-3 w-3 mr-1" />
+                          {mechanic.idCardImage ? "ID Card Available" : "No ID Card"}
+                        </div>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="space-y-1">
+                      <div className="flex items-center text-sm">
+                        <Phone className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+                        {mechanic.phone}
+                      </div>
+                      <div className="flex items-center text-sm">
+                        <MapPin className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+                        {mechanic.address.length > 25 
+                          ? `${mechanic.address.substring(0, 25)}...` 
+                          : mechanic.address}
+                      </div>
+                    </div>
+                  </TableCell>
                   <TableCell>{mechanic.specialization}</TableCell>
-                  <TableCell>${mechanic.hourlyRate.toFixed(2)}</TableCell>
+                  <TableCell>
+                    <div>
+                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                        mechanic.employmentType === 'fulltime'
+                          ? "bg-blue-100 text-blue-800"
+                          : "bg-amber-100 text-amber-800"
+                      }`}>
+                        {mechanic.employmentType === 'fulltime' ? 'Full-Time' : 'Contractor'}
+                      </span>
+                      
+                      {mechanic.employmentType === 'contractor' && mechanic.contractorRate && (
+                        <p className="text-xs mt-1">Rate: ${mechanic.contractorRate.toFixed(2)}/hr</p>
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell>
                     <span
                       className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
@@ -92,7 +144,7 @@ const Mechanics = () => {
               ))}
               {mechanicsList.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-6">
+                  <TableCell colSpan={6} className="text-center py-6">
                     <div className="flex flex-col items-center justify-center text-muted-foreground">
                       <Wrench className="w-12 h-12 mb-2 text-muted-foreground/60" />
                       <p>No mechanics found</p>
