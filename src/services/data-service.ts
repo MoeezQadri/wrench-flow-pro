@@ -31,7 +31,7 @@ export const getCurrentUser = (): User => {
 
 export const hasPermission = (
   user: User | null,
-  resource: keyof RolePermissionMap,
+  resource: keyof TypesRolePermissionMap,
   action: string
 ): boolean => {
   if (!user) {
@@ -69,7 +69,7 @@ export const hasPermission = (
   return false;
 };
 
-export const getRolePermissions = (role: UserRole): RolePermissionMap | undefined => {
+export const getRolePermissions = (role: UserRole): TypesRolePermissionMap | undefined => {
   const rolePermissions = {
     superuser: {
       dashboard: true,
