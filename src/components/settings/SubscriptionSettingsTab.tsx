@@ -197,7 +197,7 @@ const SubscriptionSettingsTab = () => {
                     <td className="px-6 py-4">{invoice.date}</td>
                     <td className="px-6 py-4">${invoice.amount.toFixed(2)}</td>
                     <td className="px-6 py-4 capitalize">
-                      <Badge variant={invoice.status === 'paid' ? 'success' : 'destructive'}>
+                      <Badge variant={invoice.status === 'paid' ? 'default' : 'destructive'}>
                         {invoice.status}
                       </Badge>
                     </td>

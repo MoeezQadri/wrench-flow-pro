@@ -15,8 +15,9 @@ const Settings = () => {
   const [activeTab, setActiveTab] = useState('organization');
   const { currentUser } = useAuthContext();
   
-  // Check if current user has permission to manage roles
-  const canManageRoles = hasPermission(currentUser, 'roles', 'manage');
+  // Check if current user has permission to manage users or settings
+  // Using 'users' instead of 'roles' since it's defined in RolePermissionMap
+  const canManageRoles = hasPermission(currentUser, 'users', 'manage');
 
   return (
     <div className="space-y-6">

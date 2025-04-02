@@ -216,6 +216,7 @@ export interface RolePermissionMap {
   subscription: BasePermission;
   finance: BasePermission;
   organization: BasePermission;
+  roles: BasePermission; // Added roles permission
   [key: string]: PermissionValue | BasePermission | TasksPermission | AttendancePermission;
 }
 
@@ -235,7 +236,8 @@ export const rolePermissions: Record<UserRole, RolePermissionMap> = {
     organization: { view: true, manage: true },
     users: { view: true, manage: true },
     subscription: { view: true, manage: true },
-    vehicles: { view: true, manage: true }
+    vehicles: { view: true, manage: true },
+    roles: { view: true, manage: true } // Added roles permission for owner
   },
   manager: {
     dashboard: true,
@@ -252,7 +254,8 @@ export const rolePermissions: Record<UserRole, RolePermissionMap> = {
     organization: { view: true, manage: false },
     users: { view: true, manage: false },
     subscription: { view: true, manage: false },
-    vehicles: { view: true, manage: true }
+    vehicles: { view: true, manage: true },
+    roles: { view: true, manage: false } // Added roles permission for manager
   },
   foreman: {
     dashboard: true,
@@ -269,7 +272,8 @@ export const rolePermissions: Record<UserRole, RolePermissionMap> = {
     organization: { view: false, manage: false },
     users: { view: false, manage: false },
     subscription: { view: false, manage: false },
-    vehicles: { view: true, manage: false }
+    vehicles: { view: true, manage: false },
+    roles: { view: false, manage: false } // Added roles permission for foreman
   },
   mechanic: {
     dashboard: false,
@@ -286,6 +290,7 @@ export const rolePermissions: Record<UserRole, RolePermissionMap> = {
     organization: { view: false, manage: false },
     users: { view: false, manage: false },
     subscription: { view: false, manage: false },
-    vehicles: { view: true, manage: false }
+    vehicles: { view: true, manage: false },
+    roles: { view: false, manage: false } // Added roles permission for mechanic
   }
 };
