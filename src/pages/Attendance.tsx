@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { 
-  Calendar, 
+  Calendar as CalendarIcon, 
   CheckCircle, 
   ClipboardCheck, 
   Clock, 
@@ -35,14 +35,19 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
 import { toast } from "sonner";
 
 const AttendancePage = () => {
   // Changed to use the Attendance type from data-service
   const [attendanceList, setAttendanceList] = useState<Attendance[]>(() => attendance);
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [notes, setNotes] = useState<string>("");
   const currentUser = getCurrentUser();
+  
+  // Format the selected date as YYYY-MM-DD for filtering
+  const formattedDate = format(selectedDate, "yyyy-MM-dd");
   
   // Check if current user has permission to view attendance
   const canViewAttendance = hasPermission(currentUser, 'attendance', 'view');
@@ -65,19 +70,7 @@ const AttendancePage = () => {
     }
     // Managers and owners can see all records
     return true;
-  });
-
-  const handlePreviousDay = () => {
-    const date = new Date(selectedDate);
-    date.setDate(date.getDate() - 1);
-    setSelectedDate(date.toISOString().split('T')[0]);
-  };
-
-  const handleNextDay = () => {
-    const date = new Date(selectedDate);
-    date.setDate(date.getDate() + 1);
-    setSelectedDate(date.toISOString().split('T')[0]);
-  };
+  }).filter(record => record.date === formattedDate);
 
   const handleApprove = (id: string, status: 'approved' | 'rejected') => {
     if (!canApproveAttendance) {
@@ -124,16 +117,24 @@ const AttendancePage = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
         <h1 className="text-3xl font-bold tracking-tight">Attendance</h1>
         <div className="flex items-center space-x-2 mt-4 sm:mt-0">
-          <Button variant="outline" size="icon" onClick={handlePreviousDay}>
-            <Calendar className="h-4 w-4" />
-          </Button>
-          <div className="flex items-center border rounded-md px-3 py-1">
-            <Calendar className="h-4 w-4 mr-2" />
-            <span>{selectedDate}</span>
-          </div>
-          <Button variant="outline" size="icon" onClick={handleNextDay}>
-            <Calendar className="h-4 w-4" />
-          </Button>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="w-[240px] flex justify-between items-center">
+                <CalendarIcon className="h-4 w-4 mr-2" />
+                <span>{format(selectedDate, "MMMM d, yyyy")}</span>
+                <span className="sr-only">Open date picker</span>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={(date) => date && setSelectedDate(date)}
+                initialFocus
+                className="pointer-events-auto"
+              />
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
 
