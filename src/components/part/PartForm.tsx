@@ -29,7 +29,6 @@ const partSchema = z.object({
   description: z.string().min(1, { message: "Description is required" }),
   vendorId: z.string().optional(),
   partNumber: z.string().optional(),
-  reorderLevel: z.coerce.number().min(0).optional(),
 });
 
 export type PartFormValues = z.infer<typeof partSchema>;
@@ -53,7 +52,6 @@ const PartForm = ({ defaultValues, onSubmit, formId, invoiceId }: PartFormProps)
       description: "",
       vendorId: "none",
       partNumber: "",
-      reorderLevel: 10,
     },
   });
 
@@ -170,43 +168,19 @@ const PartForm = ({ defaultValues, onSubmit, formId, invoiceId }: PartFormProps)
           )}
         />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="partNumber"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Part Number</FormLabel>
-                <FormControl>
-                  <Input placeholder="Optional part number" {...field} value={field.value || ""} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="reorderLevel"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Reorder Level</FormLabel>
-                <FormControl>
-                  <Input 
-                    type="number" 
-                    min="0" 
-                    step="1" 
-                    placeholder="10" 
-                    {...field}
-                    value={field.value || ""}
-                    onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+        <FormField
+          control={form.control}
+          name="partNumber"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Part Number</FormLabel>
+              <FormControl>
+                <Input placeholder="Optional part number" {...field} value={field.value || ""} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
       </form>
     </Form>
   );

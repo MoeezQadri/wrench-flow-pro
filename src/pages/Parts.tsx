@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Pencil, AlertTriangle, ShoppingBag, Search, Tag, Truck } from "lucide-react";
+import { Plus, Pencil, ShoppingBag, Search, Tag, Truck } from "lucide-react";
 import { toast } from "sonner";
 import PartDialog from "@/components/part/PartDialog";
 import VendorDialog from "@/components/part/VendorDialog";
@@ -85,10 +85,6 @@ const Parts = () => {
       toast.success(`Part added to invoice #${selectedInvoice}`);
       // This would update the invoice with the part
     }
-  };
-
-  const needsReorder = (part: Part) => {
-    return part.reorderLevel !== undefined && part.quantity <= part.reorderLevel;
   };
 
   return (
@@ -196,16 +192,9 @@ const Parts = () => {
                   <TableCell>{part.quantity}</TableCell>
                   <TableCell>{part.vendorName || "—"}</TableCell>
                   <TableCell>
-                    {needsReorder(part) ? (
-                      <span className="inline-flex items-center rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-medium text-yellow-800">
-                        <AlertTriangle className="mr-1 h-3 w-3" />
-                        Reorder
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
-                        In Stock
-                      </span>
-                    )}
+                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${part.quantity > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                      {part.quantity > 0 ? "In Stock" : "Out of Stock"}
+                    </span>
                   </TableCell>
                   <TableCell className="text-right">
                     {canManageParts && (

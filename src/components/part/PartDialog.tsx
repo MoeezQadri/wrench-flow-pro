@@ -42,7 +42,6 @@ const PartDialog = ({ open, onOpenChange, onSave, part, invoiceId }: PartDialogP
         vendorId: vendorId,
         vendorName: vendor?.name,
         partNumber: data.partNumber,
-        reorderLevel: data.reorderLevel,
       };
       
       onSave(newPart);
@@ -87,7 +86,6 @@ const PartDialog = ({ open, onOpenChange, onSave, part, invoiceId }: PartDialogP
                   description: part.description,
                   vendorId: part.vendorId || "none",
                   partNumber: part.partNumber,
-                  reorderLevel: part.reorderLevel,
                 }
               : undefined
           }

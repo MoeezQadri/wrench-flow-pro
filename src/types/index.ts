@@ -88,7 +88,7 @@ export interface Part {
   vendorId?: string;
   vendorName?: string;
   partNumber?: string;
-  reorderLevel?: number;
+  reorderLevel?: number; // Keep this optional for backward compatibility
 }
 
 export interface Task {
