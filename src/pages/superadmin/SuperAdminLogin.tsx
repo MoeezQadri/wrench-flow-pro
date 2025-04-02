@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { ShieldAlert, AlertTriangle } from 'lucide-react';
 import { useAuthContext } from '@/context/AuthContext';
 import { Session } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
 
 const SUPER_ADMIN_USERNAME = "superadmin";
 const SUPER_ADMIN_PASSWORD = "superuser123"; // In a real app, this would be hashed and stored securely
@@ -27,60 +28,93 @@ const SuperAdminLogin = () => {
     }
   }, [isAuthenticated, currentUser, navigate]);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simple credential check for demo purposes
-    // In a real application, this would be a server API call
-    if (username === SUPER_ADMIN_USERNAME && password === SUPER_ADMIN_PASSWORD) {
-      // Create a superuser
-      const superUser = {
-        id: 'superuser-1',
-        name: 'System Administrator',
-        email: 'admin@system.com',
-        role: 'superuser' as const,
-        isActive: true,
-        lastLogin: new Date().toISOString()
-      };
-      
-      // Create a proper mock session that matches Supabase's Session type
-      const mockSession: Session = {
-        access_token: `superadmin-${Date.now()}`,
-        refresh_token: `refresh-${Date.now()}`,
-        expires_in: 3600,
-        expires_at: Math.floor(Date.now() / 1000) + 3600,
-        token_type: 'bearer',
-        user: {
-          id: superUser.id,
-          email: superUser.email,
-          app_metadata: { provider: 'superadmin' },
-          user_metadata: { 
-            name: superUser.name,
-            role: superUser.role,
-            isActive: superUser.isActive 
-          },
-          aud: 'authenticated',
-          created_at: new Date().toISOString(),
-          role: '',
-          identities: []
+    try {
+      // First, check if this is the temporary superadmin credentials
+      if (username === SUPER_ADMIN_USERNAME && password === SUPER_ADMIN_PASSWORD) {
+        // Create a superuser
+        const superUser = {
+          id: 'superuser-1',
+          name: 'System Administrator',
+          email: 'admin@system.com',
+          role: 'superuser' as const,
+          isActive: true,
+          lastLogin: new Date().toISOString()
+        };
+        
+        // Create a proper mock session that matches Supabase's Session type
+        const mockSession: Session = {
+          access_token: `superadmin-${Date.now()}`,
+          refresh_token: `refresh-${Date.now()}`,
+          expires_in: 3600,
+          expires_at: Math.floor(Date.now() / 1000) + 3600,
+          token_type: 'bearer',
+          user: {
+            id: superUser.id,
+            email: superUser.email,
+            app_metadata: { provider: 'superadmin' },
+            user_metadata: { 
+              name: superUser.name,
+              role: superUser.role,
+              isActive: superUser.isActive 
+            },
+            aud: 'authenticated',
+            created_at: new Date().toISOString(),
+            role: '',
+            identities: []
+          }
+        };
+        
+        // Update auth context
+        setCurrentUser(superUser);
+        setSession(mockSession);
+        
+        // Store in local storage for persistence
+        localStorage.setItem('superadminSession', JSON.stringify(mockSession));
+        
+        toast.success('Logged in as System Administrator');
+        navigate('/superadmin/dashboard');
+      } else {
+        // Try to authenticate with Supabase
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: username, // Assuming username is the email
+          password
+        });
+        
+        if (error) throw error;
+        
+        if (data.user && data.session) {
+          // Check if this user has superuser role
+          const isSuperUser = data.user.user_metadata?.role === 'superuser';
+          
+          if (!isSuperUser) {
+            throw new Error('You do not have superadmin privileges');
+          }
+          
+          // Update auth context
+          setSession(data.session);
+          setCurrentUser({
+            id: data.user.id,
+            email: data.user.email || '',
+            name: data.user.user_metadata?.name || data.user.email?.split('@')[0] || '',
+            role: 'superuser',
+            isActive: true,
+            lastLogin: new Date().toISOString()
+          });
+          
+          toast.success('Logged in as Superadmin');
+          navigate('/superadmin/dashboard');
         }
-      };
-      
-      // Update auth context
-      setCurrentUser(superUser);
-      setSession(mockSession);
-      
-      // Store in local storage for persistence
-      localStorage.setItem('superadminSession', JSON.stringify(mockSession));
-      
-      toast.success('Logged in as System Administrator');
-      navigate('/superadmin/dashboard');
-    } else {
-      toast.error('Invalid credentials');
+      }
+    } catch (error: any) {
+      console.error('Superadmin login error:', error);
+      toast.error(error.message || 'Invalid credentials');
+    } finally {
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
   };
 
   return (

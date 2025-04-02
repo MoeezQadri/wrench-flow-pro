@@ -100,6 +100,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setLoading(false);
     });
     
+    // Check for stored superadmin session
+    const storedSuperadminSession = localStorage.getItem('superadminSession');
+    if (storedSuperadminSession && !session) {
+      try {
+        const parsedSession = JSON.parse(storedSuperadminSession) as Session;
+        if (parsedSession.user?.user_metadata?.role === 'superuser') {
+          setSession(parsedSession);
+          setCurrentUser({
+            id: parsedSession.user.id,
+            email: parsedSession.user.email || '',
+            name: parsedSession.user.user_metadata?.name || '',
+            role: 'superuser',
+            isActive: true,
+            lastLogin: new Date().toISOString()
+          });
+        }
+      } catch (error) {
+        console.error('Failed to parse superadmin session:', error);
+        localStorage.removeItem('superadminSession');
+      }
+    }
+    
     // Check for stored analytics config
     const storedAnalyticsConfig = localStorage.getItem('analyticsConfig');
     if (storedAnalyticsConfig) {
@@ -125,9 +147,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const logout = async () => {
-    await supabase.auth.signOut();
-    setCurrentUser(null);
-    setSession(null);
+    // Check if it's a superadmin session
+    if (currentUser?.role === 'superuser' && session?.access_token?.startsWith('superadmin-')) {
+      localStorage.removeItem('superadminSession');
+      setCurrentUser(null);
+      setSession(null);
+    } else {
+      // Regular Supabase logout
+      await supabase.auth.signOut();
+      setCurrentUser(null);
+      setSession(null);
+    }
   };
 
   const isSuperAdmin = currentUser?.role === 'superuser';

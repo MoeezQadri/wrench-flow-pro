@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -12,25 +13,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { UserRole, Organization } from '@/types';
-
-// Sample data - in a real app, this would come from your API
-const usersData = [
-  { id: '1', name: 'John Doe', email: 'john@example.com', role: 'owner', status: 'active', lastActive: '2023-06-14T12:30:00Z', subscriptionPlan: 'Enterprise', organizationId: 'org-1', isSuperAdmin: false },
-  { id: '2', name: 'Jane Smith', email: 'jane@example.com', role: 'manager', status: 'active', lastActive: '2023-06-13T10:15:00Z', subscriptionPlan: 'Pro', organizationId: 'org-1', isSuperAdmin: false },
-  { id: '3', name: 'Bob Johnson', email: 'bob@example.com', role: 'mechanic', status: 'inactive', lastActive: '2023-05-20T09:45:00Z', subscriptionPlan: 'Basic', organizationId: 'org-2', isSuperAdmin: false },
-  { id: '4', name: 'Alice Williams', email: 'alice@example.com', role: 'foreman', status: 'active', lastActive: '2023-06-12T14:20:00Z', subscriptionPlan: 'Pro', organizationId: 'org-2', isSuperAdmin: false },
-  { id: '5', name: 'Charlie Brown', email: 'charlie@example.com', role: 'mechanic', status: 'active', lastActive: '2023-06-10T11:10:00Z', subscriptionPlan: 'Basic', organizationId: 'org-3', isSuperAdmin: true },
-];
-
-const organizationsData = [
-  { id: 'org-1', name: 'Auto Shop Pro', subscriptionPlan: 'Enterprise', status: 'active', ownerName: 'John Doe', ownerEmail: 'john@example.com', createdAt: '2023-01-15T09:00:00Z', seats: 10, activeSeats: 5 },
-  { id: 'org-2', name: 'Mechanic Masters', subscriptionPlan: 'Pro', status: 'active', ownerName: 'Sarah Connor', ownerEmail: 'sarah@example.com', createdAt: '2023-02-20T14:30:00Z', seats: 5, activeSeats: 3 },
-  { id: 'org-3', name: 'Quick Fix Garage', subscriptionPlan: 'Basic', status: 'inactive', ownerName: 'Mike Tyson', ownerEmail: 'mike@example.com', createdAt: '2023-03-10T11:45:00Z', seats: 3, activeSeats: 2 },
-];
+import { supabase } from '@/integrations/supabase/client';
+import { useAuthContext } from '@/context/AuthContext';
 
 const AdminUserManagement = () => {
-  const [users, setUsers] = useState(usersData);
-  const [organizations, setOrganizations] = useState(organizationsData);
+  const [users, setUsers] = useState<any[]>([]);
+  const [organizations, setOrganizations] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -39,15 +27,49 @@ const AdminUserManagement = () => {
   const [isUserDialogOpen, setIsUserDialogOpen] = useState(false);
   const [isOrgDialogOpen, setIsOrgDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('organizations');
+  const [isLoading, setIsLoading] = useState(true);
+  const { currentUser } = useAuthContext();
+  
+  // Fetch data from Supabase
+  useEffect(() => {
+    async function fetchData() {
+      setIsLoading(true);
+      try {
+        // Fetch organizations
+        const { data: orgsData, error: orgsError } = await supabase
+          .from('organizations')
+          .select('*');
+        
+        if (orgsError) throw orgsError;
+        
+        // Fetch profiles for users
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('*');
+        
+        if (profilesError) throw profilesError;
+        
+        setOrganizations(orgsData || []);
+        setUsers(profilesData || []);
+      } catch (error: any) {
+        console.error('Error fetching data:', error);
+        toast.error('Failed to load data');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    
+    fetchData();
+  }, []);
   
   // Filter users based on search term and filters
   const filteredUsers = users.filter(user => {
     const matchesSearch = 
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      user.email.toLowerCase().includes(searchTerm.toLowerCase());
+      (user.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+      (user.email || '').toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesRole = roleFilter === 'all' || user.role === roleFilter;
-    const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
+    const matchesStatus = statusFilter === 'all' || (statusFilter === 'active' ? user.is_active : !user.is_active);
     
     return matchesSearch && matchesRole && matchesStatus;
   });
@@ -55,8 +77,8 @@ const AdminUserManagement = () => {
   // Filter organizations based on search term
   const filteredOrganizations = organizations.filter(org => 
     org.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    org.ownerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    org.ownerEmail.toLowerCase().includes(searchTerm.toLowerCase())
+    (org.owner_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (org.email || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
   
   const handleEditUser = (user: any) => {
@@ -64,26 +86,66 @@ const AdminUserManagement = () => {
     setIsUserDialogOpen(true);
   };
   
-  const handleToggleStatus = (userId: string, isActive: boolean) => {
-    setUsers(users.map(user => 
-      user.id === userId ? { ...user, status: isActive ? 'active' : 'inactive' } : user
-    ));
-    
-    toast.success(`User status updated successfully`);
+  const handleToggleStatus = async (userId: string, isActive: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ is_active: isActive })
+        .eq('id', userId);
+      
+      if (error) throw error;
+      
+      setUsers(users.map(user => 
+        user.id === userId ? { ...user, is_active: isActive } : user
+      ));
+      
+      toast.success(`User status updated successfully`);
+    } catch (error: any) {
+      console.error('Error updating user status:', error);
+      toast.error('Failed to update user status');
+    }
   };
   
-  const handleToggleSuperAdmin = (userId: string, isSuperAdmin: boolean) => {
-    setUsers(users.map(user => 
-      user.id === userId ? { ...user, isSuperAdmin } : user
-    ));
-    
-    toast.success(`Super admin status ${isSuperAdmin ? 'granted' : 'revoked'}`);
+  const handleToggleSuperAdmin = async (userId: string, isSuperAdmin: boolean) => {
+    try {
+      const { error } = await supabase.auth.admin.updateUserById(
+        userId,
+        { user_metadata: { role: isSuperAdmin ? 'superuser' : 'owner' } }
+      );
+      
+      if (error) throw error;
+      
+      // Also update in profiles table
+      await supabase
+        .from('profiles')
+        .update({ role: isSuperAdmin ? 'superuser' : 'owner' })
+        .eq('id', userId);
+      
+      setUsers(users.map(user => 
+        user.id === userId ? { ...user, role: isSuperAdmin ? 'superuser' : 'owner' } : user
+      ));
+      
+      toast.success(`Super admin status ${isSuperAdmin ? 'granted' : 'revoked'}`);
+    } catch (error: any) {
+      console.error('Error updating super admin status:', error);
+      toast.error('Failed to update super admin status');
+    }
   };
   
-  const handleDeleteUser = (userId: string) => {
+  const handleDeleteUser = async (userId: string) => {
     if (window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
-      setUsers(users.filter(user => user.id !== userId));
-      toast.success('User deleted successfully');
+      try {
+        // Delete from auth (this will cascade to profiles due to FK constraint)
+        const { error } = await supabase.auth.admin.deleteUser(userId);
+        
+        if (error) throw error;
+        
+        setUsers(users.filter(user => user.id !== userId));
+        toast.success('User deleted successfully');
+      } catch (error: any) {
+        console.error('Error deleting user:', error);
+        toast.error('Failed to delete user');
+      }
     }
   };
   
@@ -97,115 +159,212 @@ const AdminUserManagement = () => {
     setIsOrgDialogOpen(true);
   };
   
-  const handleDeleteOrganization = (orgId: string) => {
+  const handleDeleteOrganization = async (orgId: string) => {
     if (window.confirm('Are you sure you want to delete this organization? This will also remove all associated users.')) {
-      setOrganizations(organizations.filter(org => org.id !== orgId));
-      // Also remove users associated with this organization
-      setUsers(users.filter(user => user.organizationId !== orgId));
-      toast.success('Organization deleted successfully');
+      try {
+        // First get all users with this organization_id
+        const { data: orgUsers } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('organization_id', orgId);
+        
+        // Delete the organization (FK constraints should handle cascading)
+        const { error } = await supabase
+          .from('organizations')
+          .delete()
+          .eq('id', orgId);
+        
+        if (error) throw error;
+        
+        setOrganizations(organizations.filter(org => org.id !== orgId));
+        setUsers(users.filter(user => user.organization_id !== orgId));
+        toast.success('Organization deleted successfully');
+      } catch (error: any) {
+        console.error('Error deleting organization:', error);
+        toast.error('Failed to delete organization');
+      }
     }
   };
   
-  const handleSaveUser = (e: React.FormEvent) => {
+  const handleSaveUser = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (selectedUser) {
-      // Update existing user
-      setUsers(users.map(user => 
-        user.id === selectedUser.id ? selectedUser : user
-      ));
-      toast.success('User updated successfully');
-    } else {
-      // Add new owner user
-      const newUser = {
-        id: `user-${Date.now()}`,
-        name: selectedUser?.name || '',
-        email: selectedUser?.email || '',
-        role: 'owner',
-        status: 'active',
-        lastActive: new Date().toISOString(),
-        subscriptionPlan: selectedUser?.subscriptionPlan || 'Basic',
-        organizationId: selectedUser?.organizationId || '',
-        isSuperAdmin: selectedUser?.isSuperAdmin || false
-      };
+    try {
+      if (selectedUser) {
+        // Update existing user
+        const { error } = await supabase
+          .from('profiles')
+          .update({
+            name: selectedUser.name,
+            role: selectedUser.role,
+            organization_id: selectedUser.organization_id,
+            is_active: selectedUser.is_active
+          })
+          .eq('id', selectedUser.id);
+        
+        if (error) throw error;
+        
+        // Update user metadata if role changed
+        if (selectedUser.role === 'superuser') {
+          await supabase.auth.admin.updateUserById(
+            selectedUser.id,
+            { user_metadata: { role: 'superuser' } }
+          );
+        }
+        
+        setUsers(users.map(user => 
+          user.id === selectedUser.id ? selectedUser : user
+        ));
+        toast.success('User updated successfully');
+      } else {
+        // Add new owner user
+        const email = selectedUser?.email || '';
+        const password = Math.random().toString(36).slice(2, 10); // Generate random password
+        
+        // Create user in auth
+        const { data, error } = await supabase.auth.admin.createUser({
+          email,
+          password,
+          email_confirm: true,
+          user_metadata: {
+            name: selectedUser?.name || '',
+            role: 'owner',
+            organization_id: selectedUser?.organization_id || null
+          }
+        });
+        
+        if (error) throw error;
+        
+        // User is automatically added to profiles via trigger
+        
+        toast.success('Owner added successfully. Initial password is: ' + password);
+      }
       
-      setUsers([...users, newUser]);
-      toast.success('Owner added successfully');
+      setIsUserDialogOpen(false);
+      setSelectedUser(null);
+      
+      // Refresh data
+      const { data } = await supabase
+        .from('profiles')
+        .select('*');
+      
+      setUsers(data || []);
+    } catch (error: any) {
+      console.error('Error saving user:', error);
+      toast.error('Failed to save user: ' + error.message);
     }
-    
-    setIsUserDialogOpen(false);
-    setSelectedUser(null);
   };
   
-  const handleSaveOrganization = (e: React.FormEvent) => {
+  const handleSaveOrganization = async (e: React.FormEvent) => {
     e.preventDefault();
     const form = e.target as HTMLFormElement;
     const formData = new FormData(form);
     
     const orgData = {
       name: formData.get('name') as string,
-      ownerName: formData.get('ownerName') as string,
-      ownerEmail: formData.get('ownerEmail') as string,
-      subscriptionPlan: formData.get('subscriptionPlan') as string,
+      subscription_level: formData.get('subscriptionPlan') as string,
       seats: parseInt(formData.get('seats') as string || '0'),
-      status: 'active',
+      subscription_status: 'active',
+      owner_name: formData.get('ownerName') as string,
+      owner_email: formData.get('ownerEmail') as string,
     };
     
-    if (!orgData.name || !orgData.ownerName || !orgData.ownerEmail) {
+    if (!orgData.name || (!selectedOrganization && (!orgData.owner_name || !orgData.owner_email))) {
       toast.error('Please fill in all required fields');
       return;
     }
     
-    if (selectedOrganization) {
-      // Update existing organization
-      const updatedOrg = {
-        ...selectedOrganization,
-        name: orgData.name,
-        subscriptionPlan: orgData.subscriptionPlan,
-        seats: orgData.seats,
-      };
+    try {
+      if (selectedOrganization) {
+        // Update existing organization
+        const { error } = await supabase
+          .from('organizations')
+          .update({
+            name: orgData.name,
+            subscription_level: orgData.subscription_level,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', selectedOrganization.id);
+        
+        if (error) throw error;
+        
+        setOrganizations(organizations.map(org => 
+          org.id === selectedOrganization.id ? {
+            ...selectedOrganization,
+            name: orgData.name,
+            subscription_level: orgData.subscription_level,
+            updated_at: new Date().toISOString()
+          } : org
+        ));
+        toast.success('Organization updated successfully');
+      } else {
+        // Create new organization
+        const { data: orgResult, error: orgError } = await supabase
+          .from('organizations')
+          .insert({
+            name: orgData.name,
+            subscription_level: orgData.subscription_level,
+            subscription_status: 'active'
+          })
+          .select();
+        
+        if (orgError) throw orgError;
+        
+        if (orgResult && orgResult.length > 0) {
+          const newOrg = orgResult[0];
+          
+          // Create the owner user
+          const password = Math.random().toString(36).slice(2, 10); // Generate random password
+          
+          const { data: userData, error: userError } = await supabase.auth.admin.createUser({
+            email: orgData.owner_email,
+            password,
+            email_confirm: true,
+            user_metadata: {
+              name: orgData.owner_name,
+              role: 'owner',
+              organization_id: newOrg.id
+            }
+          });
+          
+          if (userError) throw userError;
+          
+          // Update the user's profile with the organization
+          await supabase
+            .from('profiles')
+            .update({ organization_id: newOrg.id })
+            .eq('id', userData.user.id);
+          
+          setOrganizations([...organizations, newOrg]);
+          
+          toast.success('Organization and owner created successfully. Initial password is: ' + password);
+        }
+      }
       
-      setOrganizations(organizations.map(org => 
-        org.id === selectedOrganization.id ? updatedOrg : org
-      ));
-      toast.success('Organization updated successfully');
-    } else {
-      // Create new organization and owner
-      const newOrgId = `org-${Date.now()}`;
-      const newOrg = {
-        id: newOrgId,
-        name: orgData.name,
-        subscriptionPlan: orgData.subscriptionPlan,
-        status: 'active',
-        ownerName: orgData.ownerName,
-        ownerEmail: orgData.ownerEmail,
-        createdAt: new Date().toISOString(),
-        seats: orgData.seats,
-        activeSeats: 1, // Start with just the owner
-      };
+      setIsOrgDialogOpen(false);
+      setSelectedOrganization(null);
       
-      // Create the owner user
-      const newOwner = {
-        id: `user-${Date.now()}`,
-        name: orgData.ownerName,
-        email: orgData.ownerEmail,
-        role: 'owner' as UserRole,
-        status: 'active',
-        lastActive: new Date().toISOString(),
-        subscriptionPlan: orgData.subscriptionPlan,
-        organizationId: newOrgId,
-        isSuperAdmin: false,
-      };
+      // Refresh data
+      const { data: orgsData } = await supabase
+        .from('organizations')
+        .select('*');
       
-      setOrganizations([...organizations, newOrg]);
-      setUsers([...users, newOwner]);
+      setOrganizations(orgsData || []);
       
-      toast.success('Organization and owner created successfully');
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('*');
+      
+      setUsers(profilesData || []);
+    } catch (error: any) {
+      console.error('Error saving organization:', error);
+      toast.error('Failed to save organization: ' + error.message);
     }
-    
-    setIsOrgDialogOpen(false);
-    setSelectedOrganization(null);
   };
+  
+  if (isLoading) {
+    return <div className="flex justify-center items-center h-64">Loading...</div>;
+  }
   
   return (
     <div className="space-y-6">
@@ -248,9 +407,9 @@ const AdminUserManagement = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Plans</SelectItem>
-                      <SelectItem value="Enterprise">Enterprise</SelectItem>
-                      <SelectItem value="Pro">Pro</SelectItem>
-                      <SelectItem value="Basic">Basic</SelectItem>
+                      <SelectItem value="enterprise">Enterprise</SelectItem>
+                      <SelectItem value="pro">Pro</SelectItem>
+                      <SelectItem value="trial">Trial</SelectItem>
                     </SelectContent>
                   </Select>
                   
@@ -265,11 +424,9 @@ const AdminUserManagement = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Organization</TableHead>
-                    <TableHead>Owner</TableHead>
                     <TableHead>Subscription</TableHead>
-                    <TableHead>Seats</TableHead>
-                    <TableHead>Created</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Created</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -277,20 +434,18 @@ const AdminUserManagement = () => {
                   {filteredOrganizations.map((org) => (
                     <TableRow key={org.id}>
                       <TableCell className="font-medium">{org.name}</TableCell>
-                      <TableCell>{org.ownerName} ({org.ownerEmail})</TableCell>
                       <TableCell>
-                        <Badge variant={org.subscriptionPlan === 'Enterprise' ? 'default' : 
-                              org.subscriptionPlan === 'Pro' ? 'secondary' : 'outline'}>
-                          {org.subscriptionPlan}
+                        <Badge variant={org.subscription_level === 'enterprise' ? 'default' : 
+                              org.subscription_level === 'pro' ? 'secondary' : 'outline'}>
+                          {org.subscription_level}
                         </Badge>
                       </TableCell>
-                      <TableCell>{org.activeSeats} / {org.seats}</TableCell>
-                      <TableCell>{new Date(org.createdAt).toLocaleDateString()}</TableCell>
                       <TableCell>
-                        <Badge variant={org.status === 'active' ? 'default' : 'destructive'}>
-                          {org.status === 'active' ? 'Active' : 'Inactive'}
+                        <Badge variant={org.subscription_status === 'active' ? 'default' : 'destructive'}>
+                          {org.subscription_status}
                         </Badge>
                       </TableCell>
+                      <TableCell>{new Date(org.created_at).toLocaleDateString()}</TableCell>
                       <TableCell className="text-right">
                         <Button variant="ghost" size="sm" onClick={() => handleEditOrganization(org)}>
                           <Edit className="h-4 w-4" />
@@ -304,7 +459,7 @@ const AdminUserManagement = () => {
                   
                   {filteredOrganizations.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={7} className="h-24 text-center">
+                      <TableCell colSpan={5} className="h-24 text-center">
                         <div className="flex flex-col items-center justify-center text-muted-foreground">
                           <Building className="h-8 w-8 mb-2" />
                           <p>No organizations found</p>
@@ -357,6 +512,7 @@ const AdminUserManagement = () => {
                       <SelectItem value="manager">Manager</SelectItem>
                       <SelectItem value="foreman">Foreman</SelectItem>
                       <SelectItem value="mechanic">Mechanic</SelectItem>
+                      <SelectItem value="superuser">Superadmin</SelectItem>
                     </SelectContent>
                   </Select>
                   
@@ -378,7 +534,6 @@ const AdminUserManagement = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
                     <TableHead>Role</TableHead>
                     <TableHead>Organization</TableHead>
                     <TableHead>Super Admin</TableHead>
@@ -390,34 +545,45 @@ const AdminUserManagement = () => {
                   {filteredUsers.map((user) => (
                     <TableRow key={user.id}>
                       <TableCell className="font-medium">{user.name}</TableCell>
-                      <TableCell>{user.email}</TableCell>
                       <TableCell className="capitalize">{user.role}</TableCell>
                       <TableCell>
-                        {organizations.find(org => org.id === user.organizationId)?.name || '-'}
+                        {organizations.find(org => org.id === user.organization_id)?.name || '-'}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center">
                           <Switch 
-                            checked={user.isSuperAdmin} 
+                            checked={user.role === 'superuser'} 
                             onCheckedChange={(checked) => handleToggleSuperAdmin(user.id, checked)}
+                            disabled={user.id === currentUser?.id} // Can't change your own status
                           />
-                          <span className="ml-2">{user.isSuperAdmin ? 'Yes' : 'No'}</span>
+                          <span className="ml-2">{user.role === 'superuser' ? 'Yes' : 'No'}</span>
                         </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center">
                           <Switch 
-                            checked={user.status === 'active'} 
+                            checked={user.is_active} 
                             onCheckedChange={(checked) => handleToggleStatus(user.id, checked)}
+                            disabled={user.id === currentUser?.id} // Can't deactivate yourself
                           />
-                          <span className="ml-2">{user.status === 'active' ? 'Active' : 'Inactive'}</span>
+                          <span className="ml-2">{user.is_active ? 'Active' : 'Inactive'}</span>
                         </div>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="sm" onClick={() => handleEditUser(user)}>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => handleEditUser(user)}
+                          disabled={user.id === currentUser?.id && user.role === 'superuser'} // Can't edit yourself if superuser
+                        >
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="sm" onClick={() => handleDeleteUser(user.id)}>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => handleDeleteUser(user.id)}
+                          disabled={user.id === currentUser?.id} // Can't delete yourself
+                        >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </TableCell>
@@ -426,7 +592,7 @@ const AdminUserManagement = () => {
                   
                   {filteredUsers.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={7} className="h-24 text-center">
+                      <TableCell colSpan={6} className="h-24 text-center">
                         <div className="flex flex-col items-center justify-center text-muted-foreground">
                           <UserCog className="h-8 w-8 mb-2" />
                           <p>No users found</p>
@@ -474,6 +640,7 @@ const AdminUserManagement = () => {
                     value={selectedUser?.email || ''} 
                     onChange={(e) => setSelectedUser({...selectedUser, email: e.target.value})}
                     required
+                    disabled={!!selectedUser?.id} // Can't change email for existing users
                   />
                 </div>
               </div>
@@ -494,6 +661,7 @@ const AdminUserManagement = () => {
                         <SelectItem value="manager">Manager</SelectItem>
                         <SelectItem value="foreman">Foreman</SelectItem>
                         <SelectItem value="mechanic">Mechanic</SelectItem>
+                        <SelectItem value="superuser">Superadmin</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -502,8 +670,8 @@ const AdminUserManagement = () => {
                 <div className="space-y-2">
                   <label htmlFor="organization" className="text-sm font-medium">Organization</label>
                   <Select 
-                    value={selectedUser?.organizationId || ''} 
-                    onValueChange={(value) => setSelectedUser({...selectedUser, organizationId: value})}
+                    value={selectedUser?.organization_id || ''} 
+                    onValueChange={(value) => setSelectedUser({...selectedUser, organization_id: value})}
                   >
                     <SelectTrigger id="organization">
                       <SelectValue placeholder="Select organization" />
@@ -517,19 +685,22 @@ const AdminUserManagement = () => {
                 </div>
               </div>
               
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label htmlFor="isSuperAdmin" className="text-sm font-medium">Super Admin Access</label>
-                  <Switch 
-                    id="isSuperAdmin"
-                    checked={selectedUser?.isSuperAdmin || false} 
-                    onCheckedChange={(checked) => setSelectedUser({...selectedUser, isSuperAdmin: checked})}
-                  />
+              {selectedUser && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label htmlFor="isSuperAdmin" className="text-sm font-medium">Super Admin Access</label>
+                    <Switch 
+                      id="isSuperAdmin"
+                      checked={selectedUser?.role === 'superuser'} 
+                      onCheckedChange={(checked) => setSelectedUser({...selectedUser, role: checked ? 'superuser' : 'owner'})}
+                      disabled={selectedUser?.id === currentUser?.id} // Can't change your own status
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Super admins have access to the admin portal and can manage all organizations, users, and settings.
+                  </p>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Super admins have access to the admin portal and can manage all organizations, users, and settings.
-                </p>
-              </div>
+              )}
             </div>
             
             <DialogFooter>
@@ -596,15 +767,16 @@ const AdminUserManagement = () => {
                   <Label htmlFor="subscriptionPlan">Subscription Plan</Label>
                   <Select 
                     name="subscriptionPlan"
-                    defaultValue={selectedOrganization?.subscriptionPlan || 'Basic'}
+                    defaultValue={selectedOrganization?.subscription_level || 'trial'}
                   >
                     <SelectTrigger id="subscriptionPlan">
                       <SelectValue placeholder="Select plan" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Basic">Basic</SelectItem>
-                      <SelectItem value="Pro">Pro</SelectItem>
-                      <SelectItem value="Enterprise">Enterprise</SelectItem>
+                      <SelectItem value="trial">Trial</SelectItem>
+                      <SelectItem value="basic">Basic</SelectItem>
+                      <SelectItem value="pro">Pro</SelectItem>
+                      <SelectItem value="enterprise">Enterprise</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
