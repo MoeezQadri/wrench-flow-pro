@@ -14,7 +14,8 @@ import {
   X,
   ClipboardCheck,
   UserCog,
-  Building
+  Building,
+  CalendarCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getCurrentUser, hasPermission } from '@/services/data-service';
@@ -48,7 +49,7 @@ const navItems = [
   { 
     name: 'Tasks', 
     path: '/tasks', 
-    icon: <Calendar className="w-5 h-5" />,
+    icon: <CalendarCheck className="w-5 h-5" />,
     permission: { resource: 'tasks', action: 'view' }
   },
   { 

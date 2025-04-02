@@ -34,7 +34,9 @@ const TaskDialog = ({ open, onOpenChange, onSave, task }: TaskDialogProps) => {
   const currentUser = getCurrentUser();
   
   // Check if user has permission to edit this task
-  const canEdit = hasPermission(currentUser, 'tasks', 'manage') ||
+  const canEdit = 
+    hasPermission(currentUser, 'tasks', 'manage') ||
+    currentUser.role === 'foreman' ||
     (currentUser.role === 'mechanic' && 
      currentUser.mechanicId === task?.mechanicId && 
      hasPermission(currentUser, 'tasks', 'manage'));
@@ -130,16 +132,25 @@ const TaskDialog = ({ open, onOpenChange, onSave, task }: TaskDialogProps) => {
     }
   };
 
+  // Determine dialog title and description based on user role
+  let dialogTitle = isEditing ? "Edit Task" : "Add New Task";
+  let dialogDescription = isEditing
+    ? "Update the task information below."
+    : "Enter the details for the new task.";
+
+  if (currentUser.role === 'foreman') {
+    dialogTitle = isEditing ? "Manage Task" : "Assign New Task";
+    dialogDescription = isEditing
+      ? "Update task details and assignment."
+      : "Create a new task and assign it to a mechanic.";
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>{isEditing ? "Edit Task" : "Add New Task"}</DialogTitle>
-          <DialogDescription>
-            {isEditing
-              ? "Update the task information below."
-              : "Enter the details for the new task."}
-          </DialogDescription>
+          <DialogTitle>{dialogTitle}</DialogTitle>
+          <DialogDescription>{dialogDescription}</DialogDescription>
         </DialogHeader>
 
         <TaskForm
@@ -166,7 +177,7 @@ const TaskDialog = ({ open, onOpenChange, onSave, task }: TaskDialogProps) => {
             Cancel
           </Button>
           <Button type="submit" form={formId}>
-            {isEditing ? "Update" : "Add"} Task
+            {isEditing ? "Update" : (currentUser.role === 'foreman' ? "Assign" : "Add")} Task
           </Button>
         </DialogFooter>
       </DialogContent>

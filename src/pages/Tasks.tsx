@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Pencil, Calendar, CalendarCheck, Tag } from "lucide-react";
+import { Plus, Pencil, Calendar, CalendarCheck, Tag, Car } from "lucide-react";
 import { toast } from "sonner";
 import TaskDialog from "@/components/task/TaskDialog";
 import TaskCheckInOut from "@/components/task/TaskCheckInOut";
@@ -13,7 +13,9 @@ import {
   getMechanicById, 
   getCurrentUser, 
   hasPermission,
-  getInvoiceById 
+  getInvoiceById,
+  getVehicleById,
+  getCustomerById
 } from "@/services/data-service";
 import { Task } from "@/types";
 
@@ -27,8 +29,10 @@ const Tasks = () => {
   // Check permissions
   const canViewTasks = hasPermission(currentUser, 'tasks', 'view');
   const canManageTasks = hasPermission(currentUser, 'tasks', 'manage');
+  const isForeman = currentUser.role === 'foreman';
   
   // For mechanics, filter tasks to only show their own
+  // For others, show all tasks
   const filteredTasks = currentUser.role === 'mechanic' && currentUser.mechanicId 
     ? tasksList.filter(task => task.mechanicId === currentUser.mechanicId)
     : tasksList;
@@ -58,8 +62,8 @@ const Tasks = () => {
       return;
     }
     
-    // Managers and owners can edit any task
-    if (currentUser.role !== 'mechanic' && !canManageTasks) {
+    // Managers, owners, and foremen can edit any task
+    if (currentUser.role !== 'mechanic' && currentUser.role !== 'foreman' && !canManageTasks) {
       toast.error("You don't have permission to edit tasks");
       return;
     }
@@ -110,15 +114,31 @@ const Tasks = () => {
     return {
       id: invoice.id,
       status: invoice.status,
-      vehicle: `${invoice.vehicleInfo.make} ${invoice.vehicleInfo.model}`
+      vehicle: `${invoice.vehicleInfo.make} ${invoice.vehicleInfo.model}`,
+      vehicleId: invoice.vehicleId,
+      customerId: invoice.customerId
     };
   };
+
+  const getVehicleInfo = (vehicleId: string) => {
+    const vehicle = getVehicleById(vehicleId);
+    if (!vehicle) return "Unknown Vehicle";
+    return `${vehicle.make} ${vehicle.model} (${vehicle.year})`;
+  };
+
+  const getCustomerInfo = (customerId: string) => {
+    const customer = getCustomerById(customerId);
+    if (!customer) return "Unknown Customer";
+    return customer.name;
+  };
+
+  const shouldShowVehicleColumn = isForeman || currentUser.role === 'manager' || currentUser.role === 'owner';
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold tracking-tight">Tasks</h1>
-        {(canManageTasks || currentUser.role === 'mechanic') && (
+        {(canManageTasks || currentUser.role === 'mechanic' || isForeman) && (
           <Button onClick={handleAddTask}>
             <Plus className="mr-1 h-4 w-4" />
             Add Task
@@ -146,6 +166,7 @@ const Tasks = () => {
                 <TableHead>Status</TableHead>
                 <TableHead>Est. Hours</TableHead>
                 <TableHead>Hours Spent</TableHead>
+                {shouldShowVehicleColumn && <TableHead>Vehicle/Customer</TableHead>}
                 <TableHead>Invoice</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -171,6 +192,23 @@ const Tasks = () => {
                     </TableCell>
                     <TableCell>{task.hoursEstimated}</TableCell>
                     <TableCell>{task.hoursSpent || "—"}</TableCell>
+                    {shouldShowVehicleColumn && (
+                      <TableCell>
+                        {invoiceInfo ? (
+                          <div className="flex flex-col">
+                            <span className="text-xs flex items-center">
+                              <Car className="h-3 w-3 mr-1 text-blue-500" />
+                              {getVehicleInfo(invoiceInfo.vehicleId)}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {getCustomerInfo(invoiceInfo.customerId)}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">Not assigned</span>
+                        )}
+                      </TableCell>
+                    )}
                     <TableCell>
                       {invoiceInfo ? (
                         <div className="flex items-center">
@@ -178,7 +216,7 @@ const Tasks = () => {
                           <span className="text-xs">
                             {invoiceInfo.id.substring(0, 8)}...
                             <span className="ml-1 text-muted-foreground">
-                              ({invoiceInfo.vehicle})
+                              ({invoiceInfo.status})
                             </span>
                           </span>
                         </div>
@@ -200,7 +238,7 @@ const Tasks = () => {
                         )}
                         
                         {/* Edit button */}
-                        {((canManageTasks) || (currentUser.role === 'mechanic' && currentUser.mechanicId === task.mechanicId)) && (
+                        {((canManageTasks) || (currentUser.role === 'mechanic' && currentUser.mechanicId === task.mechanicId) || isForeman) && (
                           <Button
                             variant="ghost"
                             size="sm"
@@ -216,11 +254,11 @@ const Tasks = () => {
               })}
               {filteredTasks.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-6">
+                  <TableCell colSpan={shouldShowVehicleColumn ? 8 : 7} className="text-center py-6">
                     <div className="flex flex-col items-center justify-center text-muted-foreground">
                       <CalendarCheck className="w-12 h-12 mb-2 text-muted-foreground/60" />
                       <p>No tasks found</p>
-                      {(canManageTasks || currentUser.role === 'mechanic') && (
+                      {(canManageTasks || currentUser.role === 'mechanic' || isForeman) && (
                         <Button 
                           variant="outline" 
                           size="sm" 

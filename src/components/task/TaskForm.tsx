@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
-import { mechanics, invoices } from "@/services/data-service";
+import { mechanics, invoices, customers, getVehicleById } from "@/services/data-service";
 
 const taskSchema = z.object({
   title: z.string().min(1, { message: "Title is required" }),
@@ -63,6 +63,28 @@ const TaskForm = ({ defaultValues, onSubmit, formId, userRole }: TaskFormProps) 
     invoice => invoice.status === 'open' || invoice.status === 'in-progress'
   );
 
+  // Format invoice option with vehicle and customer details
+  const formatInvoiceOption = (invoice: typeof invoices[0]) => {
+    const vehicle = getVehicleById(invoice.vehicleId);
+    const customer = customers.find(c => c.id === invoice.customerId);
+    
+    let label = `${invoice.id.substring(0, 8)}...`;
+    
+    if (vehicle) {
+      label += ` - ${vehicle.make} ${vehicle.model}`;
+    }
+    
+    if (customer) {
+      label += ` (${customer.name})`;
+    }
+    
+    return label;
+  };
+
+  // Determine if the invoice selection should be shown
+  // Available to managers, owners, and foremen
+  const canSelectInvoice = userRole === 'manager' || userRole === 'owner' || userRole === 'foreman';
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} id={formId} className="space-y-4">
@@ -99,7 +121,9 @@ const TaskForm = ({ defaultValues, onSubmit, formId, userRole }: TaskFormProps) 
           name="mechanicId"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Assigned Mechanic</FormLabel>
+              <FormLabel>
+                {userRole === 'foreman' ? 'Assign to Mechanic' : 'Assigned Mechanic'}
+              </FormLabel>
               <Select 
                 onValueChange={field.onChange} 
                 defaultValue={field.value} 
@@ -188,17 +212,17 @@ const TaskForm = ({ defaultValues, onSubmit, formId, userRole }: TaskFormProps) 
           />
         )}
 
-        {/* Invoice selection - only for managers and owners */}
-        {(userRole === 'manager' || userRole === 'owner') && (
+        {/* Invoice selection - only for managers, owners, and foremen */}
+        {canSelectInvoice && (
           <FormField
             control={form.control}
             name="invoiceId"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Link to Invoice</FormLabel>
+                <FormLabel>Link to Invoice/Vehicle</FormLabel>
                 <Select 
                   onValueChange={field.onChange} 
-                  value={field.value || ""}
+                  value={field.value || "none"}
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -209,7 +233,7 @@ const TaskForm = ({ defaultValues, onSubmit, formId, userRole }: TaskFormProps) 
                     <SelectItem value="none">Not linked to an invoice</SelectItem>
                     {availableInvoices.map((invoice) => (
                       <SelectItem key={invoice.id} value={invoice.id}>
-                        {invoice.id} - {invoice.vehicleInfo.make} {invoice.vehicleInfo.model}
+                        {formatInvoiceOption(invoice)}
                       </SelectItem>
                     ))}
                   </SelectContent>

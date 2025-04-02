@@ -3,8 +3,8 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { tasks, mechanics, getMechanicById } from "@/services/data-service";
-import { Calendar, ChevronLeft, ChevronRight, Download, Filter } from "lucide-react";
+import { tasks, mechanics, getMechanicById, getCurrentUser } from "@/services/data-service";
+import { Calendar, ChevronLeft, ChevronRight, Download, Filter, Users } from "lucide-react";
 import { 
   BarChart, 
   Bar, 
@@ -13,11 +13,16 @@ import {
   CartesianGrid, 
   Tooltip, 
   ResponsiveContainer,
-  Legend
+  Legend,
+  PieChart,
+  Pie,
+  Cell
 } from 'recharts';
 
 const TasksReport = () => {
   const [selectedDate, setSelectedDate] = useState("2023-05-15");
+  const currentUser = getCurrentUser();
+  const isForeman = currentUser.role === 'foreman';
   
   // We would typically filter by date from API but using our mock data
   // Mechanic efficiency chart data
@@ -34,6 +39,34 @@ const TasksReport = () => {
       actualHours: totalActual
     };
   });
+
+  // Mechanic utilization data (tasks assigned per mechanic)
+  const mechanicUtilizationData = mechanics.map(mechanic => {
+    const pendingTasks = tasks.filter(task => 
+      task.mechanicId === mechanic.id && task.status === 'pending'
+    ).length;
+    
+    const inProgressTasks = tasks.filter(task => 
+      task.mechanicId === mechanic.id && task.status === 'in-progress'
+    ).length;
+    
+    const completedTasks = tasks.filter(task => 
+      task.mechanicId === mechanic.id && task.status === 'completed'
+    ).length;
+    
+    const totalTasks = pendingTasks + inProgressTasks + completedTasks;
+    
+    return {
+      name: mechanic.name,
+      totalTasks,
+      pendingTasks,
+      inProgressTasks,
+      completedTasks,
+      value: totalTasks // for pie chart
+    };
+  });
+
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#83a6ed'];
 
   const handlePreviousDay = () => {
     const date = new Date(selectedDate);
@@ -133,6 +166,66 @@ const TasksReport = () => {
           </div>
         </CardContent>
       </Card>
+      
+      {/* Mechanic Workload Distribution - Especially useful for foremen */}
+      {(isForeman || currentUser.role === 'manager' || currentUser.role === 'owner') && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Mechanic Workload Distribution</CardTitle>
+            <CardDescription>Tasks assigned to each mechanic</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-80 flex flex-col md:flex-row items-center justify-center">
+              <div className="w-full md:w-1/2 h-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={mechanicUtilizationData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                      nameKey="name"
+                      label={({name, percent}) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                    >
+                      {mechanicUtilizationData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(value, name) => [`${value} tasks`, name]} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="w-full md:w-1/2 overflow-y-auto h-full">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Mechanic</TableHead>
+                      <TableHead>Total</TableHead>
+                      <TableHead>Pending</TableHead>
+                      <TableHead>In Progress</TableHead>
+                      <TableHead>Completed</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {mechanicUtilizationData.map((mechanic) => (
+                      <TableRow key={mechanic.name}>
+                        <TableCell className="font-medium">{mechanic.name}</TableCell>
+                        <TableCell>{mechanic.totalTasks}</TableCell>
+                        <TableCell>{mechanic.pendingTasks}</TableCell>
+                        <TableCell>{mechanic.inProgressTasks}</TableCell>
+                        <TableCell>{mechanic.completedTasks}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
       
       {/* Tasks Table */}
       <Card>

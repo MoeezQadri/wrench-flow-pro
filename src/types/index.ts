@@ -1,6 +1,6 @@
 export type InvoiceStatus = 'open' | 'in-progress' | 'completed' | 'paid' | 'partial';
 
-export type UserRole = 'owner' | 'manager' | 'mechanic';
+export type UserRole = 'owner' | 'manager' | 'mechanic' | 'foreman';
 
 export interface User {
   id: string;
@@ -212,6 +212,21 @@ export const rolePermissions: Record<UserRole, RolePermissionMap> = {
     organization: { view: true, manage: false },
     users: { view: true, manage: false },
     subscription: { view: true, manage: false }
+  },
+  foreman: {
+    dashboard: true,
+    customers: { view: true, manage: false },
+    invoices: { view: true, manage: false },
+    mechanics: { view: true, manage: false },
+    tasks: { view: true, manage: true, assign: true },
+    parts: { view: true, manage: false },
+    expenses: { view: false, manage: false },
+    reports: { view: true },
+    attendance: { view: true, manage: false, approve: false },
+    settings: { view: false, manage: false },
+    organization: { view: false, manage: false },
+    users: { view: false, manage: false },
+    subscription: { view: false, manage: false }
   },
   mechanic: {
     dashboard: false,
