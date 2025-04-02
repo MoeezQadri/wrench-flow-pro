@@ -17,7 +17,7 @@ const SuperAdminLogin = () => {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const { setCurrentUser, setToken, currentUser, isAuthenticated } = useAuthContext();
+  const { setCurrentUser, session, setSession, currentUser, isAuthenticated } = useAuthContext();
 
   // If already authenticated as superuser, redirect to dashboard
   useEffect(() => {
@@ -42,16 +42,22 @@ const SuperAdminLogin = () => {
         isActive: true,
         lastLogin: new Date().toISOString()
       };
-
-      // Generate a token
-      const token = `superadmin-${Date.now()}`;
+      
+      // Create a mock session
+      const mockSession = {
+        access_token: `superadmin-${Date.now()}`,
+        token_type: 'bearer',
+        expires_in: 3600,
+        refresh_token: '',
+        user: superUser
+      };
       
       // Update auth context
       setCurrentUser(superUser);
-      setToken(token);
+      setSession(mockSession);
       
-      // Store token in local storage
-      localStorage.setItem('superadminToken', token);
+      // Store in local storage for persistence
+      localStorage.setItem('superadminSession', JSON.stringify(mockSession));
       
       toast.success('Logged in as System Administrator');
       navigate('/superadmin/dashboard');
