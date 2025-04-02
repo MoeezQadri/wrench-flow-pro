@@ -1,131 +1,104 @@
 
-import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { Textarea } from '@/components/ui/textarea';
-import { toast } from 'sonner';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { FileText } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useAuthContext } from '@/context/AuthContext';
+import { getOrganizationById } from '@/services/auth-service';
+
+const mockInvoiceHistory = [
+  {
+    id: 'inv_123',
+    date: '2023-10-01',
+    amount: 79.00,
+    status: 'paid',
+    plan: 'Professional'
+  },
+  {
+    id: 'inv_122',
+    date: '2023-09-01',
+    amount: 79.00,
+    status: 'paid',
+    plan: 'Professional'
+  },
+  {
+    id: 'inv_121',
+    date: '2023-08-01',
+    amount: 29.00,
+    status: 'paid',
+    plan: 'Basic'
+  }
+];
 
 const InvoiceSettingsTab = () => {
-  const [invoicePrefix, setInvoicePrefix] = useState('INV-');
-  const [defaultTaxRate, setDefaultTaxRate] = useState(10);
-  const [defaultTerms, setDefaultTerms] = useState('Payment due within 30 days');
-  const [defaultNotes, setDefaultNotes] = useState('Thank you for your business');
-  const [autoSendInvoices, setAutoSendInvoices] = useState(false);
-  const [defaultPaymentMethod, setDefaultPaymentMethod] = useState('bank-transfer');
-  const [saving, setSaving] = useState(false);
+  const { currentUser } = useAuthContext();
+  const [loading, setLoading] = useState(true);
+  const [invoices, setInvoices] = useState(mockInvoiceHistory);
+  
+  useEffect(() => {
+    if (currentUser?.organizationId) {
+      // In a real implementation, you would fetch actual invoice history from your API
+      // For now, we're using mock data
+      setLoading(false);
+    }
+  }, [currentUser]);
 
-  const handleSave = (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-    
-    // Simulate saving
-    setTimeout(() => {
-      toast.success('Invoice settings saved');
-      setSaving(false);
-    }, 800);
-  };
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-48">
+        <div className="text-center">Loading invoice history...</div>
+      </div>
+    );
+  }
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center">
           <FileText className="mr-2 h-5 w-5" />
-          Invoice Settings
+          Subscription Billing History
         </CardTitle>
         <CardDescription>
-          Configure default settings for your invoices
+          View your past subscription invoices
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSave} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="invoicePrefix">Invoice Prefix</Label>
-              <Input 
-                id="invoicePrefix" 
-                value={invoicePrefix} 
-                onChange={(e) => setInvoicePrefix(e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground">
-                This will appear before invoice numbers, e.g. INV-001
-              </p>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="defaultTaxRate">Default Tax Rate (%)</Label>
-              <Input 
-                id="defaultTaxRate" 
-                type="number" 
-                min="0" 
-                max="100"
-                value={defaultTaxRate} 
-                onChange={(e) => setDefaultTaxRate(parseInt(e.target.value))}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="defaultPaymentMethod">Default Payment Method</Label>
-              <Select 
-                value={defaultPaymentMethod} 
-                onValueChange={setDefaultPaymentMethod}
-              >
-                <SelectTrigger id="defaultPaymentMethod">
-                  <SelectValue placeholder="Select payment method" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="cash">Cash</SelectItem>
-                  <SelectItem value="card">Card</SelectItem>
-                  <SelectItem value="bank-transfer">Bank Transfer</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="autoSendInvoices">Auto-send Invoices</Label>
-                <Switch 
-                  id="autoSendInvoices" 
-                  checked={autoSendInvoices} 
-                  onCheckedChange={setAutoSendInvoices} 
-                />
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Automatically email invoices to customers when created
-              </p>
-            </div>
+        {invoices.length > 0 ? (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Invoice ID</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Plan</TableHead>
+                <TableHead>Amount</TableHead>
+                <TableHead>Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {invoices.map((invoice) => (
+                <TableRow key={invoice.id}>
+                  <TableCell className="font-medium">{invoice.id}</TableCell>
+                  <TableCell>{new Date(invoice.date).toLocaleDateString()}</TableCell>
+                  <TableCell>{invoice.plan}</TableCell>
+                  <TableCell>${invoice.amount.toFixed(2)}</TableCell>
+                  <TableCell className="capitalize">
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      invoice.status === 'paid' 
+                        ? 'bg-green-100 text-green-800' 
+                        : 'bg-yellow-100 text-yellow-800'
+                    }`}>
+                      {invoice.status}
+                    </span>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        ) : (
+          <div className="text-center py-8 text-muted-foreground">
+            No billing history available yet
           </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="defaultTerms">Default Terms</Label>
-            <Textarea 
-              id="defaultTerms" 
-              value={defaultTerms} 
-              onChange={(e) => setDefaultTerms(e.target.value)}
-              rows={2}
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="defaultNotes">Default Notes</Label>
-            <Textarea 
-              id="defaultNotes" 
-              value={defaultNotes} 
-              onChange={(e) => setDefaultNotes(e.target.value)}
-              rows={2}
-            />
-          </div>
-          
-          <div className="flex justify-end">
-            <Button type="submit" disabled={saving}>
-              {saving ? 'Saving...' : 'Save Changes'}
-            </Button>
-          </div>
-        </form>
+        )}
       </CardContent>
     </Card>
   );
