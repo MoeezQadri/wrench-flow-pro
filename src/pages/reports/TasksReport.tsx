@@ -1,9 +1,10 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { tasks, mechanics, getMechanicById, getCurrentUser } from "@/services/data-service";
-import { Calendar, ChevronLeft, ChevronRight, Download, Filter, Users } from "lucide-react";
+import { ChevronLeft, Download, Filter } from "lucide-react";
 import { Link } from "react-router-dom";
 import { 
   BarChart, 
@@ -18,16 +19,23 @@ import {
   Pie,
   Cell
 } from 'recharts';
+import DateRangeDropdown from "@/components/DateRangeDropdown";
 
 const TasksReport = () => {
-  const [selectedDate, setSelectedDate] = useState("2023-05-15");
+  const [startDate, setStartDate] = useState<Date>(new Date());
+  const [endDate, setEndDate] = useState<Date>(new Date());
   const currentUser = getCurrentUser();
   const isForeman = currentUser.role === 'foreman';
   
-  // We would typically filter by date from API but using our mock data
+  // Filter tasks based on date range
+  const filteredTasks = tasks.filter(task => {
+    const taskDate = new Date(task.date || "2023-05-15"); // Default date as fallback
+    return taskDate >= startDate && taskDate <= endDate;
+  });
+
   // Mechanic efficiency chart data
   const mechanicEfficiencyData = mechanics.map(mechanic => {
-    const mechanicTasks = tasks.filter(task => task.mechanicId === mechanic.id && task.status === 'completed');
+    const mechanicTasks = filteredTasks.filter(task => task.mechanicId === mechanic.id && task.status === 'completed');
     const totalEstimated = mechanicTasks.reduce((sum, task) => sum + task.hoursEstimated, 0);
     const totalActual = mechanicTasks.reduce((sum, task) => sum + (task.hoursSpent || 0), 0);
     const efficiency = totalEstimated > 0 ? Math.round((totalEstimated / (totalActual || 1)) * 100) : 100;
@@ -42,15 +50,15 @@ const TasksReport = () => {
 
   // Mechanic utilization data (tasks assigned per mechanic)
   const mechanicUtilizationData = mechanics.map(mechanic => {
-    const pendingTasks = tasks.filter(task => 
+    const pendingTasks = filteredTasks.filter(task => 
       task.mechanicId === mechanic.id && task.status === 'pending'
     ).length;
     
-    const inProgressTasks = tasks.filter(task => 
+    const inProgressTasks = filteredTasks.filter(task => 
       task.mechanicId === mechanic.id && task.status === 'in-progress'
     ).length;
     
-    const completedTasks = tasks.filter(task => 
+    const completedTasks = filteredTasks.filter(task => 
       task.mechanicId === mechanic.id && task.status === 'completed'
     ).length;
     
@@ -68,23 +76,16 @@ const TasksReport = () => {
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#83a6ed'];
 
-  const handlePreviousDay = () => {
-    const date = new Date(selectedDate);
-    date.setDate(date.getDate() - 1);
-    setSelectedDate(date.toISOString().split('T')[0]);
-  };
-
-  const handleNextDay = () => {
-    const date = new Date(selectedDate);
-    date.setDate(date.getDate() + 1);
-    setSelectedDate(date.toISOString().split('T')[0]);
+  const handleDateRangeChange = (start: Date, end: Date) => {
+    setStartDate(start);
+    setEndDate(end);
   };
 
   // Task status summary
-  const pendingTasks = tasks.filter(task => task.status === 'pending').length;
-  const inProgressTasks = tasks.filter(task => task.status === 'in-progress').length;
-  const completedTasks = tasks.filter(task => task.status === 'completed').length;
-  const totalTasks = tasks.length;
+  const pendingTasks = filteredTasks.filter(task => task.status === 'pending').length;
+  const inProgressTasks = filteredTasks.filter(task => task.status === 'in-progress').length;
+  const completedTasks = filteredTasks.filter(task => task.status === 'completed').length;
+  const totalTasks = filteredTasks.length;
 
   return (
     <div className="space-y-6">
@@ -98,17 +99,12 @@ const TasksReport = () => {
           </Button>
           <h1 className="text-3xl font-bold tracking-tight">Tasks Report</h1>
         </div>
-        <div className="flex items-center space-x-2 mt-4 sm:mt-0">
-          <Button variant="outline" size="icon" onClick={handlePreviousDay}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <div className="flex items-center border rounded-md px-3 py-1">
-            <Calendar className="h-4 w-4 mr-2" />
-            <span>{selectedDate}</span>
-          </div>
-          <Button variant="outline" size="icon" onClick={handleNextDay}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
+        <div className="mt-4 sm:mt-0">
+          <DateRangeDropdown 
+            startDate={startDate}
+            endDate={endDate}
+            onRangeChange={handleDateRangeChange}
+          />
         </div>
       </div>
       
@@ -152,7 +148,6 @@ const TasksReport = () => {
         </Card>
       </div>
 
-      {/* Rest of the component remains the same */}
       {/* Mechanic Efficiency Chart */}
       <Card>
         <CardHeader>
@@ -240,7 +235,7 @@ const TasksReport = () => {
       <Card>
         <CardHeader>
           <div className="flex justify-between items-center">
-            <CardTitle>Daily Tasks</CardTitle>
+            <CardTitle>Tasks</CardTitle>
             <div className="flex gap-2">
               <Button variant="outline" size="sm">
                 <Filter className="h-4 w-4 mr-2" />
@@ -266,7 +261,7 @@ const TasksReport = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {tasks.map((task) => {
+              {filteredTasks.map((task) => {
                 const mechanic = getMechanicById(task.mechanicId);
                 const efficiency = task.hoursEstimated && task.hoursSpent
                   ? Math.round((task.hoursEstimated / task.hoursSpent) * 100)

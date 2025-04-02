@@ -9,7 +9,7 @@ import {
   getExpensesByDateRange 
 } from "@/services/data-service";
 import { format } from "date-fns";
-import { Calendar, ChevronLeft, ChevronRight, Download, Filter, Plus } from "lucide-react";
+import { ChevronLeft, Download, Filter, Plus } from "lucide-react";
 import { Link } from "react-router-dom";
 import { 
   BarChart, 
@@ -25,17 +25,28 @@ import {
 } from 'recharts';
 import ExpenseDialog from "@/components/expense/ExpenseDialog";
 import { Expense } from "@/types";
+import DateRangeDropdown from "@/components/DateRangeDropdown";
 
 const FinanceReport = () => {
   const [selectedPeriod, setSelectedPeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily');
-  const [selectedDate, setSelectedDate] = useState(format(new Date(), "yyyy-MM-dd"));
-  const [startDate, setStartDate] = useState(format(new Date(new Date().setDate(new Date().getDate() - 7)), "yyyy-MM-dd"));
-  const [endDate, setEndDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [startDate, setStartDate] = useState<Date>(new Date());
+  const [endDate, setEndDate] = useState<Date>(new Date());
   const [isExpenseDialogOpen, setIsExpenseDialogOpen] = useState(false);
 
+  // Format dates for API calls
+  const formattedStartDate = format(startDate, "yyyy-MM-dd");
+  const formattedEndDate = format(endDate, "yyyy-MM-dd");
+
   // Get payments and expenses for the selected date
-  const dailyPayments = payments.filter(payment => payment.date === selectedDate);
-  const dailyExpenses = expenses.filter(expense => expense.date === selectedDate);
+  const dailyPayments = payments.filter(payment => {
+    const paymentDate = new Date(payment.date);
+    return paymentDate >= startDate && paymentDate <= endDate;
+  });
+  
+  const dailyExpenses = expenses.filter(expense => {
+    const expenseDate = new Date(expense.date);
+    return expenseDate >= startDate && expenseDate <= endDate;
+  });
   
   // Calculate daily totals
   const dailyIncome = dailyPayments.reduce((sum, payment) => sum + payment.amount, 0);
@@ -43,8 +54,8 @@ const FinanceReport = () => {
   const dailyProfit = dailyIncome - dailyExpenseTotal;
   
   // Get date range data
-  const rangePayments = getPaymentsByDateRange(startDate, endDate);
-  const rangeExpenses = getExpensesByDateRange(startDate, endDate);
+  const rangePayments = getPaymentsByDateRange(formattedStartDate, formattedEndDate);
+  const rangeExpenses = getExpensesByDateRange(formattedStartDate, formattedEndDate);
   
   // Calculate range totals
   const rangeIncome = rangePayments.reduce((sum, payment) => sum + payment.amount, 0);
@@ -76,16 +87,9 @@ const FinanceReport = () => {
     { day: "Sun", income: 750, expenses: 250, profit: 500 }
   ];
 
-  const handlePreviousDay = () => {
-    const date = new Date(selectedDate);
-    date.setDate(date.getDate() - 1);
-    setSelectedDate(format(date, "yyyy-MM-dd"));
-  };
-
-  const handleNextDay = () => {
-    const date = new Date(selectedDate);
-    date.setDate(date.getDate() + 1);
-    setSelectedDate(format(date, "yyyy-MM-dd"));
+  const handleDateRangeChange = (start: Date, end: Date) => {
+    setStartDate(start);
+    setEndDate(end);
   };
 
   // Handler for saving a new expense
@@ -108,28 +112,22 @@ const FinanceReport = () => {
           </Button>
           <h1 className="text-3xl font-bold tracking-tight">Finance Report</h1>
         </div>
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-4 mt-4 sm:mt-0">
           <Button 
             onClick={() => setIsExpenseDialogOpen(true)}
             className="bg-green-600 hover:bg-green-700"
           >
             <Plus className="mr-2 h-4 w-4" /> Add Expense
           </Button>
-          <div className="flex items-center space-x-2">
-            <Button variant="outline" size="icon" onClick={handlePreviousDay}>
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <div className="flex items-center border rounded-md px-3 py-1">
-              <Calendar className="h-4 w-4 mr-2" />
-              <span>{selectedDate}</span>
-            </div>
-            <Button variant="outline" size="icon" onClick={handleNextDay}>
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
+          <DateRangeDropdown 
+            startDate={startDate}
+            endDate={endDate}
+            onRangeChange={handleDateRangeChange}
+          />
         </div>
       </div>
       
+      {/* Rest of the component remains the same */}
       {/* Statistics */}
       <div className="grid gap-4 grid-cols-2 md:grid-cols-3">
         <Card>
@@ -165,7 +163,7 @@ const FinanceReport = () => {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm">Range Income</CardTitle>
-            <CardDescription>{startDate} - {endDate}</CardDescription>
+            <CardDescription>{formattedStartDate} - {formattedEndDate}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">${rangeIncome.toFixed(2)}</div>
@@ -174,7 +172,7 @@ const FinanceReport = () => {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm">Range Expenses</CardTitle>
-            <CardDescription>{startDate} - {endDate}</CardDescription>
+            <CardDescription>{formattedStartDate} - {formattedEndDate}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">${rangeExpenseTotal.toFixed(2)}</div>
@@ -183,7 +181,7 @@ const FinanceReport = () => {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm">Range Profit</CardTitle>
-            <CardDescription>{startDate} - {endDate}</CardDescription>
+            <CardDescription>{formattedStartDate} - {formattedEndDate}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className={`text-2xl font-bold ${rangeProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
@@ -199,7 +197,7 @@ const FinanceReport = () => {
         <Card>
           <CardHeader>
             <CardTitle>Expense Breakdown</CardTitle>
-            <CardDescription>Expenses by category for {selectedDate}</CardDescription>
+            <CardDescription>Expenses by category for selected period</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="h-72">
@@ -216,7 +214,7 @@ const FinanceReport = () => {
                 </ResponsiveContainer>
               ) : (
                 <div className="flex items-center justify-center h-full">
-                  <p className="text-muted-foreground">No expenses for this date</p>
+                  <p className="text-muted-foreground">No expenses for this period</p>
                 </div>
               )}
             </div>
@@ -252,7 +250,7 @@ const FinanceReport = () => {
       <Card>
         <CardHeader>
           <div className="flex justify-between items-center">
-            <CardTitle>Daily Transactions</CardTitle>
+            <CardTitle>Transactions</CardTitle>
             <div className="flex gap-2">
               <Button variant="outline" size="sm">
                 <Filter className="h-4 w-4 mr-2" />
@@ -269,6 +267,7 @@ const FinanceReport = () => {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Date</TableHead>
                 <TableHead>Description</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead className="text-right">Amount</TableHead>
@@ -278,6 +277,7 @@ const FinanceReport = () => {
               {/* Payments */}
               {dailyPayments.map(payment => (
                 <TableRow key={payment.id}>
+                  <TableCell>{payment.date}</TableCell>
                   <TableCell className="font-medium">Payment</TableCell>
                   <TableCell>Income</TableCell>
                   <TableCell className="text-right text-green-600">${payment.amount.toFixed(2)}</TableCell>
@@ -287,6 +287,7 @@ const FinanceReport = () => {
               {/* Expenses */}
               {dailyExpenses.map(expense => (
                 <TableRow key={expense.id}>
+                  <TableCell>{expense.date}</TableCell>
                   <TableCell className="font-medium">{expense.description}</TableCell>
                   <TableCell>Expense</TableCell>
                   <TableCell className="text-right text-red-600">${expense.amount.toFixed(2)}</TableCell>
@@ -295,7 +296,7 @@ const FinanceReport = () => {
               
               {/* Total Row */}
               <TableRow>
-                <TableCell colSpan={2} className="text-right font-bold">Total</TableCell>
+                <TableCell colSpan={3} className="text-right font-bold">Total</TableCell>
                 <TableCell className={`text-right font-bold ${dailyProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                   ${dailyProfit.toFixed(2)}
                 </TableCell>

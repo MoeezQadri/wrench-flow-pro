@@ -1,197 +1,222 @@
 
 import { useState } from "react";
-import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Calendar, FileText } from "lucide-react";
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { calculateInvoiceTotal, invoices, tasks } from "@/services/data-service";
-import { InvoiceStatus } from "@/types";
-import StatusBadge from "@/components/StatusBadge";
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell, Tooltip } from "recharts";
-import { format, subDays } from "date-fns";
-
-// Define colors for different invoice statuses
-const statusColors = {
-  open: "#facc15", // yellow
-  "in-progress": "#3b82f6", // blue
-  completed: "#22c55e", // green
-  paid: "#a855f7", // purple
-  partial: "#f97316", // orange
-};
+import { invoices, getInvoiceById, customers, getCustomerById } from "@/services/data-service";
+import { ChevronLeft, Download, Filter } from "lucide-react";
+import { Link } from "react-router-dom";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+  PieChart,
+  Pie,
+  Cell
+} from 'recharts';
+import DateRangeDropdown from "@/components/DateRangeDropdown";
 
 const InvoicingReport = () => {
-  const [startDate, setStartDate] = useState<string>(
-    format(subDays(new Date(), 30), "yyyy-MM-dd")
-  );
-  const [endDate, setEndDate] = useState<string>(
-    format(new Date(), "yyyy-MM-dd")
-  );
+  const [startDate, setStartDate] = useState<Date>(new Date());
+  const [endDate, setEndDate] = useState<Date>(new Date());
 
-  // Calculate task metrics
-  const completedTasks = tasks.filter(task => task.status === 'completed');
-  const totalTasks = tasks.length;
-  const completionRate = totalTasks > 0 ? Math.round((completedTasks.length / totalTasks) * 100) : 0;
-  
-  // Calculate efficiency
-  let totalEstimatedHours = 0;
-  let totalSpentHours = 0;
-  
-  completedTasks.forEach(task => {
-    totalEstimatedHours += task.hoursEstimated;
-    totalSpentHours += task.hoursSpent || task.hoursEstimated;
+  // Filter invoices based on date range
+  const filteredInvoices = invoices.filter(invoice => {
+    const invoiceDate = new Date(invoice.date);
+    return invoiceDate >= startDate && invoiceDate <= endDate;
   });
-  
-  const mechanicEfficiency = completedTasks.length > 0
-    ? Math.round((totalEstimatedHours / totalSpentHours) * 100)
-    : 100;
 
-  // Filter invoices by date range
-  const filteredInvoices = invoices.filter(
-    (invoice) => invoice.date >= startDate && invoice.date <= endDate
-  );
+  // Calculate invoice statistics
+  const totalInvoiceAmount = filteredInvoices.reduce((sum, invoice) => sum + invoice.total, 0);
+  const paidInvoices = filteredInvoices.filter(invoice => invoice.status === 'paid');
+  const totalPaid = paidInvoices.reduce((sum, invoice) => sum + invoice.total, 0);
+  const unpaidInvoices = filteredInvoices.filter(invoice => invoice.status === 'unpaid');
+  const totalUnpaid = unpaidInvoices.reduce((sum, invoice) => sum + invoice.total, 0);
+  const pendingInvoices = filteredInvoices.filter(invoice => invoice.status === 'pending');
+  const totalPending = pendingInvoices.reduce((sum, invoice) => sum + invoice.total, 0);
 
-  // Prepare data for the status chart
-  const statusCounts: Record<InvoiceStatus, number> = {
-    open: 0,
-    "in-progress": 0,
-    completed: 0,
-    paid: 0,
-    partial: 0,
+  // Calculate payment statistics
+  const averageInvoiceValue = filteredInvoices.length > 0 
+    ? totalInvoiceAmount / filteredInvoices.length 
+    : 0;
+
+  // Create pie chart data for invoice status
+  const invoiceStatusData = [
+    { name: 'Paid', value: paidInvoices.length, amount: totalPaid },
+    { name: 'Unpaid', value: unpaidInvoices.length, amount: totalUnpaid },
+    { name: 'Pending', value: pendingInvoices.length, amount: totalPending }
+  ];
+
+  // Create bar chart data for top customers
+  const customerInvoiceTotals = {};
+  filteredInvoices.forEach(invoice => {
+    const customerId = invoice.customerId;
+    if (!customerInvoiceTotals[customerId]) {
+      customerInvoiceTotals[customerId] = 0;
+    }
+    customerInvoiceTotals[customerId] += invoice.total;
+  });
+
+  const topCustomersData = Object.keys(customerInvoiceTotals)
+    .map(customerId => {
+      const customer = getCustomerById(customerId);
+      return {
+        name: customer ? customer.name : 'Unknown',
+        total: customerInvoiceTotals[customerId]
+      };
+    })
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 5);  // Get top 5 customers
+
+  const COLORS = ['#4ade80', '#f87171', '#facc15', '#60a5fa', '#8884d8'];
+
+  const handleDateRangeChange = (start: Date, end: Date) => {
+    setStartDate(start);
+    setEndDate(end);
   };
-
-  filteredInvoices.forEach((invoice) => {
-    statusCounts[invoice.status]++;
-  });
-
-  const chartData = Object.entries(statusCounts).map(([status, count]) => ({
-    status,
-    count,
-  }));
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <Button variant="outline" size="icon" asChild>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+        <div className="flex items-center gap-4">
+          <Button variant="outline" size="sm" asChild>
             <Link to="/reports">
-              <ArrowLeft className="h-4 w-4" />
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              Back to Reports
             </Link>
           </Button>
-          <h1 className="text-3xl font-bold tracking-tight">Invoicing Summary</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Invoicing Report</h1>
         </div>
-        <div className="flex items-center space-x-2">
-          <div className="flex items-center space-x-2">
-            <label htmlFor="start-date" className="text-sm font-medium">
-              From:
-            </label>
-            <input
-              id="start-date"
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
-            />
-          </div>
-          <div className="flex items-center space-x-2">
-            <label htmlFor="end-date" className="text-sm font-medium">
-              To:
-            </label>
-            <input
-              id="end-date"
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
-            />
-          </div>
+        <div className="mt-4 sm:mt-0">
+          <DateRangeDropdown 
+            startDate={startDate}
+            endDate={endDate}
+            onRangeChange={handleDateRangeChange}
+          />
         </div>
       </div>
-
-      {/* Task metrics cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      
+      {/* Statistics */}
+      <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg">Tasks Completed</CardTitle>
-            <CardDescription>Completion rate</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{completedTasks.length} / {totalTasks}</div>
-            <p className="text-muted-foreground">{completionRate}% completion rate</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg">Mechanic Efficiency</CardTitle>
-            <CardDescription>Estimated vs actual hours</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{mechanicEfficiency}%</div>
-            <p className="text-muted-foreground">
-              {totalEstimatedHours} est. / {totalSpentHours.toFixed(1)} actual hours
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg">Total Invoices</CardTitle>
-            <CardDescription>For selected period</CardDescription>
+            <CardTitle className="text-sm">Total Invoices</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{filteredInvoices.length}</div>
-            <p className="text-muted-foreground">
-              {format(new Date(startDate), "MMM d, yyyy")} - {format(new Date(endDate), "MMM d, yyyy")}
-            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Total Amount</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">${totalInvoiceAmount.toFixed(2)}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Avg. Invoice Value</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">${averageInvoiceValue.toFixed(2)}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Payment Rate</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {filteredInvoices.length > 0 
+                ? `${Math.round((paidInvoices.length / filteredInvoices.length) * 100)}%` 
+                : "N/A"}
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Invoice status chart */}
+      {/* Charts */}
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* Invoice Status Chart */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Invoice Status</CardTitle>
+            <CardDescription>Distribution of invoices by status</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={invoiceStatusData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                    nameKey="name"
+                    label={({name, percent}) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                  >
+                    {invoiceStatusData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value, name, entry) => {
+                    // @ts-ignore - entry has custom data
+                    const amount = entry.payload.amount;
+                    return [`${value} invoices ($${amount.toFixed(2)})`, name];
+                  }} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+        
+        {/* Top Customers Chart */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Top Customers</CardTitle>
+            <CardDescription>Customers with highest invoice totals</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={topCustomersData} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" />
+                  <YAxis dataKey="name" type="category" width={100} />
+                  <Tooltip formatter={(value) => [`$${parseFloat(value as string).toFixed(2)}`, 'Total']} />
+                  <Bar dataKey="total" fill="#3b82f6" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+      
+      {/* Invoices Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Invoice Status Distribution</CardTitle>
-          <CardDescription>
-            Summary of invoice statuses in the selected period
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="h-80">
-            <ChartContainer 
-              config={{ 
-                status: { 
-                  theme: { 
-                    light: "#64748b", 
-                    dark: "#94a3b8" 
-                  } 
-                } 
-              }}
-            >
-              <BarChart data={chartData} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-                <XAxis dataKey="status" />
-                <YAxis />
-                <Tooltip content={<ChartTooltipContent />} />
-                <Bar dataKey="count" name="Invoices">
-                  {chartData.map((entry, index) => (
-                    <Cell 
-                      key={`cell-${index}`} 
-                      fill={statusColors[entry.status as InvoiceStatus] || "#64748b"} 
-                    />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ChartContainer>
+          <div className="flex justify-between items-center">
+            <CardTitle>Invoice Details</CardTitle>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm">
+                <Filter className="h-4 w-4 mr-2" />
+                Filter
+              </Button>
+              <Button variant="outline" size="sm">
+                <Download className="h-4 w-4 mr-2" />
+                Export
+              </Button>
+            </div>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Invoices table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Invoice Details</CardTitle>
-          <CardDescription>
-            List of all invoices in the selected period
-          </CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
@@ -200,41 +225,31 @@ const InvoicingReport = () => {
                 <TableHead>Invoice #</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Customer</TableHead>
+                <TableHead>Amount</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredInvoices.length > 0 ? (
-                filteredInvoices.map((invoice) => {
-                  const { total } = calculateInvoiceTotal(invoice);
-                  return (
-                    <TableRow key={invoice.id}>
-                      <TableCell className="font-medium">
-                        {invoice.id.replace("invoice-", "#")}
-                      </TableCell>
-                      <TableCell>
-                        {format(new Date(invoice.date), "MMM d, yyyy")}
-                      </TableCell>
-                      <TableCell>
-                        {invoice.vehicleInfo.make} {invoice.vehicleInfo.model}
-                      </TableCell>
-                      <TableCell>
-                        <StatusBadge status={invoice.status} />
-                      </TableCell>
-                      <TableCell className="text-right">
-                        ${total.toFixed(2)}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-4">
-                    No invoices found for the selected date range
-                  </TableCell>
-                </TableRow>
-              )}
+              {filteredInvoices.map((invoice) => {
+                const customer = getCustomerById(invoice.customerId);
+                
+                return (
+                  <TableRow key={invoice.id}>
+                    <TableCell className="font-medium">{invoice.invoiceNumber}</TableCell>
+                    <TableCell>{invoice.date}</TableCell>
+                    <TableCell>{customer?.name || "Unknown"}</TableCell>
+                    <TableCell>${invoice.total.toFixed(2)}</TableCell>
+                    <TableCell>
+                      <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                        ${invoice.status === 'paid' ? 'bg-green-100 text-green-800' : 
+                          invoice.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
+                          'bg-red-100 text-red-800'}`}>
+                        {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </CardContent>

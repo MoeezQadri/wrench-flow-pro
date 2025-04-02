@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
@@ -24,7 +23,6 @@ import { RolePermissionMap, UserRole } from '@/types';
 
 // Define our types for the permission system
 type ResourceKey = keyof RolePermissionMap;
-type ActionKey = string;
 
 // Define permission interface
 interface NavItemPermission {
@@ -111,7 +109,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
   const location = useLocation();
   const currentUser = getCurrentUser();
   
-  // Fix the type error by properly checking the resource key
+  // Fix the type error by ensuring the resource is of type ResourceKey
   const filteredNavItems = navItems.filter(item => 
     hasPermission(
       currentUser, 

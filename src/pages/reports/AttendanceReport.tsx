@@ -4,8 +4,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { mechanics } from "@/services/data-service";
-import { Calendar, ChevronLeft, ChevronRight, Download, Filter } from "lucide-react";
+import { ChevronLeft, Download, Filter } from "lucide-react";
 import { Link } from "react-router-dom";
+import DateRangeDropdown from "@/components/DateRangeDropdown";
 
 type AttendanceRecord = {
   id: string;
@@ -28,10 +29,19 @@ const attendanceData: AttendanceRecord[] = [
 ];
 
 const AttendanceReport = () => {
-  const [selectedDate, setSelectedDate] = useState("2023-05-15");
+  const [startDate, setStartDate] = useState<Date>(new Date());
+  const [endDate, setEndDate] = useState<Date>(new Date());
   
-  // Filter attendance for the selected date
-  const filteredAttendance = attendanceData.filter(record => record.date === selectedDate);
+  // Format date for filtering attendance records
+  const formatDateString = (date: Date) => {
+    return date.toISOString().split('T')[0];
+  };
+  
+  // Filter attendance for the selected date range
+  const filteredAttendance = attendanceData.filter(record => 
+    record.date >= formatDateString(startDate) && 
+    record.date <= formatDateString(endDate)
+  );
   
   // Calculate statistics
   const totalPresent = filteredAttendance.filter(a => a.status === "present").length;
@@ -40,17 +50,10 @@ const AttendanceReport = () => {
   const totalHalfDay = filteredAttendance.filter(a => a.status === "half-day").length;
   const averageHours = filteredAttendance.reduce((sum, record) => sum + record.hoursWorked, 0) / 
                        (filteredAttendance.length || 1);
-
-  const handlePreviousDay = () => {
-    const date = new Date(selectedDate);
-    date.setDate(date.getDate() - 1);
-    setSelectedDate(date.toISOString().split('T')[0]);
-  };
-
-  const handleNextDay = () => {
-    const date = new Date(selectedDate);
-    date.setDate(date.getDate() + 1);
-    setSelectedDate(date.toISOString().split('T')[0]);
+  
+  const handleDateRangeChange = (start: Date, end: Date) => {
+    setStartDate(start);
+    setEndDate(end);
   };
 
   return (
@@ -65,17 +68,12 @@ const AttendanceReport = () => {
           </Button>
           <h1 className="text-3xl font-bold tracking-tight">Attendance Report</h1>
         </div>
-        <div className="flex items-center space-x-2 mt-4 sm:mt-0">
-          <Button variant="outline" size="icon" onClick={handlePreviousDay}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <div className="flex items-center border rounded-md px-3 py-1">
-            <Calendar className="h-4 w-4 mr-2" />
-            <span>{selectedDate}</span>
-          </div>
-          <Button variant="outline" size="icon" onClick={handleNextDay}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
+        <div className="mt-4 sm:mt-0">
+          <DateRangeDropdown 
+            startDate={startDate}
+            endDate={endDate}
+            onRangeChange={handleDateRangeChange}
+          />
         </div>
       </div>
       
@@ -145,6 +143,7 @@ const AttendanceReport = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Mechanic</TableHead>
+                <TableHead>Date</TableHead>
                 <TableHead>Clock In</TableHead>
                 <TableHead>Clock Out</TableHead>
                 <TableHead>Hours</TableHead>
@@ -157,6 +156,7 @@ const AttendanceReport = () => {
                 return (
                   <TableRow key={record.id}>
                     <TableCell className="font-medium">{mechanic?.name || "Unknown"}</TableCell>
+                    <TableCell>{record.date}</TableCell>
                     <TableCell>{record.clockIn || "N/A"}</TableCell>
                     <TableCell>{record.clockOut || "N/A"}</TableCell>
                     <TableCell>{record.hoursWorked}</TableCell>
