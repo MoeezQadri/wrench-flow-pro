@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import CustomerDialog from "@/components/CustomerDialog";
 import VehicleDialog from "@/components/VehicleDialog";
 
-import { InvoiceItem, Customer, Vehicle, Payment } from "@/types";
+import { InvoiceItem, Customer, Vehicle, Payment, Invoice } from "@/types";
 import { getCustomers } from "@/services/data-service";
 
 // Import sub-components
@@ -112,17 +112,22 @@ const InvoiceForm = () => {
     }
 
     // Prepare invoice data
-    const invoiceData = {
+    const invoiceData: Partial<Invoice> = {
       ...data,
       items,
       payments,
       date: format(data.date, "yyyy-MM-dd"),
       dueDate: "", // No due date
+      vehicleInfo: {
+        make: "",  // These would ideally be populated from the selected vehicle
+        model: "",
+        year: "",
+        licensePlate: ""
+      }
     };
 
     // Add discount data if applicable
     if (data.discountType !== "none" && data.discountValue > 0) {
-      // Fix: Create the discount object with the correct shape according to the Invoice type
       invoiceData.discount = {
         type: data.discountType === "percentage" ? "percentage" : "fixed",
         value: data.discountValue
