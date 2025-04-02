@@ -1,29 +1,16 @@
 
 import { useState } from "react";
-import { DollarSign, Plus, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Plus, X } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { FormLabel } from "@/components/ui/form";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from "@/components/ui/table";
+import { FormLabel } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Payment } from "@/types";
-import { format } from "date-fns";
 import { toast } from "sonner";
 import { useFormContext } from "react-hook-form";
+import { format } from "date-fns";
 
 interface PaymentsSectionProps {
   payments: Payment[];
@@ -31,88 +18,90 @@ interface PaymentsSectionProps {
   total: number;
 }
 
-const PaymentsSection = ({ payments, setPayments, total }: PaymentsSectionProps) => {
-  const [paymentAmount, setPaymentAmount] = useState<number>(0);
-  const [paymentMethod, setPaymentMethod] = useState<"cash" | "card" | "bank-transfer">("cash");
-  const [paymentNotes, setPaymentNotes] = useState<string>("");
-  const [showPaymentForm, setShowPaymentForm] = useState<boolean>(false);
+const PaymentsSection = ({
+  payments,
+  setPayments,
+  total,
+}: PaymentsSectionProps) => {
+  const [newPaymentAmount, setNewPaymentAmount] = useState<number | string>("");
+  const [newPaymentMethod, setNewPaymentMethod] = useState<"cash" | "card" | "bank-transfer">("cash");
+  const [newPaymentNotes, setNewPaymentNotes] = useState("");
   
   const form = useFormContext();
+  const status = form.watch("status");
   
-  // Calculate total paid
-  const totalPaid = payments.reduce((sum, payment) => sum + payment.amount, 0);
+  // Define which statuses allow editing payments
+  const canEditPayments = ['open', 'in-progress', 'completed', 'partial'].includes(status);
 
-  // Calculate remaining balance
-  const remainingBalance = total - totalPaid;
-
-  // Add payment
+  // Add new payment
   const handleAddPayment = () => {
-    if (paymentAmount <= 0) {
+    if (typeof newPaymentAmount !== "number" || newPaymentAmount <= 0) {
       toast.error("Please enter a valid payment amount");
+      return;
+    }
+
+    // Calculate total payments to check if we're exceeding the invoice total
+    const existingPaymentsTotal = payments.reduce((sum, payment) => sum + payment.amount, 0);
+    if (existingPaymentsTotal + newPaymentAmount > total) {
+      toast.error("Total payments cannot exceed invoice total");
       return;
     }
 
     const newPayment: Payment = {
       id: Date.now().toString(), // Temporary ID
-      invoiceId: "", // Will be set when invoice is created
-      amount: paymentAmount,
-      method: paymentMethod,
+      invoiceId: "", // Will be set when the invoice is created
+      amount: newPaymentAmount as number,
+      method: newPaymentMethod,
       date: format(new Date(), "yyyy-MM-dd"),
-      notes: paymentNotes,
+      notes: newPaymentNotes,
     };
 
     setPayments([...payments, newPayment]);
     
-    // Reset payment form
-    setPaymentAmount(0);
-    setPaymentNotes("");
-    setShowPaymentForm(false);
-
-    // If total is fully paid, set status to paid, otherwise to partial
-    if (total <= totalPaid + paymentAmount) {
+    // Update invoice status based on payments
+    const newTotalPayments = existingPaymentsTotal + newPaymentAmount;
+    if (newTotalPayments === total) {
       form.setValue("status", "paid");
-    } else {
+    } else if (newTotalPayments > 0) {
       form.setValue("status", "partial");
     }
-
-    toast.success("Payment added successfully");
+    
+    // Reset payment form
+    setNewPaymentAmount("");
+    setNewPaymentMethod("cash");
+    setNewPaymentNotes("");
   };
 
   // Remove payment
   const handleRemovePayment = (paymentId: string) => {
     setPayments(payments.filter(payment => payment.id !== paymentId));
     
-    // Update status based on remaining payments
+    // Update invoice status based on remaining payments
     const remainingPayments = payments.filter(payment => payment.id !== paymentId);
-    const paidAmount = remainingPayments.reduce((sum, payment) => sum + payment.amount, 0);
+    const remainingTotal = remainingPayments.reduce((sum, payment) => sum + payment.amount, 0);
     
-    if (paidAmount <= 0) {
-      form.setValue("status", "completed");
-    } else if (paidAmount < total) {
+    if (remainingTotal === 0) {
+      // If no payments left, revert to previous status (based on current status)
+      if (status === "paid" || status === "partial") {
+        form.setValue("status", "completed");
+      }
+    } else if (remainingTotal < total) {
       form.setValue("status", "partial");
     }
   };
 
+  // Calculate total payments
+  const totalPayments = payments.reduce((sum, payment) => sum + payment.amount, 0);
+  
+  // Calculate remaining balance
+  const remainingBalance = total - totalPayments;
+
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-medium">Payments</h3>
-        <Button 
-          type="button" 
-          variant="outline" 
-          onClick={() => setShowPaymentForm(!showPaymentForm)}
-          className="flex items-center"
-        >
-          {showPaymentForm ? "Cancel" : 
-            <>
-              <DollarSign className="mr-2 h-4 w-4" />
-              Add Payment
-            </>
-          }
-        </Button>
-      </div>
+      <h3 className="text-lg font-medium">Payments</h3>
       
-      {showPaymentForm && (
+      {/* Add New Payment Form - Only visible in editable statuses */}
+      {canEditPayments && (
         <Card className="p-4">
           <div className="grid gap-4 md:grid-cols-3">
             <div>
@@ -122,20 +111,21 @@ const PaymentsSection = ({ payments, setPayments, total }: PaymentsSectionProps)
                 type="number"
                 step="0.01"
                 min="0"
-                max={remainingBalance > 0 ? remainingBalance : undefined}
-                value={paymentAmount}
-                onChange={(e) => setPaymentAmount(parseFloat(e.target.value) || 0)}
+                value={newPaymentAmount}
+                onChange={(e) => setNewPaymentAmount(parseFloat(e.target.value) || "")}
               />
             </div>
             
             <div>
               <FormLabel htmlFor="paymentMethod">Method</FormLabel>
               <Select
-                value={paymentMethod}
-                onValueChange={(value: "cash" | "card" | "bank-transfer") => setPaymentMethod(value)}
+                value={newPaymentMethod}
+                onValueChange={(value: "cash" | "card" | "bank-transfer") => 
+                  setNewPaymentMethod(value)
+                }
               >
                 <SelectTrigger id="paymentMethod">
-                  <SelectValue placeholder="Select method" />
+                  <SelectValue placeholder="Method" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="cash">Cash</SelectItem>
@@ -149,9 +139,9 @@ const PaymentsSection = ({ payments, setPayments, total }: PaymentsSectionProps)
               <FormLabel htmlFor="paymentNotes">Notes</FormLabel>
               <Input
                 id="paymentNotes"
-                value={paymentNotes}
-                onChange={(e) => setPaymentNotes(e.target.value)}
-                placeholder="Payment notes"
+                value={newPaymentNotes}
+                onChange={(e) => setNewPaymentNotes(e.target.value)}
+                placeholder="Payment reference or notes"
               />
             </div>
           </div>
@@ -175,54 +165,58 @@ const PaymentsSection = ({ payments, setPayments, total }: PaymentsSectionProps)
           <TableHeader>
             <TableRow>
               <TableHead>Date</TableHead>
-              <TableHead>Method</TableHead>
               <TableHead>Amount</TableHead>
+              <TableHead>Method</TableHead>
               <TableHead>Notes</TableHead>
-              <TableHead className="w-[80px]"></TableHead>
+              {canEditPayments && <TableHead className="w-[80px]"></TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {payments.map((payment) => (
               <TableRow key={payment.id}>
                 <TableCell>{payment.date}</TableCell>
+                <TableCell>${payment.amount.toFixed(2)}</TableCell>
                 <TableCell>
                   {payment.method === "cash" ? "Cash" : 
                    payment.method === "card" ? "Card" : "Bank Transfer"}
                 </TableCell>
-                <TableCell>${payment.amount.toFixed(2)}</TableCell>
                 <TableCell>{payment.notes}</TableCell>
-                <TableCell>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleRemovePayment(payment.id)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </TableCell>
+                {canEditPayments && (
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleRemovePayment(payment.id)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                )}
               </TableRow>
             ))}
+            
             <TableRow>
-              <TableCell colSpan={2} className="text-right font-medium">
-                Total Paid
+              <TableCell colSpan={1} className="text-right font-medium">
+                Total Payments:
               </TableCell>
-              <TableCell className="font-medium">${totalPaid.toFixed(2)}</TableCell>
-              <TableCell colSpan={2}></TableCell>
+              <TableCell className="font-medium">${totalPayments.toFixed(2)}</TableCell>
+              <TableCell colSpan={canEditPayments ? 3 : 2}></TableCell>
             </TableRow>
+            
             <TableRow>
-              <TableCell colSpan={2} className="text-right font-medium">
-                Remaining Balance
+              <TableCell colSpan={1} className="text-right font-medium">
+                Remaining Balance:
               </TableCell>
-              <TableCell className={`font-medium ${remainingBalance > 0 ? 'text-red-600' : 'text-green-600'}`}>
+              <TableCell className={`font-medium ${remainingBalance === 0 ? 'text-green-600' : 'text-orange-600'}`}>
                 ${remainingBalance.toFixed(2)}
               </TableCell>
-              <TableCell colSpan={2}></TableCell>
+              <TableCell colSpan={canEditPayments ? 3 : 2}></TableCell>
             </TableRow>
           </TableBody>
         </Table>
       ) : (
-        <div className="rounded-md border border-dashed p-6 text-center">
-          <p className="text-muted-foreground">No payments added yet.</p>
+        <div className="rounded-md border border-dashed p-8 text-center">
+          <p className="text-muted-foreground">No payments added yet. Add a payment to track invoice status.</p>
         </div>
       )}
     </div>

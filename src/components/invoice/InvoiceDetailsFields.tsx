@@ -12,6 +12,10 @@ import { Calendar } from "@/components/ui/calendar";
 const InvoiceDetailsFields = () => {
   const form = useFormContext();
   const discountType = form.watch("discountType");
+  const status = form.watch("status");
+  
+  // Define which statuses allow editing discount
+  const canEditDiscount = ['open', 'in-progress', 'completed', 'partial'].includes(status);
 
   return (
     <div className="grid gap-6 md:grid-cols-2">
@@ -52,7 +56,7 @@ const InvoiceDetailsFields = () => {
         )}
       />
 
-      {/* Status */}
+      {/* Status - Now aligned with the date */}
       <FormField
         control={form.control}
         name="status"
@@ -103,7 +107,7 @@ const InvoiceDetailsFields = () => {
         )}
       />
 
-      {/* Discount Type */}
+      {/* Discount Type - Only editable in certain statuses */}
       <FormField
         control={form.control}
         name="discountType"
@@ -113,6 +117,7 @@ const InvoiceDetailsFields = () => {
             <Select 
               onValueChange={field.onChange} 
               value={field.value}
+              disabled={!canEditDiscount}
             >
               <FormControl>
                 <SelectTrigger>
@@ -130,7 +135,7 @@ const InvoiceDetailsFields = () => {
         )}
       />
 
-      {/* Discount Value */}
+      {/* Discount Value - Only editable in certain statuses */}
       {discountType !== "none" && (
         <FormField
           control={form.control}
@@ -148,6 +153,7 @@ const InvoiceDetailsFields = () => {
                   max={discountType === "percentage" ? "100" : undefined}
                   {...field}
                   onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                  disabled={!canEditDiscount}
                 />
               </FormControl>
               <FormMessage />
