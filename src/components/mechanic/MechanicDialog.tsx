@@ -48,11 +48,6 @@ const MechanicDialog = ({ open, onOpenChange, onSave, mechanic }: MechanicDialog
         isActive: data.isActive
       };
       
-      // Only add contractor rate if the employment type is contractor
-      if (data.employmentType === 'contractor' && data.contractorRate !== undefined) {
-        newMechanic.contractorRate = data.contractorRate;
-      }
-      
       onSave(newMechanic);
       toast.success(`Mechanic ${isEditing ? "updated" : "added"} successfully!`);
       onOpenChange(false);
@@ -85,7 +80,6 @@ const MechanicDialog = ({ open, onOpenChange, onSave, mechanic }: MechanicDialog
                     phone: mechanic.phone,
                     idCardImage: mechanic.idCardImage,
                     employmentType: mechanic.employmentType,
-                    contractorRate: mechanic.contractorRate,
                     isActive: mechanic.isActive,
                   }
                 : undefined

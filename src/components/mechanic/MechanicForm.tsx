@@ -26,7 +26,6 @@ const mechanicSchema = z.object({
   phone: z.string().min(1, { message: "Phone number is required" }),
   idCardImage: z.string().optional(),
   employmentType: z.enum(["contractor", "fulltime"]),
-  contractorRate: z.number().optional(),
   isActive: z.boolean().default(true),
 });
 
@@ -50,12 +49,9 @@ const MechanicForm = ({ defaultValues, onSubmit, formId }: MechanicFormProps) =>
       phone: "",
       idCardImage: "",
       employmentType: "fulltime",
-      contractorRate: undefined,
       isActive: true,
     },
   });
-
-  const employmentType = form.watch("employmentType");
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -233,29 +229,6 @@ const MechanicForm = ({ defaultValues, onSubmit, formId }: MechanicFormProps) =>
             </FormItem>
           )}
         />
-
-        {employmentType === "contractor" && (
-          <FormField
-            control={form.control}
-            name="contractorRate"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Contractor Rate ($)</FormLabel>
-                <FormControl>
-                  <Input 
-                    type="number" 
-                    min="0" 
-                    placeholder="45" 
-                    {...field}
-                    onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                    value={field.value === undefined ? "" : field.value}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        )}
 
         <FormField
           control={form.control}

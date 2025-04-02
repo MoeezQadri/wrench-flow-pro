@@ -1,4 +1,3 @@
-
 export type InvoiceStatus = 'open' | 'in-progress' | 'completed' | 'paid' | 'partial';
 
 export type UserRole = 'owner' | 'manager' | 'mechanic';
@@ -67,7 +66,6 @@ export interface Mechanic {
   phone: string;
   idCardImage?: string;
   employmentType: 'contractor' | 'fulltime';
-  contractorRate?: number; // Rate for contractors if employmentType is 'contractor'
   isActive: boolean;
 }
 
