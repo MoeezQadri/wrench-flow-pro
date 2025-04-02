@@ -1,6 +1,7 @@
 
 import React, { useState } from "react";
 import { format } from "date-fns";
+import { Link } from "react-router-dom";
 import { 
   PieChart, 
   Pie, 
@@ -17,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowUpDown, FileText, Search } from "lucide-react";
+import { ArrowUpDown, ArrowLeft, FileText, Search } from "lucide-react";
 
 const COLORS = ['#FFC107', '#3B82F6', '#10B981', '#8B5CF6', '#EF4444'];
 
@@ -133,7 +134,14 @@ const InvoicingReport = () => {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-        <h1 className="text-3xl font-bold tracking-tight">Invoicing Summary</h1>
+        <div className="flex items-center gap-3">
+          <Button variant="outline" size="icon" asChild>
+            <Link to="/reports">
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+          </Button>
+          <h1 className="text-3xl font-bold tracking-tight">Invoicing Summary</h1>
+        </div>
         <DateRangeDropdown 
           startDate={startDate}
           endDate={endDate}
