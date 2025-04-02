@@ -235,10 +235,9 @@ const ExpenseForm = ({ defaultValues, onSubmit, formId }: ExpenseFormProps) => {
                       onValueChange={field.onChange} 
                       defaultValue={field.value} 
                       value={field.value || "none"}
-                      className="flex-1"
                     >
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="flex-1">
                           <SelectValue placeholder="Select a vendor" />
                         </SelectTrigger>
                       </FormControl>
@@ -253,7 +252,6 @@ const ExpenseForm = ({ defaultValues, onSubmit, formId }: ExpenseFormProps) => {
                     </Select>
                     <Button 
                       type="button" 
-                      variant="outline" 
                       size="icon"
                       onClick={() => setIsVendorDialogOpen(true)}
                     >
