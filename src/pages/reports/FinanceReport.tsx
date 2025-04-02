@@ -11,7 +11,7 @@ import {
   Cell, 
   ResponsiveContainer, 
   Legend, 
-  Tooltip
+  Tooltip as RechartsTooltip
 } from 'recharts';
 
 const FinanceReport = () => {
@@ -79,6 +79,14 @@ const FinanceReport = () => {
     const date = new Date(selectedDate);
     date.setDate(date.getDate() + 1);
     setSelectedDate(date.toISOString().split('T')[0]);
+  };
+
+  // Custom formatter for tooltip values
+  const formatTooltipValue = (value) => {
+    if (typeof value === 'number') {
+      return `$${value.toFixed(2)}`;
+    }
+    return `$${value}`;
   };
 
   return (
@@ -163,7 +171,7 @@ const FinanceReport = () => {
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value) => `$${value.toFixed(2)}`} />
+                    <RechartsTooltip formatter={formatTooltipValue} />
                     <Legend />
                   </PieChart>
                 </ResponsiveContainer>
@@ -200,7 +208,7 @@ const FinanceReport = () => {
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value) => `$${value.toFixed(2)}`} />
+                    <RechartsTooltip formatter={formatTooltipValue} />
                     <Legend />
                   </PieChart>
                 </ResponsiveContainer>

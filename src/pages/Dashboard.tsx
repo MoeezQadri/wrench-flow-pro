@@ -4,7 +4,7 @@ import {
   Calendar, 
   DollarSign, 
   FileText, 
-  Tool,
+  Wrench,
   TrendingUp, 
   Users
 } from 'lucide-react';
@@ -68,7 +68,7 @@ const Dashboard = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active Jobs</CardTitle>
-            <Tool className="h-4 w-4 text-muted-foreground" />
+            <Wrench className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{metrics.activeJobs}</div>
@@ -133,7 +133,7 @@ const Dashboard = () => {
               </div>
               <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-4 text-center">
                 <div className="rounded-full bg-primary/10 p-2">
-                  <Tool className="h-5 w-5 text-primary" />
+                  <Wrench className="h-5 w-5 text-primary" />
                 </div>
                 <h3 className="mt-2 font-medium">Add Mechanic</h3>
               </div>
