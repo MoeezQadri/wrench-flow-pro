@@ -687,7 +687,12 @@ export const hasPermission = (user: User, resource: keyof RolePermissionMap, act
   if (typeof resourcePermissions === 'boolean') {
     return resourcePermissions;
   } else if (typeof resourcePermissions === 'object' && resourcePermissions !== null) {
-    return resourcePermissions[action as keyof typeof resourcePermissions] || false;
+    const permValue = resourcePermissions[action as keyof typeof resourcePermissions];
+    // Check if it's the special 'own' value, which counts as granted permission
+    if (permValue === 'own' || permValue === true) {
+      return true;
+    }
+    return Boolean(permValue);
   }
 
   return false;
