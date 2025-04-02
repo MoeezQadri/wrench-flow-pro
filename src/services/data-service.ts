@@ -147,8 +147,8 @@ export interface Attendance {
   notes?: string;
   status: 'pending' | 'approved' | 'rejected';
   approvedBy?: string;
-  checkIn: string; // Added to align with types used in Attendance component
-  checkOut?: string; // Added to align with types used in Attendance component
+  checkIn: string;
+  checkOut?: string;
 }
 
 export interface RolePermissionMap {
@@ -472,7 +472,7 @@ export const attendanceRecords: Attendance[] = [
     notes: 'Regular shift',
     status: 'approved',
     checkIn: '08:00',
-  checkOut: '17:00',
+    checkOut: '17:00',
   },
   {
     id: 'attendance-2',
@@ -483,16 +483,12 @@ export const attendanceRecords: Attendance[] = [
     notes: 'Late start due to appointment',
     status: 'pending',
     checkIn: '09:00',
-  checkOut: '18:00',
+    checkOut: '18:00',
   },
 ];
 
 // Export attendance records as "attendance" to match the import in Attendance.tsx
-export const attendance = attendanceRecords.map(record => ({
-  ...record,
-  checkIn: record.clockIn,
-  checkOut: record.clockOut
-}));
+export const attendance = attendanceRecords;
 
 // Data access functions
 export const getCurrentUser = (): User => users[0];
@@ -604,9 +600,11 @@ export const recordAttendance = (attendanceData: {
     mechanicId: attendanceData.mechanicId,
     date: attendanceData.date,
     clockIn: attendanceData.checkIn,
-    clockOut: attendanceData.checkOut,
+    clockOut: attendanceData.checkOut || '',
     status: attendanceData.status,
-    notes: ''
+    notes: '',
+    checkIn: attendanceData.checkIn,
+    checkOut: attendanceData.checkOut,
   };
   
   attendance.push(newAttendance);
@@ -724,5 +722,5 @@ export const getPayables = (): Expense[] => {
   return expenses;
 };
 
-// Re-export rolePermissions without duplicating it
-export { rolePermissions };
+// Import rolePermissions from types to use in hasPermission function
+import { rolePermissions } from '@/types';
