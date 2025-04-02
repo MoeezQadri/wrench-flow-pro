@@ -117,7 +117,6 @@ const InvoiceForm = () => {
       items,
       payments,
       date: format(data.date, "yyyy-MM-dd"),
-      dueDate: "", // No due date
       vehicleInfo: {
         make: "",  // These would ideally be populated from the selected vehicle
         model: "",
