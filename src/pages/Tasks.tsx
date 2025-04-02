@@ -3,11 +3,18 @@ import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Pencil, Calendar, CalendarCheck } from "lucide-react";
+import { Plus, Pencil, Calendar, CalendarCheck, Tag } from "lucide-react";
 import { toast } from "sonner";
 import TaskDialog from "@/components/task/TaskDialog";
 import TaskCheckInOut from "@/components/task/TaskCheckInOut";
-import { tasks, mechanics, getMechanicById, getCurrentUser, hasPermission } from "@/services/data-service";
+import { 
+  tasks, 
+  mechanics, 
+  getMechanicById, 
+  getCurrentUser, 
+  hasPermission,
+  getInvoiceById 
+} from "@/services/data-service";
 import { Task } from "@/types";
 
 const Tasks = () => {
@@ -93,6 +100,19 @@ const Tasks = () => {
         return 'bg-gray-100 text-gray-800';
     }
   };
+  
+  const getInvoiceInfo = (task: Task) => {
+    if (!task.invoiceId) return null;
+    
+    const invoice = getInvoiceById(task.invoiceId);
+    if (!invoice) return null;
+    
+    return {
+      id: invoice.id,
+      status: invoice.status,
+      vehicle: `${invoice.vehicleInfo.make} ${invoice.vehicleInfo.model}`
+    };
+  };
 
   return (
     <div className="space-y-6">
@@ -126,12 +146,14 @@ const Tasks = () => {
                 <TableHead>Status</TableHead>
                 <TableHead>Est. Hours</TableHead>
                 <TableHead>Hours Spent</TableHead>
+                <TableHead>Invoice</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredTasks.map((task) => {
                 const mechanic = getMechanicById(task.mechanicId);
+                const invoiceInfo = getInvoiceInfo(task);
                 
                 return (
                   <TableRow key={task.id}>
@@ -149,6 +171,21 @@ const Tasks = () => {
                     </TableCell>
                     <TableCell>{task.hoursEstimated}</TableCell>
                     <TableCell>{task.hoursSpent || "—"}</TableCell>
+                    <TableCell>
+                      {invoiceInfo ? (
+                        <div className="flex items-center">
+                          <Tag className="h-3 w-3 mr-1 text-blue-500" />
+                          <span className="text-xs">
+                            {invoiceInfo.id.substring(0, 8)}...
+                            <span className="ml-1 text-muted-foreground">
+                              ({invoiceInfo.vehicle})
+                            </span>
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">Not linked</span>
+                      )}
+                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end space-x-1">
                         {/* Time tracking button for mechanics */}
@@ -179,7 +216,7 @@ const Tasks = () => {
               })}
               {filteredTasks.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-6">
+                  <TableCell colSpan={7} className="text-center py-6">
                     <div className="flex flex-col items-center justify-center text-muted-foreground">
                       <CalendarCheck className="w-12 h-12 mb-2 text-muted-foreground/60" />
                       <p>No tasks found</p>

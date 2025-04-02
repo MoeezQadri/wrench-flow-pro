@@ -10,9 +10,16 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Task } from "@/types";
+import { Task, InvoiceItem } from "@/types";
 import TaskForm, { TaskFormValues } from "./TaskForm";
-import { generateId, getCurrentUser, hasPermission } from "@/services/data-service";
+import { 
+  generateId, 
+  getCurrentUser, 
+  hasPermission, 
+  getInvoiceById, 
+  tasks,
+  invoices
+} from "@/services/data-service";
 
 interface TaskDialogProps {
   open: boolean;
@@ -38,6 +45,10 @@ const TaskDialog = ({ open, onOpenChange, onSave, task }: TaskDialogProps) => {
 
   const handleSubmit = (data: TaskFormValues) => {
     try {
+      const existingInvoiceId = task?.invoiceId;
+      const wasCompleted = task?.status === "completed";
+      const isBeingCompleted = data.status === "completed" && (!task || task.status !== "completed");
+      
       // Ensure all required fields are provided
       const newTask: Task = {
         id: task?.id || generateId("task"),
@@ -50,12 +61,71 @@ const TaskDialog = ({ open, onOpenChange, onSave, task }: TaskDialogProps) => {
         invoiceId: data.invoiceId,
       };
       
+      // Update the invoice if task is completed
+      if (isBeingCompleted && data.invoiceId) {
+        updateInvoiceOnTaskCompletion(data.invoiceId, newTask);
+      }
+      
+      // If invoice association is removed or changed, update the old invoice
+      if (existingInvoiceId && existingInvoiceId !== data.invoiceId && wasCompleted) {
+        removeTaskFromInvoice(existingInvoiceId, task.id);
+      }
+      
       onSave(newTask);
       toast.success(`Task ${isEditing ? "updated" : "added"} successfully!`);
       onOpenChange(false);
     } catch (error) {
       console.error("Error saving task:", error);
       toast.error("Failed to save task. Please try again.");
+    }
+  };
+
+  // Function to update the invoice when a task is completed
+  const updateInvoiceOnTaskCompletion = (invoiceId: string, task: Task) => {
+    const invoice = getInvoiceById(invoiceId);
+    if (!invoice) return;
+    
+    // Only proceed if we have hours spent data
+    if (!task.hoursSpent) {
+      toast.warning("Task marked as completed but no hours spent recorded.");
+      return;
+    }
+    
+    // Create a new invoice item for this task
+    const hourlyRate = 85; // Default hourly rate for labor
+    const newItem: InvoiceItem = {
+      id: generateId("item"),
+      type: "labor",
+      description: `Labor: ${task.title}`,
+      quantity: task.hoursSpent,
+      price: hourlyRate,
+    };
+    
+    // Add the item to the invoice
+    invoice.items.push(newItem);
+    
+    // Update invoice status if needed
+    if (invoice.status === "open") {
+      invoice.status = "in-progress";
+    }
+    
+    toast.success("Invoice updated with completed task.");
+  };
+  
+  // Function to remove task from invoice if the association is removed
+  const removeTaskFromInvoice = (invoiceId: string, taskId: string) => {
+    const invoice = getInvoiceById(invoiceId);
+    if (!invoice) return;
+    
+    // Find and remove any items associated with this task
+    // This is a simplified approach - in a real system, you'd have a more direct relationship
+    const taskItems = invoice.items.filter(item => 
+      item.type === "labor" && item.description.includes(tasks.find(t => t.id === taskId)?.title || "")
+    );
+    
+    if (taskItems.length > 0) {
+      invoice.items = invoice.items.filter(item => !taskItems.includes(item));
+      toast.info("Task removed from invoice.");
     }
   };
 
@@ -87,6 +157,7 @@ const TaskDialog = ({ open, onOpenChange, onSave, task }: TaskDialogProps) => {
           }
           onSubmit={handleSubmit}
           formId={formId}
+          userRole={currentUser.role}
         />
 
         <DialogFooter>

@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
-import { mechanics } from "@/services/data-service";
+import { mechanics, invoices } from "@/services/data-service";
 
 const taskSchema = z.object({
   title: z.string().min(1, { message: "Title is required" }),
@@ -38,9 +38,10 @@ interface TaskFormProps {
   defaultValues?: TaskFormValues;
   onSubmit: (data: TaskFormValues) => void;
   formId: string;
+  userRole: string;
 }
 
-const TaskForm = ({ defaultValues, onSubmit, formId }: TaskFormProps) => {
+const TaskForm = ({ defaultValues, onSubmit, formId, userRole }: TaskFormProps) => {
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(taskSchema),
     defaultValues: defaultValues || {
@@ -56,6 +57,11 @@ const TaskForm = ({ defaultValues, onSubmit, formId }: TaskFormProps) => {
 
   const status = form.watch("status");
   const activeMechanics = mechanics.filter(mechanic => mechanic.isActive);
+  
+  // Get relevant invoices (open or in-progress only)
+  const availableInvoices = invoices.filter(
+    invoice => invoice.status === 'open' || invoice.status === 'in-progress'
+  );
 
   return (
     <Form {...form}>
@@ -176,6 +182,38 @@ const TaskForm = ({ defaultValues, onSubmit, formId }: TaskFormProps) => {
                     onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
                   />
                 </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+
+        {/* Invoice selection - only for managers and owners */}
+        {(userRole === 'manager' || userRole === 'owner') && (
+          <FormField
+            control={form.control}
+            name="invoiceId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Link to Invoice</FormLabel>
+                <Select 
+                  onValueChange={field.onChange} 
+                  value={field.value || ""}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select an invoice (optional)" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="">Not linked to an invoice</SelectItem>
+                    {availableInvoices.map((invoice) => (
+                      <SelectItem key={invoice.id} value={invoice.id}>
+                        {invoice.id} - {invoice.vehicleInfo.make} {invoice.vehicleInfo.model}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <FormMessage />
               </FormItem>
             )}
