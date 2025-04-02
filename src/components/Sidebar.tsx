@@ -26,61 +26,61 @@ const navItems = [
     name: 'Dashboard', 
     path: '/', 
     icon: <LayoutDashboard className="w-5 h-5" />,
-    permission: { resource: 'dashboard', action: 'view' }
+    permission: { resource: 'dashboard' as keyof RolePermissionMap, action: 'view' }
   },
   { 
     name: 'Invoices', 
     path: '/invoices', 
     icon: <FileText className="w-5 h-5" />,
-    permission: { resource: 'invoices', action: 'view' }
+    permission: { resource: 'invoices' as keyof RolePermissionMap, action: 'view' }
   },
   { 
     name: 'Customers', 
     path: '/customers', 
     icon: <Users className="w-5 h-5" />,
-    permission: { resource: 'customers', action: 'view' }
+    permission: { resource: 'customers' as keyof RolePermissionMap, action: 'view' }
   },
   { 
     name: 'Mechanics', 
     path: '/mechanics', 
     icon: <Wrench className="w-5 h-5" />,
-    permission: { resource: 'mechanics', action: 'view' }
+    permission: { resource: 'mechanics' as keyof RolePermissionMap, action: 'view' }
   },
   { 
     name: 'Tasks', 
     path: '/tasks', 
     icon: <CalendarCheck className="w-5 h-5" />,
-    permission: { resource: 'tasks', action: 'view' }
+    permission: { resource: 'tasks' as keyof RolePermissionMap, action: 'view' }
   },
   { 
     name: 'Parts', 
     path: '/parts', 
     icon: <ShoppingBag className="w-5 h-5" />,
-    permission: { resource: 'parts', action: 'view' }
+    permission: { resource: 'parts' as keyof RolePermissionMap, action: 'view' }
   },
   { 
     name: 'Expenses', 
     path: '/expenses', 
     icon: <DollarSign className="w-5 h-5" />,
-    permission: { resource: 'expenses', action: 'view' }
+    permission: { resource: 'expenses' as keyof RolePermissionMap, action: 'view' }
   },
   { 
     name: 'Attendance', 
     path: '/attendance', 
     icon: <ClipboardCheck className="w-5 h-5" />,
-    permission: { resource: 'attendance', action: 'view' }
+    permission: { resource: 'attendance' as keyof RolePermissionMap, action: 'view' }
   },
   { 
     name: 'Users', 
     path: '/users', 
     icon: <UserCog className="w-5 h-5" />,
-    permission: { resource: 'users', action: 'view' }
+    permission: { resource: 'users' as keyof RolePermissionMap, action: 'view' }
   },
   { 
     name: 'Settings', 
     path: '/settings', 
     icon: <Settings className="w-5 h-5" />,
-    permission: { resource: 'settings', action: 'view' }
+    permission: { resource: 'settings' as keyof RolePermissionMap, action: 'view' }
   },
 ];
 

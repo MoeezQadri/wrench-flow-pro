@@ -72,10 +72,10 @@ export interface Mechanic {
 export interface Vendor {
   id: string;
   name: string;
+  contactName: string;
   email: string;
   phone: string;
   address: string;
-  contactPerson?: string;
   paymentTerms?: string;
 }
 

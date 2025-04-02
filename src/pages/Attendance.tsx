@@ -14,7 +14,7 @@ import {
   Plus, 
   XCircle 
 } from "lucide-react";
-import { Attendance, User } from "@/types";
+import { Attendance } from "@/types";
 import { 
   attendance, 
   approveAttendance, 

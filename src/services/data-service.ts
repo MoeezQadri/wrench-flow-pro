@@ -144,6 +144,8 @@ export interface Attendance {
   clockIn: string;
   clockOut: string;
   notes?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  approvedBy?: string;
 }
 
 export interface RolePermissionMap {
@@ -464,7 +466,8 @@ export const attendanceRecords: Attendance[] = [
     date: '2024-02-15',
     clockIn: '08:00',
     clockOut: '17:00',
-    notes: 'Regular shift'
+    notes: 'Regular shift',
+    status: 'approved',
   },
   {
     id: 'attendance-2',
@@ -472,9 +475,13 @@ export const attendanceRecords: Attendance[] = [
     date: '2024-02-15',
     clockIn: '09:00',
     clockOut: '18:00',
-    notes: 'Late start due to appointment'
+    notes: 'Late start due to appointment',
+    status: 'pending',
   },
 ];
+
+// Export attendance records as "attendance" to match the import in Attendance.tsx
+export const attendance = attendanceRecords;
 
 // Data access functions
 export const getCurrentUser = (): User => users[0];
@@ -554,77 +561,50 @@ export const getCustomerAnalytics = (customerId: string): CustomerAnalytics => {
   };
 };
 
-export const recordAttendance = (mechanicId: string, clockIn: string, clockOut?: string) => {
-  const newAttendance: Attendance = {
-    id: generateId('attendance'),
-    mechanicId,
-    date: new Date().toISOString().split('T')[0],
-    clockIn,
-    clockOut: clockOut || '',
-    notes: ''
-  };
-  attendanceRecords.push(newAttendance);
-  return newAttendance;
+// Mock function to simulate fetching payments by date range
+export const getPaymentsByDateRange = (startDate: string, endDate: string): Payment[] => {
+  return payments.filter(payment => payment.date >= startDate && expense.date <= endDate);
 };
 
-export const approveAttendance = (attendanceId: string) => {
-  const attendance = attendanceRecords.find(a => a.id === attendanceId);
-  if (attendance) {
-    attendance.notes = 'Approved';
+// Function to approve attendance
+export const approveAttendance = (
+  attendanceId: string, 
+  approverId: string, 
+  status: 'approved' | 'rejected', 
+  notes?: string
+): boolean => {
+  const attendanceRecord = attendance.find(a => a.id === attendanceId);
+  if (attendanceRecord) {
+    attendanceRecord.status = status;
+    attendanceRecord.approvedBy = approverId;
+    if (notes) {
+      attendanceRecord.notes = notes;
+    }
     return true;
   }
   return false;
 };
 
-// Function to calculate the total amount of an invoice
-export const calculateInvoiceTotal = (invoice: Invoice): { subtotal: number; tax: number; discount: number; total: number } => {
-  const subtotal = invoice.items.reduce((acc, item) => acc + (item.quantity * item.price), 0);
-  let discount = 0;
-
-  if (invoice.discount) {
-    if (invoice.discount.type === 'percentage') {
-      discount = subtotal * (invoice.discount.value / 100);
-    } else if (invoice.discount.type === 'fixed') {
-      discount = invoice.discount.value;
-    }
-  }
-
-  const subtotalAfterDiscount = subtotal - discount;
-  const tax = subtotalAfterDiscount * (invoice.taxRate / 100);
-  const total = subtotalAfterDiscount + tax;
-
-  return { subtotal, tax, discount, total };
-};
-
-// Function to check user permissions
-export const hasPermission = (user: User, resource: keyof RolePermissionMap, action: string): boolean => {
-  const role = user.role;
-  const permissions = rolePermissions[role];
-
-  if (!permissions) {
-    console.warn(`No permissions defined for role: ${role}`);
-    return false;
-  }
-
-  const resourcePermissions = permissions[resource];
-
-  if (typeof resourcePermissions === 'boolean') {
-    return resourcePermissions;
-  } else if (typeof resourcePermissions === 'object' && resourcePermissions !== null) {
-    return resourcePermissions[action as keyof typeof resourcePermissions] || false;
-  }
-
-  return false;
-};
-
-// Mock function to simulate fetching expenses by date range
-export const getExpensesByDateRange = (startDate: string, endDate: string): Expense[] => {
-  return expenses.filter(expense => expense.date >= startDate && expense.date <= endDate);
-};
-
-// Mock function to simulate fetching payments by date range
-export const getPaymentsByDateRange = (startDate: string, endDate: string): Payment[] => {
-  return payments.filter(payment => payment.date >= startDate && expense.date <= endDate);
+// Function to record attendance
+export const recordAttendance = (attendanceData: {
+  mechanicId: string;
+  date: string;
+  checkIn: string;
+  status: 'pending' | 'approved' | 'rejected';
+  checkOut?: string;
+}): Attendance => {
+  const newAttendance: Attendance = {
+    id: generateId('attendance'),
+    mechanicId: attendanceData.mechanicId,
+    date: attendanceData.date,
+    clockIn: attendanceData.checkIn,
+    clockOut: attendanceData.checkOut,
+    status: attendanceData.status,
+    notes: ''
+  };
+  
+  attendance.push(newAttendance);
+  return newAttendance;
 };
 
 // Mock function to simulate fetching expenses for parts
@@ -894,3 +874,177 @@ export const calculateDashboardMetrics = () => {
     mechanicEfficiency
   };
 };
+// Function to calculate the total amount of an invoice
+export const calculateInvoiceTotal = (invoice: Invoice): { subtotal: number; tax: number; discount: number; total: number } => {
+  const subtotal = invoice.items.reduce((acc, item) => acc + (item.quantity * item.price), 0);
+  let discount = 0;
+
+  if (invoice.discount) {
+    if (invoice.discount.type === 'percentage') {
+      discount = subtotal * (invoice.discount.value / 100);
+    } else if (invoice.discount.type === 'fixed') {
+      discount = invoice.discount.value;
+    }
+  }
+
+  const subtotalAfterDiscount = subtotal - discount;
+  const tax = subtotalAfterDiscount * (invoice.taxRate / 100);
+  const total = subtotalAfterDiscount + tax;
+
+  return { subtotal, tax, discount, total };
+};
+
+// Function to check user permissions
+export const hasPermission = (user: User, resource: keyof RolePermissionMap, action: string): boolean => {
+  const role = user.role;
+  const permissions = rolePermissions[role];
+
+  if (!permissions) {
+    console.warn(`No permissions defined for role: ${role}`);
+    return false;
+  }
+
+  const resourcePermissions = permissions[resource];
+
+  if (typeof resourcePermissions === 'boolean') {
+    return resourcePermissions;
+  } else if (typeof resourcePermissions === 'object' && resourcePermissions !== null) {
+    return resourcePermissions[action as keyof typeof resourcePermissions] || false;
+  }
+
+  return false;
+};
+
+// Mock function to simulate fetching expenses by date range
+export const getExpensesByDateRange = (startDate: string, endDate: string): Expense[] => {
+  return expenses.filter(expense => expense.date >= startDate && expense.date <= endDate);
+};
+
+// Mock function to simulate fetching payments by date range
+export const getPaymentsByDateRange = (startDate: string, endDate: string): Payment[] => {
+  return payments.filter(payment => payment.date >= startDate && expenses.date <= endDate);
+};
+
+// Mock function to simulate fetching expenses for parts
+export const getPartExpenses = (): Expense[] => {
+  return expenses.filter(expense => expense.category === 'Parts');
+};
+
+// Mock function to simulate fetching receivables (invoices with outstanding balance)
+export const getReceivables = (): Invoice[] => {
+  return invoices.filter(invoice => {
+    const { total } = calculateInvoiceTotal(invoice);
+    const paid = invoice.payments.reduce((sum, payment) => sum + payment.amount, 0);
+    return total > paid;
+  });
+};
+
+// Mock function to simulate fetching payables (expenses)
+export const getPayables = (): Expense[] => {
+  return expenses;
+};
+
+export const rolePermissions: Record<UserRole, RolePermissionMap> = {
+  owner: {
+    dashboard: true,
+    customers: {
+      view: true,
+      manage: true
+    },
+    invoices: {
+      view: true,
+      manage: true
+    },
+    mechanics: {
+      view: true,
+      manage: true
+    },
+    tasks: {
+      view: true,
+      manage: true
+    },
+    parts: {
+      view: true,
+      manage: true
+    },
+    expenses: {
+      view: true,
+      manage: true
+    },
+		vehicles: {
+      view: true,
+      manage: true
+    },
+    reports: {
+      view: true,
+      manage: true
+    },
+    users: {
+      view: true,
+      manage: true
+    },
+    settings: {
+      view: true,
+      manage: true
+    },
+    attendance: {
+      view: true,
+      manage: true
+    },
+    subscription: {
+      view: true,
+      manage: true
+    }
+  },
+  manager: {
+    dashboard: true,
+    customers: {
+      view: true,
+      manage: true
+    },
+    invoices: {
+      view: true,
+      manage: true
+    },
+    mechanics: {
+      view: true,
+      manage: true
+    },
+    tasks: {
+      view: true,
+      manage: true
+    },
+    parts: {
+      view: true,
+      manage: true
+    },
+    expenses: {
+      view: true,
+      manage: true
+    },
+		vehicles: {
+      view: true,
+      manage: true
+    },
+    reports: {
+      view: true,
+      manage: true
+    },
+    users: {
+      view: true,
+      manage: true
+    },
+    settings: {
+      view: true,
+      manage: true
+    },
+    attendance: {
+      view: true,
+      manage: true
+    },
+    subscription: {
+      view: true,
+      manage: true
+    }
+  },
+  foreman:
