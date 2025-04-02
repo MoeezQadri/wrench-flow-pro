@@ -105,16 +105,31 @@ const CustomerDialog = ({ open, onOpenChange, onCustomerAdded }: CustomerDialogP
   const onSubmit = async (data: CustomerFormValues) => {
     setIsSubmitting(true);
     try {
-      // Add customer first
-      const newCustomer = addCustomer(data);
+      // Add customer first - ensure data is passed with required fields
+      const customerData = {
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+        address: data.address
+      };
       
-      // Then add all vehicles for this customer
+      const newCustomer = addCustomer(customerData);
+      
+      // Then add all vehicles for this customer if any exist
       if (vehicles.length > 0) {
         vehicles.forEach(vehicle => {
-          addVehicle({
-            ...vehicle,
-            customerId: newCustomer.id
-          });
+          // Ensure vehicle data has all required fields
+          const vehicleData = {
+            customerId: newCustomer.id,
+            make: vehicle.make,
+            model: vehicle.model,
+            year: vehicle.year,
+            licensePlate: vehicle.licensePlate,
+            vin: vehicle.vin,
+            color: vehicle.color
+          };
+          
+          addVehicle(vehicleData);
         });
       }
       
