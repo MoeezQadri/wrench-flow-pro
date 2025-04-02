@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
@@ -96,9 +97,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
   const location = useLocation();
   const currentUser = getCurrentUser();
   
-  // Filter nav items based on user permissions - use type assertion to fix the type error
+  // Fix the type error by type casting the resource and action with proper types
   const filteredNavItems = navItems.filter(item => 
-    hasPermission(currentUser, item.permission.resource, item.permission.action as string)
+    hasPermission(
+      currentUser, 
+      item.permission.resource as keyof RolePermissionMap, 
+      String(item.permission.action)
+    )
   );
 
   return (
