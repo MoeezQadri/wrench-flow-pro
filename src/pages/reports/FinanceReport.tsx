@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -53,6 +52,40 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
+
+// Define types for our payable and receivable items
+type PayableItem = {
+  id: string;
+  date: string;
+  description: string;
+  type: "Payable";
+  category: string;
+  amount: number;
+  method: 'cash' | 'card' | 'bank-transfer';
+};
+
+type ReceivableItem = {
+  id: string;
+  date: string;
+  description: string;
+  type: "Receivable";
+  status: string;
+  amount: number;
+  totalAmount: number;
+  paidAmount: number;
+};
+
+type FinanceItem = PayableItem | ReceivableItem;
+
+// Type guard to check if an item is a receivable
+const isReceivable = (item: FinanceItem): item is ReceivableItem => {
+  return item.type === "Receivable";
+};
+
+// Type guard to check if an item is a payable
+const isPayable = (item: FinanceItem): item is PayableItem => {
+  return item.type === "Payable";
+};
 
 const FinanceReport = () => {
   const [selectedDate, setSelectedDate] = useState(format(new Date(), "yyyy-MM-dd"));
@@ -145,13 +178,13 @@ const FinanceReport = () => {
     setSelectedDate(format(date, "yyyy-MM-dd"));
   };
 
-  const getReceivablesAndPayables = () => {
+  const getReceivablesAndPayables = (): FinanceItem[] => {
     if (showPayablesReceivables === 'payables') {
       return payables.map(expense => ({
         id: expense.id,
         date: expense.date,
         description: expense.description,
-        type: "Payable",
+        type: "Payable" as const,
         category: expense.category,
         amount: expense.amount,
         method: expense.paymentMethod
@@ -166,7 +199,7 @@ const FinanceReport = () => {
           id: invoice.id,
           date: invoice.date,
           description: `Invoice #${invoice.id} for ${invoice.vehicleInfo.make} ${invoice.vehicleInfo.model}`,
-          type: "Receivable",
+          type: "Receivable" as const,
           status: invoice.status,
           amount: remaining,
           totalAmount: total,
@@ -180,7 +213,7 @@ const FinanceReport = () => {
           id: expense.id,
           date: expense.date,
           description: expense.description,
-          type: "Payable",
+          type: "Payable" as const,
           category: expense.category,
           amount: expense.amount,
           method: expense.paymentMethod
@@ -194,7 +227,7 @@ const FinanceReport = () => {
             id: invoice.id,
             date: invoice.date,
             description: `Invoice #${invoice.id} for ${invoice.vehicleInfo.make} ${invoice.vehicleInfo.model}`,
-            type: "Receivable",
+            type: "Receivable" as const,
             status: invoice.status,
             amount: remaining,
             totalAmount: total,
@@ -622,7 +655,7 @@ const FinanceReport = () => {
                     </TableCell>
                     {showPayablesReceivables !== 'payables' && (
                       <TableCell>
-                        {item.type === 'Receivable' ? (
+                        {isReceivable(item) ? (
                           <StatusBadge status={item.status} />
                         ) : (
                           <span>-</span>
@@ -630,10 +663,10 @@ const FinanceReport = () => {
                       </TableCell>
                     )}
                     {showPayablesReceivables === 'receivables' && (
-                      <TableCell>${item.totalAmount?.toFixed(2) || '-'}</TableCell>
+                      <TableCell>${isReceivable(item) ? item.totalAmount.toFixed(2) : '-'}</TableCell>
                     )}
                     {showPayablesReceivables === 'receivables' && (
-                      <TableCell>${item.paidAmount?.toFixed(2) || '-'}</TableCell>
+                      <TableCell>${isReceivable(item) ? item.paidAmount.toFixed(2) : '-'}</TableCell>
                     )}
                     <TableCell className={`text-right font-medium ${item.type === 'Receivable' ? 'text-blue-600' : 'text-orange-600'}`}>
                       ${item.amount.toFixed(2)}
