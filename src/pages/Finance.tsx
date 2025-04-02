@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,8 +12,9 @@ import {
   DollarSign, 
   Download, 
   Filter,
-  Wallet
-} from "lucide-react";
+  Wallet,
+  Plus
+} from 'lucide-react';
 import {
   PieChart,
   Pie,
@@ -47,7 +47,8 @@ import {
   invoices, 
   payments 
 } from "@/services/data-service";
-import { InvoiceStatus } from "@/types";
+import { InvoiceStatus, Expense } from "@/types";
+import ExpenseDialog from "@/components/expense/ExpenseDialog";
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
@@ -96,6 +97,7 @@ const Finance = () => {
   const [showPayablesReceivables, setShowPayablesReceivables] = useState<'all' | 'payables' | 'receivables'>('all');
   const [selectedVendor, setSelectedVendor] = useState<string>('all');
   const [selectedCustomer, setSelectedCustomer] = useState<string>('all');
+  const [isExpenseDialogOpen, setIsExpenseDialogOpen] = useState(false);
   
   // Get all customers for filtering
   const customers = getCustomers();
@@ -269,17 +271,33 @@ const Finance = () => {
     })
   ].sort((a, b) => a.time.localeCompare(b.time));
 
+  // Handler for saving a new expense
+  const handleSaveExpense = (expense: Expense) => {
+    console.log('New expense saved:', expense);
+    // In a real application, this would send the expense to the server
+    // For now, let's just close the dialog and refresh data would happen on the next API call
+    setIsExpenseDialogOpen(false);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
         <h1 className="text-3xl font-bold tracking-tight">Finance</h1>
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full md:w-auto mt-4 sm:mt-0">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="transactions">Transactions</TabsTrigger>
-            <TabsTrigger value="payables">Payables & Receivables</TabsTrigger>
-          </TabsList>
-        </Tabs>
+        <div className="flex items-center mt-4 sm:mt-0 space-x-4">
+          <Button 
+            onClick={() => setIsExpenseDialogOpen(true)}
+            className="bg-green-600 hover:bg-green-700"
+          >
+            <Plus className="mr-2 h-4 w-4" /> Add Expense
+          </Button>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full md:w-auto">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="transactions">Transactions</TabsTrigger>
+              <TabsTrigger value="payables">Payables & Receivables</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
       </div>
       
       <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -751,6 +769,13 @@ const Finance = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Expense Dialog */}
+      <ExpenseDialog
+        open={isExpenseDialogOpen}
+        onOpenChange={setIsExpenseDialogOpen}
+        onSave={handleSaveExpense}
+      />
     </div>
   );
 };
