@@ -14,7 +14,9 @@ import {
   Vendor,
   User,
   Organization,
-  Attendance
+  Attendance,
+  PermissionValue,
+  RolePermissionMap
 } from '@/types';
 
 // Add users data
@@ -786,7 +788,7 @@ export interface PermissionMap {
   [key: string]: boolean | PermissionMap;
 }
 
-export const rolePermissions: Record<User['role'], PermissionMap> = {
+export const rolePermissions: Record<User['role'], RolePermissionMap> = {
   owner: {
     dashboard: true,
     customers: { view: true, manage: true },

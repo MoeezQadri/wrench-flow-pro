@@ -136,7 +136,6 @@ const TaskCheckInOut: React.FC<TaskCheckInOutProps> = ({ task, onUpdate }) => {
               size="sm" 
               onClick={handleCheckIn}
               className="flex items-center"
-              disabled={task.status === 'completed'}
             >
               <CheckCircle className="w-4 h-4 mr-2" />
               Check In

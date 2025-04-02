@@ -1,3 +1,4 @@
+
 export type InvoiceStatus = 'open' | 'in-progress' | 'completed' | 'paid' | 'partial';
 
 export type UserRole = 'owner' | 'manager' | 'mechanic';
@@ -175,7 +176,15 @@ export interface PermissionMap {
   [key: string]: boolean | PermissionMap;
 }
 
-export const rolePermissions: Record<UserRole, PermissionMap> = {
+// Special type for 'own' permission value
+export type PermissionValue = boolean | 'own';
+
+// Modify the permission map to allow 'own' values
+export interface RolePermissionMap {
+  [key: string]: PermissionValue | RolePermissionMap;
+}
+
+export const rolePermissions: Record<UserRole, RolePermissionMap> = {
   owner: {
     dashboard: true,
     customers: { view: true, manage: true },
