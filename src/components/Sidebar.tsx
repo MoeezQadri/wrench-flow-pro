@@ -15,7 +15,8 @@ import {
   ClipboardCheck,
   UserCog,
   Building,
-  CalendarCheck
+  CalendarCheck,
+  Wallet
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getCurrentUser, hasPermission } from '@/services/data-service';
@@ -64,10 +65,10 @@ const navItems = [
     permission: { resource: 'parts' as ResourceKey, action: 'view' as ActionKey }
   },
   { 
-    name: 'Expenses', 
-    path: '/expenses', 
-    icon: <DollarSign className="w-5 h-5" />,
-    permission: { resource: 'expenses' as ResourceKey, action: 'view' as ActionKey }
+    name: 'Finance', 
+    path: '/finance', 
+    icon: <Wallet className="w-5 h-5" />,
+    permission: { resource: 'finance' as ResourceKey, action: 'view' as ActionKey }
   },
   { 
     name: 'Attendance', 
@@ -80,6 +81,12 @@ const navItems = [
     path: '/users', 
     icon: <UserCog className="w-5 h-5" />,
     permission: { resource: 'users' as ResourceKey, action: 'view' as ActionKey }
+  },
+  { 
+    name: 'Reports', 
+    path: '/reports', 
+    icon: <FileText className="w-5 h-5" />,
+    permission: { resource: 'reports' as ResourceKey, action: 'view' as ActionKey }
   },
   { 
     name: 'Settings', 
@@ -102,7 +109,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
   const filteredNavItems = navItems.filter(item => 
     hasPermission(
       currentUser, 
-      item.permission.resource as keyof RolePermissionMap, 
+      item.permission.resource, 
       item.permission.action
     )
   );
