@@ -110,14 +110,18 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
   const location = useLocation();
   const currentUser = getCurrentUser();
   
-  // Fixed the type issue by ensuring we pass a valid ResourceKey
-  const filteredNavItems = navItems.filter(item => 
-    hasPermission(
-      currentUser, 
-      item.permission.resource,
-      item.permission.action
-    )
-  );
+  // Fixed the type issue by ensuring we pass valid items
+  const filteredNavItems = navItems.filter(item => {
+    // Make sure the resource is a valid ResourceKey
+    const resource = item.permission.resource;
+    const action = item.permission.action;
+    
+    // Now we ensure both resource and action are strings
+    if (typeof resource === 'string' && typeof action === 'string') {
+      return hasPermission(currentUser, resource, action);
+    }
+    return false;
+  });
 
   
   return (
