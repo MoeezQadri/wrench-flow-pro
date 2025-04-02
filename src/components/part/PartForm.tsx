@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
-import { vendors } from "@/services/data-service";
+import { vendors, getInvoiceById } from "@/services/data-service";
 
 const partSchema = z.object({
   name: z.string().min(1, { message: "Name is required" }),
@@ -38,9 +38,12 @@ interface PartFormProps {
   defaultValues?: PartFormValues;
   onSubmit: (data: PartFormValues) => void;
   formId: string;
+  invoiceId?: string;
 }
 
-const PartForm = ({ defaultValues, onSubmit, formId }: PartFormProps) => {
+const PartForm = ({ defaultValues, onSubmit, formId, invoiceId }: PartFormProps) => {
+  const invoice = invoiceId ? getInvoiceById(invoiceId) : undefined;
+  
   const form = useForm<PartFormValues>({
     resolver: zodResolver(partSchema),
     defaultValues: defaultValues || {
@@ -48,7 +51,7 @@ const PartForm = ({ defaultValues, onSubmit, formId }: PartFormProps) => {
       price: 0,
       quantity: 0,
       description: "",
-      vendorId: "",
+      vendorId: "none",
       partNumber: "",
       reorderLevel: 10,
     },
@@ -57,6 +60,16 @@ const PartForm = ({ defaultValues, onSubmit, formId }: PartFormProps) => {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} id={formId} className="space-y-4">
+        {invoice && (
+          <div className="rounded-md bg-muted p-3 mb-4">
+            <p className="text-sm font-medium">Adding part to invoice:</p>
+            <p className="text-sm">
+              Vehicle: {invoice.vehicleInfo.make} {invoice.vehicleInfo.model} ({invoice.vehicleInfo.year})
+            </p>
+            <p className="text-sm">License Plate: {invoice.vehicleInfo.licensePlate}</p>
+          </div>
+        )}
+        
         <FormField
           control={form.control}
           name="name"

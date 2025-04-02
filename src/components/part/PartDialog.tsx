@@ -12,18 +12,20 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Part } from "@/types";
 import PartForm, { PartFormValues } from "./PartForm";
-import { generateId, getVendorById } from "@/services/data-service";
+import { generateId, getVendorById, getInvoiceById } from "@/services/data-service";
 
 interface PartDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: (part: Part) => void;
   part?: Part;
+  invoiceId?: string;
 }
 
-const PartDialog = ({ open, onOpenChange, onSave, part }: PartDialogProps) => {
+const PartDialog = ({ open, onOpenChange, onSave, part, invoiceId }: PartDialogProps) => {
   const isEditing = !!part;
   const formId = "part-form";
+  const invoice = invoiceId ? getInvoiceById(invoiceId) : undefined;
 
   const handleSubmit = (data: PartFormValues) => {
     try {
@@ -44,7 +46,15 @@ const PartDialog = ({ open, onOpenChange, onSave, part }: PartDialogProps) => {
       };
       
       onSave(newPart);
-      toast.success(`Part ${isEditing ? "updated" : "added"} successfully!`);
+      
+      // If the part is being added to an invoice, show a specialized message
+      if (invoiceId && invoice) {
+        const customerName = invoice.vehicleInfo.make + " " + invoice.vehicleInfo.model;
+        toast.success(`Part ${isEditing ? "updated" : "added"} and associated with invoice for ${customerName}!`);
+      } else {
+        toast.success(`Part ${isEditing ? "updated" : "added"} successfully!`);
+      }
+      
       onOpenChange(false);
     } catch (error) {
       console.error("Error saving part:", error);
@@ -60,7 +70,10 @@ const PartDialog = ({ open, onOpenChange, onSave, part }: PartDialogProps) => {
           <DialogDescription>
             {isEditing
               ? "Update the part information below."
-              : "Enter the details for the new part."}
+              : invoice 
+                ? `Add a new part to invoice #${invoiceId}.` 
+                : "Enter the details for the new part."
+            }
           </DialogDescription>
         </DialogHeader>
 
@@ -80,6 +93,7 @@ const PartDialog = ({ open, onOpenChange, onSave, part }: PartDialogProps) => {
           }
           onSubmit={handleSubmit}
           formId={formId}
+          invoiceId={invoiceId}
         />
 
         <DialogFooter>
@@ -87,7 +101,7 @@ const PartDialog = ({ open, onOpenChange, onSave, part }: PartDialogProps) => {
             Cancel
           </Button>
           <Button type="submit" form={formId}>
-            {isEditing ? "Update" : "Add"} Part
+            {isEditing ? "Update" : "Add"} Part {invoice ? "to Invoice" : ""}
           </Button>
         </DialogFooter>
       </DialogContent>

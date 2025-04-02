@@ -3,25 +3,68 @@ import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Pencil, AlertTriangle, ShoppingBag } from "lucide-react";
+import { Plus, Pencil, AlertTriangle, ShoppingBag, Search, Tag, Truck } from "lucide-react";
 import { toast } from "sonner";
 import PartDialog from "@/components/part/PartDialog";
-import { parts } from "@/services/data-service";
-import { Part } from "@/types";
+import VendorDialog from "@/components/part/VendorDialog";
+import { parts, vendors, invoices, getCustomerById, getCurrentUser, hasPermission } from "@/services/data-service";
+import { Part, Invoice } from "@/types";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const Parts = () => {
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isPartDialogOpen, setIsPartDialogOpen] = useState(false);
+  const [isVendorDialogOpen, setIsVendorDialogOpen] = useState(false);
   const [selectedPart, setSelectedPart] = useState<Part | undefined>(undefined);
   const [partsList, setPartsList] = useState<Part[]>(parts);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [customerFilter, setCustomerFilter] = useState("all");
+  const [selectedInvoice, setSelectedInvoice] = useState<string | undefined>(undefined);
+  
+  const currentUser = getCurrentUser();
+  const canManageParts = hasPermission(currentUser, "parts", "manage");
 
-  const handleAddPart = () => {
+  // Get all invoices with customers
+  const invoicesWithCustomers = invoices.map(invoice => {
+    const customer = getCustomerById(invoice.customerId);
+    return {
+      id: invoice.id,
+      customerName: customer?.name || "Unknown Customer",
+      vehicleInfo: `${invoice.vehicleInfo.make} ${invoice.vehicleInfo.model} (${invoice.vehicleInfo.licensePlate})`
+    };
+  });
+
+  // Filter parts based on search and customer filter
+  const filteredParts = partsList.filter(part => {
+    const matchesSearch = part.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          part.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          (part.partNumber && part.partNumber.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                          (part.vendorName && part.vendorName.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    // If we're not filtering by customer, just check the search match
+    if (customerFilter === "all") {
+      return matchesSearch;
+    }
+    
+    // TODO: In a real app, we would track which parts were sold to which customers
+    // For now, we're just returning all parts when a customer is selected
+    return matchesSearch;
+  });
+
+  const handleAddPart = (invoiceId?: string) => {
     setSelectedPart(undefined);
-    setIsDialogOpen(true);
+    setSelectedInvoice(invoiceId);
+    setIsPartDialogOpen(true);
+  };
+
+  const handleAddVendor = () => {
+    setIsVendorDialogOpen(true);
   };
 
   const handleEditPart = (part: Part) => {
     setSelectedPart(part);
-    setIsDialogOpen(true);
+    setSelectedInvoice(undefined);
+    setIsPartDialogOpen(true);
   };
 
   const handleSavePart = (part: Part) => {
@@ -35,6 +78,13 @@ const Parts = () => {
         return [...prev, part];
       }
     });
+
+    // If an invoice was selected when creating this part, it should be added to that invoice
+    if (selectedInvoice) {
+      // In a real app, we would add the part to the invoice here
+      toast.success(`Part added to invoice #${selectedInvoice}`);
+      // This would update the invoice with the part
+    }
   };
 
   const needsReorder = (part: Part) => {
@@ -44,11 +94,77 @@ const Parts = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold tracking-tight">Parts Inventory</h1>
-        <Button onClick={handleAddPart}>
-          <Plus className="mr-1 h-4 w-4" />
-          Add Part
-        </Button>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Parts Inventory</h1>
+          <p className="text-muted-foreground">Manage parts inventory and vendors</p>
+        </div>
+        <div className="flex space-x-2">
+          {canManageParts && (
+            <>
+              <Button onClick={handleAddVendor} variant="outline">
+                <Truck className="mr-1 h-4 w-4" />
+                Add Vendor
+              </Button>
+              <Button onClick={() => handleAddPart()}>
+                <Plus className="mr-1 h-4 w-4" />
+                Add Part
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
+
+      <div className="flex flex-col md:flex-row gap-4 mb-6">
+        <div className="relative flex-1">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search parts..."
+            className="pl-8"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        
+        <div className="w-full md:w-64">
+          <Select value={customerFilter} onValueChange={setCustomerFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="Filter by customer" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Customers</SelectItem>
+              {invoicesWithCustomers.map(invoice => (
+                <SelectItem key={invoice.id} value={invoice.id}>
+                  {invoice.customerName} - {invoice.vehicleInfo}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        
+        {canManageParts && (
+          <div className="w-full md:w-72">
+            <Select value={selectedInvoice || "none"} onValueChange={(val) => setSelectedInvoice(val === "none" ? undefined : val)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Add part to invoice..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Select an invoice</SelectItem>
+                {invoicesWithCustomers.map(invoice => (
+                  <SelectItem key={invoice.id} value={invoice.id}>
+                    {invoice.customerName} - {invoice.vehicleInfo}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+        
+        {selectedInvoice && (
+          <Button onClick={() => handleAddPart(selectedInvoice)}>
+            <Tag className="mr-1 h-4 w-4" />
+            Add Part to Invoice
+          </Button>
+        )}
       </div>
 
       <Card>
@@ -68,7 +184,7 @@ const Parts = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {partsList.map((part) => (
+              {filteredParts.map((part) => (
                 <TableRow key={part.id}>
                   <TableCell className="font-medium">
                     <div>{part.name}</div>
@@ -92,30 +208,34 @@ const Parts = () => {
                     )}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleEditPart(part)}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
+                    {canManageParts && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEditPart(part)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
-              {partsList.length === 0 && (
+              {filteredParts.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-6">
                     <div className="flex flex-col items-center justify-center text-muted-foreground">
                       <ShoppingBag className="w-12 h-12 mb-2 text-muted-foreground/60" />
                       <p>No parts found</p>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="mt-2"
-                        onClick={handleAddPart}
-                      >
-                        Add your first part
-                      </Button>
+                      {canManageParts && (
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="mt-2"
+                          onClick={() => handleAddPart()}
+                        >
+                          Add your first part
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -126,10 +246,16 @@ const Parts = () => {
       </Card>
 
       <PartDialog
-        open={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
+        open={isPartDialogOpen}
+        onOpenChange={setIsPartDialogOpen}
         onSave={handleSavePart}
         part={selectedPart}
+        invoiceId={selectedInvoice}
+      />
+      
+      <VendorDialog
+        open={isVendorDialogOpen}
+        onOpenChange={setIsVendorDialogOpen}
       />
     </div>
   );
