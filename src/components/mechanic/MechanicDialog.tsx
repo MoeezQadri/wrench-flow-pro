@@ -13,6 +13,12 @@ import { toast } from "sonner";
 import { Mechanic } from "@/types";
 import MechanicForm, { MechanicFormValues } from "./MechanicForm";
 import { generateId, getCurrentUser, hasPermission } from "@/services/data-service";
+import { 
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger 
+} from "@/components/ui/tooltip";
+import { InfoIcon } from "lucide-react";
 
 interface MechanicDialogProps {
   open: boolean;
