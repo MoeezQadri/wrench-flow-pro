@@ -251,6 +251,7 @@ const UsersPage = () => {
                       <SelectItem value="owner">Owner</SelectItem>
                     )}
                     <SelectItem value="manager">Manager</SelectItem>
+                    <SelectItem value="foreman">Foreman</SelectItem>
                     <SelectItem value="mechanic">Mechanic</SelectItem>
                   </SelectContent>
                 </Select>

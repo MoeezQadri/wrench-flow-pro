@@ -21,7 +21,7 @@ import { Button } from '@/components/ui/button';
 import { getCurrentUser, hasPermission } from '@/services/data-service';
 import { RolePermissionMap, UserRole } from '@/types';
 
-// Correctly define our type based on the structure of RolePermissionMap
+// Define our types for the permission system
 type ResourceKey = keyof RolePermissionMap;
 type ActionKey = string;
 
@@ -98,12 +98,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
   const location = useLocation();
   const currentUser = getCurrentUser();
   
-  // Fix the type error by properly typing the parameters
+  // Fix the type error by explicitly casting types for resource and action
   const filteredNavItems = navItems.filter(item => 
     hasPermission(
       currentUser, 
-      item.permission.resource, 
-      item.permission.action
+      item.permission.resource as keyof RolePermissionMap, 
+      item.permission.action as string
     )
   );
 
