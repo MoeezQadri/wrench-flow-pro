@@ -42,6 +42,12 @@ const CustomerVehicleSelection = ({
     }
   }, [watchCustomerId, form, setVehicles]);
 
+  // Get customer name for display
+  const getCustomerName = (customerId: string) => {
+    const customer = customers.find(c => c.id === customerId);
+    return customer ? customer.name : "";
+  };
+
   return (
     <div className="grid gap-6 md:grid-cols-2">
       {/* Customer Selection */}
@@ -101,7 +107,9 @@ const CustomerVehicleSelection = ({
                     <SelectValue
                       placeholder={
                         watchCustomerId
-                          ? "Select a vehicle"
+                          ? vehicles.length > 0 
+                            ? "Select a vehicle"
+                            : `No vehicles for ${getCustomerName(watchCustomerId)}`
                           : "Select a customer first"
                       }
                     />
