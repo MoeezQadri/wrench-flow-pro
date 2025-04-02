@@ -19,6 +19,8 @@ export interface User {
   email: string;
   role: UserRole;
   mechanicId?: string;
+  isActive: boolean;
+  lastLogin?: string;
 }
 
 export interface Customer {
@@ -27,6 +29,9 @@ export interface Customer {
   email: string;
   phone: string;
   address: string;
+  lastVisit?: string;
+  totalVisits?: number;
+  lifetimeValue?: number;
 }
 
 export interface Vehicle {
@@ -36,6 +41,8 @@ export interface Vehicle {
   model: string;
   year: string;
   licensePlate: string;
+  vin?: string;
+  color?: string;
 }
 
 export interface Invoice {
@@ -155,19 +162,56 @@ export interface RolePermissionMap {
   subscription: {view: boolean; manage: boolean};
 }
 
+export interface CustomerAnalytics {
+  totalInvoices: number;
+  lifetimeValue: number;
+  averageInvoiceValue: number;
+  firstVisitDate: string;
+  lastVisitDate: string;
+  vehicles: Vehicle[];
+  invoiceHistory: Invoice[];
+}
+
 // Mock data
 export const users: User[] = [
-  { id: 'user-1', name: 'John Doe', email: 'john.doe@example.com', role: 'owner' },
-  { id: 'user-2', name: 'Jane Smith', email: 'jane.smith@example.com', role: 'manager' },
-  { id: 'user-3', name: 'Mike Johnson', email: 'mike.johnson@example.com', role: 'foreman' },
-  { id: 'user-4', name: 'Emily White', email: 'emily.white@example.com', role: 'mechanic', mechanicId: 'mechanic-1' },
-  { id: 'user-5', name: 'David Brown', email: 'david.brown@example.com', role: 'mechanic', mechanicId: 'mechanic-2' },
+  { id: 'user-1', name: 'John Doe', email: 'john.doe@example.com', role: 'owner', isActive: true },
+  { id: 'user-2', name: 'Jane Smith', email: 'jane.smith@example.com', role: 'manager', isActive: true },
+  { id: 'user-3', name: 'Mike Johnson', email: 'mike.johnson@example.com', role: 'foreman', isActive: true },
+  { id: 'user-4', name: 'Emily White', email: 'emily.white@example.com', role: 'mechanic', mechanicId: 'mechanic-1', isActive: true },
+  { id: 'user-5', name: 'David Brown', email: 'david.brown@example.com', role: 'mechanic', mechanicId: 'mechanic-2', isActive: false },
 ];
 
 export const customers: Customer[] = [
-  { id: 'customer-1', name: 'Alice Johnson', email: 'alice.johnson@example.com', phone: '555-123-4567', address: '123 Main St' },
-  { id: 'customer-2', name: 'Bob Williams', email: 'bob.williams@example.com', phone: '555-987-6543', address: '456 Oak Ave' },
-  { id: 'customer-3', name: 'Charlie Brown', email: 'charlie.brown@example.com', phone: '555-222-3333', address: '789 Pine Ln' },
+  { 
+    id: 'customer-1', 
+    name: 'Alice Johnson', 
+    email: 'alice.johnson@example.com', 
+    phone: '555-123-4567', 
+    address: '123 Main St',
+    lastVisit: '2024-02-05',
+    totalVisits: 4,
+    lifetimeValue: 650
+  },
+  { 
+    id: 'customer-2', 
+    name: 'Bob Williams', 
+    email: 'bob.williams@example.com', 
+    phone: '555-987-6543', 
+    address: '456 Oak Ave',
+    lastVisit: '2024-01-15',
+    totalVisits: 2,
+    lifetimeValue: 490
+  },
+  { 
+    id: 'customer-3', 
+    name: 'Charlie Brown', 
+    email: 'charlie.brown@example.com', 
+    phone: '555-222-3333', 
+    address: '789 Pine Ln',
+    lastVisit: '2024-02-10',
+    totalVisits: 3,
+    lifetimeValue: 320
+  },
 ];
 
 export const vehicles: Vehicle[] = [
@@ -448,6 +492,90 @@ export const getVehicleById = (id: string): Vehicle | undefined =>
 export const getPaymentsByInvoiceId = (invoiceId: string): Payment[] =>
   payments.filter((payment) => payment.invoiceId === invoiceId);
 
+// Added missing functions that were in the build errors
+export const getCustomerById = (id: string): Customer | undefined => 
+  customers.find((customer) => customer.id === id);
+
+export const addCustomer = (customer: Omit<Customer, 'id'>): Customer => {
+  const newCustomer: Customer = {
+    id: generateId('customer'),
+    ...customer,
+    totalVisits: 0,
+    lifetimeValue: 0
+  };
+  customers.push(newCustomer);
+  return newCustomer;
+};
+
+export const addVehicle = (vehicle: Omit<Vehicle, 'id'>): Vehicle => {
+  const newVehicle: Vehicle = {
+    id: generateId('vehicle'),
+    ...vehicle
+  };
+  vehicles.push(newVehicle);
+  return newVehicle;
+};
+
+export const addVendor = (vendor: Omit<Vendor, 'id'>): Vendor => {
+  const newVendor: Vendor = {
+    id: generateId('vendor'),
+    ...vendor
+  };
+  vendors.push(newVendor);
+  return newVendor;
+};
+
+export const getCustomerAnalytics = (customerId: string): CustomerAnalytics => {
+  const customerInvoices = invoices.filter(invoice => invoice.customerId === customerId);
+  const customerVehicles = vehicles.filter(vehicle => vehicle.customerId === customerId);
+  
+  // Calculate various metrics
+  const totalInvoices = customerInvoices.length;
+  const lifetimeValue = customerInvoices.reduce((sum, invoice) => {
+    const { total } = calculateInvoiceTotal(invoice);
+    return sum + total;
+  }, 0);
+  
+  const averageInvoiceValue = totalInvoices > 0 ? lifetimeValue / totalInvoices : 0;
+  
+  // Find dates
+  const invoiceDates = customerInvoices.map(invoice => invoice.date);
+  const firstVisitDate = invoiceDates.length > 0 ? invoiceDates.sort()[0] : 'N/A';
+  const lastVisitDate = invoiceDates.length > 0 ? invoiceDates.sort().reverse()[0] : 'N/A';
+  
+  return {
+    totalInvoices,
+    lifetimeValue,
+    averageInvoiceValue,
+    firstVisitDate,
+    lastVisitDate,
+    vehicles: customerVehicles,
+    invoiceHistory: customerInvoices
+  };
+};
+
+export const recordAttendance = (mechanicId: string, clockIn: string, clockOut?: string) => {
+  const newAttendance: Attendance = {
+    id: generateId('attendance'),
+    mechanicId,
+    date: new Date().toISOString().split('T')[0],
+    clockIn,
+    clockOut: clockOut || '',
+    notes: ''
+  };
+  attendanceRecords.push(newAttendance);
+  return newAttendance;
+};
+
+export const approveAttendance = (attendanceId: string) => {
+  const attendance = attendanceRecords.find(a => a.id === attendanceId);
+  if (attendance) {
+    attendance.notes = 'Approved';
+    return true;
+  }
+  return false;
+};
+
 // Function to calculate the total amount of an invoice
 export const calculateInvoiceTotal = (invoice: Invoice): { subtotal: number; tax: number; discount: number; total: number } => {
   const subtotal = invoice.items.reduce((acc, item) => acc + (item.quantity * item.price), 0);
@@ -496,7 +624,7 @@ export const getExpensesByDateRange = (startDate: string, endDate: string): Expe
 
 // Mock function to simulate fetching payments by date range
 export const getPaymentsByDateRange = (startDate: string, endDate: string): Payment[] => {
-  return payments.filter(payment => payment.date >= startDate && payment.date <= endDate);
+  return payments.filter(payment => payment.date >= startDate && expense.date <= endDate);
 };
 
 // Mock function to simulate fetching expenses for parts
