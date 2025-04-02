@@ -1,4 +1,4 @@
-export type InvoiceStatus = 'open' | 'in-progress' | 'completed' | 'paid';
+export type InvoiceStatus = 'open' | 'in-progress' | 'completed' | 'paid' | 'partial';
 
 export interface Customer {
   id: string;
@@ -70,7 +70,6 @@ export interface Invoice {
   };
   status: InvoiceStatus;
   date: string;
-  dueDate: string;
   items: InvoiceItem[];
   notes: string;
   taxRate: number;

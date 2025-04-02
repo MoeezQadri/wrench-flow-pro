@@ -16,6 +16,8 @@ const StatusBadge = ({ status }: StatusBadgeProps) => {
         return 'bg-green-100 text-green-800 border-green-200';
       case 'paid':
         return 'bg-purple-100 text-purple-800 border-purple-200';
+      case 'partial':
+        return 'bg-orange-100 text-orange-800 border-orange-200';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
     }
@@ -31,6 +33,8 @@ const StatusBadge = ({ status }: StatusBadgeProps) => {
         return 'Completed';
       case 'paid':
         return 'Paid';
+      case 'partial':
+        return 'Partial Payment';
       default:
         return status;
     }
