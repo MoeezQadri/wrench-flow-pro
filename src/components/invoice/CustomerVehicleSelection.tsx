@@ -4,7 +4,7 @@ import { useFormContext } from "react-hook-form";
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { UserPlus, Car } from "lucide-react";
+import { UserPlus } from "lucide-react";
 import { Customer, Vehicle } from "@/types";
 import { getVehiclesByCustomerId } from "@/services/data-service";
 
@@ -124,15 +124,6 @@ const CustomerVehicleSelection = ({
                   </SelectContent>
                 </Select>
               </FormControl>
-              <Button
-                type="button"
-                onClick={() => setVehicleDialogOpen(true)}
-                disabled={!watchCustomerId}
-                className="bg-orange-500 hover:bg-orange-600 px-4"
-              >
-                <Car className="h-4 w-4 mr-2" />
-                Add Vehicle
-              </Button>
             </div>
             <FormMessage />
           </FormItem>
