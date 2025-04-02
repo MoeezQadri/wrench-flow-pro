@@ -45,22 +45,56 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
-import { customers, getCustomerAnalytics, getVehiclesByCustomerId, addCustomer } from '@/services/data-service';
+import { 
+  Tabs, 
+  TabsContent, 
+  TabsList, 
+  TabsTrigger 
+} from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
+import { customers, getCustomerAnalytics, getVehiclesByCustomerId, addCustomer, addVehicle } from '@/services/data-service';
 
 // Define the form validation schema using Zod
-const formSchema = z.object({
+const customerSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters long" }),
   email: z.string().email({ message: "Please enter a valid email address" }),
   phone: z.string().min(7, { message: "Phone number must be at least 7 characters long" }),
   address: z.string().min(5, { message: "Address must be at least 5 characters long" }),
 });
 
+const vehicleSchema = z.object({
+  make: z.string().min(1, { message: "Make is required" }),
+  model: z.string().min(1, { message: "Model is required" }),
+  year: z.string().min(4, { message: "Valid year is required" }),
+  licensePlate: z.string().min(1, { message: "License plate is required" }),
+  vin: z.string().optional(),
+  color: z.string().optional(),
+});
+
+// Combined schema for customer with vehicle
+const formSchema = z.object({
+  customer: customerSchema,
+  addVehicle: z.boolean().default(false),
+  vehicle: vehicleSchema.optional(),
+});
+
 // Define type for form values ensuring all fields are required
 type CustomerFormValues = {
-  name: string;
-  email: string;
-  phone: string;
-  address: string;
+  customer: {
+    name: string;
+    email: string;
+    phone: string;
+    address: string;
+  };
+  addVehicle: boolean;
+  vehicle?: {
+    make: string;
+    model: string;
+    year: string;
+    licensePlate: string;
+    vin?: string;
+    color?: string;
+  };
 };
 
 const Customers = () => {
@@ -72,24 +106,53 @@ const Customers = () => {
   const form = useForm<CustomerFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      name: "",
-      email: "",
-      phone: "",
-      address: "",
+      customer: {
+        name: "",
+        email: "",
+        phone: "",
+        address: "",
+      },
+      addVehicle: false,
+      vehicle: {
+        make: "",
+        model: "",
+        year: "",
+        licensePlate: "",
+        vin: "",
+        color: "",
+      },
     },
   });
+
+  // Watch the addVehicle checkbox to conditionally show vehicle fields
+  const showVehicleFields = form.watch("addVehicle");
 
   // Form submission handler
   const onSubmit = (values: CustomerFormValues) => {
     // Add the new customer to the data service
-    // Now values are guaranteed to have all required fields
-    const newCustomer = addCustomer(values);
+    const newCustomer = addCustomer(values.customer);
     
-    // Display success message
-    toast({
-      title: "Customer Added",
-      description: `${newCustomer.name} has been added successfully.`,
-    });
+    // Add vehicle if the checkbox is checked and vehicle data is provided
+    if (values.addVehicle && values.vehicle) {
+      const vehicleData = {
+        ...values.vehicle,
+        customerId: newCustomer.id
+      };
+      
+      const newVehicle = addVehicle(vehicleData);
+      
+      // Display success message including vehicle
+      toast({
+        title: "Customer and Vehicle Added",
+        description: `${newCustomer.name} and their ${values.vehicle.make} ${values.vehicle.model} have been added successfully.`,
+      });
+    } else {
+      // Display success message for customer only
+      toast({
+        title: "Customer Added",
+        description: `${newCustomer.name} has been added successfully.`,
+      });
+    }
     
     // Reset form and close dialog
     form.reset();
@@ -198,7 +261,7 @@ const Customers = () => {
 
       {/* New Customer Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
             <DialogTitle>Add New Customer</DialogTitle>
             <DialogDescription>
@@ -208,61 +271,189 @@ const Customers = () => {
           
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="John Doe" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input placeholder="customer@example.com" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="phone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Phone</FormLabel>
-                    <FormControl>
-                      <Input placeholder="555-123-4567" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="address"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Address</FormLabel>
-                    <FormControl>
-                      <Textarea placeholder="123 Main St, Anytown" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <Tabs defaultValue="customer" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="customer">Customer Info</TabsTrigger>
+                  <TabsTrigger value="vehicle">Vehicle Info</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="customer" className="space-y-4 mt-4">
+                  <FormField
+                    control={form.control}
+                    name="customer.name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="John Doe" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="customer.email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input placeholder="customer@example.com" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="customer.phone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Phone</FormLabel>
+                        <FormControl>
+                          <Input placeholder="555-123-4567" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="customer.address"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Address</FormLabel>
+                        <FormControl>
+                          <Textarea placeholder="123 Main St, Anytown" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </TabsContent>
+                
+                <TabsContent value="vehicle" className="space-y-4 mt-4">
+                  <FormField
+                    control={form.control}
+                    name="addVehicle"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                        <FormControl>
+                          <input
+                            type="checkbox"
+                            checked={field.value}
+                            onChange={field.onChange}
+                            className="h-4 w-4 mt-1"
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel>Add a vehicle for this customer</FormLabel>
+                          <p className="text-sm text-muted-foreground">
+                            Check this box to add vehicle information
+                          </p>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                  
+                  {showVehicleFields && (
+                    <>
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="vehicle.make"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Make</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Toyota" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={form.control}
+                          name="vehicle.model"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Model</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Camry" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="vehicle.year"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Year</FormLabel>
+                              <FormControl>
+                                <Input placeholder="2023" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={form.control}
+                          name="vehicle.licensePlate"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>License Plate</FormLabel>
+                              <FormControl>
+                                <Input placeholder="ABC-123" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="vehicle.vin"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>VIN (Optional)</FormLabel>
+                              <FormControl>
+                                <Input placeholder="1HGBH41JXMN109186" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={form.control}
+                          name="vehicle.color"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Color (Optional)</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Silver" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </>
+                  )}
+                </TabsContent>
+              </Tabs>
               
               <DialogFooter className="mt-6">
                 <DialogClose asChild>
