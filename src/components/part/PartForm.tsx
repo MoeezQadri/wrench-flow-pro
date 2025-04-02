@@ -136,7 +136,7 @@ const PartForm = ({ defaultValues, onSubmit, formId }: PartFormProps) => {
               <Select 
                 onValueChange={field.onChange} 
                 defaultValue={field.value} 
-                value={field.value || ""}
+                value={field.value || "none"}
               >
                 <FormControl>
                   <SelectTrigger>
@@ -144,7 +144,7 @@ const PartForm = ({ defaultValues, onSubmit, formId }: PartFormProps) => {
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="none">None</SelectItem>
                   {vendors.map((vendor) => (
                     <SelectItem key={vendor.id} value={vendor.id}>
                       {vendor.name}

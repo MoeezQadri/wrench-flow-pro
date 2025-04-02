@@ -27,7 +27,9 @@ const PartDialog = ({ open, onOpenChange, onSave, part }: PartDialogProps) => {
 
   const handleSubmit = (data: PartFormValues) => {
     try {
-      const vendor = data.vendorId ? getVendorById(data.vendorId) : undefined;
+      // Only look up vendor if vendorId is provided and not "none"
+      const vendorId = data.vendorId !== "none" ? data.vendorId : undefined;
+      const vendor = vendorId ? getVendorById(vendorId) : undefined;
       
       const newPart: Part = {
         id: part?.id || generateId("part"),
@@ -35,7 +37,7 @@ const PartDialog = ({ open, onOpenChange, onSave, part }: PartDialogProps) => {
         price: data.price,
         quantity: data.quantity,
         description: data.description,
-        vendorId: data.vendorId,
+        vendorId: vendorId,
         vendorName: vendor?.name,
         partNumber: data.partNumber,
         reorderLevel: data.reorderLevel,
@@ -70,7 +72,7 @@ const PartDialog = ({ open, onOpenChange, onSave, part }: PartDialogProps) => {
                   price: part.price,
                   quantity: part.quantity,
                   description: part.description,
-                  vendorId: part.vendorId,
+                  vendorId: part.vendorId || "none",
                   partNumber: part.partNumber,
                   reorderLevel: part.reorderLevel,
                 }
