@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { 
   Card, 
@@ -85,9 +85,11 @@ const CustomerDetail = () => {
           </Button>
           <h1 className="text-3xl font-bold tracking-tight">{customer.name}</h1>
         </div>
-        <Button>
-          <FileText className="mr-2 h-4 w-4" />
-          New Invoice
+        <Button asChild>
+          <Link to={`/invoices/new?customer=${id}`}>
+            <FileText className="mr-2 h-4 w-4" />
+            New Invoice
+          </Link>
         </Button>
       </div>
       

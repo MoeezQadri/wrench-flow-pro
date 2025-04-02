@@ -1,451 +1,414 @@
-import { 
-  Customer, 
-  Mechanic, 
-  Part, 
-  Task, 
-  Invoice, 
-  Payment, 
+import {
+  Invoice,
+  Customer,
+  Vehicle,
+  Mechanic,
+  Part,
+  Task,
+  InvoiceItem,
+  Payment,
   Expense,
   DashboardMetrics,
-  Vehicle,
-  CustomerAnalytics
+  CustomerAnalytics,
+  InvoiceStatus,
 } from '@/types';
 
-// Mock data for our application
+// Mock Data
 export const customers: Customer[] = [
-  { 
-    id: '1', 
-    name: 'John Smith', 
-    email: 'john@example.com', 
-    phone: '555-123-4567', 
-    address: '123 Main St, Anytown, CA 94321',
-    vehicles: ['1', '4'],
+  {
+    id: 'customer-1',
+    name: 'John Doe',
+    email: 'john.doe@example.com',
+    phone: '555-123-4567',
+    address: '123 Main St, Anytown',
+    vehicles: ['vehicle-1', 'vehicle-2'],
+    totalVisits: 5,
+    lifetimeValue: 500,
+    lastVisit: '2024-01-20',
+  },
+  {
+    id: 'customer-2',
+    name: 'Jane Smith',
+    email: 'jane.smith@example.com',
+    phone: '555-987-6543',
+    address: '456 Oak Ave, Anytown',
+    vehicles: ['vehicle-3'],
     totalVisits: 3,
-    lifetimeValue: 420.99,
-    lastVisit: '2023-05-10'
+    lifetimeValue: 300,
+    lastVisit: '2024-02-10',
   },
-  { 
-    id: '2', 
-    name: 'Sarah Johnson', 
-    email: 'sarah@example.com', 
-    phone: '555-987-6543', 
-    address: '456 Oak Ave, Somewhere, CA 94123',
-    vehicles: ['2'],
-    totalVisits: 1,
-    lifetimeValue: 0,
-    lastVisit: '2023-05-15'
+  {
+    id: 'customer-3',
+    name: 'Alice Johnson',
+    email: 'alice.johnson@example.com',
+    phone: '555-555-5555',
+    address: '789 Pine Ln, Anytown',
+    vehicles: [],
+    totalVisits: 8,
+    lifetimeValue: 800,
+    lastVisit: '2023-12-01',
   },
-  { 
-    id: '3', 
-    name: 'Mike Williams', 
-    email: 'mike@example.com', 
-    phone: '555-456-7890', 
-    address: '789 Pine Rd, Nowhere, CA 94567',
-    vehicles: ['3'],
-    totalVisits: 1,
-    lifetimeValue: 150,
-    lastVisit: '2023-05-08'
-  }
+  {
+    id: 'customer-4',
+    name: 'Bob Williams',
+    email: 'bob.williams@example.com',
+    phone: '555-111-2222',
+    address: '101 Elm Rd, Anytown',
+    vehicles: ['vehicle-4', 'vehicle-5'],
+    totalVisits: 2,
+    lifetimeValue: 200,
+    lastVisit: '2024-03-05',
+  },
+  {
+    id: 'customer-5',
+    name: 'Charlie Brown',
+    email: 'charlie.brown@example.com',
+    phone: '555-333-4444',
+    address: '222 Maple Dr, Anytown',
+    vehicles: [],
+    totalVisits: 10,
+    lifetimeValue: 1000,
+    lastVisit: '2024-01-15',
+  },
 ];
 
 export const vehicles: Vehicle[] = [
   {
-    id: '1',
-    customerId: '1',
+    id: 'vehicle-1',
+    customerId: 'customer-1',
     make: 'Toyota',
     model: 'Camry',
     year: '2018',
-    licensePlate: 'ABC123',
-    vin: 'JT2BF22K1W0123456',
-    color: 'Silver'
+    licensePlate: 'ABC-123',
+    vin: '1234567890',
+    color: 'Silver',
   },
   {
-    id: '2',
-    customerId: '2',
+    id: 'vehicle-2',
+    customerId: 'customer-1',
     make: 'Honda',
     model: 'Civic',
     year: '2020',
-    licensePlate: 'XYZ789',
-    vin: 'JHMEH6380SS000789',
-    color: 'Blue'
+    licensePlate: 'DEF-456',
+    vin: '0987654321',
+    color: 'Blue',
   },
   {
-    id: '3',
-    customerId: '3',
+    id: 'vehicle-3',
+    customerId: 'customer-2',
     make: 'Ford',
     model: 'F-150',
-    year: '2019',
-    licensePlate: 'DEF456',
-    vin: 'KM8JN12D27U456789',
-    color: 'Red'
+    year: '2022',
+    licensePlate: 'GHI-789',
+    vin: '1122334455',
+    color: 'Red',
   },
   {
-    id: '4',
-    customerId: '1',
-    make: 'Mazda',
-    model: 'CX-5',
+    id: 'vehicle-4',
+    customerId: 'customer-4',
+    make: 'Chevrolet',
+    model: 'Malibu',
+    year: '2019',
+    licensePlate: 'JKL-012',
+    vin: '6677889900',
+    color: 'Black',
+  },
+  {
+    id: 'vehicle-5',
+    customerId: 'customer-4',
+    make: 'Nissan',
+    model: 'Altima',
     year: '2021',
-    licensePlate: 'GHI789',
-    vin: 'JB3MR82R86Y192834',
-    color: 'White'
-  }
+    licensePlate: 'MNO-345',
+    vin: '9900887766',
+    color: 'White',
+  },
 ];
 
 export const mechanics: Mechanic[] = [
-  { 
-    id: '1', 
-    name: 'Dave Roberts', 
-    specialization: 'Engine Specialist', 
-    hourlyRate: 75, 
-    isActive: true 
+  {
+    id: 'mechanic-1',
+    name: 'Mike Johnson',
+    specialization: 'Engine Repair',
+    hourlyRate: 50,
+    isActive: true,
   },
-  { 
-    id: '2', 
-    name: 'Carlos Mendez', 
-    specialization: 'Transmission Expert', 
-    hourlyRate: 70, 
-    isActive: true 
+  {
+    id: 'mechanic-2',
+    name: 'Sarah Lee',
+    specialization: 'Brakes & Suspension',
+    hourlyRate: 45,
+    isActive: true,
   },
-  { 
-    id: '3', 
-    name: 'Lisa Chen', 
-    specialization: 'Electrical Systems', 
-    hourlyRate: 80, 
-    isActive: true 
-  }
+  {
+    id: 'mechanic-3',
+    name: 'David Kim',
+    specialization: 'Electrical Systems',
+    hourlyRate: 55,
+    isActive: false,
+  },
 ];
 
 export const parts: Part[] = [
-  { 
-    id: '1', 
-    name: 'Oil Filter', 
-    price: 15.99, 
-    quantity: 45, 
-    description: 'Standard oil filter for most vehicles' 
+  {
+    id: 'part-1',
+    name: 'Brake Pads',
+    price: 25,
+    quantity: 100,
+    description: 'High-quality brake pads for all vehicle types.',
   },
-  { 
-    id: '2', 
-    name: 'Brake Pads (Front)', 
-    price: 89.99, 
-    quantity: 20, 
-    description: 'Premium ceramic brake pads for front wheels' 
+  {
+    id: 'part-2',
+    name: 'Oil Filter',
+    price: 8,
+    quantity: 500,
+    description: 'Standard oil filter for most car models.',
   },
-  { 
-    id: '3', 
-    name: 'Air Filter', 
-    price: 24.99, 
-    quantity: 35, 
-    description: 'Engine air filter, standard size' 
+  {
+    id: 'part-3',
+    name: 'Spark Plug',
+    price: 5,
+    quantity: 300,
+    description: 'Long-lasting spark plug for improved engine performance.',
   },
-  { 
-    id: '4', 
-    name: 'Spark Plugs (set of 4)', 
-    price: 45.99, 
-    quantity: 15, 
-    description: 'Iridium spark plugs, long-lasting' 
-  }
 ];
 
 export const tasks: Task[] = [
-  { 
-    id: '1', 
-    title: 'Oil Change', 
-    description: 'Full oil change with synthetic oil', 
-    mechanicId: '1', 
-    status: 'completed', 
-    hoursEstimated: 1, 
-    hoursSpent: 0.75, 
-    invoiceId: '1' 
+  {
+    id: 'task-1',
+    title: 'Replace Brake Pads',
+    description: 'Replace worn brake pads on front wheels.',
+    mechanicId: 'mechanic-2',
+    status: 'completed',
+    hoursEstimated: 2,
+    hoursSpent: 2,
+    invoiceId: 'invoice-1',
   },
-  { 
-    id: '2', 
-    title: 'Brake Inspection', 
-    description: 'Check brake pads and rotors', 
-    mechanicId: '2', 
-    status: 'in-progress', 
-    hoursEstimated: 0.5, 
-    invoiceId: '1' 
+  {
+    id: 'task-2',
+    title: 'Oil Change',
+    description: 'Perform standard oil change service.',
+    mechanicId: 'mechanic-1',
+    status: 'completed',
+    hoursEstimated: 1,
+    hoursSpent: 1,
+    invoiceId: 'invoice-1',
   },
-  { 
-    id: '3', 
-    title: 'Replace Transmission Fluid', 
-    description: 'Drain and replace transmission fluid', 
-    mechanicId: '2', 
-    status: 'pending', 
-    hoursEstimated: 2, 
-    invoiceId: '2' 
+  {
+    id: 'task-3',
+    title: 'Diagnose Electrical Issue',
+    description: 'Diagnose and repair electrical issue causing battery drain.',
+    mechanicId: 'mechanic-3',
+    status: 'in-progress',
+    hoursEstimated: 3,
+    hoursSpent: 1,
+    invoiceId: 'invoice-2',
   },
-  { 
-    id: '4', 
-    title: 'Diagnose Check Engine Light', 
-    description: 'Scan OBD codes and diagnose issue', 
-    mechanicId: '3', 
-    status: 'completed', 
-    hoursEstimated: 1, 
-    hoursSpent: 1.25, 
-    invoiceId: '3' 
-  }
+];
+
+export const invoiceItems: InvoiceItem[] = [
+  {
+    id: 'item-1',
+    type: 'labor',
+    description: 'Brake Pad Replacement',
+    quantity: 2,
+    price: 50,
+  },
+  {
+    id: 'item-2',
+    type: 'part',
+    description: 'Brake Pads (Set of 2)',
+    quantity: 1,
+    price: 25,
+  },
+  {
+    id: 'item-3',
+    type: 'labor',
+    description: 'Oil Change Service',
+    quantity: 1,
+    price: 40,
+  },
+  {
+    id: 'item-4',
+    type: 'part',
+    description: 'Oil Filter',
+    quantity: 1,
+    price: 8,
+  },
 ];
 
 export const invoices: Invoice[] = [
-  { 
-    id: '1', 
-    customerId: '1', 
-    vehicleId: '1',
-    vehicleInfo: { 
-      make: 'Toyota', 
-      model: 'Camry', 
-      year: '2018', 
-      licensePlate: 'ABC123' 
-    }, 
-    status: 'in-progress', 
-    date: '2023-05-10', 
-    dueDate: '2023-05-24', 
-    items: [
-      { id: '1', type: 'labor', description: 'Oil Change', quantity: 1, price: 75 },
-      { id: '2', type: 'part', description: 'Oil Filter', quantity: 1, price: 15.99 },
-      { id: '3', type: 'part', description: '5L Synthetic Oil', quantity: 1, price: 45.99 }
-    ], 
-    notes: 'Customer mentioned noise from front right wheel', 
-    taxRate: 8.5,
-    payments: []
+  {
+    id: 'invoice-1',
+    customerId: 'customer-1',
+    vehicleId: 'vehicle-1',
+    vehicleInfo: {
+      make: 'Toyota',
+      model: 'Camry',
+      year: '2018',
+      licensePlate: 'ABC-123',
+    },
+    status: 'completed',
+    date: '2024-03-10',
+    dueDate: '2024-03-31',
+    items: ['item-1', 'item-2', 'item-3', 'item-4'].map(id => invoiceItems.find(item => item.id === id)!),
+    notes: 'Standard service completed. Customer approved additional brake check.',
+    taxRate: 0.075,
+    payments: [],
   },
-  { 
-    id: '2', 
-    customerId: '2', 
-    vehicleId: '2',
-    vehicleInfo: { 
-      make: 'Honda', 
-      model: 'Civic', 
-      year: '2020', 
-      licensePlate: 'XYZ789' 
-    }, 
-    status: 'open', 
-    date: '2023-05-15', 
-    dueDate: '2023-05-29', 
-    items: [], 
-    notes: 'Routine maintenance', 
-    taxRate: 8.5,
-    payments: []
+  {
+    id: 'invoice-2',
+    customerId: 'customer-4',
+    vehicleId: 'vehicle-4',
+    vehicleInfo: {
+      make: 'Chevrolet',
+      model: 'Malibu',
+      year: '2019',
+      licensePlate: 'JKL-012',
+    },
+    status: 'in-progress',
+    date: '2024-03-15',
+    dueDate: '2024-04-05',
+    items: [],
+    notes: 'Diagnosing electrical issue. Will update customer with findings.',
+    taxRate: 0.075,
+    payments: [],
   },
-  { 
-    id: '3', 
-    customerId: '3', 
-    vehicleId: '3',
-    vehicleInfo: { 
-      make: 'Ford', 
-      model: 'F-150', 
-      year: '2019', 
-      licensePlate: 'DEF456' 
-    }, 
-    status: 'completed', 
-    date: '2023-05-08', 
-    dueDate: '2023-05-22', 
-    items: [
-      { id: '4', type: 'labor', description: 'Diagnose Engine Light', quantity: 1.25, price: 80 },
-      { id: '5', type: 'part', description: 'Oxygen Sensor', quantity: 1, price: 129.99 }
-    ], 
-    notes: 'Check engine light was due to faulty O2 sensor', 
-    taxRate: 8.5,
-    payments: [
-      { id: '1', invoiceId: '3', amount: 150, method: 'card', date: '2023-05-08', notes: 'Partial payment' }
-    ]
+  {
+    id: 'invoice-3',
+    customerId: 'customer-2',
+    vehicleId: 'vehicle-3',
+    vehicleInfo: {
+      make: 'Ford',
+      model: 'F-150',
+      year: '2022',
+      licensePlate: 'GHI-789',
+    },
+    status: 'open',
+    date: '2024-03-20',
+    dueDate: '2024-04-10',
+    items: [],
+    notes: 'Scheduled for oil change and tire rotation.',
+    taxRate: 0.075,
+    payments: [],
   },
-  { 
-    id: '4', 
-    customerId: '1', 
-    vehicleId: '1',
-    vehicleInfo: { 
-      make: 'Toyota', 
-      model: 'Camry', 
-      year: '2018', 
-      licensePlate: 'ABC123' 
-    }, 
-    status: 'paid', 
-    date: '2023-04-25', 
-    dueDate: '2023-05-09', 
-    items: [
-      { id: '6', type: 'labor', description: 'Tire Rotation', quantity: 0.5, price: 75 },
-      { id: '7', type: 'labor', description: 'Alignment', quantity: 1, price: 90 }
-    ], 
-    notes: 'Regular maintenance', 
-    taxRate: 8.5,
-    payments: [
-      { id: '2', invoiceId: '4', amount: 179.78, method: 'cash', date: '2023-05-09', notes: 'Paid in full' }
-    ]
+];
+
+export const payments: Payment[] = [
+  {
+    id: 'payment-1',
+    invoiceId: 'invoice-1',
+    amount: 125,
+    method: 'card',
+    date: '2024-03-10',
+    notes: 'Paid in full via credit card.',
   },
-  { 
-    id: '5', 
-    customerId: '1', 
-    vehicleId: '4',
-    vehicleInfo: { 
-      make: 'Mazda', 
-      model: 'CX-5', 
-      year: '2021', 
-      licensePlate: 'GHI789' 
-    }, 
-    status: 'paid', 
-    date: '2023-04-15', 
-    dueDate: '2023-04-29', 
-    items: [
-      { id: '8', type: 'labor', description: 'Brake Inspection', quantity: 0.75, price: 75 },
-      { id: '9', type: 'part', description: 'Brake Pads (Front)', quantity: 1, price: 89.99 }
-    ], 
-    notes: 'Customer reported squeaky brakes', 
-    taxRate: 8.5,
-    payments: [
-      { id: '3', invoiceId: '5', amount: 179.78, method: 'card', date: '2023-04-29', notes: 'Paid in full' }
-    ]
-  }
 ];
 
 export const expenses: Expense[] = [
-  { 
-    id: '1', 
-    date: '2023-05-01', 
-    category: 'Utilities', 
-    amount: 450.75, 
-    description: 'Electricity bill', 
-    paymentMethod: 'bank-transfer' 
+  {
+    id: 'expense-1',
+    date: '2024-03-01',
+    category: 'Supplies',
+    amount: 50,
+    description: 'Purchased cleaning supplies for the workshop.',
+    paymentMethod: 'cash',
   },
-  { 
-    id: '2', 
-    date: '2023-05-05', 
-    category: 'Supplies', 
-    amount: 235.40, 
-    description: 'Shop supplies - cleaning materials', 
-    paymentMethod: 'card' 
+  {
+    id: 'expense-2',
+    date: '2024-03-05',
+    category: 'Rent',
+    amount: 1500,
+    description: 'Monthly rent for the workshop space.',
+    paymentMethod: 'bank-transfer',
   },
-  { 
-    id: '3', 
-    date: '2023-05-12', 
-    category: 'Parts', 
-    amount: 1250.99, 
-    description: 'Wholesale parts order', 
-    paymentMethod: 'bank-transfer' 
-  }
 ];
 
-// Dashboard Metrics
-export const getDashboardMetrics = (): DashboardMetrics => {
-  // Calculate total revenue (excluding tax)
-  const totalRevenue = invoices
-    .filter(inv => inv.status === 'paid')
-    .reduce((sum, invoice) => {
-      const invoiceTotal = invoice.items.reduce((total, item) => total + (item.price * item.quantity), 0);
-      return sum + invoiceTotal;
-    }, 0);
+// Data Fetching Functions
+export const getCustomerById = (id: string): Customer | undefined => {
+  return customers.find((customer) => customer.id === id);
+};
 
-  // Count invoices by status
-  const pendingInvoices = invoices.filter(inv => inv.status === 'open' || inv.status === 'in-progress').length;
-  const completedJobs = invoices.filter(inv => inv.status === 'completed' || inv.status === 'paid').length;
-  const activeJobs = invoices.filter(inv => inv.status === 'in-progress').length;
+export const getVehicleById = (id: string): Vehicle | undefined => {
+  return vehicles.find((vehicle) => vehicle.id === id);
+};
 
-  // Calculate mechanic efficiency (completed vs estimated hours)
-  const completedTasks = tasks.filter(task => task.status === 'completed' && task.hoursSpent !== undefined);
-  const totalEstimatedHours = completedTasks.reduce((sum, task) => sum + task.hoursEstimated, 0);
-  const totalActualHours = completedTasks.reduce((sum, task) => sum + (task.hoursSpent || 0), 0);
-  const mechanicEfficiency = totalEstimatedHours > 0 
-    ? Math.round((totalEstimatedHours / totalActualHours) * 100) 
-    : 100;
+export const getMechanicById = (id: string): Mechanic | undefined => {
+  return mechanics.find((mechanic) => mechanic.id === id);
+};
+
+export const getPartById = (id: string): Part | undefined => {
+  return parts.find((part) => part.id === id);
+};
+
+export const getTaskById = (id: string): Task | undefined => {
+  return tasks.find((task) => task.id === id);
+};
+
+export const getInvoiceById = (id: string): Invoice | undefined => {
+  return invoices.find((invoice) => invoice.id === id);
+};
+
+export const getPaymentById = (id: string): Payment | undefined => {
+  return payments.find((payment) => payment.id === id);
+};
+
+export const getExpenseById = (id: string): Expense | undefined => {
+  return expenses.find((expense) => expense.id === id);
+};
+
+// Analytics Functions
+export const calculateDashboardMetrics = (): DashboardMetrics => {
+  const totalRevenue = payments.reduce((sum, payment) => sum + payment.amount, 0);
+  const pendingInvoices = invoices.filter((invoice) => invoice.status !== 'paid').length;
+  const completedJobs = tasks.filter((task) => task.status === 'completed').length;
+  const activeJobs = tasks.filter((task) => task.status === 'in-progress').length;
+  const mechanicEfficiency = 0.85; // Mock value
 
   return {
     totalRevenue,
     pendingInvoices,
     completedJobs,
     activeJobs,
-    mechanicEfficiency
+    mechanicEfficiency,
   };
 };
 
-// Helper function to get customer by ID
-export const getCustomerById = (id: string): Customer | undefined => {
-  return customers.find(customer => customer.id === id);
-};
-
-// Helper function to get vehicle by ID
-export const getVehicleById = (id: string): Vehicle | undefined => {
-  return vehicles.find(vehicle => vehicle.id === id);
-};
-
-// Helper function to get all vehicles for a customer
-export const getVehiclesByCustomerId = (customerId: string): Vehicle[] => {
-  return vehicles.filter(vehicle => vehicle.customerId === customerId);
-};
-
-// Helper function to get invoices for a specific customer
-export const getInvoicesByCustomerId = (customerId: string): Invoice[] => {
-  return invoices.filter(invoice => invoice.customerId === customerId);
-};
-
-// Helper function to get invoices for a specific vehicle
-export const getInvoicesByVehicleId = (vehicleId: string): Invoice[] => {
-  return invoices.filter(invoice => invoice.vehicleId === vehicleId);
-};
-
-// Helper function to calculate customer lifetime value and analytics
 export const getCustomerAnalytics = (customerId: string): CustomerAnalytics => {
-  const customerInvoices = getInvoicesByCustomerId(customerId);
-  const customerVehicles = getVehiclesByCustomerId(customerId);
-  
-  let lifetimeValue = 0;
-  let firstVisitDate = '';
-  let lastVisitDate = '';
-  
-  // Calculate total value and find dates
-  if (customerInvoices.length > 0) {
-    // Sort invoices by date
-    const sortedInvoices = [...customerInvoices].sort((a, b) => 
-      new Date(a.date).getTime() - new Date(b.date).getTime()
-    );
-    
-    // Get first and last visit dates
-    firstVisitDate = sortedInvoices[0].date;
-    lastVisitDate = sortedInvoices[sortedInvoices.length - 1].date;
-    
-    // Calculate lifetime value from paid invoices
-    lifetimeValue = customerInvoices
-      .filter(inv => inv.status === 'paid')
-      .reduce((sum, invoice) => {
-        const { total } = calculateInvoiceTotal(invoice);
-        return sum + total;
-      }, 0);
-  }
-  
+  const customerInvoices = invoices.filter((invoice) => invoice.customerId === customerId);
+  const lifetimeValue = customerInvoices.reduce((sum, invoice) => {
+    const { total } = calculateInvoiceTotal(invoice);
+    return sum + total;
+  }, 0);
+  const totalInvoices = customerInvoices.length;
+  const averageInvoiceValue = totalInvoices > 0 ? lifetimeValue / totalInvoices : 0;
+  const firstVisitDate = customerInvoices.length > 0 ? customerInvoices[0].date : 'N/A';
+  const lastVisitDate =
+    customerInvoices.length > 0 ? customerInvoices[customerInvoices.length - 1].date : 'N/A';
+  const customerVehicles = vehicles.filter((vehicle) => vehicle.customerId === customerId);
+
   return {
-    totalInvoices: customerInvoices.length,
+    totalInvoices,
     lifetimeValue,
-    averageInvoiceValue: customerInvoices.length > 0 ? lifetimeValue / customerInvoices.length : 0,
+    averageInvoiceValue,
     firstVisitDate,
     lastVisitDate,
     vehicles: customerVehicles,
-    invoiceHistory: customerInvoices
+    invoiceHistory: customerInvoices,
   };
 };
 
-// Helper function to get mechanic by ID
-export const getMechanicById = (id: string): Mechanic | undefined => {
-  return mechanics.find(mechanic => mechanic.id === id);
-};
-
-// Helper function to calculate invoice total
-export const calculateInvoiceTotal = (invoice: Invoice): { subtotal: number, tax: number, total: number } => {
-  const subtotal = invoice.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const tax = subtotal * (invoice.taxRate / 100);
+export const calculateInvoiceTotal = (invoice: Invoice): { subtotal: number; tax: number; total: number } => {
+  const subtotal = invoice.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const tax = subtotal * invoice.taxRate;
   const total = subtotal + tax;
-  
   return { subtotal, tax, total };
 };
 
-// Helper function to get total payments for an invoice
-export const getInvoicePaymentsTotal = (invoiceId: string): number => {
-  const invoice = invoices.find(inv => inv.id === invoiceId);
-  if (!invoice) return 0;
-  
-  return invoice.payments.reduce((sum, payment) => sum + payment.amount, 0);
-};
+export function getCustomers() {
+  return customers;
+}
 
-// Helper function to get the tasks for an invoice
-export const getTasksForInvoice = (invoiceId: string): Task[] => {
-  return tasks.filter(task => task.invoiceId === invoiceId);
-};
+export function getVehiclesByCustomerId(customerId: string) {
+  return vehicles.filter(vehicle => vehicle.customerId === customerId);
+}

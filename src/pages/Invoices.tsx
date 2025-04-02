@@ -1,5 +1,6 @@
 
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { 
   PlusCircle, 
   Search, 
@@ -45,9 +46,11 @@ const Invoices = () => {
           <h1 className="text-3xl font-bold">Invoices</h1>
           <p className="text-muted-foreground">Manage workshop invoices</p>
         </div>
-        <Button>
-          <PlusCircle className="mr-2 h-4 w-4" />
-          New Invoice
+        <Button asChild>
+          <Link to="/invoices/new">
+            <PlusCircle className="mr-2 h-4 w-4" />
+            New Invoice
+          </Link>
         </Button>
       </div>
       
