@@ -1,4 +1,3 @@
-
 import { faker } from '@faker-js/faker';
 
 // Function to generate a unique ID
@@ -724,4 +723,46 @@ export const rolePermissions: Record<UserRole, RolePermissionMap> = {
       manage: false
     }
   }
+};
+
+// Function to calculate dashboard metrics
+export const calculateDashboardMetrics = () => {
+  // Count all invoices with pending status
+  const pendingInvoices = invoices.filter(invoice => 
+    invoice.status === 'open' || invoice.status === 'in-progress').length;
+  
+  // Calculate total revenue from all paid and partial invoices
+  const totalRevenue = invoices
+    .filter(invoice => invoice.status === 'paid' || invoice.status === 'partial')
+    .reduce((sum, invoice) => {
+      const total = calculateInvoiceTotal(invoice).total;
+      const payments = invoice.payments.reduce((pSum, payment) => pSum + payment.amount, 0);
+      return sum + payments;
+    }, 0);
+  
+  // Count active jobs (tasks that are in progress)
+  const activeJobs = tasks.filter(task => task.status === 'in-progress').length;
+  
+  // Calculate mechanic efficiency (completed tasks hours estimated vs hours spent)
+  const completedTasks = tasks.filter(task => task.status === 'completed');
+  let totalEstimatedHours = 0;
+  let totalSpentHours = 0;
+  
+  completedTasks.forEach(task => {
+    totalEstimatedHours += task.hoursEstimated;
+    totalSpentHours += task.hoursSpent || task.hoursEstimated; // Use estimated if spent not available
+  });
+  
+  // Calculate efficiency percentage (estimated / spent * 100)
+  // If no completed tasks, set to 100%
+  const mechanicEfficiency = completedTasks.length > 0
+    ? Math.round((totalEstimatedHours / totalSpentHours) * 100)
+    : 100;
+  
+  return {
+    totalRevenue,
+    pendingInvoices,
+    activeJobs,
+    mechanicEfficiency
+  };
 };
