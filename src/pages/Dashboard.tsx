@@ -8,7 +8,9 @@ import {
   TrendingUp, 
   Users
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { 
   BarChart as RechartsBarChart,
   Bar, 
@@ -16,19 +18,20 @@ import {
   YAxis, 
   CartesianGrid, 
   Tooltip, 
-  ResponsiveContainer
+  ResponsiveContainer,
+  Legend
 } from 'recharts';
-import { calculateDashboardMetrics } from '@/services/data-service';
+import { calculateDashboardMetrics, getExpensesByDateRange } from '@/services/data-service';
 
-// Sample data for charts
+// Sample data for charts with expenses added
 const weeklyRevenueData = [
-  { name: 'Mon', revenue: 500 },
-  { name: 'Tue', revenue: 750 },
-  { name: 'Wed', revenue: 620 },
-  { name: 'Thu', revenue: 880 },
-  { name: 'Fri', revenue: 950 },
-  { name: 'Sat', revenue: 670 },
-  { name: 'Sun', revenue: 350 },
+  { name: 'Mon', revenue: 500, expenses: 300 },
+  { name: 'Tue', revenue: 750, expenses: 450 },
+  { name: 'Wed', revenue: 620, expenses: 380 },
+  { name: 'Thu', revenue: 880, expenses: 520 },
+  { name: 'Fri', revenue: 950, expenses: 600 },
+  { name: 'Sat', revenue: 670, expenses: 380 },
+  { name: 'Sun', revenue: 350, expenses: 200 },
 ];
 
 const Dashboard = () => {
@@ -91,8 +94,8 @@ const Dashboard = () => {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         <Card className="col-span-4">
           <CardHeader>
-            <CardTitle>Weekly Revenue</CardTitle>
-            <CardDescription>Overview of this week's revenue</CardDescription>
+            <CardTitle>Weekly Revenue & Expenses</CardTitle>
+            <CardDescription>Overview of this week's financial activity</CardDescription>
           </CardHeader>
           <CardContent className="pl-0">
             <ResponsiveContainer width="100%" height={300}>
@@ -101,7 +104,9 @@ const Dashboard = () => {
                 <XAxis dataKey="name" />
                 <YAxis />
                 <Tooltip />
-                <Bar dataKey="revenue" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                <Legend />
+                <Bar dataKey="revenue" name="Revenue" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="expenses" name="Expenses" fill="#ef4444" radius={[4, 4, 0, 0]} />
               </RechartsBarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -113,30 +118,30 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-4 text-center">
+              <Link to="/invoices/new" className="flex flex-col items-center justify-center rounded-lg border border-dashed p-4 text-center hover:bg-accent hover:text-accent-foreground transition-colors">
                 <div className="rounded-full bg-primary/10 p-2">
                   <FileText className="h-5 w-5 text-primary" />
                 </div>
                 <h3 className="mt-2 font-medium">New Invoice</h3>
-              </div>
-              <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-4 text-center">
+              </Link>
+              <Link to="/tasks" className="flex flex-col items-center justify-center rounded-lg border border-dashed p-4 text-center hover:bg-accent hover:text-accent-foreground transition-colors">
                 <div className="rounded-full bg-primary/10 p-2">
                   <Calendar className="h-5 w-5 text-primary" />
                 </div>
                 <h3 className="mt-2 font-medium">Schedule Task</h3>
-              </div>
-              <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-4 text-center">
+              </Link>
+              <Link to="/customers" className="flex flex-col items-center justify-center rounded-lg border border-dashed p-4 text-center hover:bg-accent hover:text-accent-foreground transition-colors">
                 <div className="rounded-full bg-primary/10 p-2">
                   <Users className="h-5 w-5 text-primary" />
                 </div>
                 <h3 className="mt-2 font-medium">Add Customer</h3>
-              </div>
-              <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-4 text-center">
+              </Link>
+              <Link to="/mechanics" className="flex flex-col items-center justify-center rounded-lg border border-dashed p-4 text-center hover:bg-accent hover:text-accent-foreground transition-colors">
                 <div className="rounded-full bg-primary/10 p-2">
                   <Wrench className="h-5 w-5 text-primary" />
                 </div>
                 <h3 className="mt-2 font-medium">Add Mechanic</h3>
-              </div>
+              </Link>
             </div>
           </CardContent>
         </Card>

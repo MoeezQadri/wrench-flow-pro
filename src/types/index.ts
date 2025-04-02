@@ -179,7 +179,22 @@ export type PermissionValue = boolean | 'own';
 
 // Modify the permission map to allow 'own' values
 export interface RolePermissionMap {
-  [key: string]: PermissionValue | RolePermissionMap;
+  dashboard: boolean | RolePermissionMap;
+  customers: { view: boolean; manage: boolean };
+  invoices: { view: boolean; manage: boolean };
+  mechanics: { view: boolean; manage: boolean };
+  tasks: { view: boolean; manage: boolean };
+  parts: { view: boolean; manage: boolean };
+  expenses: { view: boolean; manage: boolean };
+  vehicles: { view: boolean; manage: boolean };
+  reports: { view: boolean; manage: boolean };
+  users: { view: boolean; manage: boolean };
+  settings: { view: boolean; manage: boolean };
+  attendance: {view: boolean; manage: boolean; approve?: boolean};
+  subscription: {view: boolean; manage: boolean};
+  finance: { view: boolean; manage: boolean };
+  organization: { view: boolean; manage: boolean };
+  [key: string]: boolean | RolePermissionMap;
 }
 
 export const rolePermissions: Record<UserRole, RolePermissionMap> = {
