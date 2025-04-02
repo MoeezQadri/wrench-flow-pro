@@ -60,12 +60,22 @@ const InvoiceItemsSection = ({
     setItems(items.filter(item => item.id !== itemId));
   };
 
-  // Calculate discount amount
+  // Calculate labor subtotal (only labor items)
+  const laborSubtotal = items
+    .filter(item => item.type === "labor")
+    .reduce((sum, item) => sum + (item.quantity * item.price), 0);
+  
+  // Calculate parts subtotal (only part items)
+  const partsSubtotal = items
+    .filter(item => item.type === "part")
+    .reduce((sum, item) => sum + (item.quantity * item.price), 0);
+  
+  // Calculate discount amount (only applies to labor)
   let discountAmount = 0;
   if (discountType === "percentage" && discountValue > 0) {
-    discountAmount = subtotal * (discountValue / 100);
+    discountAmount = laborSubtotal * (discountValue / 100);
   } else if (discountType === "fixed" && discountValue > 0) {
-    discountAmount = discountValue;
+    discountAmount = Math.min(discountValue, laborSubtotal); // Can't discount more than total labor
   }
   
   // Calculate subtotal after discount
@@ -180,6 +190,30 @@ const InvoiceItemsSection = ({
                 </TableCell>
               </TableRow>
             ))}
+            
+            {/* Show labor subtotal if there are labor items */}
+            {items.some(item => item.type === "labor") && (
+              <TableRow>
+                <TableCell colSpan={4} className="text-right font-medium">
+                  Labor Subtotal
+                </TableCell>
+                <TableCell className="font-medium">${laborSubtotal.toFixed(2)}</TableCell>
+                <TableCell></TableCell>
+              </TableRow>
+            )}
+            
+            {/* Show parts subtotal if there are part items */}
+            {items.some(item => item.type === "part") && (
+              <TableRow>
+                <TableCell colSpan={4} className="text-right font-medium">
+                  Parts Subtotal
+                </TableCell>
+                <TableCell className="font-medium">${partsSubtotal.toFixed(2)}</TableCell>
+                <TableCell></TableCell>
+              </TableRow>
+            )}
+            
+            {/* Show total subtotal */}
             <TableRow>
               <TableCell colSpan={4} className="text-right font-medium">
                 Subtotal
@@ -188,11 +222,11 @@ const InvoiceItemsSection = ({
               <TableCell></TableCell>
             </TableRow>
             
-            {/* Display discount row if applicable */}
-            {discountType !== "none" && discountValue > 0 && (
+            {/* Display discount row if applicable (only for labor) */}
+            {discountType !== "none" && discountValue > 0 && laborSubtotal > 0 && (
               <TableRow>
                 <TableCell colSpan={4} className="text-right font-medium text-red-600">
-                  Discount {discountType === "percentage" ? `(${discountValue}%)` : ""}
+                  Discount on Labor {discountType === "percentage" ? `(${discountValue}%)` : ""}
                 </TableCell>
                 <TableCell className="font-medium text-red-600">-${discountAmount.toFixed(2)}</TableCell>
                 <TableCell></TableCell>
@@ -200,7 +234,7 @@ const InvoiceItemsSection = ({
             )}
             
             {/* Show subtotal after discount if a discount is applied */}
-            {discountType !== "none" && discountValue > 0 && (
+            {discountType !== "none" && discountValue > 0 && laborSubtotal > 0 && (
               <TableRow>
                 <TableCell colSpan={4} className="text-right font-medium">
                   Subtotal after discount
