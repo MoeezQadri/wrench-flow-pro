@@ -1,10 +1,11 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    --background: 210 40% 98%;
     --foreground: 222.2 84% 4.9%;
 
     --card: 0 0% 100%;
@@ -13,7 +14,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 222.2 47.4% 11.2%;
+    --primary: 221.2 83.2% 53.3%;
     --primary-foreground: 210 40% 98%;
 
     --secondary: 210 40% 96.1%;
@@ -30,25 +31,18 @@
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --ring: 221.2 83.2% 53.3%;
 
     --radius: 0.5rem;
 
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
+    --sidebar-background: 222 47% 11%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 221.2 83.2% 53.3%;
     --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-accent: 217.2 32.6% 17.5%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217.2 32.6% 17.5%;
+    --sidebar-ring: 224.3 76.3% 48%;
   }
 
   .dark {
@@ -61,7 +55,7 @@
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%;
     --primary-foreground: 222.2 47.4% 11.2%;
 
     --secondary: 217.2 32.6% 17.5%;
@@ -78,15 +72,7 @@
 
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --ring: 224.3 76.3% 48%;
   }
 }
 
@@ -97,5 +83,43 @@
 
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer components {
+  .status-badge {
+    @apply px-3 py-1 text-xs font-medium rounded-full;
+  }
+  
+  .status-open {
+    @apply bg-status-open/20 text-status-open;
+  }
+  
+  .status-in-progress {
+    @apply bg-status-in-progress/20 text-status-in-progress;
+  }
+  
+  .status-completed {
+    @apply bg-status-completed/20 text-status-completed;
+  }
+  
+  .status-paid {
+    @apply bg-status-paid/20 text-status-paid;
+  }
+  
+  .metric-card {
+    @apply flex flex-col p-6 bg-white rounded-lg border border-muted shadow-sm hover:shadow-md transition-shadow;
+  }
+  
+  .app-container {
+    @apply flex h-screen overflow-hidden;
+  }
+  
+  .main-content {
+    @apply flex-1 overflow-auto p-6;
+  }
+  
+  .section-title {
+    @apply text-xl font-semibold text-gray-800 mb-4;
   }
 }
