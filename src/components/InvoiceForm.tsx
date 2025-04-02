@@ -1,10 +1,9 @@
-
 import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { useNavigate } from "react-router-dom";
-import { CalendarIcon, Plus, X, UserPlus, Car, DollarSign } from "lucide-react";
+import { CalendarIcon, Plus, X, UserPlus, Car, DollarSign, PercentIcon } from "lucide-react";
 import { format } from "date-fns";
 
 import { Button } from "@/components/ui/button";
@@ -55,6 +54,8 @@ const invoiceFormSchema = z.object({
   status: z.enum(["open", "in-progress", "completed", "paid", "partial"] as const),
   notes: z.string().optional(),
   taxRate: z.coerce.number().min(0).max(100).default(0),
+  discountType: z.enum(["none", "percentage", "fixed"]).default("none"),
+  discountValue: z.coerce.number().min(0).default(0),
 });
 
 type InvoiceFormValues = z.infer<typeof invoiceFormSchema>;
@@ -83,6 +84,8 @@ const InvoiceForm = () => {
       date: new Date(),
       status: "open",
       taxRate: 7.5, // Default tax rate
+      discountType: "none",
+      discountValue: 0,
     },
   });
 
@@ -204,12 +207,26 @@ const InvoiceForm = () => {
   // Calculate subtotal
   const subtotal = items.reduce((sum, item) => sum + (item.quantity * item.price), 0);
   
+  // Calculate discount
+  const discountType = form.watch("discountType");
+  const discountValue = form.watch("discountValue");
+  
+  let discountAmount = 0;
+  if (discountType === "percentage" && discountValue > 0) {
+    discountAmount = subtotal * (discountValue / 100);
+  } else if (discountType === "fixed" && discountValue > 0) {
+    discountAmount = discountValue;
+  }
+  
+  // Calculate subtotal after discount
+  const subtotalAfterDiscount = subtotal - discountAmount;
+  
   // Calculate tax
   const taxRate = form.getValues("taxRate") || 0;
-  const tax = subtotal * (taxRate / 100);
+  const tax = subtotalAfterDiscount * (taxRate / 100);
   
   // Calculate total
-  const total = subtotal + tax;
+  const total = subtotalAfterDiscount + tax;
 
   // Calculate total paid
   const totalPaid = payments.reduce((sum, payment) => sum + payment.amount, 0);
@@ -232,6 +249,14 @@ const InvoiceForm = () => {
       date: format(data.date, "yyyy-MM-dd"),
       dueDate: "", // No due date
     };
+
+    // Add discount data if applicable
+    if (data.discountType !== "none" && data.discountValue > 0) {
+      invoiceData.discount = {
+        type: data.discountType === "percentage" ? "percentage" : "fixed",
+        value: data.discountValue
+      };
+    }
 
     // Here you would normally save the invoice to your backend
     console.log("Invoice data:", invoiceData);
@@ -419,6 +444,59 @@ const InvoiceForm = () => {
                 </FormItem>
               )}
             />
+
+            {/* Discount Type */}
+            <FormField
+              control={form.control}
+              name="discountType"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Discount Type</FormLabel>
+                  <Select 
+                    onValueChange={field.onChange} 
+                    value={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select discount type" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="none">No Discount</SelectItem>
+                      <SelectItem value="percentage">Percentage (%)</SelectItem>
+                      <SelectItem value="fixed">Fixed Amount ($)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Discount Value */}
+            {discountType !== "none" && (
+              <FormField
+                control={form.control}
+                name="discountValue"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      {discountType === "percentage" ? "Discount Percentage (%)" : "Discount Amount ($)"}
+                    </FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        step="0.01" 
+                        min="0"
+                        max={discountType === "percentage" ? "100" : undefined}
+                        {...field}
+                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
           </div>
 
           {/* Invoice Items Section */}
@@ -531,6 +609,29 @@ const InvoiceForm = () => {
                     <TableCell className="font-medium">${subtotal.toFixed(2)}</TableCell>
                     <TableCell></TableCell>
                   </TableRow>
+                  
+                  {/* Display discount row if applicable */}
+                  {discountType !== "none" && discountValue > 0 && (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-right font-medium text-red-600">
+                        Discount {discountType === "percentage" ? `(${discountValue}%)` : ""}
+                      </TableCell>
+                      <TableCell className="font-medium text-red-600">-${discountAmount.toFixed(2)}</TableCell>
+                      <TableCell></TableCell>
+                    </TableRow>
+                  )}
+                  
+                  {/* Show subtotal after discount if a discount is applied */}
+                  {discountType !== "none" && discountValue > 0 && (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-right font-medium">
+                        Subtotal after discount
+                      </TableCell>
+                      <TableCell className="font-medium">${subtotalAfterDiscount.toFixed(2)}</TableCell>
+                      <TableCell></TableCell>
+                    </TableRow>
+                  )}
+                  
                   <TableRow>
                     <TableCell colSpan={4} className="text-right font-medium">
                       Tax ({taxRate}%)

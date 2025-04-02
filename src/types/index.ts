@@ -1,4 +1,3 @@
-
 export type InvoiceStatus = 'open' | 'in-progress' | 'completed' | 'paid' | 'partial';
 
 export interface Customer {
@@ -89,6 +88,10 @@ export interface Invoice {
   notes: string;
   taxRate: number;
   payments: Payment[];
+  discount?: {
+    type: 'percentage' | 'fixed';
+    value: number;
+  };
 }
 
 export interface Payment {
