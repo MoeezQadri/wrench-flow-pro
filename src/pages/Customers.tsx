@@ -55,13 +55,16 @@ const formSchema = z.object({
   address: z.string().min(5, { message: "Address must be at least 5 characters long" }),
 });
 
+// Define type for form values that matches the expected parameter type for addCustomer
+type CustomerFormValues = z.infer<typeof formSchema>;
+
 const Customers = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
   
   // Initialize the form
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<CustomerFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
@@ -72,8 +75,9 @@ const Customers = () => {
   });
 
   // Form submission handler
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
+  const onSubmit = (values: CustomerFormValues) => {
     // Add the new customer to the data service
+    // Now values are guaranteed to have all required fields
     const newCustomer = addCustomer(values);
     
     // Display success message
