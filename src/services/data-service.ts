@@ -1,4 +1,15 @@
+
 import { faker } from '@faker-js/faker';
+
+// Function to generate a unique ID
+export const generateId = (prefix: string): string => {
+  try {
+    return `${prefix}-${faker.string.uuid()}`;
+  } catch (error) {
+    // Fallback to simple random ID if faker fails
+    return `${prefix}-${Math.random().toString(36).substring(2, 15)}${Math.random().toString(36).substring(2, 15)}`;
+  }
+};
 
 export type UserRole = 'owner' | 'manager' | 'foreman' | 'mechanic';
 export type InvoiceStatus = 'open' | 'in-progress' | 'completed' | 'partial' | 'paid';
@@ -437,11 +448,6 @@ export const getVehicleById = (id: string): Vehicle | undefined =>
   vehicles.find((vehicle) => vehicle.id === id);
 export const getPaymentsByInvoiceId = (invoiceId: string): Payment[] =>
   payments.filter((payment) => payment.invoiceId === invoiceId);
-
-// Function to generate a unique ID
-export const generateId = (prefix: string): string => {
-  return `${prefix}-${faker.string.uuid()}`;
-};
 
 // Function to calculate the total amount of an invoice
 export const calculateInvoiceTotal = (invoice: Invoice): { subtotal: number; tax: number; discount: number; total: number } => {
