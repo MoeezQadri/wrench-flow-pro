@@ -6,7 +6,8 @@ import {
   Search, 
   Filter, 
   SortDesc, 
-  FileText 
+  FileText,
+  Pencil
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,6 +21,7 @@ import {
 import { invoices, getCustomerById, calculateInvoiceTotal } from '@/services/data-service';
 import StatusBadge from '@/components/StatusBadge';
 import { InvoiceStatus } from '@/types';
+import { toast } from 'sonner';
 
 const Invoices = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -38,6 +40,11 @@ const Invoices = () => {
     
     return searchMatch && statusMatch;
   });
+
+  // Check if invoice can be edited based on status
+  const canEditInvoice = (status: InvoiceStatus) => {
+    return ['open', 'in-progress', 'completed', 'partial'].includes(status);
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -123,6 +130,7 @@ const Invoices = () => {
               {filteredInvoices.map((invoice) => {
                 const customer = getCustomerById(invoice.customerId);
                 const { total } = calculateInvoiceTotal(invoice);
+                const isEditable = canEditInvoice(invoice.status);
                 
                 return (
                   <tr key={invoice.id} className="border-b hover:bg-muted/50">
@@ -137,7 +145,38 @@ const Invoices = () => {
                       <StatusBadge status={invoice.status} />
                     </td>
                     <td className="py-3 text-sm">
-                      <Button variant="ghost" size="sm">View</Button>
+                      <div className="flex space-x-2">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          asChild
+                        >
+                          <Link to={`/invoices/${invoice.id}`}>View</Link>
+                        </Button>
+                        
+                        {isEditable ? (
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            asChild
+                          >
+                            <Link to={`/invoices/edit/${invoice.id}`}>
+                              <Pencil className="mr-1 h-3.5 w-3.5" />
+                              Edit
+                            </Link>
+                          </Button>
+                        ) : (
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => toast.info("This invoice can't be edited in its current status")}
+                            disabled
+                          >
+                            <Pencil className="mr-1 h-3.5 w-3.5" />
+                            Edit
+                          </Button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );

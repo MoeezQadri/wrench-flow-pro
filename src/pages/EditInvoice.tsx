@@ -1,0 +1,66 @@
+
+import { useEffect, useState } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import InvoiceForm from "@/components/InvoiceForm";
+import { invoices } from "@/services/data-service";
+import { toast } from "sonner";
+import { Invoice, InvoiceStatus } from "@/types";
+
+const EditInvoice = () => {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const [invoice, setInvoice] = useState<Invoice | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (id) {
+      // Fetch the invoice by ID
+      const foundInvoice = invoices.find(inv => inv.id === id);
+      
+      if (foundInvoice) {
+        // Check if invoice status allows editing
+        const canEdit = ['open', 'in-progress', 'completed', 'partial'].includes(foundInvoice.status);
+        
+        if (!canEdit) {
+          toast.error("This invoice cannot be edited in its current status.");
+          navigate("/invoices");
+          return;
+        }
+        
+        setInvoice(foundInvoice);
+      } else {
+        toast.error("Invoice not found.");
+        navigate("/invoices");
+      }
+    }
+    
+    setLoading(false);
+  }, [id, navigate]);
+
+  if (loading) {
+    return <div className="p-6">Loading invoice...</div>;
+  }
+
+  if (!invoice) {
+    return null;
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-2">
+        <Button variant="outline" size="icon" asChild>
+          <Link to="/invoices">
+            <ArrowLeft className="h-4 w-4" />
+          </Link>
+        </Button>
+        <h1 className="text-3xl font-bold tracking-tight">Edit Invoice #{invoice.id}</h1>
+      </div>
+
+      <InvoiceForm isEditing={true} invoiceData={invoice} />
+    </div>
+  );
+};
+
+export default EditInvoice;

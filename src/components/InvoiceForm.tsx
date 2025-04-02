@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, FormProvider } from "react-hook-form";
 import * as z from "zod";
 import { useNavigate } from "react-router-dom";
-import { format } from "date-fns";
+import { format, parse } from "date-fns";
 
 import { Button } from "@/components/ui/button";
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
@@ -14,7 +14,7 @@ import CustomerDialog from "@/components/CustomerDialog";
 import VehicleDialog from "@/components/VehicleDialog";
 
 import { InvoiceItem, Customer, Vehicle, Payment, Invoice } from "@/types";
-import { getCustomers } from "@/services/data-service";
+import { getCustomers, getVehiclesByCustomerId } from "@/services/data-service";
 
 // Import sub-components
 import CustomerVehicleSelection from "@/components/invoice/CustomerVehicleSelection";
@@ -36,7 +36,12 @@ const invoiceFormSchema = z.object({
 
 type InvoiceFormValues = z.infer<typeof invoiceFormSchema>;
 
-const InvoiceForm = () => {
+interface InvoiceFormProps {
+  isEditing?: boolean;
+  invoiceData?: Invoice;
+}
+
+const InvoiceForm = ({ isEditing = false, invoiceData }: InvoiceFormProps) => {
   const navigate = useNavigate();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -45,23 +50,57 @@ const InvoiceForm = () => {
   const [vehicleDialogOpen, setVehicleDialogOpen] = useState(false);
   const [payments, setPayments] = useState<Payment[]>([]);
 
-  // Initialize form
+  // Initialize form with default values or existing invoice data
   const form = useForm<InvoiceFormValues>({
     resolver: zodResolver(invoiceFormSchema),
-    defaultValues: {
-      date: new Date(),
-      status: "open",
-      taxRate: 7.5, // Default tax rate
-      discountType: "none",
-      discountValue: 0,
-    },
+    defaultValues: isEditing && invoiceData
+      ? {
+          customerId: invoiceData.customerId,
+          vehicleId: invoiceData.vehicleId || "",
+          date: invoiceData.date ? new Date(invoiceData.date) : new Date(),
+          status: invoiceData.status,
+          notes: invoiceData.notes || "",
+          taxRate: invoiceData.taxRate || 7.5,
+          discountType: invoiceData.discount?.type === "percentage" 
+            ? "percentage" 
+            : invoiceData.discount?.type === "fixed" 
+              ? "fixed" 
+              : "none",
+          discountValue: invoiceData.discount?.value || 0,
+        }
+      : {
+          date: new Date(),
+          status: "open",
+          taxRate: 7.5, // Default tax rate
+          discountType: "none",
+          discountValue: 0,
+        },
   });
 
-  // Fetch customers
+  // Fetch customers and setup initial data
   useEffect(() => {
     const customersList = getCustomers();
     setCustomers(customersList);
-  }, []);
+    
+    // If editing, set up initial state
+    if (isEditing && invoiceData) {
+      // Initialize items
+      if (invoiceData.items) {
+        setItems(invoiceData.items);
+      }
+      
+      // Initialize payments
+      if (invoiceData.payments) {
+        setPayments(invoiceData.payments);
+      }
+      
+      // Load vehicles for the selected customer
+      if (invoiceData.customerId) {
+        const customerVehicles = getVehiclesByCustomerId(invoiceData.customerId);
+        setVehicles(customerVehicles);
+      }
+    }
+  }, [isEditing, invoiceData]);
 
   // Calculate subtotal (needed for discount calculations and passing to sub-components)
   const subtotal = items.reduce((sum, item) => sum + (item.quantity * item.price), 0);
@@ -136,7 +175,11 @@ const InvoiceForm = () => {
     // Here you would normally save the invoice to your backend
     console.log("Invoice data:", invoiceData);
     
-    toast.success("Invoice created successfully!");
+    if (isEditing) {
+      toast.success("Invoice updated successfully!");
+    } else {
+      toast.success("Invoice created successfully!");
+    }
     navigate("/invoices");
   };
 
@@ -201,7 +244,7 @@ const InvoiceForm = () => {
             >
               Cancel
             </Button>
-            <Button type="submit">Create Invoice</Button>
+            <Button type="submit">{isEditing ? "Update" : "Create"} Invoice</Button>
           </div>
         </form>
       </FormProvider>

@@ -8,6 +8,7 @@ import Layout from "@/components/Layout";
 import Dashboard from "@/pages/Dashboard";
 import Invoices from "@/pages/Invoices";
 import NewInvoice from "@/pages/NewInvoice";
+import EditInvoice from "@/pages/EditInvoice";
 import Customers from "@/pages/Customers";
 import CustomerDetail from "@/pages/CustomerDetail";
 import NotFound from "@/pages/NotFound";
@@ -39,6 +40,7 @@ const App = () => {
               <Route path="/" element={<Dashboard />} />
               <Route path="/invoices" element={<Invoices />} />
               <Route path="/invoices/new" element={<NewInvoice />} />
+              <Route path="/invoices/edit/:id" element={<EditInvoice />} />
               <Route path="/customers" element={<Customers />} />
               <Route path="/customers/:id" element={<CustomerDetail />} />
               <Route path="/mechanics" element={<Mechanics />} />
