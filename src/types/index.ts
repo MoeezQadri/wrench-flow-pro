@@ -1,3 +1,4 @@
+
 export type InvoiceStatus = 'open' | 'in-progress' | 'completed' | 'paid' | 'partial';
 
 export type UserRole = 'owner' | 'manager' | 'mechanic' | 'foreman';
@@ -170,31 +171,46 @@ export interface CustomerAnalytics {
   invoiceHistory: Invoice[];
 }
 
-export interface PermissionMap {
-  [key: string]: boolean | PermissionMap;
-}
-
 // Special type for 'own' permission value
 export type PermissionValue = boolean | 'own';
 
-// Modify the permission map to allow 'own' values
+// Define the base permission interface that most resources will use
+export interface BasePermission {
+  view: PermissionValue;
+  manage: PermissionValue;
+}
+
+// Define specific permission interfaces for resources with additional actions
+export interface TasksPermission extends BasePermission {
+  assign?: PermissionValue;
+  create?: PermissionValue;
+  update?: PermissionValue;
+}
+
+export interface AttendancePermission extends BasePermission {
+  approve?: PermissionValue;
+  create?: PermissionValue;
+  update?: PermissionValue;
+}
+
+// Modified RolePermissionMap to properly handle the different permission types
 export interface RolePermissionMap {
-  dashboard: boolean | RolePermissionMap;
-  customers: { view: boolean; manage: boolean };
-  invoices: { view: boolean; manage: boolean };
-  mechanics: { view: boolean; manage: boolean };
-  tasks: { view: boolean; manage: boolean };
-  parts: { view: boolean; manage: boolean };
-  expenses: { view: boolean; manage: boolean };
-  vehicles: { view: boolean; manage: boolean };
-  reports: { view: boolean; manage: boolean };
-  users: { view: boolean; manage: boolean };
-  settings: { view: boolean; manage: boolean };
-  attendance: {view: boolean; manage: boolean; approve?: boolean};
-  subscription: {view: boolean; manage: boolean};
-  finance: { view: boolean; manage: boolean };
-  organization: { view: boolean; manage: boolean };
-  [key: string]: boolean | RolePermissionMap;
+  dashboard: PermissionValue;
+  customers: BasePermission;
+  invoices: BasePermission;
+  mechanics: BasePermission;
+  tasks: TasksPermission;
+  parts: BasePermission;
+  expenses: BasePermission;
+  vehicles: BasePermission;
+  reports: BasePermission;
+  users: BasePermission;
+  settings: BasePermission;
+  attendance: AttendancePermission;
+  subscription: BasePermission;
+  finance: BasePermission;
+  organization: BasePermission;
+  [key: string]: PermissionValue | BasePermission | TasksPermission | AttendancePermission;
 }
 
 export const rolePermissions: Record<UserRole, RolePermissionMap> = {
@@ -207,12 +223,13 @@ export const rolePermissions: Record<UserRole, RolePermissionMap> = {
     parts: { view: true, manage: true },
     finance: { view: true, manage: true },
     expenses: { view: true, manage: true },
-    reports: { view: true },
+    reports: { view: true, manage: true },
     attendance: { view: true, manage: true, approve: true },
     settings: { view: true, manage: true },
     organization: { view: true, manage: true },
     users: { view: true, manage: true },
-    subscription: { view: true, manage: true }
+    subscription: { view: true, manage: true },
+    vehicles: { view: true, manage: true }
   },
   manager: {
     dashboard: true,
@@ -223,12 +240,13 @@ export const rolePermissions: Record<UserRole, RolePermissionMap> = {
     parts: { view: true, manage: true },
     finance: { view: true, manage: true },
     expenses: { view: true, manage: true },
-    reports: { view: true },
+    reports: { view: true, manage: true },
     attendance: { view: true, manage: true, approve: true },
     settings: { view: false, manage: false },
     organization: { view: true, manage: false },
     users: { view: true, manage: false },
-    subscription: { view: true, manage: false }
+    subscription: { view: true, manage: false },
+    vehicles: { view: true, manage: true }
   },
   foreman: {
     dashboard: true,
@@ -239,12 +257,13 @@ export const rolePermissions: Record<UserRole, RolePermissionMap> = {
     parts: { view: true, manage: false },
     finance: { view: false, manage: false },
     expenses: { view: false, manage: false },
-    reports: { view: true },
-    attendance: { view: true, manage: true, approve: true, update: true, create: true },
+    reports: { view: true, manage: false },
+    attendance: { view: true, manage: true, approve: true, create: true, update: true },
     settings: { view: false, manage: false },
     organization: { view: false, manage: false },
     users: { view: false, manage: false },
-    subscription: { view: false, manage: false }
+    subscription: { view: false, manage: false },
+    vehicles: { view: true, manage: false }
   },
   mechanic: {
     dashboard: false,
@@ -255,11 +274,12 @@ export const rolePermissions: Record<UserRole, RolePermissionMap> = {
     parts: { view: true, manage: false },
     finance: { view: false, manage: false },
     expenses: { view: false, manage: false },
-    reports: { view: 'own' }, // Allow mechanics to view their own reports
+    reports: { view: 'own', manage: false },
     attendance: { view: 'own', manage: 'own', approve: false },
     settings: { view: false, manage: false },
     organization: { view: false, manage: false },
     users: { view: false, manage: false },
-    subscription: { view: false, manage: false }
+    subscription: { view: false, manage: false },
+    vehicles: { view: true, manage: false }
   }
 };

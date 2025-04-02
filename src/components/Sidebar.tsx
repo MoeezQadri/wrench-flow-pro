@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
@@ -20,7 +21,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getCurrentUser, hasPermission } from '@/services/data-service';
-import { RolePermissionMap, UserRole } from '@/types';
+import { PermissionValue, RolePermissionMap, UserRole } from '@/types';
 
 // Define our types for the permission system
 type ResourceKey = keyof RolePermissionMap;
@@ -37,73 +38,73 @@ const navItems = [
     name: 'Dashboard', 
     path: '/', 
     icon: <LayoutDashboard className="w-5 h-5" />,
-    permission: { resource: 'dashboard' as ResourceKey, action: 'view' }
+    permission: { resource: 'dashboard', action: 'view' }
   },
   { 
     name: 'Invoices', 
     path: '/invoices', 
     icon: <FileText className="w-5 h-5" />,
-    permission: { resource: 'invoices' as ResourceKey, action: 'view' }
+    permission: { resource: 'invoices', action: 'view' }
   },
   { 
     name: 'Customers', 
     path: '/customers', 
     icon: <Users className="w-5 h-5" />,
-    permission: { resource: 'customers' as ResourceKey, action: 'view' }
+    permission: { resource: 'customers', action: 'view' }
   },
   { 
     name: 'Mechanics', 
     path: '/mechanics', 
     icon: <Wrench className="w-5 h-5" />,
-    permission: { resource: 'mechanics' as ResourceKey, action: 'view' }
+    permission: { resource: 'mechanics', action: 'view' }
   },
   { 
     name: 'Tasks', 
     path: '/tasks', 
     icon: <CalendarCheck className="w-5 h-5" />,
-    permission: { resource: 'tasks' as ResourceKey, action: 'view' }
+    permission: { resource: 'tasks', action: 'view' }
   },
   { 
     name: 'Parts', 
     path: '/parts', 
     icon: <ShoppingBag className="w-5 h-5" />,
-    permission: { resource: 'parts' as ResourceKey, action: 'view' }
+    permission: { resource: 'parts', action: 'view' }
   },
   { 
     name: 'Finance', 
     path: '/finance', 
     icon: <Wallet className="w-5 h-5" />,
-    permission: { resource: 'finance' as ResourceKey, action: 'view' }
+    permission: { resource: 'finance', action: 'view' }
   },
   { 
     name: 'Attendance', 
     path: '/attendance', 
     icon: <ClipboardCheck className="w-5 h-5" />,
-    permission: { resource: 'attendance' as ResourceKey, action: 'view' }
+    permission: { resource: 'attendance', action: 'view' }
   },
   { 
     name: 'Users', 
     path: '/users', 
     icon: <UserCog className="w-5 h-5" />,
-    permission: { resource: 'users' as ResourceKey, action: 'view' }
+    permission: { resource: 'users', action: 'view' }
   },
   { 
     name: 'Reports', 
     path: '/reports', 
     icon: <FileText className="w-5 h-5" />,
-    permission: { resource: 'reports' as ResourceKey, action: 'view' }
+    permission: { resource: 'reports', action: 'view' }
   },
   { 
     name: 'Settings', 
     path: '/settings', 
     icon: <Settings className="w-5 h-5" />,
-    permission: { resource: 'settings' as ResourceKey, action: 'view' }
+    permission: { resource: 'settings', action: 'view' }
   },
   { 
     name: 'Help', 
     path: '/help', 
     icon: <HelpCircle className="w-5 h-5" />,
-    permission: { resource: 'dashboard' as ResourceKey, action: 'view' } // Using dashboard permission so most users can see help
+    permission: { resource: 'dashboard', action: 'view' } // Using dashboard permission so most users can see help
   },
 ];
 
@@ -116,11 +117,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
   const location = useLocation();
   const currentUser = getCurrentUser();
   
-  // Fixed the type issue by properly typing resource as ResourceKey
   const filteredNavItems = navItems.filter(item => {
     return hasPermission(
       currentUser, 
-      item.permission.resource,  // This now matches the ResourceKey type
+      item.permission.resource,
       item.permission.action
     );
   });

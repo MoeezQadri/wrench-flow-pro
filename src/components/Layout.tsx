@@ -24,7 +24,7 @@ const Layout = () => {
           </Button>
           <h1 className="text-xl font-semibold hidden md:block">WrenchFlow Pro</h1>
           <div className="flex items-center space-x-4">
-            {/* Removed help and notification buttons */}
+            {/* Empty div to maintain layout */}
           </div>
         </header>
         
