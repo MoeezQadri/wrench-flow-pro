@@ -13,12 +13,7 @@ import { toast } from "sonner";
 import { Mechanic } from "@/types";
 import MechanicForm, { MechanicFormValues } from "./MechanicForm";
 import { generateId, getCurrentUser, hasPermission } from "@/services/data-service";
-import { 
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger 
-} from "@/components/ui/tooltip";
-import { InfoIcon } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface MechanicDialogProps {
   open: boolean;
@@ -79,24 +74,26 @@ const MechanicDialog = ({ open, onOpenChange, onSave, mechanic }: MechanicDialog
           </DialogDescription>
         </DialogHeader>
 
-        <MechanicForm
-          defaultValues={
-            mechanic
-              ? {
-                  name: mechanic.name,
-                  specialization: mechanic.specialization,
-                  address: mechanic.address,
-                  phone: mechanic.phone,
-                  idCardImage: mechanic.idCardImage,
-                  employmentType: mechanic.employmentType,
-                  contractorRate: mechanic.contractorRate,
-                  isActive: mechanic.isActive,
-                }
-              : undefined
-          }
-          onSubmit={handleSubmit}
-          formId={formId}
-        />
+        <ScrollArea className="max-h-[60vh] pr-4">
+          <MechanicForm
+            defaultValues={
+              mechanic
+                ? {
+                    name: mechanic.name,
+                    specialization: mechanic.specialization,
+                    address: mechanic.address,
+                    phone: mechanic.phone,
+                    idCardImage: mechanic.idCardImage,
+                    employmentType: mechanic.employmentType,
+                    contractorRate: mechanic.contractorRate,
+                    isActive: mechanic.isActive,
+                  }
+                : undefined
+            }
+            onSubmit={handleSubmit}
+            formId={formId}
+          />
+        </ScrollArea>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
