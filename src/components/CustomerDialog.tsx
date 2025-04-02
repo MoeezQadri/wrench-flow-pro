@@ -57,6 +57,7 @@ const CustomerDialog = ({ open, onOpenChange, onCustomerAdded }: CustomerDialogP
   const onSubmit = async (data: CustomerFormValues) => {
     setIsSubmitting(true);
     try {
+      // The data from form is already typed correctly and all fields are required
       const newCustomer = addCustomer(data);
       onCustomerAdded(newCustomer);
       form.reset();

@@ -79,10 +79,18 @@ const VehicleDialog = ({
 
     setIsSubmitting(true);
     try {
-      const newVehicle = addVehicle({
+      // Create a properly typed vehicle object with required fields
+      const vehicleData = {
         ...data,
         customerId,
-      });
+        // Ensure required fields are always present
+        make: data.make,
+        model: data.model,
+        year: data.year,
+        licensePlate: data.licensePlate,
+      };
+      
+      const newVehicle = addVehicle(vehicleData);
       
       onVehicleAdded(newVehicle);
       form.reset();
