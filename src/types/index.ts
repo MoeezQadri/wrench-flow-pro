@@ -1,4 +1,3 @@
-
 export type InvoiceStatus = 'open' | 'in-progress' | 'completed' | 'paid' | 'partial';
 
 export type UserRole = 'owner' | 'manager' | 'mechanic' | 'foreman';
@@ -11,18 +10,25 @@ export interface User {
   mechanicId?: string; // If role is mechanic, this links to their mechanic profile
   isActive: boolean;
   lastLogin?: string;
+  organizationId?: string; // Added for multi-organization support
+  passwordHash?: string; // For auth system
+  resetToken?: string; // For password reset
+  resetTokenExpires?: string; // Expiration for reset token
+  mustChangePassword?: boolean; // For forcing password change
 }
 
 export interface Organization {
   id: string;
   name: string;
-  subscriptionLevel: 'basic' | 'professional' | 'enterprise';
+  subscriptionLevel: 'basic' | 'professional' | 'enterprise' | 'trial';
   subscriptionStatus: 'active' | 'trial' | 'expired';
   trialEndsAt?: string;
   logo?: string;
   address?: string;
   phone?: string;
   email?: string;
+  country?: string; // Added for geographic information
+  currency?: string; // Added for financial preferences
 }
 
 export interface Attendance {
