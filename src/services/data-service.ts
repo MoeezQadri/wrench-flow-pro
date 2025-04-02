@@ -11,6 +11,7 @@ import {
   DashboardMetrics,
   CustomerAnalytics,
   InvoiceStatus,
+  Vendor
 } from '@/types';
 
 // Mock Data
@@ -149,6 +150,37 @@ export const mechanics: Mechanic[] = [
   },
 ];
 
+// Add vendors data
+export const vendors: Vendor[] = [
+  {
+    id: 'vendor-1',
+    name: 'AutoParts Plus',
+    email: 'sales@autopartsplus.com',
+    phone: '555-222-3333',
+    address: '789 Supply St, Anytown',
+    contactPerson: 'Mike Wilson',
+    paymentTerms: 'Net 30'
+  },
+  {
+    id: 'vendor-2',
+    name: 'Quality Parts Co.',
+    email: 'orders@qualityparts.com',
+    phone: '555-444-5555',
+    address: '456 Vendor Ave, Anytown',
+    contactPerson: 'Sarah Johnson',
+    paymentTerms: 'Net 15'
+  },
+  {
+    id: 'vendor-3',
+    name: 'Mechanic Supply',
+    email: 'info@mechanicsupply.com',
+    phone: '555-666-7777',
+    address: '123 Tool Road, Anytown',
+    contactPerson: 'Tom Smith',
+    paymentTerms: 'Net 45'
+  },
+];
+
 export const parts: Part[] = [
   {
     id: 'part-1',
@@ -156,6 +188,10 @@ export const parts: Part[] = [
     price: 25,
     quantity: 100,
     description: 'High-quality brake pads for all vehicle types.',
+    vendorId: 'vendor-1',
+    vendorName: 'AutoParts Plus',
+    partNumber: 'BP-100',
+    reorderLevel: 20
   },
   {
     id: 'part-2',
@@ -163,6 +199,10 @@ export const parts: Part[] = [
     price: 8,
     quantity: 500,
     description: 'Standard oil filter for most car models.',
+    vendorId: 'vendor-2',
+    vendorName: 'Quality Parts Co.',
+    partNumber: 'OF-200',
+    reorderLevel: 50
   },
   {
     id: 'part-3',
@@ -170,6 +210,10 @@ export const parts: Part[] = [
     price: 5,
     quantity: 300,
     description: 'Long-lasting spark plug for improved engine performance.',
+    vendorId: 'vendor-1',
+    vendorName: 'AutoParts Plus',
+    partNumber: 'SP-300',
+    reorderLevel: 40
   },
 ];
 
@@ -326,6 +370,8 @@ export const expenses: Expense[] = [
     amount: 50,
     description: 'Purchased cleaning supplies for the workshop.',
     paymentMethod: 'cash',
+    vendorId: 'vendor-3',
+    vendorName: 'Mechanic Supply'
   },
   {
     id: 'expense-2',
@@ -333,7 +379,7 @@ export const expenses: Expense[] = [
     category: 'Rent',
     amount: 1500,
     description: 'Monthly rent for the workshop space.',
-    paymentMethod: 'bank-transfer',
+    paymentMethod: 'bank-transfer'
   },
   {
     id: 'expense-3',
@@ -342,6 +388,8 @@ export const expenses: Expense[] = [
     amount: 750,
     description: 'Bulk order of brake pads and oil filters.',
     paymentMethod: 'card',
+    vendorId: 'vendor-1',
+    vendorName: 'AutoParts Plus'
   },
   {
     id: 'expense-4',
@@ -350,6 +398,8 @@ export const expenses: Expense[] = [
     amount: 350,
     description: 'New diagnostic equipment.',
     paymentMethod: 'card',
+    vendorId: 'vendor-3',
+    vendorName: 'Mechanic Supply'
   },
 ];
 
@@ -373,6 +423,10 @@ export const getMechanicById = (id: string): Mechanic | undefined => {
 
 export const getPartById = (id: string): Part | undefined => {
   return parts.find((part) => part.id === id);
+};
+
+export const getVendorById = (id: string): Vendor | undefined => {
+  return vendors.find((vendor) => vendor.id === id);
 };
 
 export const getTaskById = (id: string): Task | undefined => {
@@ -421,6 +475,26 @@ export const addVehicle = (vehicleData: Omit<Vehicle, 'id'>): Vehicle => {
   }
   
   return newVehicle;
+};
+
+export const addVendor = (vendorData: Omit<Vendor, 'id'>): Vendor => {
+  const newVendor: Vendor = {
+    id: generateId('vendor'),
+    ...vendorData,
+  };
+  
+  vendors.push(newVendor);
+  return newVendor;
+};
+
+export const addPart = (partData: Omit<Part, 'id'>): Part => {
+  const newPart: Part = {
+    id: generateId('part'),
+    ...partData,
+  };
+  
+  parts.push(newPart);
+  return newPart;
 };
 
 // Analytics Functions
@@ -475,11 +549,15 @@ export function getCustomers() {
   return customers;
 }
 
+export function getVendors() {
+  return vendors;
+}
+
 export function getVehiclesByCustomerId(customerId: string) {
   return vehicles.filter(vehicle => vehicle.customerId === customerId);
 }
 
-// New functions for finance report filtering
+// Finance report filtering functions
 export function getPaymentsByDateRange(startDate: string, endDate: string): Payment[] {
   return payments.filter(payment => {
     return payment.date >= startDate && payment.date <= endDate;
@@ -496,10 +574,18 @@ export function getPartExpenses(): Expense[] {
   return expenses.filter(expense => expense.category === 'Parts');
 }
 
+export function getExpensesByVendor(vendorId: string): Expense[] {
+  return expenses.filter(expense => expense.vendorId === vendorId);
+}
+
 export function getInvoicesByDateRange(startDate: string, endDate: string): Invoice[] {
   return invoices.filter(invoice => {
     return invoice.date >= startDate && invoice.date <= endDate;
   });
+}
+
+export function getInvoicesByCustomer(customerId: string): Invoice[] {
+  return invoices.filter(invoice => invoice.customerId === customerId);
 }
 
 export function getReceivables(): Invoice[] {

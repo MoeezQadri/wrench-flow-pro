@@ -32,12 +32,26 @@ export interface Mechanic {
   isActive: boolean;
 }
 
+export interface Vendor {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  contactPerson?: string;
+  paymentTerms?: string;
+}
+
 export interface Part {
   id: string;
   name: string;
   price: number;
   quantity: number;
   description: string;
+  vendorId?: string;
+  vendorName?: string;
+  partNumber?: string;
+  reorderLevel?: number;
 }
 
 export interface Task {
@@ -93,6 +107,8 @@ export interface Expense {
   amount: number;
   description: string;
   paymentMethod: 'cash' | 'card' | 'bank-transfer';
+  vendorId?: string;
+  vendorName?: string;
 }
 
 export interface DashboardMetrics {

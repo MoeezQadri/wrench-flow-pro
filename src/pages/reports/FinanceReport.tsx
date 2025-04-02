@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,8 @@ import {
   getExpensesByDateRange,
   getPartExpenses,
   getReceivables,
-  getPayables
+  getPayables,
+  getCustomers
 } from "@/services/data-service";
 import {
   Calendar,
@@ -21,7 +23,9 @@ import {
   Filter,
   DollarSign,
   ArrowDownCircle,
-  ArrowUpCircle
+  ArrowUpCircle,
+  Users,
+  User
 } from "lucide-react";
 import {
   PieChart,
@@ -50,6 +54,8 @@ import StatusBadge from "@/components/StatusBadge";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { InvoiceStatus } from "@/types";
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
@@ -62,6 +68,8 @@ type PayableItem = {
   category: string;
   amount: number;
   method: 'cash' | 'card' | 'bank-transfer';
+  vendorId?: string;
+  vendorName?: string;
 };
 
 type ReceivableItem = {
@@ -69,10 +77,12 @@ type ReceivableItem = {
   date: string;
   description: string;
   type: "Receivable";
-  status: string;
+  status: InvoiceStatus;
   amount: number;
   totalAmount: number;
   paidAmount: number;
+  customerId: string;
+  customerName: string;
 };
 
 type FinanceItem = PayableItem | ReceivableItem;
@@ -93,6 +103,11 @@ const FinanceReport = () => {
   const [endDate, setEndDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [activeTab, setActiveTab] = useState("daily");
   const [showPayablesReceivables, setShowPayablesReceivables] = useState<'all' | 'payables' | 'receivables'>('all');
+  const [selectedVendor, setSelectedVendor] = useState<string>('all');
+  const [selectedCustomer, setSelectedCustomer] = useState<string>('all');
+  
+  // Get all customers for filtering
+  const customers = getCustomers();
   
   // Filter transactions by date
   const dateInvoices = invoices.filter(inv => inv.date === selectedDate);
@@ -124,6 +139,12 @@ const FinanceReport = () => {
   }, 0);
   
   const payablesAmount = payables.reduce((sum, expense) => sum + expense.amount, 0);
+  
+  // Extract unique vendors from expenses
+  const vendors = [...new Set(expenses
+    .filter(expense => expense.vendorName)
+    .map(expense => expense.vendorName))]
+    .filter(Boolean) as string[];
   
   // Expense categories for chart
   const expenseByCategory = {};
@@ -179,49 +200,36 @@ const FinanceReport = () => {
   };
 
   const getReceivablesAndPayables = (): FinanceItem[] => {
-    if (showPayablesReceivables === 'payables') {
-      return payables.map(expense => ({
-        id: expense.id,
-        date: expense.date,
-        description: expense.description,
-        type: "Payable" as const,
-        category: expense.category,
-        amount: expense.amount,
-        method: expense.paymentMethod
-      }));
-    } else if (showPayablesReceivables === 'receivables') {
-      return receivables.map(invoice => {
-        const { total } = calculateInvoiceTotal(invoice);
-        const paid = invoice.payments.reduce((sum, payment) => sum + payment.amount, 0);
-        const remaining = total - paid;
-        
-        return {
-          id: invoice.id,
-          date: invoice.date,
-          description: `Invoice #${invoice.id} for ${invoice.vehicleInfo.make} ${invoice.vehicleInfo.model}`,
-          type: "Receivable" as const,
-          status: invoice.status,
-          amount: remaining,
-          totalAmount: total,
-          paidAmount: paid
-        };
-      });
-    } else {
-      // Show both
-      return [
-        ...payables.map(expense => ({
+    let items: FinanceItem[] = [];
+    
+    // Handle payables
+    if (showPayablesReceivables === 'all' || showPayablesReceivables === 'payables') {
+      const filteredPayables = payables
+        .filter(expense => selectedVendor === 'all' || expense.vendorName === selectedVendor)
+        .map(expense => ({
           id: expense.id,
           date: expense.date,
           description: expense.description,
           type: "Payable" as const,
           category: expense.category,
           amount: expense.amount,
-          method: expense.paymentMethod
-        })),
-        ...receivables.map(invoice => {
+          method: expense.paymentMethod,
+          vendorId: expense.vendorId,
+          vendorName: expense.vendorName
+        }));
+      
+      items = [...items, ...filteredPayables];
+    }
+    
+    // Handle receivables
+    if (showPayablesReceivables === 'all' || showPayablesReceivables === 'receivables') {
+      const filteredReceivables = receivables
+        .filter(invoice => selectedCustomer === 'all' || invoice.customerId === selectedCustomer)
+        .map(invoice => {
           const { total } = calculateInvoiceTotal(invoice);
           const paid = invoice.payments.reduce((sum, payment) => sum + payment.amount, 0);
           const remaining = total - paid;
+          const customer = customers.find(c => c.id === invoice.customerId) || { name: 'Unknown Customer' };
           
           return {
             id: invoice.id,
@@ -231,11 +239,16 @@ const FinanceReport = () => {
             status: invoice.status,
             amount: remaining,
             totalAmount: total,
-            paidAmount: paid
+            paidAmount: paid,
+            customerId: invoice.customerId,
+            customerName: customer.name
           };
-        })
-      ].sort((a, b) => a.date.localeCompare(b.date));
+        });
+      
+      items = [...items, ...filteredReceivables];
     }
+    
+    return items.sort((a, b) => a.date.localeCompare(b.date));
   };
 
   // All financial transactions for the day
@@ -247,15 +260,18 @@ const FinanceReport = () => {
       type: "Expense",
       category: exp.category,
       method: exp.paymentMethod.charAt(0).toUpperCase() + exp.paymentMethod.slice(1).replace('-', ' '),
-      amount: -exp.amount
+      amount: -exp.amount,
+      vendorName: exp.vendorName
     })),
     ...datePayments.map(payment => {
       const invoice = invoices.find(inv => inv.id === payment.invoiceId);
+      const customer = invoice ? customers.find(c => c.id === invoice.customerId) : null;
       return {
         id: `pay-${payment.id}`,
         time: "02:30 PM", // Mock time
         description: `Payment for Invoice #${payment.invoiceId}`,
-        customer: invoice ? invoice.vehicleInfo.make + ' ' + invoice.vehicleInfo.model : 'Unknown',
+        customer: customer ? customer.name : 'Unknown',
+        vehicle: invoice ? `${invoice.vehicleInfo.make} ${invoice.vehicleInfo.model}` : 'Unknown',
         type: "Income",
         method: payment.method.charAt(0).toUpperCase() + payment.method.slice(1).replace('-', ' '),
         amount: payment.amount
@@ -591,6 +607,43 @@ const FinanceReport = () => {
           </div>
         </div>
         
+        {/* Additional filters for vendors and customers */}
+        <div className="flex flex-col space-y-4 md:flex-row md:space-y-0 md:space-x-4">
+          {(showPayablesReceivables === 'all' || showPayablesReceivables === 'payables') && (
+            <div className="grid gap-2 flex-1">
+              <Label htmlFor="vendor-filter">Filter by Vendor</Label>
+              <Select value={selectedVendor} onValueChange={setSelectedVendor}>
+                <SelectTrigger id="vendor-filter">
+                  <SelectValue placeholder="All Vendors" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Vendors</SelectItem>
+                  {vendors.map((vendor, index) => (
+                    <SelectItem key={index} value={vendor}>{vendor}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          
+          {(showPayablesReceivables === 'all' || showPayablesReceivables === 'receivables') && (
+            <div className="grid gap-2 flex-1">
+              <Label htmlFor="customer-filter">Filter by Customer</Label>
+              <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
+                <SelectTrigger id="customer-filter">
+                  <SelectValue placeholder="All Customers" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Customers</SelectItem>
+                  {customers.map((customer) => (
+                    <SelectItem key={customer.id} value={customer.id}>{customer.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </div>
+        
         {/* Summary Cards */}
         <div className="grid gap-4 md:grid-cols-2">
           <Card>
@@ -638,6 +691,8 @@ const FinanceReport = () => {
                   <TableHead>Description</TableHead>
                   <TableHead>Type</TableHead>
                   {showPayablesReceivables !== 'payables' && <TableHead>Status</TableHead>}
+                  {showPayablesReceivables !== 'receivables' && <TableHead>Vendor</TableHead>}
+                  {showPayablesReceivables !== 'payables' && <TableHead>Customer</TableHead>}
                   {showPayablesReceivables === 'receivables' && <TableHead>Total</TableHead>}
                   {showPayablesReceivables === 'receivables' && <TableHead>Paid</TableHead>}
                   <TableHead className="text-right">Amount</TableHead>
@@ -662,6 +717,16 @@ const FinanceReport = () => {
                         )}
                       </TableCell>
                     )}
+                    {showPayablesReceivables !== 'receivables' && (
+                      <TableCell>
+                        {isPayable(item) && item.vendorName ? item.vendorName : '-'}
+                      </TableCell>
+                    )}
+                    {showPayablesReceivables !== 'payables' && (
+                      <TableCell>
+                        {isReceivable(item) ? item.customerName : '-'}
+                      </TableCell>
+                    )}
                     {showPayablesReceivables === 'receivables' && (
                       <TableCell>${isReceivable(item) ? item.totalAmount.toFixed(2) : '-'}</TableCell>
                     )}
@@ -675,7 +740,7 @@ const FinanceReport = () => {
                 ))}
                 {getReceivablesAndPayables().length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={showPayablesReceivables === 'receivables' ? 7 : 5} className="text-center py-4 text-muted-foreground">
+                    <TableCell colSpan={showPayablesReceivables === 'receivables' ? 7 : 6} className="text-center py-4 text-muted-foreground">
                       No data found for the selected period
                     </TableCell>
                   </TableRow>
