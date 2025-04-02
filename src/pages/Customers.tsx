@@ -1,6 +1,9 @@
 
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 import { 
   PlusCircle, 
   Search, 
@@ -8,7 +11,8 @@ import {
   Users,
   Car,
   FileText,
-  DollarSign
+  DollarSign,
+  X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,10 +26,66 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { Badge } from '@/components/ui/badge';
-import { customers, getCustomerAnalytics, getVehiclesByCustomerId } from '@/services/data-service';
+import { useToast } from "@/hooks/use-toast";
+import { 
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose
+} from '@/components/ui/dialog';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Textarea } from '@/components/ui/textarea';
+import { customers, getCustomerAnalytics, getVehiclesByCustomerId, addCustomer } from '@/services/data-service';
+
+// Define the form validation schema using Zod
+const formSchema = z.object({
+  name: z.string().min(2, { message: "Name must be at least 2 characters long" }),
+  email: z.string().email({ message: "Please enter a valid email address" }),
+  phone: z.string().min(7, { message: "Phone number must be at least 7 characters long" }),
+  address: z.string().min(5, { message: "Address must be at least 5 characters long" }),
+});
 
 const Customers = () => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const { toast } = useToast();
+  
+  // Initialize the form
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      phone: "",
+      address: "",
+    },
+  });
+
+  // Form submission handler
+  const onSubmit = (values: z.infer<typeof formSchema>) => {
+    // Add the new customer to the data service
+    const newCustomer = addCustomer(values);
+    
+    // Display success message
+    toast({
+      title: "Customer Added",
+      description: `${newCustomer.name} has been added successfully.`,
+    });
+    
+    // Reset form and close dialog
+    form.reset();
+    setIsDialogOpen(false);
+  };
   
   // Filter customers based on search query
   const filteredCustomers = customers.filter(customer => {
@@ -45,7 +105,7 @@ const Customers = () => {
           <h1 className="text-3xl font-bold">Customers</h1>
           <p className="text-muted-foreground">Manage workshop customers</p>
         </div>
-        <Button>
+        <Button onClick={() => setIsDialogOpen(true)}>
           <PlusCircle className="mr-2 h-4 w-4" />
           New Customer
         </Button>
@@ -126,6 +186,85 @@ const Customers = () => {
           })}
         </div>
       )}
+
+      {/* New Customer Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Add New Customer</DialogTitle>
+            <DialogDescription>
+              Enter the customer details below to add them to your workshop.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="John Doe" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input placeholder="customer@example.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Phone</FormLabel>
+                    <FormControl>
+                      <Input placeholder="555-123-4567" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="address"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Address</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="123 Main St, Anytown" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <DialogFooter className="mt-6">
+                <DialogClose asChild>
+                  <Button type="button" variant="outline">Cancel</Button>
+                </DialogClose>
+                <Button type="submit">Add Customer</Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
