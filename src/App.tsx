@@ -15,6 +15,7 @@ import Reports from "@/pages/Reports";
 import AttendanceReport from "@/pages/reports/AttendanceReport";
 import TasksReport from "@/pages/reports/TasksReport";
 import FinanceReport from "@/pages/reports/FinanceReport";
+import InvoicingReport from "@/pages/reports/InvoicingReport";
 import Mechanics from "@/pages/Mechanics";
 import Tasks from "@/pages/Tasks";
 import Parts from "@/pages/Parts";
@@ -51,6 +52,7 @@ const App = () => {
               <Route path="/reports/attendance" element={<AttendanceReport />} />
               <Route path="/reports/tasks" element={<TasksReport />} />
               <Route path="/reports/finance" element={<FinanceReport />} />
+              <Route path="/reports/invoicing" element={<InvoicingReport />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
