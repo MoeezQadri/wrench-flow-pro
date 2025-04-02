@@ -17,7 +17,9 @@ import {
   CalendarCheck,
   Wallet,
   HelpCircle,
-  LogOut
+  LogOut,
+  BarChart,
+  LineChart
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getCurrentUser, hasPermission } from '@/services/data-service';
@@ -99,6 +101,19 @@ const navItems = [
     icon: <FileText className="w-5 h-5" />,
     permission: { resource: 'reports' as ResourceKey, action: 'view' }
   },
+  // Admin section - only for owner and manager roles
+  { 
+    name: 'Admin Dashboard', 
+    path: '/admin', 
+    icon: <BarChart className="w-5 h-5" />,
+    permission: { resource: 'users' as ResourceKey, action: 'manage' }
+  },
+  { 
+    name: 'Admin Analytics', 
+    path: '/admin/analytics', 
+    icon: <LineChart className="w-5 h-5" />,
+    permission: { resource: 'reports' as ResourceKey, action: 'manage' }
+  },
   { 
     name: 'Settings', 
     path: '/settings', 
@@ -136,6 +151,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
     toast.success('Successfully logged out');
   };
   
+  // Group nav items by section
+  const regularItems = filteredNavItems.filter(item => !item.path.startsWith('/admin'));
+  const adminItems = filteredNavItems.filter(item => item.path.startsWith('/admin'));
+  
   return (
     <>
       {/* Mobile Overlay */}
@@ -162,7 +181,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
         
         <nav className="flex-1 overflow-y-auto py-4">
           <ul>
-            {filteredNavItems.map((item) => (
+            {regularItems.map((item) => (
               <li key={item.name} className="px-2">
                 <Link
                   to={item.path}
@@ -177,6 +196,33 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
                 </Link>
               </li>
             ))}
+            
+            {/* Admin Section */}
+            {adminItems.length > 0 && (
+              <>
+                <li className="px-4 py-2 mt-2">
+                  <h3 className="text-xs font-semibold text-sidebar-foreground/60 uppercase tracking-wider">
+                    Admin
+                  </h3>
+                </li>
+                
+                {adminItems.map((item) => (
+                  <li key={item.name} className="px-2">
+                    <Link
+                      to={item.path}
+                      className={`flex items-center p-3 rounded-lg transition-colors ${
+                        location.pathname === item.path
+                          ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                          : 'hover:bg-sidebar-border/50 text-sidebar-foreground/80 hover:text-sidebar-foreground'
+                      }`}
+                    >
+                      {item.icon}
+                      <span className="ml-3">{item.name}</span>
+                    </Link>
+                  </li>
+                ))}
+              </>
+            )}
           </ul>
         </nav>
         

@@ -37,6 +37,8 @@ import Attendance from "@/pages/Attendance";
 import Users from "@/pages/Users";
 import Help from "@/pages/Help";
 import Settings from "@/pages/Settings";
+import AdminDashboard from "@/pages/AdminDashboard";
+import AdminAnalytics from "@/pages/AdminAnalytics";
 
 const App = () => {
   // Create a new QueryClient instance inside the component
@@ -76,6 +78,8 @@ const App = () => {
                 <Route path="/reports/tasks" element={<TasksReport />} />
                 <Route path="/reports/finance" element={<FinanceReport />} />
                 <Route path="/reports/invoicing" element={<InvoicingReport />} />
+                <Route path="/admin" element={<AdminDashboard />} />
+                <Route path="/admin/analytics" element={<AdminAnalytics />} />
               </Route>
               
               {/* Redirect Index to Root */}
