@@ -122,6 +122,7 @@ const InvoiceForm = () => {
 
     // Add discount data if applicable
     if (data.discountType !== "none" && data.discountValue > 0) {
+      // Fix: Create the discount object with the correct shape according to the Invoice type
       invoiceData.discount = {
         type: data.discountType === "percentage" ? "percentage" : "fixed",
         value: data.discountValue
