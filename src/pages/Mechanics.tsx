@@ -114,10 +114,6 @@ const Mechanics = () => {
                       }`}>
                         {mechanic.employmentType === 'fulltime' ? 'Full-Time' : 'Contractor'}
                       </span>
-                      
-                      {mechanic.employmentType === 'contractor' && mechanic.contractorRate && (
-                        <p className="text-xs mt-1">Rate: ${mechanic.contractorRate.toFixed(2)}/hr</p>
-                      )}
                     </div>
                   </TableCell>
                   <TableCell>

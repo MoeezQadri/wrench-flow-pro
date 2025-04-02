@@ -254,7 +254,6 @@ export const mechanics: Mechanic[] = [
     address: '321 Repair Lane, Fixville, CA 94123',
     phone: '555-789-1234',
     employmentType: 'contractor',
-    contractorRate: 65,
     isActive: false,
   },
 ];
