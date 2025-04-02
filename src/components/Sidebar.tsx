@@ -103,7 +103,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
     hasPermission(
       currentUser, 
       item.permission.resource as keyof RolePermissionMap, 
-      item.permission.action as string
+      String(item.permission.action)
     )
   );
 
