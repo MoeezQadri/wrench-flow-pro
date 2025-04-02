@@ -1,10 +1,9 @@
-
 import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { useNavigate } from "react-router-dom";
-import { CalendarIcon, Plus, X } from "lucide-react";
+import { CalendarIcon, Plus, X, UserPlus, Car } from "lucide-react";
 import { format } from "date-fns";
 
 import { Button } from "@/components/ui/button";
@@ -41,6 +40,8 @@ import {
 } from "@/components/ui/table";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
+import CustomerDialog from "@/components/CustomerDialog";
+import VehicleDialog from "@/components/VehicleDialog";
 
 import { InvoiceItem, InvoiceStatus, Customer, Vehicle } from "@/types";
 import { getCustomers, getVehiclesByCustomerId } from "@/services/data-service";
@@ -67,6 +68,8 @@ const InvoiceForm = () => {
   const [newItemDescription, setNewItemDescription] = useState("");
   const [newItemQuantity, setNewItemQuantity] = useState(1);
   const [newItemPrice, setNewItemPrice] = useState(0);
+  const [customerDialogOpen, setCustomerDialogOpen] = useState(false);
+  const [vehicleDialogOpen, setVehicleDialogOpen] = useState(false);
 
   // Initialize form
   const form = useForm<InvoiceFormValues>({
@@ -101,6 +104,22 @@ const InvoiceForm = () => {
       setVehicles([]);
     }
   }, [watchCustomerId, form]);
+
+  // Handle new customer added
+  const handleCustomerAdded = (newCustomer: Customer) => {
+    setCustomers(prev => [...prev, newCustomer]);
+    form.setValue("customerId", newCustomer.id);
+    
+    // Clear vehicle selection since the new customer has no vehicles
+    form.setValue("vehicleId", "");
+    setVehicles([]);
+  };
+
+  // Handle new vehicle added
+  const handleVehicleAdded = (newVehicle: Vehicle) => {
+    setVehicles(prev => [...prev, newVehicle]);
+    form.setValue("vehicleId", newVehicle.id);
+  };
 
   // Add new item to invoice
   const handleAddItem = () => {
@@ -168,63 +187,90 @@ const InvoiceForm = () => {
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
           <div className="grid gap-6 md:grid-cols-2">
             {/* Customer Selection */}
-            <FormField
-              control={form.control}
-              name="customerId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Customer</FormLabel>
-                  <Select 
-                    onValueChange={field.onChange} 
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a customer" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {customers.map((customer) => (
-                        <SelectItem key={customer.id} value={customer.id}>
-                          {customer.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="flex space-x-2 items-end">
+              <div className="flex-1">
+                <FormField
+                  control={form.control}
+                  name="customerId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Customer</FormLabel>
+                      <Select 
+                        onValueChange={field.onChange} 
+                        value={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a customer" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {customers.map((customer) => (
+                            <SelectItem key={customer.id} value={customer.id}>
+                              {customer.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <Button
+                type="button"
+                size="icon"
+                variant="outline"
+                onClick={() => setCustomerDialogOpen(true)}
+                className="mb-2"
+              >
+                <UserPlus className="h-4 w-4" />
+              </Button>
+            </div>
 
             {/* Vehicle Selection */}
-            <FormField
-              control={form.control}
-              name="vehicleId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Vehicle</FormLabel>
-                  <Select 
-                    onValueChange={field.onChange} 
-                    defaultValue={field.value}
-                    disabled={!watchCustomerId}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder={watchCustomerId ? "Select a vehicle" : "Select a customer first"} />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {vehicles.map((vehicle) => (
-                        <SelectItem key={vehicle.id} value={vehicle.id}>
-                          {vehicle.make} {vehicle.model} ({vehicle.year}) - {vehicle.licensePlate}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="flex space-x-2 items-end">
+              <div className="flex-1">
+                <FormField
+                  control={form.control}
+                  name="vehicleId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Vehicle</FormLabel>
+                      <Select 
+                        onValueChange={field.onChange} 
+                        value={field.value}
+                        disabled={!watchCustomerId}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder={watchCustomerId ? "Select a vehicle" : "Select a customer first"} />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {vehicles.map((vehicle) => (
+                            <SelectItem key={vehicle.id} value={vehicle.id}>
+                              {vehicle.make} {vehicle.model} ({vehicle.year}) - {vehicle.licensePlate}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <Button
+                type="button"
+                size="icon"
+                variant="outline"
+                onClick={() => setVehicleDialogOpen(true)}
+                disabled={!watchCustomerId}
+                className="mb-2"
+              >
+                <Car className="h-4 w-4" />
+              </Button>
+            </div>
 
             {/* Invoice Date */}
             <FormField
@@ -309,7 +355,7 @@ const InvoiceForm = () => {
                   <FormLabel>Status</FormLabel>
                   <Select 
                     onValueChange={field.onChange} 
-                    defaultValue={field.value}
+                    value={field.value}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -516,6 +562,21 @@ const InvoiceForm = () => {
           </div>
         </form>
       </Form>
+
+      {/* Customer Dialog */}
+      <CustomerDialog 
+        open={customerDialogOpen}
+        onOpenChange={setCustomerDialogOpen}
+        onCustomerAdded={handleCustomerAdded}
+      />
+
+      {/* Vehicle Dialog */}
+      <VehicleDialog
+        open={vehicleDialogOpen}
+        onOpenChange={setVehicleDialogOpen}
+        customerId={watchCustomerId}
+        onVehicleAdded={handleVehicleAdded}
+      />
     </div>
   );
 };

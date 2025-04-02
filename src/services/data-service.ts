@@ -324,6 +324,11 @@ export const expenses: Expense[] = [
   },
 ];
 
+// Helper function to generate unique IDs
+export const generateId = (prefix: string) => {
+  return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+};
+
 // Data Fetching Functions
 export const getCustomerById = (id: string): Customer | undefined => {
   return customers.find((customer) => customer.id === id);
@@ -355,6 +360,38 @@ export const getPaymentById = (id: string): Payment | undefined => {
 
 export const getExpenseById = (id: string): Expense | undefined => {
   return expenses.find((expense) => expense.id === id);
+};
+
+// Data Creation Functions
+export const addCustomer = (customerData: Omit<Customer, 'id' | 'vehicles' | 'totalVisits' | 'lifetimeValue' | 'lastVisit'>): Customer => {
+  const newCustomer: Customer = {
+    id: generateId('customer'),
+    ...customerData,
+    vehicles: [],
+    totalVisits: 0,
+    lifetimeValue: 0,
+    lastVisit: new Date().toISOString().split('T')[0],
+  };
+  
+  customers.push(newCustomer);
+  return newCustomer;
+};
+
+export const addVehicle = (vehicleData: Omit<Vehicle, 'id'>): Vehicle => {
+  const newVehicle: Vehicle = {
+    id: generateId('vehicle'),
+    ...vehicleData,
+  };
+  
+  vehicles.push(newVehicle);
+  
+  // Update customer's vehicles array
+  const customer = customers.find(c => c.id === vehicleData.customerId);
+  if (customer && customer.vehicles) {
+    customer.vehicles.push(newVehicle.id);
+  }
+  
+  return newVehicle;
 };
 
 // Analytics Functions
