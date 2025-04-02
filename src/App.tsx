@@ -16,6 +16,10 @@ import Login from "@/pages/auth/Login";
 import Register from "@/pages/auth/Register";
 import ResetPassword from "@/pages/auth/ResetPassword";
 
+// Superadmin Pages
+import SuperAdminLogin from "@/pages/superadmin/SuperAdminLogin";
+import SuperAdminDashboard from "@/pages/superadmin/SuperAdminDashboard";
+
 // App Pages
 import Dashboard from "@/pages/Dashboard";
 import Invoices from "@/pages/Invoices";
@@ -56,6 +60,10 @@ const App = () => {
               <Route path="/auth/login" element={<Login />} />
               <Route path="/auth/register" element={<Register />} />
               <Route path="/auth/reset-password" element={<ResetPassword />} />
+              
+              {/* Superadmin Routes - Separate access point */}
+              <Route path="/superadmin/login" element={<SuperAdminLogin />} />
+              <Route path="/superadmin/dashboard" element={<SuperAdminDashboard />} />
               
               {/* Protected App Routes */}
               <Route element={<PrivateRoute><Layout /></PrivateRoute>}>

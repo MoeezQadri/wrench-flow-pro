@@ -16,6 +16,7 @@ interface AuthContextValue {
   token: string | null;
   setToken: React.Dispatch<React.SetStateAction<string | null>>;
   isAuthenticated: boolean;
+  isSuperAdmin: boolean;
   logout: () => void;
   analyticsConfig: AnalyticsConfig;
   updateAnalyticsConfig: (config: Partial<AnalyticsConfig>) => void;
@@ -27,6 +28,7 @@ const AuthContext = createContext<AuthContextValue>({
   token: null,
   setToken: () => {},
   isAuthenticated: false,
+  isSuperAdmin: false,
   logout: () => {},
   analyticsConfig: {
     trackingId: '',
@@ -55,11 +57,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   });
 
   useEffect(() => {
-    // Check for stored token on mount
+    // Check for stored tokens on mount
     const storedToken = localStorage.getItem('authToken');
-    if (storedToken) {
-      setToken(storedToken);
-      const user = getUserFromToken(storedToken);
+    const superadminToken = localStorage.getItem('superadminToken');
+    
+    // Prioritize superadmin token if it exists
+    const tokenToUse = superadminToken || storedToken;
+    
+    if (tokenToUse) {
+      setToken(tokenToUse);
+      const user = getUserFromToken(tokenToUse);
       setCurrentUser(user);
     }
     
@@ -89,7 +96,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setCurrentUser(null);
     setToken(null);
     localStorage.removeItem('authToken');
+    localStorage.removeItem('superadminToken');
   };
+
+  const isSuperAdmin = currentUser?.role === 'superuser';
 
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
@@ -103,6 +113,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         token,
         setToken,
         isAuthenticated: !!currentUser,
+        isSuperAdmin,
         logout,
         analyticsConfig,
         updateAnalyticsConfig,

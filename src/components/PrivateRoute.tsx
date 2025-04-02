@@ -7,11 +7,18 @@ interface PrivateRouteProps {
 }
 
 const PrivateRoute = ({ children }: PrivateRouteProps) => {
-  const { isAuthenticated } = useAuthContext();
+  const { isAuthenticated, isSuperAdmin } = useAuthContext();
   const location = useLocation();
 
+  // If not authenticated, redirect to login
   if (!isAuthenticated) {
     return <Navigate to="/auth/login" state={{ from: location }} replace />;
+  }
+
+  // If user is a superadmin but trying to access regular app routes
+  // redirect them to the superadmin dashboard
+  if (isSuperAdmin && !location.pathname.startsWith('/superadmin')) {
+    return <Navigate to="/superadmin/dashboard" replace />;
   }
 
   return <>{children}</>;

@@ -1,4 +1,3 @@
-
 import { generateId } from "./data-service";
 import { User, Organization, UserRole } from "@/types";
 
@@ -74,6 +73,11 @@ export const registerOrganization = (
   sessions.push({ token, userId });
 
   return { organization: newOrganization, user: newUser, token };
+};
+
+// Check if credentials are for superadmin
+export const isSuperAdmin = (token: string): boolean => {
+  return token.startsWith('superadmin-');
 };
 
 // Add a new user to an organization
@@ -216,6 +220,18 @@ export const changePassword = (userId: string, currentPassword: string, newPassw
 
 // Get current user from token
 export const getUserFromToken = (token: string): User | null => {
+  // Check if it's a superadmin token
+  if (token.startsWith('superadmin-')) {
+    return {
+      id: 'superuser-1',
+      name: 'System Administrator',
+      email: 'admin@system.com',
+      role: 'superuser',
+      isActive: true,
+      lastLogin: new Date().toISOString()
+    };
+  }
+
   const session = sessions.find(s => s.token === token);
   if (!session) {
     return null;
