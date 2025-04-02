@@ -1,4 +1,3 @@
-
 import { 
   Customer, 
   Mechanic, 
@@ -7,7 +6,9 @@ import {
   Invoice, 
   Payment, 
   Expense,
-  DashboardMetrics
+  DashboardMetrics,
+  Vehicle,
+  CustomerAnalytics
 } from '@/types';
 
 // Mock data for our application
@@ -17,21 +18,76 @@ export const customers: Customer[] = [
     name: 'John Smith', 
     email: 'john@example.com', 
     phone: '555-123-4567', 
-    address: '123 Main St, Anytown, CA 94321' 
+    address: '123 Main St, Anytown, CA 94321',
+    vehicles: ['1', '4'],
+    totalVisits: 3,
+    lifetimeValue: 420.99,
+    lastVisit: '2023-05-10'
   },
   { 
     id: '2', 
     name: 'Sarah Johnson', 
     email: 'sarah@example.com', 
     phone: '555-987-6543', 
-    address: '456 Oak Ave, Somewhere, CA 94123' 
+    address: '456 Oak Ave, Somewhere, CA 94123',
+    vehicles: ['2'],
+    totalVisits: 1,
+    lifetimeValue: 0,
+    lastVisit: '2023-05-15'
   },
   { 
     id: '3', 
     name: 'Mike Williams', 
     email: 'mike@example.com', 
     phone: '555-456-7890', 
-    address: '789 Pine Rd, Nowhere, CA 94567' 
+    address: '789 Pine Rd, Nowhere, CA 94567',
+    vehicles: ['3'],
+    totalVisits: 1,
+    lifetimeValue: 150,
+    lastVisit: '2023-05-08'
+  }
+];
+
+export const vehicles: Vehicle[] = [
+  {
+    id: '1',
+    customerId: '1',
+    make: 'Toyota',
+    model: 'Camry',
+    year: '2018',
+    licensePlate: 'ABC123',
+    vin: 'JT2BF22K1W0123456',
+    color: 'Silver'
+  },
+  {
+    id: '2',
+    customerId: '2',
+    make: 'Honda',
+    model: 'Civic',
+    year: '2020',
+    licensePlate: 'XYZ789',
+    vin: 'JHMEH6380SS000789',
+    color: 'Blue'
+  },
+  {
+    id: '3',
+    customerId: '3',
+    make: 'Ford',
+    model: 'F-150',
+    year: '2019',
+    licensePlate: 'DEF456',
+    vin: 'KM8JN12D27U456789',
+    color: 'Red'
+  },
+  {
+    id: '4',
+    customerId: '1',
+    make: 'Mazda',
+    model: 'CX-5',
+    year: '2021',
+    licensePlate: 'GHI789',
+    vin: 'JB3MR82R86Y192834',
+    color: 'White'
   }
 ];
 
@@ -135,6 +191,7 @@ export const invoices: Invoice[] = [
   { 
     id: '1', 
     customerId: '1', 
+    vehicleId: '1',
     vehicleInfo: { 
       make: 'Toyota', 
       model: 'Camry', 
@@ -156,6 +213,7 @@ export const invoices: Invoice[] = [
   { 
     id: '2', 
     customerId: '2', 
+    vehicleId: '2',
     vehicleInfo: { 
       make: 'Honda', 
       model: 'Civic', 
@@ -173,6 +231,7 @@ export const invoices: Invoice[] = [
   { 
     id: '3', 
     customerId: '3', 
+    vehicleId: '3',
     vehicleInfo: { 
       make: 'Ford', 
       model: 'F-150', 
@@ -195,6 +254,7 @@ export const invoices: Invoice[] = [
   { 
     id: '4', 
     customerId: '1', 
+    vehicleId: '1',
     vehicleInfo: { 
       make: 'Toyota', 
       model: 'Camry', 
@@ -212,6 +272,29 @@ export const invoices: Invoice[] = [
     taxRate: 8.5,
     payments: [
       { id: '2', invoiceId: '4', amount: 179.78, method: 'cash', date: '2023-05-09', notes: 'Paid in full' }
+    ]
+  },
+  { 
+    id: '5', 
+    customerId: '1', 
+    vehicleId: '4',
+    vehicleInfo: { 
+      make: 'Mazda', 
+      model: 'CX-5', 
+      year: '2021', 
+      licensePlate: 'GHI789' 
+    }, 
+    status: 'paid', 
+    date: '2023-04-15', 
+    dueDate: '2023-04-29', 
+    items: [
+      { id: '8', type: 'labor', description: 'Brake Inspection', quantity: 0.75, price: 75 },
+      { id: '9', type: 'part', description: 'Brake Pads (Front)', quantity: 1, price: 89.99 }
+    ], 
+    notes: 'Customer reported squeaky brakes', 
+    taxRate: 8.5,
+    payments: [
+      { id: '3', invoiceId: '5', amount: 179.78, method: 'card', date: '2023-04-29', notes: 'Paid in full' }
     ]
   }
 ];
@@ -278,6 +361,66 @@ export const getDashboardMetrics = (): DashboardMetrics => {
 // Helper function to get customer by ID
 export const getCustomerById = (id: string): Customer | undefined => {
   return customers.find(customer => customer.id === id);
+};
+
+// Helper function to get vehicle by ID
+export const getVehicleById = (id: string): Vehicle | undefined => {
+  return vehicles.find(vehicle => vehicle.id === id);
+};
+
+// Helper function to get all vehicles for a customer
+export const getVehiclesByCustomerId = (customerId: string): Vehicle[] => {
+  return vehicles.filter(vehicle => vehicle.customerId === customerId);
+};
+
+// Helper function to get invoices for a specific customer
+export const getInvoicesByCustomerId = (customerId: string): Invoice[] => {
+  return invoices.filter(invoice => invoice.customerId === customerId);
+};
+
+// Helper function to get invoices for a specific vehicle
+export const getInvoicesByVehicleId = (vehicleId: string): Invoice[] => {
+  return invoices.filter(invoice => invoice.vehicleId === vehicleId);
+};
+
+// Helper function to calculate customer lifetime value and analytics
+export const getCustomerAnalytics = (customerId: string): CustomerAnalytics => {
+  const customerInvoices = getInvoicesByCustomerId(customerId);
+  const customerVehicles = getVehiclesByCustomerId(customerId);
+  
+  let lifetimeValue = 0;
+  let firstVisitDate = '';
+  let lastVisitDate = '';
+  
+  // Calculate total value and find dates
+  if (customerInvoices.length > 0) {
+    // Sort invoices by date
+    const sortedInvoices = [...customerInvoices].sort((a, b) => 
+      new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+    
+    // Get first and last visit dates
+    firstVisitDate = sortedInvoices[0].date;
+    lastVisitDate = sortedInvoices[sortedInvoices.length - 1].date;
+    
+    // Calculate lifetime value from paid invoices
+    lifetimeValue = customerInvoices
+      .filter(inv => inv.status === 'paid')
+      .reduce((sum, invoice) => {
+        const { total } = calculateInvoiceTotal(invoice);
+        return sum + total;
+      }, 0);
+  }
+  
+  return {
+    totalInvoices: customerInvoices.length,
+    lifetimeValue,
+    averageInvoiceValue: customerInvoices.length > 0 ? lifetimeValue / customerInvoices.length : 0,
+    firstVisitDate,
+    lastVisitDate,
+    vehicles: customerVehicles,
+    invoiceHistory: customerInvoices
+  };
 };
 
 // Helper function to get mechanic by ID

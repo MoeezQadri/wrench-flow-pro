@@ -1,4 +1,3 @@
-
 export type InvoiceStatus = 'open' | 'in-progress' | 'completed' | 'paid';
 
 export interface Customer {
@@ -7,6 +6,21 @@ export interface Customer {
   email: string;
   phone: string;
   address: string;
+  vehicles?: string[]; // IDs of vehicles belonging to this customer
+  totalVisits?: number; // Total number of times customer has visited
+  lifetimeValue?: number; // Total amount spent by customer
+  lastVisit?: string; // Date of last visit
+}
+
+export interface Vehicle {
+  id: string;
+  customerId: string;
+  make: string;
+  model: string;
+  year: string;
+  licensePlate: string;
+  vin?: string;
+  color?: string;
 }
 
 export interface Mechanic {
@@ -47,6 +61,7 @@ export interface InvoiceItem {
 export interface Invoice {
   id: string;
   customerId: string;
+  vehicleId: string;
   vehicleInfo: {
     make: string;
     model: string;
@@ -86,4 +101,14 @@ export interface DashboardMetrics {
   completedJobs: number;
   activeJobs: number;
   mechanicEfficiency: number;
+}
+
+export interface CustomerAnalytics {
+  totalInvoices: number;
+  lifetimeValue: number;
+  averageInvoiceValue: number;
+  firstVisitDate: string;
+  lastVisitDate: string;
+  vehicles: Vehicle[];
+  invoiceHistory: Invoice[];
 }
