@@ -14,13 +14,13 @@ import {
   Plus, 
   XCircle 
 } from "lucide-react";
-import { Attendance } from "@/types";
 import { 
   attendance, 
   approveAttendance, 
   getMechanicById, 
   getCurrentUser, 
-  hasPermission 
+  hasPermission,
+  Attendance
 } from "@/services/data-service";
 import {
   DropdownMenu,
@@ -38,7 +38,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 
 const AttendancePage = () => {
-  const [attendanceList, setAttendanceList] = useState<Attendance[]>(attendance);
+  // Changed to use the Attendance type from data-service
+  const [attendanceList, setAttendanceList] = useState<Attendance[]>(() => attendance);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [notes, setNotes] = useState<string>("");
   const currentUser = getCurrentUser();

@@ -124,6 +124,7 @@ export interface Vendor {
   email: string;
   phone: string;
   address: string;
+  paymentTerms?: string;
 }
 
 export interface Expense {
@@ -146,6 +147,8 @@ export interface Attendance {
   notes?: string;
   status: 'pending' | 'approved' | 'rejected';
   approvedBy?: string;
+  checkIn: string; // Added to align with types used in Attendance component
+  checkOut?: string; // Added to align with types used in Attendance component
 }
 
 export interface RolePermissionMap {
@@ -156,11 +159,11 @@ export interface RolePermissionMap {
   tasks: { view: boolean; manage: boolean };
   parts: { view: boolean; manage: boolean };
   expenses: { view: boolean; manage: boolean };
-	vehicles: { view: boolean; manage: boolean };
+  vehicles: { view: boolean; manage: boolean };
   reports: { view: boolean; manage: boolean };
   users: { view: boolean; manage: boolean };
   settings: { view: boolean; manage: boolean };
-  attendance: {view: boolean; manage: boolean};
+  attendance: {view: boolean; manage: boolean; approve?: boolean};
   subscription: {view: boolean; manage: boolean};
 }
 
@@ -468,6 +471,8 @@ export const attendanceRecords: Attendance[] = [
     clockOut: '17:00',
     notes: 'Regular shift',
     status: 'approved',
+    checkIn: '08:00',
+  checkOut: '17:00',
   },
   {
     id: 'attendance-2',
@@ -477,11 +482,17 @@ export const attendanceRecords: Attendance[] = [
     clockOut: '18:00',
     notes: 'Late start due to appointment',
     status: 'pending',
+    checkIn: '09:00',
+  checkOut: '18:00',
   },
 ];
 
 // Export attendance records as "attendance" to match the import in Attendance.tsx
-export const attendance = attendanceRecords;
+export const attendance = attendanceRecords.map(record => ({
+  ...record,
+  checkIn: record.clockIn,
+  checkOut: record.clockOut
+}));
 
 // Data access functions
 export const getCurrentUser = (): User => users[0];
@@ -561,11 +572,6 @@ export const getCustomerAnalytics = (customerId: string): CustomerAnalytics => {
   };
 };
 
-// Mock function to simulate fetching payments by date range
-export const getPaymentsByDateRange = (startDate: string, endDate: string): Payment[] => {
-  return payments.filter(payment => payment.date >= startDate && expense.date <= endDate);
-};
-
 // Function to approve attendance
 export const approveAttendance = (
   attendanceId: string, 
@@ -605,232 +611,6 @@ export const recordAttendance = (attendanceData: {
   
   attendance.push(newAttendance);
   return newAttendance;
-};
-
-// Mock function to simulate fetching expenses for parts
-export const getPartExpenses = (): Expense[] => {
-  return expenses.filter(expense => expense.category === 'Parts');
-};
-
-// Mock function to simulate fetching receivables (invoices with outstanding balance)
-export const getReceivables = (): Invoice[] => {
-  return invoices.filter(invoice => {
-    const { total } = calculateInvoiceTotal(invoice);
-    const paid = invoice.payments.reduce((sum, payment) => sum + payment.amount, 0);
-    return total > paid;
-  });
-};
-
-// Mock function to simulate fetching payables (expenses)
-export const getPayables = (): Expense[] => {
-  return expenses;
-};
-
-export const rolePermissions: Record<UserRole, RolePermissionMap> = {
-  owner: {
-    dashboard: true,
-    customers: {
-      view: true,
-      manage: true
-    },
-    invoices: {
-      view: true,
-      manage: true
-    },
-    mechanics: {
-      view: true,
-      manage: true
-    },
-    tasks: {
-      view: true,
-      manage: true
-    },
-    parts: {
-      view: true,
-      manage: true
-    },
-    expenses: {
-      view: true,
-      manage: true
-    },
-		vehicles: {
-      view: true,
-      manage: true
-    },
-    reports: {
-      view: true,
-      manage: true
-    },
-    users: {
-      view: true,
-      manage: true
-    },
-    settings: {
-      view: true,
-      manage: true
-    },
-    attendance: {
-      view: true,
-      manage: true
-    },
-    subscription: {
-      view: true,
-      manage: true
-    }
-  },
-  manager: {
-    dashboard: true,
-    customers: {
-      view: true,
-      manage: true
-    },
-    invoices: {
-      view: true,
-      manage: true
-    },
-    mechanics: {
-      view: true,
-      manage: true
-    },
-    tasks: {
-      view: true,
-      manage: true
-    },
-    parts: {
-      view: true,
-      manage: true
-    },
-    expenses: {
-      view: true,
-      manage: true
-    },
-		vehicles: {
-      view: true,
-      manage: true
-    },
-    reports: {
-      view: true,
-      manage: true
-    },
-    users: {
-      view: true,
-      manage: true
-    },
-    settings: {
-      view: true,
-      manage: true
-    },
-    attendance: {
-      view: true,
-      manage: true
-    },
-    subscription: {
-      view: true,
-      manage: true
-    }
-  },
-  foreman: {
-    dashboard: true,
-    customers: {
-      view: true,
-      manage: false
-    },
-    invoices: {
-      view: true,
-      manage: false
-    },
-    mechanics: {
-      view: true,
-      manage: false
-    },
-    tasks: {
-      view: true,
-      manage: true
-    },
-    parts: {
-      view: true,
-      manage: false
-    },
-    expenses: {
-      view: true,
-      manage: false
-    },
-    vehicles: {
-      view: true,
-      manage: false
-    },
-    reports: {
-      view: true,
-      manage: false
-    },
-    users: {
-      view: false,
-      manage: false
-    },
-    settings: {
-      view: false,
-      manage: false
-    },
-    attendance: {
-      view: true,
-      manage: true
-    },
-    subscription: {
-      view: false,
-      manage: false
-    }
-  },
-  mechanic: {
-    dashboard: false,
-    customers: {
-      view: false,
-      manage: false
-    },
-    invoices: {
-      view: false,
-      manage: false
-    },
-    mechanics: {
-      view: false,
-      manage: false
-    },
-    tasks: {
-      view: true,
-      manage: false
-    },
-    parts: {
-      view: false,
-      manage: false
-    },
-    expenses: {
-      view: false,
-      manage: false
-    },
-		vehicles: {
-      view: false,
-      manage: false
-    },
-    reports: {
-      view: false,
-      manage: false
-    },
-    users: {
-      view: false,
-      manage: false
-    },
-    settings: {
-      view: false,
-      manage: false
-    },
-    attendance: {
-      view: false,
-      manage: false
-    },
-    subscription: {
-      view: false,
-      manage: false
-    }
-  }
 };
 
 // Function to calculate dashboard metrics
@@ -922,7 +702,7 @@ export const getExpensesByDateRange = (startDate: string, endDate: string): Expe
 
 // Mock function to simulate fetching payments by date range
 export const getPaymentsByDateRange = (startDate: string, endDate: string): Payment[] => {
-  return payments.filter(payment => payment.date >= startDate && expenses.date <= endDate);
+  return payments.filter(payment => payment.date >= startDate && payment.date <= endDate);
 };
 
 // Mock function to simulate fetching expenses for parts
@@ -943,3 +723,6 @@ export const getReceivables = (): Invoice[] => {
 export const getPayables = (): Expense[] => {
   return expenses;
 };
+
+// Re-export rolePermissions without duplicating it
+export { rolePermissions };

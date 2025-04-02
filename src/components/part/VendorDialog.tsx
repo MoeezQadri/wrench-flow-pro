@@ -62,7 +62,7 @@ const VendorDialog = ({ open, onOpenChange }: VendorDialogProps) => {
         email: data.email || "",
         phone: data.phone,
         address: data.address || "",
-        contactPerson: data.contactPerson,
+        contactName: data.contactPerson, // Changed contactPerson to contactName to match Vendor interface
         paymentTerms: data.paymentTerms || undefined
       };
       

@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getCurrentUser, hasPermission } from '@/services/data-service';
+import { RolePermissionMap } from '@/types';
 
 // Define nav items with permission requirements
 const navItems = [
