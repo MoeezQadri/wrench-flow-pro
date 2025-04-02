@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -252,6 +253,7 @@ const InvoiceForm = () => {
 
     // Add discount data if applicable
     if (data.discountType !== "none" && data.discountValue > 0) {
+      // Create the discount object with the correct structure according to the Invoice type
       invoiceData.discount = {
         type: data.discountType === "percentage" ? "percentage" : "fixed",
         value: data.discountValue
