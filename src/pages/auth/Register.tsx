@@ -11,6 +11,7 @@ import { registerOrganization } from '@/services/auth-service';
 import { useAuthContext } from '@/context/AuthContext';
 
 const Register = () => {
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -34,11 +35,11 @@ const Register = () => {
     setIsLoading(true);
     
     try {
-      // Use default values for organization details and owner name
+      // Use default values for organization details but use the provided name
       const organizationName = "My Garage";
       const country = "United States";
       const currency = "USD";
-      const ownerName = email.split('@')[0]; // Use part of email as name
+      const ownerName = name || email.split('@')[0]; // Use provided name or fallback to email
       
       const { organization, user, token } = registerOrganization(
         organizationName,
@@ -84,6 +85,18 @@ const Register = () => {
           </CardHeader>
           <form onSubmit={handleRegister}>
             <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Full Name</Label>
+                <Input 
+                  id="name" 
+                  type="text" 
+                  placeholder="John Doe" 
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                />
+              </div>
+              
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input 
