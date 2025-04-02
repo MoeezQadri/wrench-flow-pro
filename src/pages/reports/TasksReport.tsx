@@ -1,10 +1,10 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { tasks, mechanics, getMechanicById, getCurrentUser } from "@/services/data-service";
 import { Calendar, ChevronLeft, ChevronRight, Download, Filter, Users } from "lucide-react";
+import { Link } from "react-router-dom";
 import { 
   BarChart, 
   Bar, 
@@ -89,7 +89,15 @@ const TasksReport = () => {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
-        <h1 className="text-3xl font-bold tracking-tight">Tasks Report</h1>
+        <div className="flex items-center gap-4">
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/reports">
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              Back to Reports
+            </Link>
+          </Button>
+          <h1 className="text-3xl font-bold tracking-tight">Tasks Report</h1>
+        </div>
         <div className="flex items-center space-x-2 mt-4 sm:mt-0">
           <Button variant="outline" size="icon" onClick={handlePreviousDay}>
             <ChevronLeft className="h-4 w-4" />
@@ -144,6 +152,7 @@ const TasksReport = () => {
         </Card>
       </div>
 
+      {/* Rest of the component remains the same */}
       {/* Mechanic Efficiency Chart */}
       <Card>
         <CardHeader>
