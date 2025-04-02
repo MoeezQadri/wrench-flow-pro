@@ -15,6 +15,10 @@ import Reports from "@/pages/Reports";
 import AttendanceReport from "@/pages/reports/AttendanceReport";
 import TasksReport from "@/pages/reports/TasksReport";
 import FinanceReport from "@/pages/reports/FinanceReport";
+import Mechanics from "@/pages/Mechanics";
+import Tasks from "@/pages/Tasks";
+import Parts from "@/pages/Parts";
+import Expenses from "@/pages/Expenses";
 import { useState } from "react";
 
 const App = () => {
@@ -34,10 +38,10 @@ const App = () => {
               <Route path="/invoices/new" element={<NewInvoice />} />
               <Route path="/customers" element={<Customers />} />
               <Route path="/customers/:id" element={<CustomerDetail />} />
-              <Route path="/mechanics" element={<div className="p-6">Mechanics page coming soon</div>} />
-              <Route path="/tasks" element={<div className="p-6">Tasks page coming soon</div>} />
-              <Route path="/parts" element={<div className="p-6">Parts page coming soon</div>} />
-              <Route path="/expenses" element={<div className="p-6">Expenses page coming soon</div>} />
+              <Route path="/mechanics" element={<Mechanics />} />
+              <Route path="/tasks" element={<Tasks />} />
+              <Route path="/parts" element={<Parts />} />
+              <Route path="/expenses" element={<Expenses />} />
               <Route path="/settings" element={<div className="p-6">Settings page coming soon</div>} />
               <Route path="/reports" element={<Reports />} />
               <Route path="/reports/attendance" element={<AttendanceReport />} />
