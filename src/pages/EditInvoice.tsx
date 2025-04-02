@@ -33,6 +33,10 @@ const EditInvoice = () => {
         const typedInvoice: Invoice = {
           ...foundInvoice,
           notes: foundInvoice.notes || '', // Ensure notes is never undefined
+          payments: foundInvoice.payments?.map(payment => ({
+            ...payment,
+            notes: payment.notes || '' // Ensure payment notes is never undefined
+          })) || []
         };
         
         setInvoice(typedInvoice);

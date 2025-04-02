@@ -31,7 +31,7 @@ const InvoiceDetailsFields = () => {
                 <FormControl>
                   <Button
                     variant={"outline"}
-                    className="pl-3 text-left font-normal"
+                    className="pl-3 text-left font-normal h-10"
                   >
                     {field.value ? (
                       format(field.value, "PPP")
@@ -48,6 +48,7 @@ const InvoiceDetailsFields = () => {
                   selected={field.value}
                   onSelect={field.onChange}
                   initialFocus
+                  className="pointer-events-auto"
                 />
               </PopoverContent>
             </Popover>
@@ -61,14 +62,14 @@ const InvoiceDetailsFields = () => {
         control={form.control}
         name="status"
         render={({ field }) => (
-          <FormItem>
+          <FormItem className="flex flex-col">
             <FormLabel>Status</FormLabel>
             <Select 
               onValueChange={field.onChange} 
               value={field.value}
             >
               <FormControl>
-                <SelectTrigger>
+                <SelectTrigger className="h-10">
                   <SelectValue placeholder="Select a status" />
                 </SelectTrigger>
               </FormControl>
