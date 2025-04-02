@@ -99,7 +99,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
   
   // Filter nav items based on user permissions
   const filteredNavItems = navItems.filter(item => 
-    hasPermission(currentUser, item.permission.resource, item.permission.action)
+    hasPermission(currentUser, item.permission.resource as ResourceKey, item.permission.action)
   );
 
   return (
