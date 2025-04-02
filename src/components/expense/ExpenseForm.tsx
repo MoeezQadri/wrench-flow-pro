@@ -1,5 +1,4 @@
-
-import React from "react";
+import React, { useState } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -22,11 +21,13 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { vendors } from "@/services/data-service";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { Vendor } from "@/types";
+import VendorDialog from "./VendorDialog";
 
 const expenseSchema = z.object({
   date: z.date(),
@@ -46,6 +47,9 @@ interface ExpenseFormProps {
 }
 
 const ExpenseForm = ({ defaultValues, onSubmit, formId }: ExpenseFormProps) => {
+  const [isVendorDialogOpen, setIsVendorDialogOpen] = useState(false);
+  const [vendorsList, setVendorsList] = useState(vendors);
+
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseSchema),
     defaultValues: defaultValues || {
@@ -54,7 +58,7 @@ const ExpenseForm = ({ defaultValues, onSubmit, formId }: ExpenseFormProps) => {
       amount: 0,
       description: "",
       paymentMethod: "cash",
-      vendorId: "none", // Changed empty string to "none"
+      vendorId: "none",
     },
   });
 
@@ -73,6 +77,13 @@ const ExpenseForm = ({ defaultValues, onSubmit, formId }: ExpenseFormProps) => {
     "Travel",
     "Other"
   ];
+
+  // Handler for when a new vendor is added
+  const handleVendorAdded = (vendor: Vendor) => {
+    setVendorsList((prev) => [...prev, vendor]);
+    // Optionally select the new vendor
+    form.setValue("vendorId", vendor.id);
+  };
 
   return (
     <Form {...form}>
@@ -212,36 +223,55 @@ const ExpenseForm = ({ defaultValues, onSubmit, formId }: ExpenseFormProps) => {
             )}
           />
 
-          <FormField
-            control={form.control}
-            name="vendorId"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Vendor (Optional)</FormLabel>
-                <Select 
-                  onValueChange={field.onChange} 
-                  defaultValue={field.value} 
-                  value={field.value || "none"}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a vendor" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="none">None</SelectItem>
-                    {vendors.map((vendor) => (
-                      <SelectItem key={vendor.id} value={vendor.id}>
-                        {vendor.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <div className="space-y-2">
+            <FormField
+              control={form.control}
+              name="vendorId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Vendor</FormLabel>
+                  <div className="flex space-x-2">
+                    <Select 
+                      onValueChange={field.onChange} 
+                      defaultValue={field.value} 
+                      value={field.value || "none"}
+                      className="flex-1"
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a vendor" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        {vendorsList.map((vendor) => (
+                          <SelectItem key={vendor.id} value={vendor.id}>
+                            {vendor.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="icon"
+                      onClick={() => setIsVendorDialogOpen(true)}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
         </div>
+
+        <VendorDialog 
+          open={isVendorDialogOpen} 
+          onOpenChange={setIsVendorDialogOpen}
+          onVendorAdded={handleVendorAdded}
+        />
       </form>
     </Form>
   );
