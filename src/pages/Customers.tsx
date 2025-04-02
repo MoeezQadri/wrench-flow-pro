@@ -55,8 +55,13 @@ const formSchema = z.object({
   address: z.string().min(5, { message: "Address must be at least 5 characters long" }),
 });
 
-// Define type for form values that matches the expected parameter type for addCustomer
-type CustomerFormValues = z.infer<typeof formSchema>;
+// Define type for form values ensuring all fields are required
+type CustomerFormValues = {
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+};
 
 const Customers = () => {
   const [searchQuery, setSearchQuery] = useState('');
