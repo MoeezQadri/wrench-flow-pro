@@ -18,7 +18,7 @@ import {
   Tooltip, 
   ResponsiveContainer
 } from 'recharts';
-import { getDashboardMetrics } from '@/services/data-service';
+import { calculateDashboardMetrics } from '@/services/data-service';
 
 // Sample data for charts
 const weeklyRevenueData = [
@@ -32,7 +32,7 @@ const weeklyRevenueData = [
 ];
 
 const Dashboard = () => {
-  const metrics = getDashboardMetrics();
+  const metrics = calculateDashboardMetrics();
 
   return (
     <div className="space-y-6">
