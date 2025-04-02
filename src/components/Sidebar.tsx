@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
@@ -101,18 +100,12 @@ const navItems = [
     icon: <FileText className="w-5 h-5" />,
     permission: { resource: 'reports' as ResourceKey, action: 'view' }
   },
-  // Admin section - only for owner and manager roles
+  // Admin section - now directs to superadmin dashboard for those with access
   { 
-    name: 'Admin Dashboard', 
-    path: '/admin', 
+    name: 'Admin Portal', 
+    path: '/superadmin/dashboard', 
     icon: <BarChart className="w-5 h-5" />,
     permission: { resource: 'users' as ResourceKey, action: 'manage' }
-  },
-  { 
-    name: 'Admin Analytics', 
-    path: '/admin/analytics', 
-    icon: <LineChart className="w-5 h-5" />,
-    permission: { resource: 'reports' as ResourceKey, action: 'manage' }
   },
   { 
     name: 'Settings', 

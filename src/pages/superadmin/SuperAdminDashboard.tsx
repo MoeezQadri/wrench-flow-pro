@@ -1,18 +1,19 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuthContext } from '@/context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, BarChart, Users, CreditCard, Settings, LogOut } from 'lucide-react';
+import { AlertTriangle, BarChart, Users, CreditCard, Settings, LogOut, Activity, LineChart, PieChart, MousePointer } from 'lucide-react';
 import AdminMetricsPanel from '@/components/admin/AdminMetricsPanel';
 import AdminUserManagement from '@/components/admin/AdminUserManagement';
 import AdminPaymentManagement from '@/components/admin/AdminPaymentManagement';
 import AdminAnalyticsIntegration from '@/components/admin/AdminAnalyticsIntegration';
 
 const SuperAdminDashboard = () => {
-  const [activeTab, setActiveTab] = React.useState('metrics');
+  const [activeTab, setActiveTab] = useState('metrics');
+  const [activeAnalyticsTab, setActiveAnalyticsTab] = useState('overview');
   const { currentUser, logout } = useAuthContext();
   const navigate = useNavigate();
   
@@ -63,7 +64,7 @@ const SuperAdminDashboard = () => {
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid grid-cols-4 md:w-fit">
+            <TabsList className="grid grid-cols-5 md:w-fit">
               <TabsTrigger value="metrics">
                 <BarChart className="h-4 w-4 mr-2" />
                 Metrics
@@ -76,8 +77,12 @@ const SuperAdminDashboard = () => {
                 <CreditCard className="h-4 w-4 mr-2" />
                 Payments
               </TabsTrigger>
-              <TabsTrigger value="analytics">
+              <TabsTrigger value="settings">
                 <Settings className="h-4 w-4 mr-2" />
+                Settings
+              </TabsTrigger>
+              <TabsTrigger value="analytics">
+                <Activity className="h-4 w-4 mr-2" />
                 Analytics
               </TabsTrigger>
             </TabsList>
@@ -93,9 +98,114 @@ const SuperAdminDashboard = () => {
             <TabsContent value="payments" className="space-y-6">
               <AdminPaymentManagement />
             </TabsContent>
+
+            <TabsContent value="settings" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>System Settings</CardTitle>
+                  <CardDescription>
+                    Configure global system settings and parameters
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground">
+                    System settings content will be displayed here, including application configuration,
+                    security settings, and global parameters.
+                  </p>
+                </CardContent>
+              </Card>
+            </TabsContent>
             
             <TabsContent value="analytics" className="space-y-6">
-              <AdminAnalyticsIntegration />
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                <div>
+                  <h2 className="text-2xl font-bold">Analytics & Reporting</h2>
+                  <p className="text-muted-foreground">
+                    Monitor platform performance and user engagement
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" size="sm">
+                    Last 7 Days
+                  </Button>
+                  <Button variant="outline" size="sm">
+                    Last 30 Days
+                  </Button>
+                  <Button variant="outline" size="sm">
+                    Last Quarter
+                  </Button>
+                  <Button variant="outline" size="sm">
+                    Last Year
+                  </Button>
+                </div>
+              </div>
+
+              <Tabs value={activeAnalyticsTab} onValueChange={setActiveAnalyticsTab} className="space-y-6">
+                <TabsList>
+                  <TabsTrigger value="overview">
+                    <PieChart className="h-4 w-4 mr-2" />
+                    Overview
+                  </TabsTrigger>
+                  <TabsTrigger value="traffic">
+                    <LineChart className="h-4 w-4 mr-2" />
+                    Traffic
+                  </TabsTrigger>
+                  <TabsTrigger value="users">
+                    <Users className="h-4 w-4 mr-2" />
+                    Users
+                  </TabsTrigger>
+                  <TabsTrigger value="behavior">
+                    <MousePointer className="h-4 w-4 mr-2" />
+                    Behavior
+                  </TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="overview" className="space-y-6">
+                  <AdminAnalyticsIntegration />
+                </TabsContent>
+                
+                <TabsContent value="traffic" className="space-y-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Traffic Analysis</CardTitle>
+                      <CardDescription>Detailed breakdown of your website traffic</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-muted-foreground">
+                        Detailed traffic analysis data will be displayed here.
+                      </p>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                
+                <TabsContent value="users" className="space-y-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>User Analytics</CardTitle>
+                      <CardDescription>User growth and engagement metrics</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-muted-foreground">
+                        User analytics content will be displayed here.
+                      </p>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                
+                <TabsContent value="behavior" className="space-y-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>User Behavior</CardTitle>
+                      <CardDescription>How users are interacting with your platform</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-muted-foreground">
+                        User behavior analytics will be displayed here.
+                      </p>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
             </TabsContent>
           </Tabs>
         </div>
