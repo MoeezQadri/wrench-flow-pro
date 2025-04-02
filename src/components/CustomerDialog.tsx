@@ -33,6 +33,7 @@ const customerSchema = z.object({
   address: z.string().min(5, { message: "Address must be at least 5 characters" }),
 });
 
+// Use the exact type for the form values that matches what addCustomer expects
 type CustomerFormValues = z.infer<typeof customerSchema>;
 
 interface CustomerDialogProps {
@@ -57,7 +58,8 @@ const CustomerDialog = ({ open, onOpenChange, onCustomerAdded }: CustomerDialogP
   const onSubmit = async (data: CustomerFormValues) => {
     setIsSubmitting(true);
     try {
-      // The data from form is already typed correctly and all fields are required
+      // Since CustomerFormValues exactly matches what addCustomer expects,
+      // we can safely pass the data directly
       const newCustomer = addCustomer(data);
       onCustomerAdded(newCustomer);
       form.reset();
