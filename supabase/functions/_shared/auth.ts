@@ -3,6 +3,7 @@
 
 // Secret key for verifying JWT tokens - in production, use a proper secret
 const JWT_SECRET = Deno.env.get('JWT_SECRET') || 'superadmin-jwt-secret-2024';
+const USER_JWT_SECRET = Deno.env.get('USER_JWT_SECRET') || 'user-jwt-secret-secure-2024';
 
 // Generate a secure random token
 export function generateSecureToken(): string {
@@ -51,6 +52,38 @@ export async function verifyJWT(token: string): Promise<boolean> {
     return data === true;
   } catch (err) {
     console.error("Error verifying token:", err);
+    return false;
+  }
+}
+
+// Verify user access tokens
+export async function verifyUserJWT(token: string): Promise<boolean | object> {
+  if (!token || token.length < 20) {
+    console.log("User token missing or too short");
+    return false;
+  }
+  
+  try {
+    // For regular users, we verify the token using the Supabase client
+    const supabaseAdmin = getSupabaseAdmin();
+    
+    // Perform JWT verification here for user tokens
+    // This would check the signature using USER_JWT_SECRET
+    const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+    
+    if (error) {
+      console.error("Error verifying user token:", error);
+      return false;
+    }
+    
+    if (user) {
+      // Return the user object for further checks if needed
+      return user;
+    }
+    
+    return false;
+  } catch (err) {
+    console.error("Error verifying user token:", err);
     return false;
   }
 }

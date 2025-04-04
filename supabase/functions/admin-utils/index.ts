@@ -6,7 +6,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders } from '../_shared/cors.ts';
 
 // Import authentication modules
-import { verifyJWT } from '../_shared/auth.ts';
+import { verifyJWT, verifyUserJWT } from '../_shared/auth.ts';
 import { authenticateSuperadmin } from '../_shared/authentication.ts';
 
 // Import user management modules
@@ -85,8 +85,29 @@ serve(async (req) => {
       
       const token = authHeader.split(' ')[1];
       
-      // Verify the JWT token
-      const isValid = await verifyJWT(token);
+      // First try to verify as a superadmin token
+      let isValid = await verifyJWT(token);
+      
+      // If not a valid superadmin token, check if it's a valid user token
+      if (!isValid) {
+        const userVerification = await verifyUserJWT(token);
+        
+        if (userVerification) {
+          // For user tokens, we need to further check if they have the right permissions
+          // depending on the action they're trying to perform
+          isValid = true;
+          
+          // Here we would check the user's role for specific actions
+          // For example, if they're trying to perform an admin action
+          if (action.startsWith('admin_')) {
+            const user = userVerification;
+            // Check if the user has admin permissions
+            // This would depend on your application's permission model
+            isValid = false;
+          }
+        }
+      }
+      
       if (!isValid) {
         return new Response(
           JSON.stringify({ error: 'Invalid or expired token' }),

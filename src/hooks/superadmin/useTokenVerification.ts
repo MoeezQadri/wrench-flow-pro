@@ -30,7 +30,7 @@ export const useTokenVerification = () => {
       }
       
       if (data?.verified === true) {
-        console.log("Token verification successful");
+        console.log("Token verification successful:", data);
         return true;
       } else {
         console.error("Invalid token response:", data);
