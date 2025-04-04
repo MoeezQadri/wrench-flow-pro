@@ -138,6 +138,62 @@ export type Database = {
         }
         Relationships: []
       }
+      superadmin_sessions: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          superadmin_id: string
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          superadmin_id: string
+          token: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          superadmin_id?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "superadmin_sessions_superadmin_id_fkey"
+            columns: ["superadmin_id"]
+            isOneToOne: false
+            referencedRelation: "superadmins"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      superadmins: {
+        Row: {
+          created_at: string
+          id: string
+          last_login: string | null
+          password_hash: string
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_login?: string | null
+          password_hash: string
+          username: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_login?: string | null
+          password_hash?: string
+          username?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -160,6 +216,19 @@ export type Database = {
           last_login: string
           days_since_login: number
         }[]
+      }
+      superadmin_login: {
+        Args: {
+          username: string
+          password_hash: string
+        }
+        Returns: Json
+      }
+      verify_superadmin_token: {
+        Args: {
+          token: string
+        }
+        Returns: boolean
       }
     }
     Enums: {
