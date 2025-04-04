@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
@@ -100,7 +101,7 @@ const navItems = [
     icon: <FileText className="w-5 h-5" />,
     permission: { resource: 'reports' as ResourceKey, action: 'view' }
   },
-  // Admin section - now directs to superadmin dashboard for those with access
+  // Admin section
   { 
     name: 'Admin Portal', 
     path: '/superadmin/dashboard', 

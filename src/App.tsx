@@ -1,3 +1,4 @@
+
 import React, { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthProvider';
@@ -17,6 +18,28 @@ const ResetPassword = lazy(() => import('./pages/auth/ResetPassword'));
 const Profile = lazy(() => import('./pages/Profile'));
 const Settings = lazy(() => import('./pages/Settings'));
 const NotFound = lazy(() => import('./pages/NotFound'));
+
+// Core app modules
+const Invoices = lazy(() => import('./pages/Invoices'));
+const NewInvoice = lazy(() => import('./pages/NewInvoice'));
+const EditInvoice = lazy(() => import('./pages/EditInvoice'));
+const Customers = lazy(() => import('./pages/Customers'));
+const CustomerDetail = lazy(() => import('./pages/CustomerDetail'));
+const Mechanics = lazy(() => import('./pages/Mechanics'));
+const Tasks = lazy(() => import('./pages/Tasks'));
+const Parts = lazy(() => import('./pages/Parts'));
+const Finance = lazy(() => import('./pages/Finance'));
+const Expenses = lazy(() => import('./pages/Expenses'));
+const Users = lazy(() => import('./pages/Users'));
+const Reports = lazy(() => import('./pages/Reports'));
+
+// Report modules
+const AttendanceReport = lazy(() => import('./pages/reports/AttendanceReport'));
+const FinanceReport = lazy(() => import('./pages/reports/FinanceReport'));
+const InvoicingReport = lazy(() => import('./pages/reports/InvoicingReport'));
+const TasksReport = lazy(() => import('./pages/reports/TasksReport'));
+
+// SuperAdmin components
 const SuperAdminLogin = lazy(() => import('./pages/superadmin/SuperAdminLogin'));
 const SuperAdminDashboard = lazy(() => import('./pages/superadmin/SuperAdminDashboard'));
 const CreateSuperAdmin = lazy(() => import('./pages/superadmin/CreateSuperAdmin'));
@@ -45,7 +68,6 @@ function App() {
                     <SuperAdminDashboard />
                   </PrivateRoute>
                 } />
-                {/* Add any other superadmin routes here */}
               </Route>
               
               {/* Protected routes */}
@@ -53,6 +75,45 @@ function App() {
                 <Route index element={<Dashboard />} />
                 <Route path="profile" element={<Profile />} />
                 <Route path="settings" element={<Settings />} />
+                
+                {/* Invoices */}
+                <Route path="invoices">
+                  <Route index element={<Invoices />} />
+                  <Route path="new" element={<NewInvoice />} />
+                  <Route path="edit/:id" element={<EditInvoice />} />
+                  <Route path=":id" element={<EditInvoice />} />
+                </Route>
+                
+                {/* Customers */}
+                <Route path="customers">
+                  <Route index element={<Customers />} />
+                  <Route path=":id" element={<CustomerDetail />} />
+                </Route>
+                
+                {/* Mechanics */}
+                <Route path="mechanics" element={<Mechanics />} />
+                
+                {/* Tasks */}
+                <Route path="tasks" element={<Tasks />} />
+                
+                {/* Parts */}
+                <Route path="parts" element={<Parts />} />
+                
+                {/* Finance */}
+                <Route path="finance" element={<Finance />} />
+                <Route path="expenses" element={<Expenses />} />
+                
+                {/* Users */}
+                <Route path="users" element={<Users />} />
+                
+                {/* Reports */}
+                <Route path="reports">
+                  <Route index element={<Reports />} />
+                  <Route path="attendance" element={<AttendanceReport />} />
+                  <Route path="finance" element={<FinanceReport />} />
+                  <Route path="invoicing" element={<InvoicingReport />} />
+                  <Route path="tasks" element={<TasksReport />} />
+                </Route>
               </Route>
               
               {/* Redirect root to dashboard if logged in, otherwise to login */}
