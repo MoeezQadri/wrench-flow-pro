@@ -45,6 +45,8 @@ serve(async (req) => {
           );
         }
 
+        console.log('Authenticating superadmin:', params.username);
+
         // Query the superadmins table for the provided credentials
         const { data: superadmin, error } = await supabaseAdmin
           .from('superadmins')

@@ -15,23 +15,22 @@ export const useSuperAdminAuth = () => {
 
   const verifyToken = async (token: string): Promise<boolean> => {
     try {
-      // Clear existing auth state first
-      supabase.functions.setAuth(null);
-      
       // Set the token for verification
-      supabase.functions.setAuth(token);
+      const headers = {
+        Authorization: `Bearer ${token}`
+      };
       
       console.log("Sending verification request with token:", token.substring(0, 20) + '...');
       
       // Make the verification request
       const { data, error } = await supabase.functions.invoke('admin-utils', {
-        body: { action: 'verify_token' }
+        body: { action: 'verify_token' },
+        headers
       });
       
       if (error) {
         console.error("Token verification error:", error);
         localStorage.removeItem('superadminToken');
-        supabase.functions.setAuth(null);
         return false;
       }
       
@@ -41,13 +40,11 @@ export const useSuperAdminAuth = () => {
       } else {
         console.error("Invalid token response:", data);
         localStorage.removeItem('superadminToken');
-        supabase.functions.setAuth(null);
         return false;
       }
     } catch (err) {
       console.error("Token verification error:", err);
       localStorage.removeItem('superadminToken');
-      supabase.functions.setAuth(null);
       return false;
     }
   };
@@ -113,9 +110,9 @@ export const useSuperAdminAuth = () => {
     try {
       // Clear any existing tokens first
       localStorage.removeItem('superadminToken');
-      supabase.functions.setAuth(null);
       
       // Authenticate against the database via the edge function
+      // Important: Don't set auth header for the initial authentication
       const { data, error } = await supabase.functions.invoke('admin-utils', {
         body: { 
           action: 'authenticate_superadmin',
@@ -137,14 +134,12 @@ export const useSuperAdminAuth = () => {
           title: "Access denied",
           description: data.message || "Invalid username or password. Please try again.",
         });
+        setIsLoading(false);
         return;
       }
       
       // Store the token
       localStorage.setItem('superadminToken', data.token);
-      
-      // Set the auth header for all subsequent Supabase function calls
-      supabase.functions.setAuth(data.token);
       
       // Create a superadmin user object for context
       const superadminUser = {
@@ -192,6 +187,7 @@ export const useSuperAdminAuth = () => {
             title: "Authentication Failed",
             description: "There was an issue with the token verification."
           });
+          setIsLoading(false);
           return;
         }
         
@@ -207,6 +203,7 @@ export const useSuperAdminAuth = () => {
           title: "Authentication Error",
           description: "Please try again."
         });
+        setIsLoading(false);
       }
     } catch (error) {
       console.error('Login error:', error);
@@ -215,6 +212,7 @@ export const useSuperAdminAuth = () => {
         title: "Authentication error",
         description: "An error occurred during authentication.",
       });
+      setIsLoading(false);
     } finally {
       setIsLoading(false);
     }
