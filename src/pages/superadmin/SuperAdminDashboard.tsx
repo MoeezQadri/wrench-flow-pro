@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -40,13 +39,13 @@ const SuperAdminDashboard = () => {
           return;
         }
         
-        // Set the auth header for all Supabase requests
-        const authHeader = `Bearer ${superAdminToken}`;
+        // Set the auth token for all supabase calls
+        supabase.functions.setAuth(superAdminToken);
         
         // Test the auth token with a simple request
         const { data, error } = await supabase.functions.invoke('admin-utils', {
           body: { action: 'verify_token' },
-          headers: { Authorization: authHeader }
+          headers: { Authorization: `Bearer ${superAdminToken}` }
         });
         
         if (error || !data?.verified) {

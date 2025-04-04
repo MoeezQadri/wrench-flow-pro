@@ -56,6 +56,9 @@ export const useSuperAdminAuth = () => {
         console.log("Found existing token, verifying...");
         const isValid = await verifyToken(superAdminToken);
         if (isValid) {
+          // Set the auth token for future API calls
+          supabase.functions.setAuth(superAdminToken);
+          
           // Create a superadmin user object for context
           const superadminUser = {
             id: 'superadmin-id',
@@ -112,7 +115,6 @@ export const useSuperAdminAuth = () => {
       localStorage.removeItem('superadminToken');
       
       // Authenticate against the database via the edge function
-      // Important: Don't set auth header for the initial authentication
       const { data, error } = await supabase.functions.invoke('admin-utils', {
         body: { 
           action: 'authenticate_superadmin',
@@ -140,6 +142,9 @@ export const useSuperAdminAuth = () => {
       
       // Store the token
       localStorage.setItem('superadminToken', data.token);
+      
+      // Set the token for future API calls
+      supabase.functions.setAuth(data.token);
       
       // Create a superadmin user object for context
       const superadminUser = {
@@ -192,9 +197,6 @@ export const useSuperAdminAuth = () => {
         }
         
         console.log("Token verification successful, redirecting to dashboard");
-        
-        // Set the token for future API calls
-        supabase.functions.setAuth(data.token);
         
         // Redirect to the dashboard
         navigate('/superadmin/dashboard');

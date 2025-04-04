@@ -1,4 +1,3 @@
-
 // Follow this setup guide to integrate the Deno language server with your editor:
 // https://deno.land/manual/getting_started/setup_your_environment
 // This enables autocomplete, go to definition, etc.
@@ -19,6 +18,13 @@ const supabaseAdmin = createClient(
   }
 );
 
+// Simple JWT verification function
+function verifyJWT(token: string): boolean {
+  // In a real implementation, you would verify the token signature
+  // This is a simple placeholder verification
+  return !!token && token.length > 20;
+}
+
 serve(async (req) => {
   // This is needed if you're planning to invoke your function from a browser.
   if (req.method === 'OPTIONS') {
@@ -36,68 +42,95 @@ serve(async (req) => {
       );
     }
 
-    switch (action) {
-      case 'authenticate_superadmin': {
-        if (!params || !params.username || !params.password) {
-          return new Response(
-            JSON.stringify({ error: 'Missing credentials' }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-          );
-        }
-
-        console.log('Authenticating superadmin:', params.username);
-
-        // Query the superadmins table for the provided credentials
-        const { data: superadmin, error } = await supabaseAdmin
-          .from('superadmins')
-          .select('id, username, created_at')
-          .eq('username', params.username)
-          .eq('password_hash', params.password)
-          .single();
-
-        if (error || !superadmin) {
-          console.error('Authentication error:', error || 'No matching superadmin found');
-          return new Response(
-            JSON.stringify({ 
-              authenticated: false, 
-              message: 'Invalid username or password' 
-            }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
-
-        // If credentials are valid, generate a token
-        const token = crypto.randomUUID();
-        
-        // Update the last_login timestamp for the superadmin
-        await supabaseAdmin
-          .from('superadmins')
-          .update({ last_login: new Date().toISOString() })
-          .eq('id', superadmin.id);
-
+    // Handle authentication separately
+    if (action === 'authenticate_superadmin') {
+      if (!params || !params.username || !params.password) {
         return new Response(
-          JSON.stringify({
-            authenticated: true,
-            token,
-            superadmin: {
-              id: superadmin.id,
-              username: superadmin.username
-            }
+          JSON.stringify({ error: 'Missing credentials' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        );
+      }
+
+      console.log('Authenticating superadmin:', params.username);
+
+      // Query the superadmins table for the provided credentials
+      const { data: superadmin, error } = await supabaseAdmin
+        .from('superadmins')
+        .select('id, username, created_at')
+        .eq('username', params.username)
+        .eq('password_hash', params.password)
+        .single();
+
+      if (error || !superadmin) {
+        console.error('Authentication error:', error || 'No matching superadmin found');
+        return new Response(
+          JSON.stringify({ 
+            authenticated: false, 
+            message: 'Invalid username or password' 
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
+      // If credentials are valid, generate a JWT token
+      // In a real implementation, you would use a proper JWT library
+      const token = crypto.randomUUID();
+      
+      // Update the last_login timestamp for the superadmin
+      await supabaseAdmin
+        .from('superadmins')
+        .update({ last_login: new Date().toISOString() })
+        .eq('id', superadmin.id);
+
+      return new Response(
+        JSON.stringify({
+          authenticated: true,
+          token,
+          superadmin: {
+            id: superadmin.id,
+            username: superadmin.username
+          }
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // For all other actions, verify authorization
+    if (action !== 'authenticate_superadmin') {
+      // Get the authorization header
+      const authHeader = req.headers.get('Authorization');
+      
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return new Response(
+          JSON.stringify({ error: 'Authentication required', details: 'Missing or invalid Bearer token' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+        );
+      }
+      
+      const token = authHeader.split(' ')[1];
+      
+      // In a production system, verify the JWT token
+      if (!verifyJWT(token)) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid token' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+        );
+      }
+    }
+
+    switch (action) {
       case 'verify_token': {
         // Get the authorization header
         const authHeader = req.headers.get('Authorization');
         
-        if (!authHeader) {
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
           return new Response(
-            JSON.stringify({ verified: false, message: 'No authorization header provided' }),
+            JSON.stringify({ verified: false, message: 'No or invalid authorization header provided' }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
           );
         }
+        
+        const token = authHeader.split(' ')[1];
         
         // Simple verification - in a production system you would validate against 
         // stored tokens or use JWT with proper verification
@@ -108,15 +141,6 @@ serve(async (req) => {
       }
 
       case 'get_organizations': {
-        // Verify auth token before proceeding
-        const authHeader = req.headers.get('Authorization');
-        if (!authHeader) {
-          return new Response(
-            JSON.stringify({ error: 'Authentication required' }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
-          );
-        }
-        
         console.log('Fetching organizations for superadmin');
         
         // Fetch organizations from the database
@@ -140,15 +164,6 @@ serve(async (req) => {
       }
       
       case 'get_users': {
-        // Verify auth token before proceeding
-        const authHeader = req.headers.get('Authorization');
-        if (!authHeader) {
-          return new Response(
-            JSON.stringify({ error: 'Authentication required' }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
-          );
-        }
-        
         console.log('Fetching users for superadmin');
         
         // Get users from both auth.users and profiles
