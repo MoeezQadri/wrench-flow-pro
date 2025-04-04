@@ -340,7 +340,9 @@ function getSupabaseServiceClient() {
   });
 }
 
-export async function handler(req: Deno.Request): Promise<Response> {
+export async function handler(req: Request): Promise<Response> {
+  console.log("Processing request with token starting with:", req.headers.get('Authorization')?.substring(0, 10) + "...\n");
+  
   // Handle CORS preflight request
   if (req.method === 'OPTIONS') {
     return new Response(null, {
@@ -353,6 +355,44 @@ export async function handler(req: Deno.Request): Promise<Response> {
     // Parse the request body
     const { action, params } = await req.json();
     const client = getSupabaseServiceClient();
+    
+    // Verify authentication for all routes except those explicitly excluded
+    if (!['some_public_action'].includes(action)) {
+      try {
+        // Check if the user is authenticated with proper permissions
+        const authHeader = req.headers.get('Authorization');
+        if (!authHeader) {
+          return new Response(JSON.stringify({ error: 'Authorization header is required' }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 401,
+          });
+        }
+
+        // Extract the token from the Authorization header (Bearer token)
+        const token = authHeader.replace('Bearer ', '');
+        
+        if (token === client.supabaseKey) {
+          // Using service key, which is allowed for admin operations
+          console.log("Using service key for authentication");
+        } else {
+          // For regular user tokens, verify they're authenticated
+          const { data: { user }, error: authError } = await client.auth.getUser(token);
+          
+          if (authError || !user) {
+            console.error("Auth error:", authError);
+            throw new Error('Authentication failed');
+          }
+          
+          console.log("Authenticated as user:", user.id);
+        }
+      } catch (authError) {
+        console.error("Auth error:", authError);
+        return new Response(JSON.stringify({ error: 'Authentication failed', details: authError }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 401,
+        });
+      }
+    }
 
     switch (action) {
       case 'delete_organization':

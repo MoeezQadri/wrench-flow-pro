@@ -90,14 +90,29 @@ export async function searchOrganizationById(orgId: string) {
 // Get inactive users based on a specified number of days
 export async function getInactiveUsers(daysInactive: number = 90) {
   try {
-    const { data, error } = await supabase.rpc('get_inactive_users', { days_inactive: daysInactive });
+    console.log('Fetching inactive users for', daysInactive, 'days');
+    
+    const { data, error } = await supabase.rpc(
+      'get_inactive_users', 
+      { days_inactive: daysInactive }
+    );
     
     if (error) {
       console.error('Error fetching inactive users:', error);
       throw error;
     }
     
-    return data || [];
+    // Transform the data to match the expected structure if needed
+    const transformedData = Array.isArray(data) ? data.map(user => ({
+      id: user.id,
+      name: user.name || 'Unknown',
+      email: user.email || '',
+      last_login: user.last_login,
+      days_since_login: user.days_since_login
+    })) : [];
+    
+    console.log(`Retrieved ${transformedData.length} inactive users`);
+    return transformedData;
   } catch (e) {
     console.error('Exception in getInactiveUsers:', e);
     throw e;

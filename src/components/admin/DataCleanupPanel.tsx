@@ -16,7 +16,7 @@ type InactiveUser = {
   id: string;
   name: string;
   email: string;
-  last_login: string;
+  last_login: string | null;
   days_since_login: number;
 };
 
@@ -27,14 +27,20 @@ const DataCleanupPanel = () => {
   const [confirmDialog, setConfirmDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState<InactiveUser | null>(null);
   const [confirmText, setConfirmText] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
   const loadInactiveUsers = async () => {
     setIsLoading(true);
+    setError(null);
+    
     try {
+      console.log('Calling getInactiveUsers with days:', parseInt(daysInactive));
       const data = await getInactiveUsers(parseInt(daysInactive));
-      setInactiveUsers(data);
+      console.log('Received data:', data);
+      setInactiveUsers(data || []);
     } catch (error: any) {
       console.error('Error loading inactive users:', error);
+      setError(error.message || 'Failed to load inactive users');
       toast.error('Failed to load inactive users: ' + (error.message || 'Unknown error'));
     } finally {
       setIsLoading(false);
@@ -68,6 +74,15 @@ const DataCleanupPanel = () => {
 
   const isConfirmButtonDisabled = confirmText !== 'CLEAN';
 
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'Never';
+    try {
+      return new Date(dateString).toLocaleDateString();
+    } catch (e) {
+      return 'Invalid date';
+    }
+  };
+
   return (
     <Card>
       <CardHeader className="space-y-1">
@@ -77,6 +92,14 @@ const DataCleanupPanel = () => {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {error && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+        
         <Alert variant="destructive" className="mb-4">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Warning</AlertTitle>
@@ -133,7 +156,7 @@ const DataCleanupPanel = () => {
                     <TableCell className="font-medium">{user.name}</TableCell>
                     <TableCell>{user.email}</TableCell>
                     <TableCell className="text-center">{user.days_since_login}</TableCell>
-                    <TableCell>{user.last_login ? new Date(user.last_login).toLocaleDateString() : 'Never'}</TableCell>
+                    <TableCell>{formatDate(user.last_login)}</TableCell>
                     <TableCell className="text-right">
                       <Button 
                         variant="ghost" 
@@ -151,11 +174,11 @@ const DataCleanupPanel = () => {
                 <TableRow>
                   <TableCell colSpan={5} className="h-24 text-center">
                     {isLoading ? (
-                      'Loading...'
+                      'Loading inactive users...'
+                    ) : error ? (
+                      'Failed to load inactive users. Please try again later.'
                     ) : (
-                      <>
-                        No inactive users found for the selected criteria.
-                      </>
+                      'No inactive users found for the selected criteria.'
                     )}
                   </TableCell>
                 </TableRow>
