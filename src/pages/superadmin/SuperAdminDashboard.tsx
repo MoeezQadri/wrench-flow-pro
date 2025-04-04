@@ -16,65 +16,58 @@ import OrganizationSearch from "@/components/admin/OrganizationSearch";
 import DataCleanupPanel from "@/components/admin/DataCleanupPanel";
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { Toaster } from 'sonner';
 
 const SuperAdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('metrics');
   const [activeAnalyticsTab, setActiveAnalyticsTab] = useState('overview');
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasAccess, setHasAccess] = useState(false);
   const { currentUser, logout } = useAuthContext();
   const navigate = useNavigate();
   
-  // Set up SuperAdmin token for authenticated API calls
+  // Set up SuperAdmin token and check authorization
   useEffect(() => {
-    const setupSuperAdminAuth = async () => {
-      // Check if we have the superadmin token in localStorage
-      const superAdminToken = localStorage.getItem('superadminToken');
-      
-      if (superAdminToken) {
-        // Set the auth header for all Supabase requests
-        try {
-          console.log('Setting SuperAdmin token for API calls:', superAdminToken.substring(0, 10) + '...');
-          
-          // Explicitly set the token for Supabase Functions
-          supabase.functions.setAuth(superAdminToken);
-          
-          // Test the auth token with a simple request
-          const { data: testData, error: testError } = await supabase.functions.invoke('admin-utils', {
-            body: { action: 'get_organizations', params: {} }
-          });
-          
-          if (testError) {
-            console.error('Error testing admin token:', testError);
-            toast.error('Authentication failed. Please log in again.');
-            navigate('/superadmin/login');
-            return;
-          }
-          
-          console.log('SuperAdmin authentication successful');
-        } catch (error) {
-          console.error('Error setting auth token:', error);
-          toast.error('Authentication error. Please log in again.');
+    const checkAuth = async () => {
+      setIsLoading(true);
+      try {
+        // Check if we have the superadmin token in localStorage
+        const superAdminToken = localStorage.getItem('superadminToken');
+        
+        if (!superAdminToken) {
+          console.warn('No superadmin token found, redirecting to login');
           navigate('/superadmin/login');
+          return;
         }
-      } else {
-        // If no token, redirect to login
-        console.warn('No superadmin token found, redirecting to login');
+        
+        // Set the auth header for all Supabase requests
+        supabase.functions.setAuth(superAdminToken);
+        
+        // Test the auth token with a simple request
+        const { data, error } = await supabase.functions.invoke('admin-utils', {
+          body: { action: 'verify_token' }
+        });
+        
+        if (error || !data?.verified) {
+          console.error('Error verifying admin token:', error || 'Invalid verification response');
+          toast.error('Authentication failed. Please log in again.');
+          navigate('/superadmin/login');
+          return;
+        }
+        
+        console.log('SuperAdmin authentication successful');
+        setHasAccess(true);
+      } catch (error) {
+        console.error('Error checking authentication:', error);
+        toast.error('Authentication error. Please log in again.');
         navigate('/superadmin/login');
+      } finally {
+        setIsLoading(false);
       }
     };
     
-    setupSuperAdminAuth();
+    checkAuth();
   }, [navigate]);
-  
-  useEffect(() => {
-    // Check if user is a superuser
-    if (!currentUser || currentUser.role !== 'superuser') {
-      // Check for token as fallback
-      const superAdminToken = localStorage.getItem('superadminToken');
-      if (!superAdminToken) {
-        navigate('/superadmin/login');
-      }
-    }
-  }, [currentUser, navigate]);
   
   const handleLogout = () => {
     // Clear the superadmin token from local storage
@@ -84,12 +77,26 @@ const SuperAdminDashboard = () => {
     supabase.functions.setAuth(null);
     
     logout();
+    toast.success('Logged out successfully');
     navigate('/superadmin/login');
   };
 
-  // Only render if user has access or token exists
-  const hasAccess = currentUser?.role === 'superuser' || localStorage.getItem('superadminToken');
+  // Show loading state
+  if (isLoading) {
+    return <div className="flex items-center justify-center min-h-screen">
+      <Card className="w-96">
+        <CardHeader>
+          <CardTitle>Loading...</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p>Verifying your superadmin access...</p>
+        </CardContent>
+      </Card>
+      <Toaster />
+    </div>;
+  }
   
+  // Show access denied if not authorized
   if (!hasAccess) {
     return <div className="flex items-center justify-center min-h-screen">
       <Card className="w-96">
@@ -106,6 +113,7 @@ const SuperAdminDashboard = () => {
           </Button>
         </CardContent>
       </Card>
+      <Toaster />
     </div>;
   }
 
@@ -317,6 +325,7 @@ const SuperAdminDashboard = () => {
           </Tabs>
         </div>
       </main>
+      <Toaster />
     </div>
   );
 };

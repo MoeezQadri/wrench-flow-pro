@@ -1,4 +1,3 @@
-
 // Use esm.sh URL instead of import from package name
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.23.0';
@@ -372,7 +371,35 @@ export async function handler(req: Request): Promise<Response> {
     const { action, params } = await req.json();
     const client = getSupabaseServiceClient();
     
-    // Verify authentication for all routes except those explicitly excluded
+    // Special case for token verification - do this first
+    if (action === 'verify_token') {
+      const authHeader = req.headers.get('Authorization');
+      if (!authHeader) {
+        return new Response(JSON.stringify({ error: 'Authorization header is required' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 401,
+        });
+      }
+      
+      // Extract the token from the Authorization header (Bearer token)
+      const token = authHeader.replace('Bearer ', '');
+      
+      // If token starts with superadmin- prefix, consider it valid for this demo
+      if (token.startsWith('superadmin-')) {
+        console.log("Superadmin token verification successful");
+        return new Response(JSON.stringify({ verified: true, token_type: "superadmin" }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        });
+      } else {
+        return new Response(JSON.stringify({ verified: false, reason: "Invalid token format" }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 401,
+        });
+      }
+    }
+    
+    // Verify authentication for all other routes
     if (!['check_email_exists', 'some_public_action'].includes(action)) {
       try {
         // Check if the user is authenticated with proper permissions
@@ -386,18 +413,6 @@ export async function handler(req: Request): Promise<Response> {
 
         // Extract the token from the Authorization header (Bearer token)
         const token = authHeader.replace('Bearer ', '');
-        
-        // Special case for verifying the token itself
-        if (action === 'verify_token') {
-          // If token starts with superadmin- prefix, consider it valid for this demo
-          if (token.startsWith('superadmin-')) {
-            console.log("Token verification successful");
-            return new Response(JSON.stringify({ verified: true, token_type: "superadmin" }), {
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-              status: 200,
-            });
-          }
-        }
         
         if (token === client.supabaseKey) {
           // Using service key, which is allowed for admin operations

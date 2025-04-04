@@ -15,25 +15,32 @@ export const useSuperAdminAuth = () => {
 
   const verifyToken = async (token: string): Promise<boolean> => {
     try {
-      // Clear any existing auth
+      // Clear existing auth state first
       supabase.functions.setAuth(null);
       
-      // Set the token for the verification request
+      // Set the token for verification
       supabase.functions.setAuth(token);
       
-      // Make a test request
+      console.log("Sending verification request with token:", token.substring(0, 20) + '...');
+      
+      // Make the verification request
       const { data, error } = await supabase.functions.invoke('admin-utils', {
-        body: { action: 'verify_token', params: {} }
+        body: { action: 'verify_token' }
       });
       
-      if (!error && data?.verified === true) {
+      if (error) {
+        console.error("Token verification error:", error);
+        localStorage.removeItem('superadminToken');
+        supabase.functions.setAuth(null);
+        return false;
+      }
+      
+      if (data?.verified === true) {
         console.log("Token verification successful:", data);
         return true;
       } else {
-        // Token is invalid, clear it
-        console.error("Invalid superadmin token:", error);
+        console.error("Invalid token response:", data);
         localStorage.removeItem('superadminToken');
-        // Reset auth
         supabase.functions.setAuth(null);
         return false;
       }
@@ -49,12 +56,45 @@ export const useSuperAdminAuth = () => {
     const superAdminToken = localStorage.getItem('superadminToken');
     if (superAdminToken) {
       try {
+        console.log("Found existing token, verifying...");
         const isValid = await verifyToken(superAdminToken);
         if (isValid) {
+          // Create a superadmin user object for context
+          const superadminUser = {
+            id: 'superadmin-id',
+            email: 'superadmin@admin.system',
+            name: 'Super Admin',
+            role: 'superuser' as UserRole,
+            isActive: true,
+            lastLogin: new Date().toISOString()
+          };
+          
+          // Update auth context with superadmin user
+          setCurrentUser(superadminUser);
+          setSession({
+            access_token: superAdminToken,
+            refresh_token: '',
+            token_type: 'bearer',
+            expires_at: Date.now() + 86400000, // 24 hours from now
+            expires_in: 86400,
+            user: {
+              id: 'superadmin-id',
+              email: 'superadmin@admin.system',
+              app_metadata: {},
+              user_metadata: {
+                name: 'Super Admin',
+                role: 'superuser'
+              },
+              aud: 'authenticated',
+              created_at: new Date().toISOString()
+            }
+          });
+          
           toast({
             title: "Session restored",
             description: "Welcome back, SuperAdmin",
           });
+          
           navigate('/superadmin/dashboard');
           return true;
         } else {
@@ -76,7 +116,6 @@ export const useSuperAdminAuth = () => {
       supabase.functions.setAuth(null);
       
       // Fixed credentials - in a real app you'd want these in a secure database
-      // Note: Added two sets of valid credentials
       const validCredentials = [
         { username: 'admin', password: 'superadmin2023' },
         { username: 'superadmin', password: 'admin1234' }
@@ -87,29 +126,14 @@ export const useSuperAdminAuth = () => {
       );
       
       if (isValid) {
-        // Generate a JSON Web Token-like structure for better compatibility
-        // Format: header.payload.signature (mocked for demo purposes)
-        const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
-        const payload = btoa(JSON.stringify({ 
-          sub: 'superadmin-id',
-          name: values.username,
-          role: 'superuser',
-          iat: Math.floor(Date.now() / 1000),
-          exp: Math.floor(Date.now() / 1000) + 86400 // 24 hours
-        }));
-        const signature = btoa(Math.random().toString(36).substring(2, 15));
-        
-        // Create a more standard JWT-like token structure
-        const mockToken = `${header}.${payload}.${signature}`;
-        
-        // Store the token in localStorage with superadmin prefix for easy identification
-        const superadminToken = `superadmin-${mockToken}`;
+        // Generate a simple token with prefix for identification
+        const superadminToken = `superadmin-${Date.now()}-${Math.random().toString(36).substring(2)}`;
         localStorage.setItem('superadminToken', superadminToken);
         
         // Set the auth header for all subsequent Supabase function calls
         supabase.functions.setAuth(superadminToken);
         
-        // Create a mock superadmin user object for context
+        // Create a superadmin user object for context
         const superadminUser = {
           id: 'superadmin-id',
           email: values.username + '@admin.system',
@@ -147,13 +171,9 @@ export const useSuperAdminAuth = () => {
         
         // Verify the token works before redirecting
         try {
-          const { data: verifyData, error: verifyError } = await supabase.functions.invoke('admin-utils', {
-            body: { action: 'verify_token', params: {} }
-          });
+          const isValid = await verifyToken(superadminToken);
           
-          if (verifyError || !verifyData?.verified) {
-            console.error('Error verifying admin token:', verifyError);
-            
+          if (!isValid) {
             toast({
               variant: "destructive",
               title: "Authentication Failed",
@@ -164,10 +184,8 @@ export const useSuperAdminAuth = () => {
           
           console.log("Token verification successful, redirecting to dashboard");
           
-          // Redirect to the dashboard with a slight delay to ensure token is set
-          setTimeout(() => {
-            navigate('/superadmin/dashboard');
-          }, 500);
+          // Redirect to the dashboard
+          navigate('/superadmin/dashboard');
         } catch (verifyError) {
           console.error('Error verifying token:', verifyError);
           
