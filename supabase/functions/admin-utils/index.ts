@@ -1,4 +1,3 @@
-
 // Use esm.sh URL instead of import from package name
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.23.0';
@@ -377,7 +376,7 @@ export async function handler(req: Request): Promise<Response> {
           console.log("Using service key for authentication");
         } else if (token.startsWith('superadmin-')) {
           // Allow superadmin mock tokens
-          console.log("Using superadmin mock token:", token);
+          console.log("Using superadmin mock token:", token.substring(0, 15) + "...");
         } else {
           // For regular user tokens, verify they're authenticated
           const { data: { user }, error: authError } = await client.auth.getUser(token);

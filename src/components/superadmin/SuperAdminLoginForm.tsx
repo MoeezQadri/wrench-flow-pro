@@ -8,7 +8,7 @@ import { Form, FormField, FormItem, FormControl, FormMessage } from '@/component
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { AlertTriangle, LockKeyhole, User } from 'lucide-react';
+import { AlertTriangle, Info, LockKeyhole, User } from 'lucide-react';
 
 // Form validation schema
 const formSchema = z.object({
@@ -33,8 +33,13 @@ const SuperAdminLoginForm: React.FC<SuperAdminLoginFormProps> = ({ onSubmit, isL
     }
   });
 
+  const handleCredentialsFill = (username: string, password: string) => {
+    form.setValue('username', username);
+    form.setValue('password', password);
+  };
+
   return (
-    <Card className="w-full max-w-md">
+    <Card className="w-full max-w-md shadow-lg">
       <CardHeader className="space-y-1">
         <div className="flex items-center space-x-2 text-red-600">
           <AlertTriangle className="h-6 w-6" />
@@ -96,9 +101,25 @@ const SuperAdminLoginForm: React.FC<SuperAdminLoginFormProps> = ({ onSubmit, isL
               {isLoading ? "Authenticating..." : "Access System"}
             </Button>
             
-            <div className="text-xs text-center text-gray-500 mt-4">
-              <p>Default Credentials (for demo):</p>
-              <p>Username: admin | Password: superadmin2023</p>
+            <div className="mt-6 border rounded-lg p-3 bg-slate-50">
+              <div className="flex items-center space-x-2 mb-2 text-sm text-gray-700">
+                <Info className="h-4 w-4 text-blue-500" />
+                <span className="font-medium">Available Credentials (for demo)</span>
+              </div>
+              <div className="grid gap-2">
+                <div className="border rounded p-2 text-xs bg-white hover:bg-gray-50 cursor-pointer transition-colors"
+                     onClick={() => handleCredentialsFill('admin', 'superadmin2023')}>
+                  <div className="font-semibold">Option 1</div>
+                  <div>Username: <span className="text-blue-600">admin</span></div>
+                  <div>Password: <span className="text-blue-600">superadmin2023</span></div>
+                </div>
+                <div className="border rounded p-2 text-xs bg-white hover:bg-gray-50 cursor-pointer transition-colors"
+                     onClick={() => handleCredentialsFill('superadmin', 'admin1234')}>
+                  <div className="font-semibold">Option 2</div>
+                  <div>Username: <span className="text-blue-600">superadmin</span></div>
+                  <div>Password: <span className="text-blue-600">admin1234</span></div>
+                </div>
+              </div>
             </div>
           </form>
         </Form>

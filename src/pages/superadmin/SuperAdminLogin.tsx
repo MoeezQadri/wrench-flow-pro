@@ -2,6 +2,7 @@
 import React, { useEffect } from 'react';
 import SuperAdminLoginForm from '@/components/superadmin/SuperAdminLoginForm';
 import { useSuperAdminAuth } from '@/hooks/useSuperAdminAuth';
+import { Toaster } from '@/components/ui/toaster';
 
 const SuperAdminLogin = () => {
   const { isLoading, handleLogin, checkExistingSession } = useSuperAdminAuth();
@@ -17,6 +18,7 @@ const SuperAdminLogin = () => {
         onSubmit={handleLogin} 
         isLoading={isLoading} 
       />
+      <Toaster />
     </div>
   );
 };
