@@ -44,7 +44,8 @@ export const createUserFromSession = (
  * Updates the user's last login time in the database
  */
 export const updateLastLogin = async (userId: string): Promise<void> => {
-  const { error } = await supabase.rpc<any, UpdateLastLoginParams>('update_last_login', {
+  // Fix: Change the type parameters for rpc to match what Supabase expects
+  const { error } = await supabase.rpc('update_last_login', {
     user_id: userId,
     login_time: new Date().toISOString()
   });
