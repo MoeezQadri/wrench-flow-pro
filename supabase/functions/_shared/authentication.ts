@@ -8,7 +8,7 @@ export async function authenticateSuperadmin(username: string, password: string)
   console.log('Authenticating superadmin:', username);
 
   try {
-    // Use the database function for authentication instead of direct query
+    // Use the database function for authentication with properly aliased parameters
     const { data, error } = await supabaseAdmin.rpc(
       'superadmin_login',
       {
@@ -17,8 +17,16 @@ export async function authenticateSuperadmin(username: string, password: string)
       }
     );
 
-    if (error || !data || data.authenticated === false) {
-      console.error('Authentication error:', error || data.message || 'Login failed');
+    if (error) {
+      console.error('Authentication error:', error);
+      return { 
+        authenticated: false, 
+        message: error.message || 'Invalid username or password' 
+      };
+    }
+
+    if (!data || data.authenticated === false) {
+      console.error('Login failed:', data?.message || 'Unknown error');
       return { 
         authenticated: false, 
         message: data?.message || 'Invalid username or password' 

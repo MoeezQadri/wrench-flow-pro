@@ -8,6 +8,11 @@ export const useTokenVerification = () => {
 
   const verifyToken = async (token: string): Promise<boolean> => {
     try {
+      if (!token || token.trim() === '') {
+        console.error("Empty token provided for verification");
+        return false;
+      }
+      
       // CRITICAL: Set the auth token for all supabase API calls
       supabase.functions.setAuth(token);
       
