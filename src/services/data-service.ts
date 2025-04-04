@@ -1,4 +1,5 @@
-import { v4 as uuidv4 } from 'uuid';
+
+import { nanoid } from "nanoid";
 import {
   fetchCustomers,
   fetchCustomerById,
@@ -184,6 +185,15 @@ let mechanics: Mechanic[] = [
     isActive: true
   }
 ];
+
+interface Vendor {
+  id: string;
+  name: string;
+  contactName: string;
+  email: string;
+  phone: string;
+  address: string;
+}
 
 let vendors: Vendor[] = [
   {
@@ -620,14 +630,14 @@ let attendanceRecords: Attendance[] = [
 ];
 
 // Helper functions
-export const generateId = (prefix: string): string => `${prefix}_${uuidv4().substring(0, 8)}`;
+export const generateId = (prefix: string): string => `${prefix}_${nanoid(8)}`;
 
 // Current user simulation - in a real app, this would come from auth
 let currentUser: User = {
   id: 'user_1',
   name: 'John Doe',
   email: 'john@example.com',
-  role: 'manager',
+  role: 'manager' as UserRole,
   isActive: true,
   lastLogin: '2023-04-01'
 };
@@ -656,7 +666,7 @@ export function hasPermission(
     return !!permissions.dashboard;
   }
 
-  const resourcePermissions = permissions[resource];
+  const resourcePermissions = permissions[resource as keyof typeof permissions];
   if (!resourcePermissions) return false;
 
   // Check if the resource permissions has the action
@@ -710,7 +720,8 @@ export const addCustomer = async (customerData: Omit<Customer, 'id' | 'vehicles'
       ...customerData,
       vehicles: [],
       totalVisits: 0,
-      lifetimeValue: 0
+      lifetimeValue: 0,
+      lastVisit: ''
     };
     customers.push(newCustomer);
     return newCustomer;
@@ -864,7 +875,6 @@ export const getCustomerAnalytics = async (customerId: string): Promise<Customer
     const averageInvoiceValue = totalInvoices > 0 ? lifetimeValue / totalInvoices : 0;
     
     return {
-      totalSpent: lifetimeValue,
       invoiceCount: totalInvoices,
       lastVisit: customerInvoices.length > 0 
         ? customerInvoices.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0].date 
@@ -879,7 +889,6 @@ export const getCustomerAnalytics = async (customerId: string): Promise<Customer
     console.error(`Error getting analytics for customer ${customerId}:`, error);
     // Return empty/default values
     return {
-      totalSpent: 0,
       invoiceCount: 0,
       lastVisit: 'Never',
       lifetimeValue: 0,
@@ -939,5 +948,37 @@ export const getAttendance = async (): Promise<Attendance[]> => {
   }
 };
 
-// Export mock data for use in components
-export { vendors, parts, tasks, expenses, attendanceRecords as attendance };
+// Temporary functions to avoid errors in other files
+export const getVendorById = async (id: string): Promise<any> => {
+  return vendors.find(vendor => vendor.id === id) || null;
+};
+
+export const addVendor = async (vendorData: any): Promise<any> => {
+  const newVendor = {
+    id: generateId('ven'),
+    ...vendorData
+  };
+  vendors.push(newVendor);
+  return newVendor;
+};
+
+export const recordAttendance = async (attendanceData: any): Promise<any> => {
+  const newAttendance = {
+    id: generateId('att'),
+    ...attendanceData
+  };
+  attendanceRecords.push(newAttendance);
+  return newAttendance;
+};
+
+export const approveAttendance = async (id: string, approvedBy: string): Promise<any> => {
+  const attendance = attendanceRecords.find(att => att.id === id);
+  if (attendance) {
+    attendance.status = 'approved';
+    attendance.approvedBy = approvedBy;
+  }
+  return attendance;
+};
+
+// Export the helper functions and mock data
+export { vendors, parts, tasks, expenses, attendanceRecords as attendance, mechanics, customers, invoices };
