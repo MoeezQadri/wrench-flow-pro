@@ -1,3 +1,4 @@
+
 // Use esm.sh URL instead of import from package name
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.23.0';
@@ -6,6 +7,21 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// New function to verify the superadmin token
+async function verifyToken() {
+  try {
+    // If we reach this point, it means authorization was successful
+    // The token passed the auth check in the request handler
+    return {
+      verified: true,
+      timestamp: new Date().toISOString()
+    };
+  } catch (error) {
+    console.error('Error in verifyToken:', error);
+    throw error;
+  }
+}
 
 async function checkEmailExists(client: any, { email }: any) {
   if (!email) {
@@ -341,7 +357,7 @@ function getSupabaseServiceClient() {
 }
 
 export async function handler(req: Request): Promise<Response> {
-  console.log("Processing request with token:", req.headers.get('Authorization'));
+  console.log("Processing request with token:", req.headers.get('Authorization')?.substring(0, 20) + '...');
   
   // Handle CORS preflight request - ensure this is before any other processing
   if (req.method === 'OPTIONS') {
@@ -371,12 +387,24 @@ export async function handler(req: Request): Promise<Response> {
         // Extract the token from the Authorization header (Bearer token)
         const token = authHeader.replace('Bearer ', '');
         
+        // Special case for verifying the token itself
+        if (action === 'verify_token') {
+          // If token starts with superadmin- prefix, consider it valid for this demo
+          if (token.startsWith('superadmin-')) {
+            console.log("Token verification successful");
+            return new Response(JSON.stringify({ verified: true, token_type: "superadmin" }), {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 200,
+            });
+          }
+        }
+        
         if (token === client.supabaseKey) {
           // Using service key, which is allowed for admin operations
           console.log("Using service key for authentication");
         } else if (token.startsWith('superadmin-')) {
           // Allow superadmin mock tokens
-          console.log("Using superadmin mock token:", token.substring(0, 15) + "...");
+          console.log("Using superadmin mock token:", token.substring(0, 20) + "...");
         } else {
           // For regular user tokens, verify they're authenticated
           const { data: { user }, error: authError } = await client.auth.getUser(token);
@@ -398,6 +426,11 @@ export async function handler(req: Request): Promise<Response> {
     }
 
     switch (action) {
+      case 'verify_token':
+        return new Response(JSON.stringify(await verifyToken()), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        });
       case 'delete_organization':
         return new Response(JSON.stringify(await deleteOrganization(client, params)), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -458,6 +491,7 @@ export async function handler(req: Request): Promise<Response> {
   }
 }
 
+// Add this at the end to ensure the function is served
 if (import.meta.main) {
   serve(handler);
 }

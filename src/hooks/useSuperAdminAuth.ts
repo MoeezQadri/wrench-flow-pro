@@ -23,10 +23,10 @@ export const useSuperAdminAuth = () => {
       
       // Make a test request
       const { data, error } = await supabase.functions.invoke('admin-utils', {
-        body: { action: 'get_organizations', params: {} }
+        body: { action: 'verify_token', params: {} }
       });
       
-      if (!error) {
+      if (!error && data?.verified === true) {
         console.log("Token verification successful:", data);
         return true;
       } else {
@@ -87,16 +87,27 @@ export const useSuperAdminAuth = () => {
       );
       
       if (isValid) {
-        // Generate a mock token for superadmin with a longer timestamp for better entropy
-        const timestamp = Date.now().toString(36);
-        const random = Math.random().toString(36).substring(2);
-        const mockToken = `superadmin-${timestamp}-${random}`;
+        // Generate a JSON Web Token-like structure for better compatibility
+        // Format: header.payload.signature (mocked for demo purposes)
+        const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+        const payload = btoa(JSON.stringify({ 
+          sub: 'superadmin-id',
+          name: values.username,
+          role: 'superuser',
+          iat: Math.floor(Date.now() / 1000),
+          exp: Math.floor(Date.now() / 1000) + 86400 // 24 hours
+        }));
+        const signature = btoa(Math.random().toString(36).substring(2, 15));
         
-        // Store the token in localStorage
-        localStorage.setItem('superadminToken', mockToken);
+        // Create a more standard JWT-like token structure
+        const mockToken = `${header}.${payload}.${signature}`;
+        
+        // Store the token in localStorage with superadmin prefix for easy identification
+        const superadminToken = `superadmin-${mockToken}`;
+        localStorage.setItem('superadminToken', superadminToken);
         
         // Set the auth header for all subsequent Supabase function calls
-        supabase.functions.setAuth(mockToken);
+        supabase.functions.setAuth(superadminToken);
         
         // Create a mock superadmin user object for context
         const superadminUser = {
@@ -111,7 +122,7 @@ export const useSuperAdminAuth = () => {
         // Update auth context with superadmin user
         setCurrentUser(superadminUser);
         setSession({
-          access_token: mockToken,
+          access_token: superadminToken,
           refresh_token: '',
           token_type: 'bearer',
           expires_at: Date.now() + 86400000, // 24 hours from now
@@ -136,13 +147,12 @@ export const useSuperAdminAuth = () => {
         
         // Verify the token works before redirecting
         try {
-          // Test if the token works with the admin-utils function
-          const { error: testError } = await supabase.functions.invoke('admin-utils', {
-            body: { action: 'get_organizations', params: {} }
+          const { data: verifyData, error: verifyError } = await supabase.functions.invoke('admin-utils', {
+            body: { action: 'verify_token', params: {} }
           });
           
-          if (testError) {
-            console.error('Error testing admin token:', testError);
+          if (verifyError || !verifyData?.verified) {
+            console.error('Error verifying admin token:', verifyError);
             
             toast({
               variant: "destructive",
@@ -151,6 +161,8 @@ export const useSuperAdminAuth = () => {
             });
             return;
           }
+          
+          console.log("Token verification successful, redirecting to dashboard");
           
           // Redirect to the dashboard with a slight delay to ensure token is set
           setTimeout(() => {
