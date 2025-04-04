@@ -91,7 +91,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             if (profileData) {
               await supabase
                 .from('profiles')
-                .update({ lastLogin: new Date().toISOString() })
+                .update({ 
+                  "lastLogin": new Date().toISOString() 
+                })
                 .eq('id', newSession.user.id);
             }
             
@@ -148,7 +150,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           if (profileData) {
             await supabase
               .from('profiles')
-              .update({ lastLogin: new Date().toISOString() })
+              .update({ 
+                "lastLogin": new Date().toISOString() 
+              })
               .eq('id', initialSession.user.id);
           }
           

@@ -110,6 +110,7 @@ export type Database = {
           created_at: string | null
           id: string
           is_active: boolean | null
+          lastLogin: string | null
           name: string | null
           organization_id: string | null
           role: string | null
@@ -119,6 +120,7 @@ export type Database = {
           created_at?: string | null
           id: string
           is_active?: boolean | null
+          lastLogin?: string | null
           name?: string | null
           organization_id?: string | null
           role?: string | null
@@ -128,6 +130,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           is_active?: boolean | null
+          lastLogin?: string | null
           name?: string | null
           organization_id?: string | null
           role?: string | null
