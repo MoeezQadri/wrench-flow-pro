@@ -8,7 +8,7 @@ export async function authenticateSuperadmin(username: string, password: string)
   console.log('Authenticating superadmin:', username);
 
   try {
-    // Use the database function for authentication with properly aliased parameters
+    // Use the database function for authentication with table aliasing to avoid ambiguity
     const { data, error } = await supabaseAdmin.rpc(
       'superadmin_login',
       {
