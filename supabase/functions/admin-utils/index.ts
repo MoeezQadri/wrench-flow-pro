@@ -18,11 +18,53 @@ const supabaseAdmin = createClient(
   }
 );
 
-// Simple JWT verification function
-function verifyJWT(token: string): boolean {
-  // In a real implementation, you would verify the token signature
-  // This is a simple placeholder verification
-  return !!token && token.length > 20;
+// Secret key for verifying JWT tokens - in production, use a proper secret
+const JWT_SECRET = Deno.env.get('JWT_SECRET') || 'superadmin-jwt-secret-2024';
+
+// Improved JWT verification function
+async function verifyJWT(token: string): Promise<boolean> {
+  if (!token || token.length < 20) {
+    console.log("Token missing or too short");
+    return false;
+  }
+  
+  try {
+    // In a real implementation, we would verify the JWT signature here
+    // For now, we'll check if the token exists in our storage
+    const { data, error } = await supabaseAdmin
+      .from('superadmin_sessions')
+      .select('*')
+      .eq('token', token)
+      .single();
+      
+    if (error || !data) {
+      console.log("Token not found in database or error:", error);
+      return false;
+    }
+    
+    // Check if token is expired
+    if (data.expires_at && new Date(data.expires_at) < new Date()) {
+      console.log("Token expired");
+      // Clean up expired token
+      await supabaseAdmin
+        .from('superadmin_sessions')
+        .delete()
+        .eq('token', token);
+      return false;
+    }
+    
+    return true;
+  } catch (err) {
+    console.error("Error verifying token:", err);
+    return false;
+  }
+}
+
+// Generate a secure random token
+function generateSecureToken(): string {
+  const array = new Uint8Array(32);
+  crypto.getRandomValues(array);
+  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
 }
 
 serve(async (req) => {
@@ -72,9 +114,32 @@ serve(async (req) => {
         );
       }
 
-      // If credentials are valid, generate a JWT token
-      // In a real implementation, you would use a proper JWT library
-      const token = crypto.randomUUID();
+      // Generate a secure token
+      const token = generateSecureToken();
+      
+      // Calculate expiration (24 hours from now)
+      const expiresAt = new Date();
+      expiresAt.setHours(expiresAt.getHours() + 24);
+      
+      // Store the token in the superadmin_sessions table
+      const { error: sessionError } = await supabaseAdmin
+        .from('superadmin_sessions')
+        .insert({
+          superadmin_id: superadmin.id,
+          token,
+          expires_at: expiresAt.toISOString()
+        });
+        
+      if (sessionError) {
+        console.error('Error storing session:', sessionError);
+        return new Response(
+          JSON.stringify({ 
+            authenticated: false, 
+            message: 'Error creating session' 
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
       
       // Update the last_login timestamp for the superadmin
       await supabaseAdmin
@@ -102,17 +167,21 @@ serve(async (req) => {
       
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return new Response(
-          JSON.stringify({ error: 'Authentication required', details: 'Missing or invalid Bearer token' }),
+          JSON.stringify({ 
+            error: 'Authentication required', 
+            details: 'Missing or invalid Bearer token'
+          }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
         );
       }
       
       const token = authHeader.split(' ')[1];
       
-      // In a production system, verify the JWT token
-      if (!verifyJWT(token)) {
+      // Verify the JWT token
+      const isValid = await verifyJWT(token);
+      if (!isValid) {
         return new Response(
-          JSON.stringify({ error: 'Invalid token' }),
+          JSON.stringify({ error: 'Invalid or expired token' }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
         );
       }
@@ -132,10 +201,10 @@ serve(async (req) => {
         
         const token = authHeader.split(' ')[1];
         
-        // Simple verification - in a production system you would validate against 
-        // stored tokens or use JWT with proper verification
+        // Verify the token
+        const isValid = await verifyJWT(token);
         return new Response(
-          JSON.stringify({ verified: true }),
+          JSON.stringify({ verified: isValid }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
