@@ -184,6 +184,45 @@ serve(async (req) => {
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+    
+    // Add a new action to search for organization by ID
+    if (action === 'search_organization') {
+      const { org_id } = params;
+      
+      // Search for the organization
+      const { data: orgData, error: orgError } = await supabase
+        .from('organizations')
+        .select('*')
+        .eq('id', org_id)
+        .single();
+        
+      if (orgError && orgError.code !== 'PGRST116') {
+        throw orgError;
+      }
+      
+      // If organization found, also get users associated with it
+      if (orgData) {
+        const { data: usersData, error: usersError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('organization_id', org_id);
+          
+        if (usersError) throw usersError;
+        
+        return new Response(
+          JSON.stringify({ 
+            organization: orgData,
+            users: usersData || []
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      return new Response(
+        JSON.stringify(null),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     return new Response(
       JSON.stringify({ error: 'Invalid action' }),

@@ -36,6 +36,9 @@ const Register = () => {
     setIsLoading(true);
     
     try {
+      // Generate a unique organization ID
+      const orgId = crypto.randomUUID();
+      
       // Register the user with Supabase
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -43,7 +46,7 @@ const Register = () => {
         options: {
           data: {
             name,
-            organization_id: organizationName,
+            organization_id: orgId,
             role: 'owner'
           }
         }
@@ -52,6 +55,21 @@ const Register = () => {
       if (error) throw error;
       
       if (data.user && data.session) {
+        // Create the organization in the organizations table
+        const { error: orgError } = await supabase
+          .from('organizations')
+          .insert({
+            id: orgId,
+            name: organizationName,
+            subscription_level: 'trial',
+            subscription_status: 'active'
+          });
+          
+        if (orgError) {
+          console.error('Error creating organization:', orgError);
+          // Continue anyway as the user is created
+        }
+        
         // Update auth context
         setSession(data.session);
         setCurrentUser({
@@ -60,7 +78,7 @@ const Register = () => {
           name: data.user.user_metadata?.name || '',
           role: 'owner',
           isActive: true,
-          organizationId: organizationName,
+          organizationId: orgId,
           lastLogin: new Date().toISOString()
         });
         

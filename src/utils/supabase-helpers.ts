@@ -73,3 +73,17 @@ export async function getUserProfiles() {
   if (error) throw error;
   return data || [];
 }
+
+// Add a new helper to search for organizations by ID
+export async function searchOrganizationById(orgId: string) {
+  const { data, error } = await supabase.functions.invoke('admin-utils', {
+    body: {
+      action: 'search_organization',
+      params: { org_id: orgId }
+    }
+  });
+  
+  if (error) throw error;
+  return data || null;
+}
+

@@ -5,13 +5,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuthContext } from '@/context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, BarChart, Users, CreditCard, Settings, LogOut, Activity, LineChart, PieChart, MousePointer, Package, Shield } from 'lucide-react';
+import { AlertTriangle, BarChart, Users, CreditCard, Settings, LogOut, Activity, LineChart, PieChart, MousePointer, Package, Shield, Search } from 'lucide-react';
 import AdminMetricsPanel from '@/components/admin/AdminMetricsPanel';
 import AdminUserManagement from '@/components/admin/AdminUserManagement';
 import AdminPaymentManagement from '@/components/admin/AdminPaymentManagement';
 import AdminAnalyticsIntegration from '@/components/admin/AdminAnalyticsIntegration';
 import SubscriptionPlansManagement from '@/components/admin/SubscriptionPlansManagement';
 import RolesManagementTab from '@/components/settings/RolesManagementTab';
+import OrganizationSearch from '@/components/admin/OrganizationSearch';
 
 const SuperAdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('metrics');
@@ -66,7 +67,7 @@ const SuperAdminDashboard = () => {
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid grid-cols-7 md:w-fit">
+            <TabsList className="grid grid-cols-8 md:w-fit">
               <TabsTrigger value="metrics">
                 <BarChart className="h-4 w-4 mr-2" />
                 Metrics
@@ -86,6 +87,10 @@ const SuperAdminDashboard = () => {
               <TabsTrigger value="roles">
                 <Shield className="h-4 w-4 mr-2" />
                 Roles
+              </TabsTrigger>
+              <TabsTrigger value="search">
+                <Search className="h-4 w-4 mr-2" />
+                Search
               </TabsTrigger>
               <TabsTrigger value="settings">
                 <Settings className="h-4 w-4 mr-2" />
@@ -115,6 +120,10 @@ const SuperAdminDashboard = () => {
             
             <TabsContent value="roles" className="space-y-6">
               <RolesManagementTab />
+            </TabsContent>
+            
+            <TabsContent value="search" className="space-y-6">
+              <OrganizationSearch />
             </TabsContent>
             
             <TabsContent value="settings" className="space-y-6">
