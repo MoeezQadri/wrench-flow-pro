@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -37,18 +37,19 @@ import { Badge } from "@/components/ui/badge";
 import StatusBadge from "@/components/StatusBadge";
 import { 
   calculateInvoiceTotal, 
-  expenses, 
+  getExpenses,
   getCustomers, 
   getExpensesByDateRange, 
   getPartExpenses, 
   getPayables, 
   getPaymentsByDateRange, 
   getReceivables, 
-  invoices, 
-  payments 
+  getInvoices,
+  addExpense
 } from "@/services/data-service";
 import { InvoiceStatus, Expense } from "@/types";
 import ExpenseDialog from "@/components/expense/ExpenseDialog";
+import { toast } from "sonner";
 
 // Define colors for charts
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
@@ -100,8 +101,43 @@ const Finance = () => {
   const [selectedCustomer, setSelectedCustomer] = useState<string>('all');
   const [isExpenseDialogOpen, setIsExpenseDialogOpen] = useState(false);
   
-  // Get all customers for filtering
-  const customers = getCustomers();
+  // State for all data
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [invoices, setInvoices] = useState<any[]>([]);
+  const [payments, setPayments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  // Load data on component mount
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const [expensesData, customersData, invoicesData] = await Promise.all([
+          getExpenses(),
+          getCustomers(),
+          getInvoices()
+        ]);
+        
+        setExpenses(expensesData);
+        setCustomers(customersData);
+        setInvoices(invoicesData);
+        
+        // Extract payments from invoices
+        const allPayments = invoicesData.flatMap(inv => 
+          inv.payments.map(p => ({...p, invoiceId: inv.id}))
+        );
+        setPayments(allPayments);
+      } catch (error) {
+        console.error("Error loading finance data:", error);
+        toast.error("Failed to load finance data. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, []);
   
   // Filter transactions by date
   const dateInvoices = invoices.filter(inv => inv.date === selectedDate);
@@ -109,9 +145,17 @@ const Finance = () => {
   const datePayments = payments.filter(payment => payment.date === selectedDate);
   
   // Get date range data for reports
-  const rangePayments = getPaymentsByDateRange(startDate, endDate);
-  const rangeExpenses = getExpensesByDateRange(startDate, endDate);
-  const partExpenses = getPartExpenses().filter(exp => exp.date === selectedDate);
+  const rangePayments = payments.filter(payment => {
+    const paymentDate = new Date(payment.date);
+    return paymentDate >= new Date(startDate) && paymentDate <= new Date(endDate);
+  });
+  
+  const rangeExpenses = expenses.filter(exp => {
+    const expenseDate = new Date(exp.date);
+    return expenseDate >= new Date(startDate) && expenseDate <= new Date(endDate);
+  });
+  
+  const partExpenses = expenses.filter(exp => exp.date === selectedDate && exp.category === 'parts');
   
   // Calculate daily totals
   const totalIncome = datePayments.reduce((sum, payment) => sum + payment.amount, 0);
@@ -122,8 +166,8 @@ const Finance = () => {
   const cashInHand = 10000 + netCashflow; // Assuming starting cash balance is 10,000
   
   // Get receivables and payables
-  const receivables = getReceivables();
-  const payables = getPayables();
+  const receivables = invoices.filter(inv => inv.status !== 'paid');
+  const payables = expenses.filter(exp => exp.paymentStatus !== 'paid');
   
   const receivablesAmount = receivables.reduce((sum, invoice) => {
     const { total } = calculateInvoiceTotal(invoice);
@@ -273,12 +317,25 @@ const Finance = () => {
   ].sort((a, b) => a.time.localeCompare(b.time));
 
   // Handler for saving a new expense
-  const handleSaveExpense = (expense: Expense) => {
-    console.log('New expense saved:', expense);
-    // In a real application, this would send the expense to the server
-    // For now, let's just close the dialog and refresh data would happen on the next API call
-    setIsExpenseDialogOpen(false);
+  const handleSaveExpense = async (expense: Expense) => {
+    try {
+      // Add the expense to the database through our service
+      const newExpense = await addExpense(expense);
+      
+      // Update the local state with the new expense
+      setExpenses(prevExpenses => [...prevExpenses, newExpense]);
+      
+      toast.success('Expense added successfully');
+      setIsExpenseDialogOpen(false);
+    } catch (error) {
+      console.error('Error saving expense:', error);
+      toast.error('Failed to add expense. Please try again.');
+    }
   };
+
+  if (loading) {
+    return <div className="p-6 flex items-center justify-center">Loading finance data...</div>;
+  }
 
   return (
     <div className="space-y-6">

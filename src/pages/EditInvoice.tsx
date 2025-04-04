@@ -4,7 +4,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import InvoiceForm from "@/components/InvoiceForm";
-import { invoices } from "@/services/data-service";
+import { getInvoiceById } from "@/services/data-service";
 import { toast } from "sonner";
 import { Invoice, InvoiceStatus } from "@/types";
 
@@ -15,38 +15,48 @@ const EditInvoice = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (id) {
-      // Fetch the invoice by ID
-      const foundInvoice = invoices.find(inv => inv.id === id);
-      
-      if (foundInvoice) {
-        // Check if invoice status allows editing
-        const canEdit = ['open', 'in-progress', 'completed', 'partial'].includes(foundInvoice.status);
-        
-        if (!canEdit) {
-          toast.error("This invoice cannot be edited in its current status.");
+    const fetchInvoice = async () => {
+      if (id) {
+        try {
+          // Fetch the invoice by ID from Supabase
+          const foundInvoice = await getInvoiceById(id);
+          
+          if (foundInvoice) {
+            // Check if invoice status allows editing
+            const canEdit = ['open', 'in-progress', 'completed', 'partial'].includes(foundInvoice.status);
+            
+            if (!canEdit) {
+              toast.error("This invoice cannot be edited in its current status.");
+              navigate("/invoices");
+              return;
+            }
+            
+            // Ensure the found invoice matches the expected type by making required fields explicit
+            const typedInvoice: Invoice = {
+              ...foundInvoice,
+              notes: foundInvoice.notes || '', // Ensure notes is never undefined
+              payments: foundInvoice.payments?.map(payment => ({
+                ...payment,
+                notes: payment.notes || '' // Ensure payment notes is never undefined
+              })) || []
+            };
+            
+            setInvoice(typedInvoice);
+          } else {
+            toast.error("Invoice not found.");
+            navigate("/invoices");
+          }
+        } catch (error) {
+          console.error("Error loading invoice:", error);
+          toast.error("Failed to load invoice. Please try again.");
           navigate("/invoices");
-          return;
         }
-        
-        // Ensure the found invoice matches the expected type by making required fields explicit
-        const typedInvoice: Invoice = {
-          ...foundInvoice,
-          notes: foundInvoice.notes || '', // Ensure notes is never undefined
-          payments: foundInvoice.payments?.map(payment => ({
-            ...payment,
-            notes: payment.notes || '' // Ensure payment notes is never undefined
-          })) || []
-        };
-        
-        setInvoice(typedInvoice);
-      } else {
-        toast.error("Invoice not found.");
-        navigate("/invoices");
       }
-    }
-    
-    setLoading(false);
+      
+      setLoading(false);
+    };
+
+    fetchInvoice();
   }, [id, navigate]);
 
   if (loading) {

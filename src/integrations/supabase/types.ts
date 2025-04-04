@@ -9,6 +9,57 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      attendance: {
+        Row: {
+          approved_by: string | null
+          check_in: string
+          check_out: string | null
+          created_at: string | null
+          date: string
+          id: string
+          mechanic_id: string
+          notes: string | null
+          status: string
+        }
+        Insert: {
+          approved_by?: string | null
+          check_in: string
+          check_out?: string | null
+          created_at?: string | null
+          date: string
+          id?: string
+          mechanic_id: string
+          notes?: string | null
+          status: string
+        }
+        Update: {
+          approved_by?: string | null
+          check_in?: string
+          check_out?: string | null
+          created_at?: string | null
+          date?: string
+          id?: string
+          mechanic_id?: string
+          notes?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_mechanic_id_fkey"
+            columns: ["mechanic_id"]
+            isOneToOne: false
+            referencedRelation: "mechanics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       blog_posts: {
         Row: {
           content: string
@@ -78,6 +129,226 @@ export type Database = {
         }
         Relationships: []
       }
+      customers: {
+        Row: {
+          address: string | null
+          created_at: string | null
+          email: string | null
+          id: string
+          last_visit: string | null
+          lifetime_value: number | null
+          name: string
+          phone: string | null
+          total_visits: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          last_visit?: string | null
+          lifetime_value?: number | null
+          name: string
+          phone?: string | null
+          total_visits?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          last_visit?: string | null
+          lifetime_value?: number | null
+          name?: string
+          phone?: string | null
+          total_visits?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      expenses: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string | null
+          date: string | null
+          description: string | null
+          id: string
+          payment_method: string | null
+          payment_status: string | null
+          updated_at: string | null
+          vendor_id: string | null
+          vendor_name: string | null
+        }
+        Insert: {
+          amount: number
+          category: string
+          created_at?: string | null
+          date?: string | null
+          description?: string | null
+          id?: string
+          payment_method?: string | null
+          payment_status?: string | null
+          updated_at?: string | null
+          vendor_id?: string | null
+          vendor_name?: string | null
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string | null
+          date?: string | null
+          description?: string | null
+          id?: string
+          payment_method?: string | null
+          payment_status?: string | null
+          updated_at?: string | null
+          vendor_id?: string | null
+          vendor_name?: string | null
+        }
+        Relationships: []
+      }
+      invoice_items: {
+        Row: {
+          created_at: string | null
+          description: string
+          id: string
+          invoice_id: string
+          price: number
+          quantity: number
+          type: string
+        }
+        Insert: {
+          created_at?: string | null
+          description: string
+          id?: string
+          invoice_id: string
+          price: number
+          quantity: number
+          type: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string
+          id?: string
+          invoice_id?: string
+          price?: number
+          quantity?: number
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          created_at: string | null
+          customer_id: string
+          date: string | null
+          id: string
+          notes: string | null
+          status: string
+          tax_rate: number | null
+          updated_at: string | null
+          vehicle_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          customer_id: string
+          date?: string | null
+          id?: string
+          notes?: string | null
+          status: string
+          tax_rate?: number | null
+          updated_at?: string | null
+          vehicle_id: string
+        }
+        Update: {
+          created_at?: string | null
+          customer_id?: string
+          date?: string | null
+          id?: string
+          notes?: string | null
+          status?: string
+          tax_rate?: number | null
+          updated_at?: string | null
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mechanics: {
+        Row: {
+          address: string | null
+          created_at: string | null
+          employment_type: string | null
+          id: string
+          id_card_image: string | null
+          is_active: boolean | null
+          name: string
+          phone: string | null
+          specialization: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string | null
+          employment_type?: string | null
+          id?: string
+          id_card_image?: string | null
+          is_active?: boolean | null
+          name: string
+          phone?: string | null
+          specialization?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string | null
+          employment_type?: string | null
+          id?: string
+          id_card_image?: string | null
+          is_active?: boolean | null
+          name?: string
+          phone?: string | null
+          specialization?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mechanics_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organizations: {
         Row: {
           created_at: string
@@ -104,6 +375,86 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      parts: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          part_number: string | null
+          price: number
+          quantity: number
+          reorder_level: number | null
+          updated_at: string | null
+          vendor_id: string | null
+          vendor_name: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          part_number?: string | null
+          price: number
+          quantity?: number
+          reorder_level?: number | null
+          updated_at?: string | null
+          vendor_id?: string | null
+          vendor_name?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          part_number?: string | null
+          price?: number
+          quantity?: number
+          reorder_level?: number | null
+          updated_at?: string | null
+          vendor_id?: string | null
+          vendor_name?: string | null
+        }
+        Relationships: []
+      }
+      payments: {
+        Row: {
+          amount: number
+          created_at: string | null
+          date: string | null
+          id: string
+          invoice_id: string
+          method: string
+          notes: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          date?: string | null
+          id?: string
+          invoice_id: string
+          method: string
+          notes?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          date?: string | null
+          id?: string
+          invoice_id?: string
+          method?: string
+          notes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -239,6 +590,107 @@ export type Database = {
           username?: string
         }
         Relationships: []
+      }
+      tasks: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          hours_estimated: number
+          hours_spent: number | null
+          id: string
+          invoice_id: string | null
+          mechanic_id: string | null
+          status: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          hours_estimated: number
+          hours_spent?: number | null
+          id?: string
+          invoice_id?: string | null
+          mechanic_id?: string | null
+          status: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          hours_estimated?: number
+          hours_spent?: number | null
+          id?: string
+          invoice_id?: string | null
+          mechanic_id?: string | null
+          status?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_mechanic_id_fkey"
+            columns: ["mechanic_id"]
+            isOneToOne: false
+            referencedRelation: "mechanics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vehicles: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          customer_id: string
+          id: string
+          license_plate: string
+          make: string
+          model: string
+          updated_at: string | null
+          vin: string | null
+          year: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          customer_id: string
+          id?: string
+          license_plate: string
+          make: string
+          model: string
+          updated_at?: string | null
+          vin?: string | null
+          year: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          customer_id?: string
+          id?: string
+          license_plate?: string
+          make?: string
+          model?: string
+          updated_at?: string | null
+          vin?: string | null
+          year?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicles_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
