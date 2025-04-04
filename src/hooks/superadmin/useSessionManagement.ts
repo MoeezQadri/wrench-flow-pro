@@ -14,47 +14,107 @@ export const useSessionManagement = () => {
 
   const checkExistingSession = async (): Promise<boolean> => {
     try {
+      setIsLoading(true);
       console.log("Checking existing session");
       
-      // Get existing session from Supabase
+      // First check for existing Supabase session
       const { data: { session } } = await supabase.auth.getSession();
       
-      if (!session) {
-        console.log("No existing session found");
-        return false;
+      if (session) {
+        // Check if the user has superadmin role in metadata
+        const userMetadata = session.user?.user_metadata || {};
+        
+        if (userMetadata.role === 'superuser' || userMetadata.role === 'superadmin') {
+          // Create a superadmin user object for context
+          const superadminUser = {
+            id: session.user.id,
+            email: session.user.email || 'superadmin@admin.system',
+            name: userMetadata.name || 'Super Admin',
+            role: 'superuser' as UserRole,
+            isActive: true,
+            lastLogin: new Date().toISOString()
+          };
+          
+          // Update auth context with superadmin user
+          setCurrentUser(superadminUser);
+          setSession(session);
+          
+          toast({
+            title: "Session restored",
+            description: "Welcome back, SuperAdmin",
+          });
+          
+          navigate('/superadmin/dashboard');
+          return true;
+        }
       }
       
-      // Check if the user has superadmin role
-      const userMetadata = session.user?.user_metadata || {};
-      if (userMetadata.role !== 'superuser' && userMetadata.role !== 'superadmin') {
-        console.log("User does not have superadmin privileges");
-        return false;
+      // Also check for stored superadmin token
+      const superadminToken = localStorage.getItem('superadminToken');
+      if (superadminToken) {
+        // Verify the token with backend
+        const response = await fetch(`${supabase.functions.url}/admin-utils`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${superadminToken}`
+          },
+          body: JSON.stringify({
+            action: 'verify_token'
+          })
+        });
+        
+        const result = await response.json();
+        
+        if (result.verified) {
+          // Create a mock session object for the superadmin
+          const mockSession = {
+            access_token: superadminToken,
+            refresh_token: '',
+            expires_at: Date.now() + 3600000, // 1 hour from now
+            user: {
+              id: 'superadmin',
+              email: 'superadmin@system.local',
+              user_metadata: {
+                name: 'Super Admin',
+                role: 'superuser'
+              }
+            }
+          };
+          
+          // Create a superadmin user object for context
+          const superadminUser = {
+            id: 'superadmin',
+            email: 'superadmin@system.local',
+            name: 'Super Admin',
+            role: 'superuser' as UserRole,
+            isActive: true,
+            lastLogin: new Date().toISOString()
+          };
+          
+          // Update auth context with superadmin user
+          setCurrentUser(superadminUser);
+          setSession(mockSession as any);
+          
+          toast({
+            title: "Session restored",
+            description: "Welcome back, SuperAdmin",
+          });
+          
+          navigate('/superadmin/dashboard');
+          return true;
+        } else {
+          // Token is invalid, remove it
+          localStorage.removeItem('superadminToken');
+        }
       }
       
-      // Create a superadmin user object for context
-      const superadminUser = {
-        id: session.user.id,
-        email: session.user.email || 'superadmin@admin.system',
-        name: userMetadata.name || 'Super Admin',
-        role: 'superuser' as UserRole,
-        isActive: true,
-        lastLogin: new Date().toISOString()
-      };
-      
-      // Update auth context with superadmin user
-      setCurrentUser(superadminUser);
-      setSession(session);
-      
-      toast({
-        title: "Session restored",
-        description: "Welcome back, SuperAdmin",
-      });
-      
-      navigate('/superadmin/dashboard');
-      return true;
+      return false;
     } catch (err) {
       console.error("Error checking existing session:", err);
       return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
