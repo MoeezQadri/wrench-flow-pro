@@ -1,5 +1,29 @@
 
 project_id = "zugmebtirwpdkblijlvx"
 
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage"]
+
+[db]
+port = 54322
+
+[studio]
+port = 54323
+
+[auth]
+enabled = true
+port = 9999
+
+[realtime]
+enabled = true
+
+[storage]
+enabled = true
+
+[functions]
+included_files = ["**/*.js"]
+
 [functions.admin-utils]
 verify_jwt = true

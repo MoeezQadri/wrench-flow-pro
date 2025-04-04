@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,7 +14,7 @@ import { toast } from 'sonner';
 import { UserRole } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthContext } from '@/context/AuthContext';
-import { getOrganizations, deleteOrganization, updateOrganization, createOrganization } from '@/utils/supabase-helpers';
+import { getOrganizations, deleteOrganization, updateOrganization, createOrganization, getAllUsers, enableUserWithoutConfirmation } from '@/utils/supabase-helpers';
 
 // Define the types for our database tables
 type Profile = {
@@ -40,13 +39,20 @@ type OrganizationType = {
   owner_email?: string;
 };
 
+// Add a new interface for user data with email confirmation status
+interface UserWithConfirmation extends Profile {
+  email?: string;
+  email_confirmed_at?: string | null;
+}
+
 const AdminUserManagement = () => {
-  const [users, setUsers] = useState<Profile[]>([]);
-  const [organizations, setOrganizations] = useState<OrganizationType[]>([]);
+  const [users, setUsers] = useState<UserWithConfirmation[]>([]);
+  const [organizations, setOrganizations] useState<OrganizationType[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [selectedUser, setSelectedUser] = useState<Profile | null>(null);
+  const [emailFilter, setEmailFilter] = useState('all');
+  const [selectedUser, setSelectedUser] = useState<UserWithConfirmation | null>(null);
   const [selectedOrganization, setSelectedOrganization] = useState<OrganizationType | null>(null);
   const [isUserDialogOpen, setIsUserDialogOpen] = useState(false);
   const [isOrgDialogOpen, setIsOrgDialogOpen] = useState(false);
@@ -62,32 +68,11 @@ const AdminUserManagement = () => {
         // Fetch organizations using our helper function
         const orgsData = await getOrganizations();
         
-        // Fetch profiles for users
-        const { data: profilesData, error: profilesError } = await supabase
-          .from('profiles')
-          .select('*');
-        
-        if (profilesError) throw profilesError;
-        
-        // Get emails from auth.users for each profile (in a real app, this would be done on the server)
-        // For now, we'll use the profiles data we have
-        const profilesWithEmail = await Promise.all((profilesData || []).map(async (profile) => {
-          // Get user email from auth.users via a secure server function in real implementation
-          // Here we use a placeholder or try to fetch from profiles if available
-          const { data: userData, error: userError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', profile.id)
-            .single();
-          
-          return {
-            ...profile,
-            email: `${profile.name?.toLowerCase().replace(/\s+/g, '.')}@example.com` // Generate placeholder email
-          };
-        }));
+        // Fetch all users with confirmation status
+        const usersData = await getAllUsers();
         
         setOrganizations(orgsData || []);
-        setUsers(profilesWithEmail || []);
+        setUsers(usersData || []);
       } catch (error: any) {
         console.error('Error fetching data:', error);
         toast.error('Failed to load data');
@@ -107,16 +92,12 @@ const AdminUserManagement = () => {
     
     const matchesRole = roleFilter === 'all' || user.role === roleFilter;
     const matchesStatus = statusFilter === 'all' || (statusFilter === 'active' ? user.is_active : !user.is_active);
+    const matchesEmailConfirmation = emailFilter === 'all' || 
+      (emailFilter === 'confirmed' ? !!user.email_confirmed_at : !user.email_confirmed_at);
     
-    return matchesSearch && matchesRole && matchesStatus;
+    return matchesSearch && matchesRole && matchesStatus && matchesEmailConfirmation;
   });
 
-  // Filter organizations based on search term
-  const filteredOrganizations = organizations.filter(org => 
-    org.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (org.owner_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (org.owner_email || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
   
   const handleEditUser = (user: Profile) => {
     setSelectedUser(user);
@@ -287,6 +268,23 @@ const AdminUserManagement = () => {
     }
   };
   
+  const handleEnableUser = async (userId: string) => {
+    try {
+      await enableUserWithoutConfirmation(userId);
+      
+      // Update the local users state
+      setUsers(users.map(user => 
+        user.id === userId ? { ...user, email_confirmed_at: new Date().toISOString() } : user
+      ));
+      
+      toast.success('User enabled successfully');
+    } catch (error: any) {
+      console.error('Error enabling user:', error);
+      toast.error('Failed to enable user');
+    }
+  };
+  
+  
   if (isLoading) {
     return <div className="flex justify-center items-center h-64">Loading...</div>;
   }
@@ -426,7 +424,7 @@ const AdminUserManagement = () => {
                     className="pl-8"
                   />
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
                   <Select value={roleFilter} onValueChange={setRoleFilter}>
                     <SelectTrigger className="w-[130px]">
                       <SelectValue placeholder="Filter by role" />
@@ -451,6 +449,17 @@ const AdminUserManagement = () => {
                       <SelectItem value="inactive">Inactive</SelectItem>
                     </SelectContent>
                   </Select>
+                  
+                  <Select value={emailFilter} onValueChange={setEmailFilter}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Email confirmation" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Users</SelectItem>
+                      <SelectItem value="confirmed">Email Confirmed</SelectItem>
+                      <SelectItem value="unconfirmed">Email Not Confirmed</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </CardHeader>
@@ -459,10 +468,11 @@ const AdminUserManagement = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
                     <TableHead>Role</TableHead>
                     <TableHead>Organization</TableHead>
-                    <TableHead>Super Admin</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead>Email Status</TableHead>
+                    <TableHead>Account Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -470,19 +480,29 @@ const AdminUserManagement = () => {
                   {filteredUsers.map((user) => (
                     <TableRow key={user.id}>
                       <TableCell className="font-medium">{user.name}</TableCell>
+                      <TableCell>{user.email}</TableCell>
                       <TableCell className="capitalize">{user.role}</TableCell>
                       <TableCell>
                         {organizations.find(org => org.id === user.organization_id)?.name || '-'}
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center">
-                          <Switch 
-                            checked={user.role === 'superuser'} 
-                            onCheckedChange={(checked) => handleToggleSuperAdmin(user.id, checked)}
-                            disabled={user.id === currentUser?.id} // Can't change your own status
-                          />
-                          <span className="ml-2">{user.role === 'superuser' ? 'Yes' : 'No'}</span>
-                        </div>
+                        {user.email_confirmed_at ? (
+                          <Badge variant="default" className="bg-green-500">
+                            Confirmed
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline">
+                            Unconfirmed
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-5 ml-2 text-xs"
+                              onClick={() => handleEnableUser(user.id)}
+                            >
+                              Enable
+                            </Button>
+                          </Badge>
+                        )}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center">
@@ -517,7 +537,7 @@ const AdminUserManagement = () => {
                   
                   {filteredUsers.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={6} className="h-24 text-center">
+                      <TableCell colSpan={7} className="h-24 text-center">
                         <div className="flex flex-col items-center justify-center text-muted-foreground">
                           <UserCog className="h-8 w-8 mb-2" />
                           <p>No users found</p>

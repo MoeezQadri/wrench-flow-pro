@@ -44,8 +44,8 @@ export const createUserFromSession = (
  * Updates the user's last login time in the database
  */
 export const updateLastLogin = async (userId: string): Promise<void> => {
-  // Fix: Use the UpdateLastLoginParams type defined in @/types/auth
-  const params: UpdateLastLoginParams = {
+  // Fix: Use the correct type for the parameters
+  const params: {user_id: string, login_time: string} = {
     user_id: userId,
     login_time: new Date().toISOString()
   };

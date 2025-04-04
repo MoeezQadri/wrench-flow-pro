@@ -102,3 +102,29 @@ export async function cleanUserData(userId: string) {
   if (error) throw error;
   return true;
 }
+
+// Get all users including confirmation status
+export async function getAllUsers() {
+  const { data, error } = await supabase.functions.invoke('admin-utils', {
+    body: {
+      action: 'get_all_users',
+      params: {}
+    }
+  });
+  
+  if (error) throw error;
+  return data || [];
+}
+
+// Enable a user without email confirmation
+export async function enableUserWithoutConfirmation(userId: string) {
+  const { data, error } = await supabase.functions.invoke('admin-utils', {
+    body: {
+      action: 'enable_user_without_confirmation',
+      params: { user_id: userId }
+    }
+  });
+  
+  if (error) throw error;
+  return data;
+}
