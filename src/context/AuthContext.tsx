@@ -89,12 +89,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             
             // Update the last login time if the profile exists
             if (profileData) {
-              await supabase
-                .from('profiles')
-                .update({ 
-                  "lastLogin": new Date().toISOString() 
-                })
-                .eq('id', newSession.user.id);
+              // Use a type-safe approach for the update
+              const updates = {
+                updated_at: new Date().toISOString()
+              };
+              
+              // Use standalone query to update the last login time
+              await supabase.rpc('update_last_login', { 
+                user_id: newSession.user.id,
+                login_time: new Date().toISOString()
+              }).catch(error => {
+                console.error('Error updating last login:', error);
+              });
             }
             
             setCurrentUser(user);
@@ -135,6 +141,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             console.error('Error fetching profile:', profileError);
           }
           
+          const lastLoginTime = profileData?.lastLogin || new Date().toISOString();
+          
           // Create user object from session and profile data
           const user: User = {
             id: initialSession.user.id,
@@ -143,17 +151,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             role: profileData?.role || initialSession.user.user_metadata?.role || 'owner',
             isActive: profileData?.is_active ?? true,
             organizationId: profileData?.organization_id || initialSession.user.user_metadata?.organization_id || undefined,
-            lastLogin: profileData?.lastLogin || new Date().toISOString()
+            lastLogin: lastLoginTime
           };
           
           // Update the last login time if the profile exists
           if (profileData) {
-            await supabase
-              .from('profiles')
-              .update({ 
-                "lastLogin": new Date().toISOString() 
-              })
-              .eq('id', initialSession.user.id);
+            // Use standalone query to update the last login time
+            await supabase.rpc('update_last_login', { 
+              user_id: initialSession.user.id,
+              login_time: new Date().toISOString()
+            }).catch(error => {
+              console.error('Error updating last login:', error);
+            });
           }
           
           setCurrentUser(user);
