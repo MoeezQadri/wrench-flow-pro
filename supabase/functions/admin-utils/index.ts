@@ -1,385 +1,419 @@
+import { serve } from 'std/server';
+import { createClient } from '@supabase/supabase-js';
 
-// supabase/functions/admin-utils/index.ts
-import { serve } from "https://deno.land/std@0.131.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
-
-// CORS headers
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Create Supabase client
-const supabaseUrl = Deno.env.get("SUPABASE_URL") as string;
-const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") as string;
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+async function checkEmailExists(client: any, { email }: any) {
+  if (!email) {
+    throw new Error('Email is required');
+  }
 
-// Handle request
-const handler = async (req: Request): Promise<Response> => {
-  // Handle OPTIONS request for CORS
-  if (req.method === "OPTIONS") {
+  try {
+    // Check if the email exists in auth.users
+    const { data: users, error } = await client.auth.admin.listUsers({
+      filter: { email },
+    });
+
+    if (error) {
+      throw error;
+    }
+
+    // Find the user with the exact email (since filter might be case-insensitive)
+    const user = users.users.find((u) => u.email?.toLowerCase() === email.toLowerCase());
+
+    if (!user) {
+      return {
+        exists: false,
+        is_active: false,
+      };
+    }
+
+    // Check if the user is active in profiles table
+    const { data: profiles, error: profileError } = await client
+      .from('profiles')
+      .select('is_active')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError && profileError.code !== 'PGRST116') {
+      console.warn(`Error checking profile for user ${user.id}:`, profileError);
+    }
+
+    return {
+      exists: true,
+      is_active: profiles?.is_active !== false, // Default to active if profile doesn't exist or is_active is null
+      user_id: user.id,
+    };
+  } catch (error) {
+    console.error('Error in checkEmailExists:', error);
+    throw error;
+  }
+}
+
+async function deleteOrganization(client: any, { org_id }: any) {
+  if (!org_id) {
+    throw new Error('Organization ID is required');
+  }
+
+  try {
+    // Delete organization from the organizations table
+    const { error: orgError } = await client.from('organizations').delete().eq('id', org_id);
+
+    if (orgError) {
+      throw orgError;
+    }
+
+    // Find all users in the organization
+    const { data: users, error: usersError } = await client.from('profiles').select('id').eq('organization_id', org_id);
+
+    if (usersError) {
+      throw usersError;
+    }
+
+    // Delete each user from auth.users
+    if (users && users.length > 0) {
+      const userIds = users.map((user) => user.id);
+      const { data, error: authError } = await client.auth.admin.deleteUsers(userIds);
+
+      if (authError) {
+        throw authError;
+      }
+
+      console.log(`Successfully deleted ${data?.length || 0} users from auth.users`);
+
+      // Optionally, delete profiles from the profiles table
+      const { error: profilesError } = await client.from('profiles').delete().in('id', userIds);
+
+      if (profilesError) {
+        throw profilesError;
+      }
+
+      console.log('Successfully deleted profiles from the profiles table');
+    }
+
+    return { success: true, message: `Organization ${org_id} and associated users deleted successfully.` };
+  } catch (error) {
+    console.error('Error in deleteOrganization:', error);
+    throw error;
+  }
+}
+
+async function createOrganization(client: any, params: any) {
+  const { org_name, sub_level, owner_name, owner_email, owner_password } = params;
+
+  if (!org_name || !sub_level || !owner_name || !owner_email || !owner_password) {
+    throw new Error('Missing required parameters for creating organization.');
+  }
+
+  try {
+    // Create a new user in auth.users
+    const { data: authData, error: authError } = await client.auth.admin.createUser({
+      email: owner_email,
+      password: owner_password,
+      user_metadata: {
+        name: owner_name,
+      },
+    });
+
+    if (authError) {
+      throw authError;
+    }
+
+    const newUserId = authData.user?.id;
+
+    if (!newUserId) {
+      throw new Error('Failed to create user in auth.users');
+    }
+
+    // Create a new organization
+    const { data: orgData, error: orgError } = await client
+      .from('organizations')
+      .insert([
+        {
+          name: org_name,
+          subscription_level: sub_level,
+        },
+      ])
+      .select();
+
+    if (orgError) {
+      // If organization creation fails, delete the user we just created
+      await client.auth.admin.deleteUser(newUserId);
+      throw orgError;
+    }
+
+    const newOrgId = orgData?.[0]?.id;
+
+    if (!newOrgId) {
+      // If organization creation fails, delete the user we just created
+      await client.auth.admin.deleteUser(newUserId);
+      throw new Error('Failed to create organization');
+    }
+
+    // Update the user's profile with the organization ID and role
+    const { error: profileError } = await client
+      .from('profiles')
+      .update({
+        organization_id: newOrgId,
+        role: 'owner',
+        is_active: true,
+      })
+      .eq('id', newUserId);
+
+    if (profileError) {
+      // If profile update fails, delete the user and organization we just created
+      await client.auth.admin.deleteUser(newUserId);
+      await client.from('organizations').delete().eq('id', newOrgId);
+      throw profileError;
+    }
+
+    return {
+      success: true,
+      message: `Organization ${org_name} created successfully with owner ${owner_name}.`,
+      org_id: newOrgId,
+      user_id: newUserId,
+    };
+  } catch (error) {
+    console.error('Error in createOrganization:', error);
+    throw error;
+  }
+}
+
+async function updateOrganization(client: any, params: any) {
+  const { org_id, org_name, sub_level } = params;
+
+  if (!org_id || !org_name || !sub_level) {
+    throw new Error('Missing required parameters for updating organization.');
+  }
+
+  try {
+    // Update the organization
+    const { error: orgError } = await client
+      .from('organizations')
+      .update({
+        name: org_name,
+        subscription_level: sub_level,
+      })
+      .eq('id', org_id);
+
+    if (orgError) {
+      throw orgError;
+    }
+
+    return { success: true, message: `Organization ${org_name} updated successfully.` };
+  } catch (error) {
+    console.error('Error in updateOrganization:', error);
+    throw error;
+  }
+}
+
+async function getOrganizations(client: any) {
+  try {
+    // Fetch all organizations
+    const { data, error } = await client.from('organizations').select('*');
+
+    if (error) {
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error in getOrganizations:', error);
+    throw error;
+  }
+}
+
+async function getUserProfiles(client: any) {
+  try {
+    // Fetch all user profiles
+    const { data, error } = await client.from('profiles').select('*');
+
+    if (error) {
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error in getUserProfiles:', error);
+    throw error;
+  }
+}
+
+async function searchOrganization(client: any, { org_id }: any) {
+  if (!org_id) {
+    throw new Error('Organization ID is required');
+  }
+
+  try {
+    // Search for the organization
+    const { data, error } = await client.from('organizations').select('*').eq('id', org_id).single();
+
+    if (error) {
+      // If no record is found, the error code is usually 'PGRST116'
+      if (error.code === 'PGRST116') {
+        return null; // Return null to indicate no organization found
+      }
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error in searchOrganization:', error);
+    throw error;
+  }
+}
+
+async function getAllUsers(client: any) {
+  try {
+    // Fetch all users from auth.users
+    const { data: authUsers, error: authError } = await client.auth.admin.listUsers();
+
+    if (authError) {
+      throw authError;
+    }
+
+    // Extract user IDs from auth.users
+    const userIds = authUsers.users.map((user) => user.id);
+
+    // Fetch corresponding profiles from the profiles table
+    const { data: profiles, error: profilesError } = await client.from('profiles').select('*').in('id', userIds);
+
+    if (profilesError) {
+      throw profilesError;
+    }
+
+    // Combine auth users with their profile data
+    const usersWithConfirmation = authUsers.users.map((user) => {
+      const profile = profiles?.find((p) => p.id === user.id);
+      return {
+        ...user,
+        is_active: profile?.is_active ?? false, // Use profile data if available
+        organization_id: profile?.organization_id ?? null,
+        role: profile?.role ?? 'no-role',
+      };
+    });
+
+    return usersWithConfirmation;
+  } catch (error) {
+    console.error('Error in getAllUsers:', error);
+    throw error;
+  }
+}
+
+async function enableUserWithoutConfirmation(client: any, { user_id }: any) {
+  if (!user_id) {
+    throw new Error('User ID is required');
+  }
+
+  try {
+    // Update the user's profile to set is_active to true
+    const { error: profileError } = await client.from('profiles').update({ is_active: true }).eq('id', user_id);
+
+    if (profileError) {
+      throw profileError;
+    }
+
+    return { success: true, message: `User ${user_id} enabled successfully.` };
+  } catch (error) {
+    console.error('Error in enableUserWithoutConfirmation:', error);
+    throw error;
+  }
+}
+
+function getSupabaseServiceClient() {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL');
+  const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY environment variables.');
+  }
+
+  return createClient(supabaseUrl, supabaseKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
+}
+
+export async function handler(req: Deno.Request): Promise<Response> {
+  // Handle CORS preflight request
+  if (req.method === 'OPTIONS') {
     return new Response(null, {
+      status: 204,
       headers: corsHeaders,
     });
   }
 
   try {
-    // Get JWT from request
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      console.error("No authorization header");
-      return new Response(JSON.stringify({ error: "No authorization header" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Extract token and debug info
-    const token = authHeader.replace("Bearer ", "");
-    console.log("Processing request with token starting with:", token.substring(0, 10) + "...");
-    
-    // Check if it's a superadmin session token (special case)
-    if (token.startsWith('superadmin-')) {
-      console.log("Detected superadmin session token");
-    } else {
-      // Verify user has access to superadmin functions
-      try {
-        const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-        
-        if (userError || !user) {
-          console.error("Auth error:", userError);
-          return new Response(JSON.stringify({ error: "Authentication failed", details: userError }), {
-            status: 401,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-
-        // Get user profile to check role
-        const { data: profile, error: profileError } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", user.id)
-          .single();
-
-        if (profileError) {
-          console.error("Profile error:", profileError);
-          return new Response(JSON.stringify({ error: "Failed to retrieve user profile", details: profileError }), {
-            status: 500,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-
-        // Check if user is superuser
-        if (!(profile?.role === "superuser")) {
-          console.error("Unauthorized access attempt by role:", profile?.role);
-          return new Response(JSON.stringify({ error: "Unauthorized - Superuser role required" }), {
-            status: 403,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-      } catch (error) {
-        console.error("Error verifying user:", error);
-        return new Response(JSON.stringify({ error: "Error verifying user", details: error.message }), {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-    }
-    
-    // Parse request body
+    // Parse the request body
     const { action, params } = await req.json();
-    console.log("Processing action:", action);
-    
-    // Handle different actions
-    let result;
-    
-    if (action === "get_organizations") {
-      result = await getOrganizations();
-    } else if (action === "create_organization") {
-      result = await createOrganization(params);
-    } else if (action === "update_organization") {
-      result = await updateOrganization(params);
-    } else if (action === "delete_organization") {
-      result = await deleteOrganization(params);
-    } else if (action === "search_organization") {
-      result = await searchOrganization(params);
-    } else if (action === "get_user_profiles") {
-      result = await getUserProfiles();
-    } else if (action === "get_all_users") {
-      result = await getAllUsers();
-    } else if (action === "enable_user_without_confirmation") {
-      result = await enableUserWithoutConfirmation(params);
-    } else {
-      return new Response(JSON.stringify({ error: "Invalid action" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    
-    return new Response(JSON.stringify(result), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-    
-  } catch (error) {
-    console.error("Error in admin-utils function:", error);
-    
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-};
+    const client = getSupabaseServiceClient();
 
-// Get all organizations
-async function getOrganizations() {
-  const { data, error } = await supabase
-    .from("organizations")
-    .select("*")
-    .order("created_at", { ascending: false });
-    
-  if (error) throw error;
-  return data;
-}
-
-// Create new organization with owner user
-async function createOrganization(params: any) {
-  const { org_name, sub_level, owner_name, owner_email, owner_password } = params;
-  
-  // Start transaction
-  const { data: org, error: orgError } = await supabase
-    .from("organizations")
-    .insert({
-      name: org_name,
-      subscription_level: sub_level
-    })
-    .select()
-    .single();
-  
-  if (orgError) throw orgError;
-  
-  // Create owner user
-  const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
-    email: owner_email,
-    password: owner_password,
-    email_confirm: true,
-    user_metadata: {
-      name: owner_name,
-      role: "owner",
-      organization_id: org.id
-    }
-  });
-  
-  if (authError) {
-    // Rollback organization creation
-    await supabase.from("organizations").delete().eq("id", org.id);
-    throw authError;
-  }
-  
-  // Create profile for user
-  const { error: profileError } = await supabase
-    .from("profiles")
-    .insert({
-      id: authUser.user.id,
-      name: owner_name, 
-      role: "owner",
-      organization_id: org.id,
-      is_active: true
-    });
-  
-  if (profileError) {
-    // Log error but don't fail - profile might be created by trigger
-    console.error("Error creating profile:", profileError);
-  }
-  
-  return { 
-    organization: org,
-    owner: {
-      id: authUser.user.id,
-      email: owner_email,
-      name: owner_name,
-      temp_password: owner_password
-    }
-  };
-}
-
-// Update organization
-async function updateOrganization(params: any) {
-  const { org_id, org_name, sub_level } = params;
-  
-  const { data, error } = await supabase
-    .from("organizations")
-    .update({
-      name: org_name,
-      subscription_level: sub_level,
-      updated_at: new Date().toISOString()
-    })
-    .eq("id", org_id)
-    .select()
-    .single();
-  
-  if (error) throw error;
-  return data;
-}
-
-// Delete organization
-async function deleteOrganization(params: any) {
-  const { org_id } = params;
-  
-  // Get users associated with this organization
-  const { data: users, error: usersError } = await supabase
-    .from("profiles")
-    .select("id")
-    .eq("organization_id", org_id);
-  
-  if (usersError) throw usersError;
-  
-  // Delete organization
-  const { error: deleteError } = await supabase
-    .from("organizations")
-    .delete()
-    .eq("id", org_id);
-  
-  if (deleteError) throw deleteError;
-  
-  // Delete users - Note: This will cascade to profiles via RLS
-  for (const user of users || []) {
-    try {
-      await supabase.auth.admin.deleteUser(user.id);
-    } catch (error) {
-      console.error(`Failed to delete user ${user.id}:`, error);
-    }
-  }
-  
-  return { success: true, deleted_users_count: (users || []).length };
-}
-
-// Search for organization by ID
-async function searchOrganization(params: any) {
-  const { org_id } = params;
-  
-  const { data, error } = await supabase
-    .from("organizations")
-    .select("*")
-    .eq("id", org_id)
-    .single();
-  
-  if (error && error.code !== "PGRST116") throw error;
-  return data;
-}
-
-// Get user profiles with additional details
-async function getUserProfiles() {
-  console.log("Fetching user profiles");
-  // First get all profiles
-  const { data: profiles, error: profilesError } = await supabase
-    .from("profiles")
-    .select("*");
-  
-  if (profilesError) {
-    console.error("Error fetching profiles:", profilesError);
-    throw profilesError;
-  }
-  
-  console.log(`Found ${profiles?.length || 0} profiles`);
-  
-  // Enrich with user data from Auth
-  const enrichedProfiles = [];
-  
-  for (const profile of profiles || []) {
-    try {
-      const { data: userData, error: userError } = await supabase.auth.admin.getUserById(profile.id);
-      
-      if (!userError && userData.user) {
-        enrichedProfiles.push({
-          ...profile,
-          email: userData.user.email,
-          last_sign_in_at: userData.user.last_sign_in_at
+    switch (action) {
+      case 'delete_organization':
+        return new Response(JSON.stringify(await deleteOrganization(client, params)), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
         });
-      } else {
-        console.log(`No user data found for profile ${profile.id}`);
-        enrichedProfiles.push(profile);
-      }
-    } catch (error) {
-      console.error(`Error fetching user data for ${profile.id}:`, error);
-      enrichedProfiles.push(profile);
+      case 'create_organization':
+        return new Response(JSON.stringify(await createOrganization(client, params)), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        });
+      case 'update_organization':
+        return new Response(JSON.stringify(await updateOrganization(client, params)), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        });
+      case 'get_organizations':
+        return new Response(JSON.stringify(await getOrganizations(client)), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        });
+      case 'get_user_profiles':
+        return new Response(JSON.stringify(await getUserProfiles(client)), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        });
+      case 'search_organization':
+        return new Response(JSON.stringify(await searchOrganization(client, params)), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        });
+      case 'get_all_users':
+        return new Response(JSON.stringify(await getAllUsers(client)), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        });
+      case 'enable_user_without_confirmation':
+        return new Response(JSON.stringify(await enableUserWithoutConfirmation(client, params)), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        });
+      case 'check_email_exists':
+        return new Response(JSON.stringify(await checkEmailExists(client, params)), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        });
+      default:
+        return new Response(JSON.stringify({ error: `Unknown action: ${action}` }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400,
+        });
     }
-  }
-  
-  console.log(`Returning ${enrichedProfiles.length} enriched profiles`);
-  return enrichedProfiles;
-}
-
-// Get all users with confirmation status
-async function getAllUsers() {
-  console.log("Fetching all users");
-  try {
-    // Get all users from auth
-    const { data: { users }, error: usersError } = await supabase.auth.admin.listUsers();
-    
-    if (usersError) {
-      console.error("Error listing users:", usersError);
-      throw usersError;
-    }
-    
-    console.log(`Found ${users?.length || 0} users from auth`);
-    
-    // Get all profiles
-    const { data: profiles, error: profilesError } = await supabase
-      .from("profiles")
-      .select("*");
-    
-    if (profilesError) {
-      console.error("Error fetching profiles:", profilesError);
-      throw profilesError;
-    }
-    
-    console.log(`Found ${profiles?.length || 0} profiles from database`);
-    
-    // Merge data
-    const mergedUsers = [];
-    
-    for (const user of users || []) {
-      const profile = profiles?.find(p => p.id === user.id) || {};
-      
-      mergedUsers.push({
-        ...profile,
-        id: user.id,
-        email: user.email,
-        email_confirmed_at: user.email_confirmed_at,
-        last_sign_in_at: user.last_sign_in_at,
-        created_at: user.created_at,
-        is_active: profile.is_active !== undefined ? profile.is_active : true,
-      });
-    }
-    
-    console.log(`Returning ${mergedUsers.length} merged user records`);
-    return mergedUsers;
   } catch (error) {
-    console.error("Error in getAllUsers:", error);
-    throw error;
+    console.error(`Error in admin-utils function:`, error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 500,
+    });
   }
 }
 
-// Enable user without email confirmation
-async function enableUserWithoutConfirmation(params: any) {
-  const { user_id } = params;
-  
-  console.log(`Enabling user ${user_id} without email confirmation`);
-  
-  // Update user to confirm email
-  const { data, error } = await supabase.auth.admin.updateUserById(
-    user_id,
-    { email_confirm: true }
-  );
-  
-  if (error) {
-    console.error("Error updating user:", error);
-    throw error;
-  }
-  
-  console.log("User enabled successfully");
-  return { success: true, user: data.user };
+if (import.meta.main) {
+  serve(handler);
 }
-
-serve(handler);

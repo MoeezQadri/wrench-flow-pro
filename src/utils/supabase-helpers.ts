@@ -166,3 +166,25 @@ export async function enableUserWithoutConfirmation(userId: string) {
     throw e;
   }
 }
+
+// Check if an email already exists and get its status
+export async function checkEmailExists(email: string) {
+  try {
+    const { data, error } = await supabase.functions.invoke('admin-utils', {
+      body: {
+        action: 'check_email_exists',
+        params: { email }
+      }
+    });
+    
+    if (error) {
+      console.error('Error checking email existence:', error);
+      throw error;
+    }
+    
+    return data;
+  } catch (e) {
+    console.error('Exception in checkEmailExists:', e);
+    throw e;
+  }
+}
