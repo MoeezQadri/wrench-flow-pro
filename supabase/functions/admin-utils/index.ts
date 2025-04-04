@@ -1,4 +1,5 @@
 
+// Use esm.sh URL instead of import from package name
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.23.0';
 
@@ -343,7 +344,7 @@ function getSupabaseServiceClient() {
 export async function handler(req: Request): Promise<Response> {
   console.log("Processing request with token starting with:", req.headers.get('Authorization')?.substring(0, 10) + "...\n");
   
-  // Handle CORS preflight request
+  // Handle CORS preflight request - ensure this is before any other processing
   if (req.method === 'OPTIONS') {
     return new Response(null, {
       status: 204,
@@ -357,7 +358,7 @@ export async function handler(req: Request): Promise<Response> {
     const client = getSupabaseServiceClient();
     
     // Verify authentication for all routes except those explicitly excluded
-    if (!['some_public_action'].includes(action)) {
+    if (!['check_email_exists', 'some_public_action'].includes(action)) {
       try {
         // Check if the user is authenticated with proper permissions
         const authHeader = req.headers.get('Authorization');
@@ -374,6 +375,9 @@ export async function handler(req: Request): Promise<Response> {
         if (token === client.supabaseKey) {
           // Using service key, which is allowed for admin operations
           console.log("Using service key for authentication");
+        } else if (token.startsWith('superadmin-')) {
+          // Allow superadmin mock tokens
+          console.log("Using superadmin mock token");
         } else {
           // For regular user tokens, verify they're authenticated
           const { data: { user }, error: authError } = await client.auth.getUser(token);

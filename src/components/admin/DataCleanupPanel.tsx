@@ -37,7 +37,17 @@ const DataCleanupPanel = () => {
       console.log('Calling getInactiveUsers with days:', parseInt(daysInactive));
       const data = await getInactiveUsers(parseInt(daysInactive));
       console.log('Received data:', data);
-      setInactiveUsers(data || []);
+      
+      // Ensure data format matches our expected type
+      const formattedData: InactiveUser[] = data.map((user: any) => ({
+        id: user.id,
+        name: user.name || 'Unknown',
+        email: user.email || '',
+        last_login: user.last_login,
+        days_since_login: user.days_since_login
+      }));
+      
+      setInactiveUsers(formattedData || []);
     } catch (error: any) {
       console.error('Error loading inactive users:', error);
       setError(error.message || 'Failed to load inactive users');

@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export async function deleteOrganization(orgId: string) {
@@ -102,17 +101,8 @@ export async function getInactiveUsers(daysInactive: number = 90) {
       throw error;
     }
     
-    // Transform the data to match the expected structure if needed
-    const transformedData = Array.isArray(data) ? data.map(user => ({
-      id: user.id,
-      name: user.name || 'Unknown',
-      email: user.email || '',
-      last_login: user.last_login,
-      days_since_login: user.days_since_login
-    })) : [];
-    
-    console.log(`Retrieved ${transformedData.length} inactive users`);
-    return transformedData;
+    console.log(`Retrieved ${data?.length || 0} inactive users`);
+    return data || [];
   } catch (e) {
     console.error('Exception in getInactiveUsers:', e);
     throw e;
