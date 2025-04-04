@@ -25,12 +25,14 @@ const CustomerVehicleSelection = ({
 }: CustomerVehicleSelectionProps) => {
   const form = useFormContext();
   const watchCustomerId = form.watch("customerId");
+  const [loading, setLoading] = useState(false);
 
   // Update vehicles when customer changes
   useEffect(() => {
     const fetchVehicles = async () => {
       if (watchCustomerId) {
         try {
+          setLoading(true);
           const customerVehicles = await getVehiclesByCustomerId(watchCustomerId);
           setVehicles(customerVehicles);
           
@@ -42,6 +44,8 @@ const CustomerVehicleSelection = ({
         } catch (error) {
           console.error("Error fetching vehicles:", error);
           setVehicles([]);
+        } finally {
+          setLoading(false);
         }
       } else {
         setVehicles([]);
@@ -71,6 +75,7 @@ const CustomerVehicleSelection = ({
                 <Select
                   onValueChange={field.onChange}
                   value={field.value}
+                  disabled={loading}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select a customer" />
@@ -110,11 +115,12 @@ const CustomerVehicleSelection = ({
                 <Select
                   onValueChange={field.onChange}
                   value={field.value}
-                  disabled={!watchCustomerId}
+                  disabled={!watchCustomerId || loading}
                 >
                   <SelectTrigger>
                     <SelectValue
                       placeholder={
+                        loading ? "Loading..." :
                         watchCustomerId
                           ? vehicles.length > 0 
                             ? "Select a vehicle"

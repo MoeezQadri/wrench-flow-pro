@@ -20,7 +20,8 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
-import { vendors, getInvoiceById } from "@/services/data-service";
+import { vendors } from "@/services/data-service";
+import { Invoice } from "@/types";
 
 const partSchema = z.object({
   name: z.string().min(1, { message: "Name is required" }),
@@ -28,6 +29,7 @@ const partSchema = z.object({
   quantity: z.coerce.number().min(0, { message: "Quantity cannot be negative" }),
   description: z.string().min(1, { message: "Description is required" }),
   vendorId: z.string().optional(),
+  vendorName: z.string().optional(),
   partNumber: z.string().optional(),
 });
 
@@ -37,12 +39,11 @@ interface PartFormProps {
   defaultValues?: PartFormValues;
   onSubmit: (data: PartFormValues) => void;
   formId: string;
+  invoice?: Invoice | null;
   invoiceId?: string;
 }
 
-const PartForm = ({ defaultValues, onSubmit, formId, invoiceId }: PartFormProps) => {
-  const invoice = invoiceId ? getInvoiceById(invoiceId) : undefined;
-  
+const PartForm = ({ defaultValues, onSubmit, formId, invoice, invoiceId }: PartFormProps) => {
   const form = useForm<PartFormValues>({
     resolver: zodResolver(partSchema),
     defaultValues: defaultValues || {
@@ -51,6 +52,7 @@ const PartForm = ({ defaultValues, onSubmit, formId, invoiceId }: PartFormProps)
       quantity: 0,
       description: "",
       vendorId: "none",
+      vendorName: "",
       partNumber: "",
     },
   });
@@ -163,6 +165,20 @@ const PartForm = ({ defaultValues, onSubmit, formId, invoiceId }: PartFormProps)
                   ))}
                 </SelectContent>
               </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="vendorName"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Vendor Name (Optional)</FormLabel>
+              <FormControl>
+                <Input placeholder="Vendor name" {...field} value={field.value || ""} />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}

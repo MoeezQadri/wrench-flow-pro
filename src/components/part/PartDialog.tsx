@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Part } from "@/types";
 import PartForm, { PartFormValues } from "./PartForm";
-import { generateId, getVendorById, getInvoiceById } from "@/services/data-service";
+import { generateId, getInvoiceById } from "@/services/data-service";
 
 interface PartDialogProps {
   open: boolean;
@@ -25,13 +25,29 @@ interface PartDialogProps {
 const PartDialog = ({ open, onOpenChange, onSave, part, invoiceId }: PartDialogProps) => {
   const isEditing = !!part;
   const formId = "part-form";
-  const invoice = invoiceId ? getInvoiceById(invoiceId) : undefined;
+  const [invoice, setInvoice] = useState<any>(null);
+  const [loading, setLoading] = useState(invoiceId ? true : false);
+
+  useEffect(() => {
+    if (invoiceId) {
+      const fetchInvoice = async () => {
+        try {
+          const data = await getInvoiceById(invoiceId);
+          setInvoice(data);
+        } catch (error) {
+          console.error("Error fetching invoice:", error);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchInvoice();
+    }
+  }, [invoiceId]);
 
   const handleSubmit = (data: PartFormValues) => {
     try {
       // Only look up vendor if vendorId is provided and not "none"
       const vendorId = data.vendorId !== "none" ? data.vendorId : undefined;
-      const vendor = vendorId ? getVendorById(vendorId) : undefined;
       
       const newPart: Part = {
         id: part?.id || generateId("part"),
@@ -40,7 +56,7 @@ const PartDialog = ({ open, onOpenChange, onSave, part, invoiceId }: PartDialogP
         quantity: data.quantity,
         description: data.description,
         vendorId: vendorId,
-        vendorName: vendor?.name,
+        vendorName: data.vendorName,
         partNumber: data.partNumber,
       };
       
@@ -48,7 +64,8 @@ const PartDialog = ({ open, onOpenChange, onSave, part, invoiceId }: PartDialogP
       
       // If the part is being added to an invoice, show a specialized message
       if (invoiceId && invoice) {
-        const customerName = invoice.vehicleInfo.make + " " + invoice.vehicleInfo.model;
+        const vehicleInfo = invoice.vehicleInfo;
+        const customerName = vehicleInfo ? `${vehicleInfo.make} ${vehicleInfo.model}` : "customer";
         toast.success(`Part ${isEditing ? "updated" : "added"} and associated with invoice for ${customerName}!`);
       } else {
         toast.success(`Part ${isEditing ? "updated" : "added"} successfully!`);
@@ -60,6 +77,10 @@ const PartDialog = ({ open, onOpenChange, onSave, part, invoiceId }: PartDialogP
       toast.error("Failed to save part. Please try again.");
     }
   };
+
+  if (loading) {
+    return null; // or render a loading indicator
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -85,12 +106,14 @@ const PartDialog = ({ open, onOpenChange, onSave, part, invoiceId }: PartDialogP
                   quantity: part.quantity,
                   description: part.description,
                   vendorId: part.vendorId || "none",
+                  vendorName: part.vendorName,
                   partNumber: part.partNumber,
                 }
               : undefined
           }
           onSubmit={handleSubmit}
           formId={formId}
+          invoice={invoice}
           invoiceId={invoiceId}
         />
 

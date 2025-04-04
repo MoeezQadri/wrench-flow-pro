@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Task, InvoiceItem } from "@/types";
+import { Task, InvoiceItem, Invoice } from "@/types";
 import TaskForm, { TaskFormValues } from "./TaskForm";
 import { 
   generateId, 
@@ -32,6 +32,8 @@ const TaskDialog = ({ open, onOpenChange, onSave, task }: TaskDialogProps) => {
   const isEditing = !!task;
   const formId = "task-form";
   const currentUser = getCurrentUser();
+  const [invoiceData, setInvoiceData] = useState<Invoice | null>(null);
+  const [loading, setLoading] = useState(false);
   
   // Check if user has permission to edit this task
   const canEdit = 
@@ -45,7 +47,27 @@ const TaskDialog = ({ open, onOpenChange, onSave, task }: TaskDialogProps) => {
     return null;
   }
 
-  const handleSubmit = (data: TaskFormValues) => {
+  // Fetch invoice data if task has an invoiceId
+  useEffect(() => {
+    if (open && task?.invoiceId) {
+      setLoading(true);
+      const fetchInvoice = async () => {
+        try {
+          const data = await getInvoiceById(task.invoiceId!);
+          if (data) {
+            setInvoiceData(data);
+          }
+        } catch (error) {
+          console.error("Error fetching invoice:", error);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchInvoice();
+    }
+  }, [open, task]);
+
+  const handleSubmit = async (data: TaskFormValues) => {
     try {
       const existingInvoiceId = task?.invoiceId;
       const wasCompleted = task?.status === "completed";
@@ -66,12 +88,12 @@ const TaskDialog = ({ open, onOpenChange, onSave, task }: TaskDialogProps) => {
       
       // Update the invoice if task is completed
       if (isBeingCompleted && data.invoiceId && data.invoiceId !== "none") {
-        updateInvoiceOnTaskCompletion(data.invoiceId, newTask);
+        await updateInvoiceOnTaskCompletion(data.invoiceId, newTask);
       }
       
       // If invoice association is removed or changed, update the old invoice
       if (existingInvoiceId && existingInvoiceId !== data.invoiceId && wasCompleted) {
-        removeTaskFromInvoice(existingInvoiceId, task.id);
+        await removeTaskFromInvoice(existingInvoiceId, task.id);
       }
       
       onSave(newTask);
@@ -84,51 +106,71 @@ const TaskDialog = ({ open, onOpenChange, onSave, task }: TaskDialogProps) => {
   };
 
   // Function to update the invoice when a task is completed
-  const updateInvoiceOnTaskCompletion = (invoiceId: string, task: Task) => {
-    const invoice = getInvoiceById(invoiceId);
-    if (!invoice) return;
-    
-    // Only proceed if we have hours spent data
-    if (!task.hoursSpent) {
-      toast.warning("Task marked as completed but no hours spent recorded.");
-      return;
+  const updateInvoiceOnTaskCompletion = async (invoiceId: string, task: Task) => {
+    try {
+      const invoice = await getInvoiceById(invoiceId);
+      if (!invoice) {
+        toast.warning("Could not find associated invoice.");
+        return;
+      }
+      
+      // Only proceed if we have hours spent data
+      if (!task.hoursSpent) {
+        toast.warning("Task marked as completed but no hours spent recorded.");
+        return;
+      }
+      
+      // Create a new invoice item for this task
+      const hourlyRate = 85; // Default hourly rate for labor
+      const newItem: InvoiceItem = {
+        id: generateId("item"),
+        type: "labor",
+        description: `Labor: ${task.title}`,
+        quantity: task.hoursSpent,
+        price: hourlyRate,
+      };
+      
+      // Add the item to the invoice
+      invoice.items.push(newItem);
+      
+      // Update invoice status if needed
+      if (invoice.status === "open") {
+        invoice.status = "in-progress";
+      }
+      
+      // Here you would update the invoice in the database
+      // For now we're just using the in-memory data
+      
+      toast.success("Invoice updated with completed task.");
+    } catch (error) {
+      console.error("Error updating invoice:", error);
+      toast.error("Failed to update invoice with task data.");
     }
-    
-    // Create a new invoice item for this task
-    const hourlyRate = 85; // Default hourly rate for labor
-    const newItem: InvoiceItem = {
-      id: generateId("item"),
-      type: "labor",
-      description: `Labor: ${task.title}`,
-      quantity: task.hoursSpent,
-      price: hourlyRate,
-    };
-    
-    // Add the item to the invoice
-    invoice.items.push(newItem);
-    
-    // Update invoice status if needed
-    if (invoice.status === "open") {
-      invoice.status = "in-progress";
-    }
-    
-    toast.success("Invoice updated with completed task.");
   };
   
   // Function to remove task from invoice if the association is removed
-  const removeTaskFromInvoice = (invoiceId: string, taskId: string) => {
-    const invoice = getInvoiceById(invoiceId);
-    if (!invoice) return;
-    
-    // Find and remove any items associated with this task
-    // This is a simplified approach - in a real system, you'd have a more direct relationship
-    const taskItems = invoice.items.filter(item => 
-      item.type === "labor" && item.description.includes(tasks.find(t => t.id === taskId)?.title || "")
-    );
-    
-    if (taskItems.length > 0) {
-      invoice.items = invoice.items.filter(item => !taskItems.includes(item));
-      toast.info("Task removed from invoice.");
+  const removeTaskFromInvoice = async (invoiceId: string, taskId: string) => {
+    try {
+      const invoice = await getInvoiceById(invoiceId);
+      if (!invoice) {
+        return;
+      }
+      
+      // Find and remove any items associated with this task
+      const taskTitle = tasks.find(t => t.id === taskId)?.title || "";
+      const taskItems = invoice.items.filter(item => 
+        item.type === "labor" && item.description.includes(taskTitle)
+      );
+      
+      if (taskItems.length > 0) {
+        invoice.items = invoice.items.filter(item => !taskItems.includes(item));
+        // Here you would update the invoice in the database
+        
+        toast.info("Task removed from invoice.");
+      }
+    } catch (error) {
+      console.error("Error removing task from invoice:", error);
+      toast.error("Failed to update invoice.");
     }
   };
 
@@ -143,6 +185,10 @@ const TaskDialog = ({ open, onOpenChange, onSave, task }: TaskDialogProps) => {
     dialogDescription = isEditing
       ? "Update task details and assignment."
       : "Create a new task and assign it to a mechanic.";
+  }
+
+  if (loading) {
+    return null; // or show a loading indicator
   }
 
   return (

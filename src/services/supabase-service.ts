@@ -10,7 +10,8 @@ import type {
   Task, 
   Expense, 
   Attendance,
-  Payment
+  Payment,
+  InvoiceStatus
 } from '@/types';
 
 // CUSTOMERS
@@ -34,7 +35,16 @@ export const fetchCustomers = async (): Promise<Customer[]> => {
     email: customer.email || '',
     phone: customer.phone || '',
     address: customer.address || '',
-    vehicles: customer.vehicles || [],
+    vehicles: customer.vehicles ? customer.vehicles.map((vehicle: any) => ({
+      id: vehicle.id,
+      customerId: vehicle.customer_id,
+      make: vehicle.make,
+      model: vehicle.model,
+      year: vehicle.year,
+      licensePlate: vehicle.license_plate,
+      vin: vehicle.vin || undefined,
+      color: vehicle.color || undefined
+    })) : [],
     totalVisits: customer.total_visits || 0,
     lifetimeValue: customer.lifetime_value || 0,
     lastVisit: customer.last_visit || undefined
@@ -65,7 +75,16 @@ export const fetchCustomerById = async (id: string): Promise<Customer | null> =>
     email: data.email || '',
     phone: data.phone || '',
     address: data.address || '',
-    vehicles: data.vehicles || [],
+    vehicles: data.vehicles ? data.vehicles.map((vehicle: any) => ({
+      id: vehicle.id,
+      customerId: vehicle.customer_id,
+      make: vehicle.make,
+      model: vehicle.model,
+      year: vehicle.year,
+      licensePlate: vehicle.license_plate,
+      vin: vehicle.vin || undefined,
+      color: vehicle.color || undefined
+    })) : [],
     totalVisits: data.total_visits || 0,
     lifetimeValue: data.lifetime_value || 0,
     lastVisit: data.last_visit || undefined
@@ -234,7 +253,7 @@ export const fetchInvoices = async (): Promise<Invoice[]> => {
       year: invoice.vehicle.year,
       licensePlate: invoice.vehicle.license_plate
     },
-    status: invoice.status as any,
+    status: invoice.status as InvoiceStatus,
     date: new Date(invoice.date).toISOString().split('T')[0],
     items: invoice.items.map((item: any) => ({
       id: item.id,
