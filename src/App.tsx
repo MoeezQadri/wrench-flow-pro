@@ -1,4 +1,3 @@
-
 import React, { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthProvider';
@@ -71,9 +70,10 @@ function App() {
                 } />
               </Route>
               
-              {/* Protected routes */}
+              {/* Protected routes with Layout */}
               <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
                 <Route index element={<Dashboard />} />
+                <Route path="dashboard" element={<Dashboard />} />
                 <Route path="profile" element={<Profile />} />
                 <Route path="settings" element={<Settings />} />
                 
@@ -91,23 +91,13 @@ function App() {
                   <Route path=":id" element={<CustomerDetail />} />
                 </Route>
                 
-                {/* Mechanics */}
+                {/* Other core routes */}
                 <Route path="mechanics" element={<Mechanics />} />
-                
-                {/* Tasks */}
                 <Route path="tasks" element={<Tasks />} />
-                
-                {/* Parts */}
                 <Route path="parts" element={<Parts />} />
-                
-                {/* Finance */}
                 <Route path="finance" element={<Finance />} />
                 <Route path="expenses" element={<Expenses />} />
-                
-                {/* Attendance */}
                 <Route path="attendance" element={<Attendance />} />
-                
-                {/* Users */}
                 <Route path="users" element={<Users />} />
                 
                 {/* Reports */}
@@ -121,7 +111,7 @@ function App() {
               </Route>
               
               {/* Redirect root to dashboard if logged in, otherwise to login */}
-              <Route path="/" element={<Navigate to="/auth/login" replace />} />
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
               
               {/* 404 route */}
               <Route path="*" element={<NotFound />} />

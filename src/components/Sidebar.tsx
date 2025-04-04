@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
@@ -18,8 +17,7 @@ import {
   Wallet,
   HelpCircle,
   LogOut,
-  BarChart,
-  LineChart
+  BarChart
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getCurrentUser, hasPermission } from '@/services/data-service';
@@ -43,7 +41,7 @@ interface NavItemPermission {
 const navItems = [
   { 
     name: 'Dashboard', 
-    path: '/', 
+    path: '/dashboard', 
     icon: <LayoutDashboard className="w-5 h-5" />,
     permission: { resource: 'dashboard' as ResourceKey, action: 'view' }
   },
@@ -103,7 +101,7 @@ const navItems = [
   },
   // Admin section
   { 
-    name: 'Admin Portal', 
+    name: 'SuperAdmin', 
     path: '/superadmin/dashboard', 
     icon: <BarChart className="w-5 h-5" />,
     permission: { resource: 'users' as ResourceKey, action: 'manage' }
@@ -146,8 +144,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
   };
   
   // Group nav items by section
-  const regularItems = filteredNavItems.filter(item => !item.path.startsWith('/admin'));
-  const adminItems = filteredNavItems.filter(item => item.path.startsWith('/admin'));
+  const regularItems = filteredNavItems.filter(item => !item.path.startsWith('/superadmin'));
+  const adminItems = filteredNavItems.filter(item => item.path.startsWith('/superadmin'));
   
   return (
     <>
