@@ -30,11 +30,11 @@ const AdminUserManagement = () => {
     setError(null);
     
     try {
-      // Set auth token for functions if superadmin
+      // Check if we're in superadmin mode and reset token if needed
       if (currentUser?.role === 'superuser' && retryAuth) {
         const superAdminToken = localStorage.getItem('superadminToken');
         if (superAdminToken) {
-          console.log('Setting SuperAdmin token for API calls');
+          console.log('Refreshing SuperAdmin token for API calls');
           supabase.functions.setAuth(superAdminToken);
         }
       }
@@ -43,7 +43,7 @@ const AdminUserManagement = () => {
       console.log('AdminUserManagement: Fetching data with auth token:', 
         session?.access_token?.substring(0, 10) + '...' || 'No session token');
       
-      // Fetch organizations
+      // Fetch organizations using our helper function
       console.log('Fetching organizations...');
       const orgsData = await getOrganizations();
       console.log(`Fetched ${orgsData?.length || 0} organizations`);
@@ -87,7 +87,6 @@ const AdminUserManagement = () => {
     } else {
       console.warn('No session available, skipping data fetch');
       setIsLoading(false);
-      setError('No active session. Please log in.');
     }
   }, [session]);
   

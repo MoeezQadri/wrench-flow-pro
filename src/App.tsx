@@ -1,72 +1,105 @@
-import React, { Suspense, lazy } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './context/AuthProvider';
-import PrivateRoute from './components/PrivateRoute';
-import PublicRoute from './components/PublicRoute';
-import Layout from './components/Layout';
-import LoadingScreen from './components/LoadingScreen';
-import { ThemeProvider } from './components/ThemeProvider';
-import { Toaster } from './components/ui/toaster';
 
-// Lazy-loaded components
-const Dashboard = lazy(() => import('./pages/Dashboard'));
-const Login = lazy(() => import('./pages/auth/Login'));
-const Register = lazy(() => import('./pages/auth/Register'));
-const ForgotPassword = lazy(() => import('./pages/auth/ForgotPassword'));
-const ResetPassword = lazy(() => import('./pages/auth/ResetPassword'));
-const Profile = lazy(() => import('./pages/Profile'));
-const Settings = lazy(() => import('./pages/Settings'));
-const NotFound = lazy(() => import('./pages/NotFound'));
-const SuperAdminLogin = lazy(() => import('./pages/superadmin/SuperAdminLogin'));
-const SuperAdminDashboard = lazy(() => import('./pages/superadmin/SuperAdminDashboard'));
-const CreateSuperAdmin = lazy(() => import('./pages/superadmin/CreateSuperAdmin'));
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { useState } from "react";
+import { AuthProvider } from "@/context/AuthContext";
+import PrivateRoute from "@/components/PrivateRoute";
 
-function App() {
+// Layouts
+import Layout from "@/components/Layout";
+
+// Auth Pages
+import Login from "@/pages/auth/Login";
+import Register from "@/pages/auth/Register";
+import ResetPassword from "@/pages/auth/ResetPassword";
+
+// Superadmin Pages
+import SuperAdminLogin from "@/pages/superadmin/SuperAdminLogin";
+import SuperAdminDashboard from "@/pages/superadmin/SuperAdminDashboard";
+
+// App Pages
+import Dashboard from "@/pages/Dashboard";
+import Invoices from "@/pages/Invoices";
+import NewInvoice from "@/pages/NewInvoice";
+import EditInvoice from "@/pages/EditInvoice";
+import Customers from "@/pages/Customers";
+import CustomerDetail from "@/pages/CustomerDetail";
+import NotFound from "@/pages/NotFound";
+import Reports from "@/pages/Reports";
+import AttendanceReport from "@/pages/reports/AttendanceReport";
+import TasksReport from "@/pages/reports/TasksReport";
+import FinanceReport from "@/pages/reports/FinanceReport";
+import InvoicingReport from "@/pages/reports/InvoicingReport";
+import Mechanics from "@/pages/Mechanics";
+import Tasks from "@/pages/Tasks";
+import Parts from "@/pages/Parts";
+import Finance from "@/pages/Finance";
+import Attendance from "@/pages/Attendance";
+import Users from "@/pages/Users";
+import Help from "@/pages/Help";
+import Settings from "@/pages/Settings";
+
+const App = () => {
+  // Create a new QueryClient instance inside the component
+  const [queryClient] = useState(() => new QueryClient());
+
   return (
-    <ThemeProvider defaultTheme="light" storageKey="ui-theme">
+    <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <Router>
-          <Suspense fallback={<LoadingScreen />}>
+        <BrowserRouter>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
             <Routes>
-              {/* Auth routes */}
-              <Route path="/auth" element={<PublicRoute />}>
-                <Route path="login" element={<Login />} />
-                <Route path="register" element={<Register />} />
-                <Route path="forgot-password" element={<ForgotPassword />} />
-                <Route path="reset-password" element={<ResetPassword />} />
+              {/* Auth Routes */}
+              <Route path="/auth/login" element={<Login />} />
+              <Route path="/auth/register" element={<Register />} />
+              <Route path="/auth/reset-password" element={<ResetPassword />} />
+              
+              {/* Superadmin Routes - Separate access point */}
+              <Route path="/superadmin/login" element={<SuperAdminLogin />} />
+              <Route path="/superadmin/dashboard" element={<SuperAdminDashboard />} />
+              
+              {/* Protected App Routes */}
+              <Route element={<PrivateRoute><Layout /></PrivateRoute>}>
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/invoices" element={<Invoices />} />
+                <Route path="/invoices/new" element={<NewInvoice />} />
+                <Route path="/invoices/edit/:id" element={<EditInvoice />} />
+                <Route path="/customers" element={<Customers />} />
+                <Route path="/customers/:id" element={<CustomerDetail />} />
+                <Route path="/mechanics" element={<Mechanics />} />
+                <Route path="/tasks" element={<Tasks />} />
+                <Route path="/parts" element={<Parts />} />
+                <Route path="/finance" element={<Finance />} />
+                <Route path="/attendance" element={<Attendance />} />
+                <Route path="/users" element={<Users />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="/help" element={<Help />} />
+                <Route path="/reports" element={<Reports />} />
+                <Route path="/reports/attendance" element={<AttendanceReport />} />
+                <Route path="/reports/tasks" element={<TasksReport />} />
+                <Route path="/reports/finance" element={<FinanceReport />} />
+                <Route path="/reports/invoicing" element={<InvoicingReport />} />
+                {/* Admin routes now redirected to superadmin dashboard */}
+                <Route path="/admin" element={<Navigate to="/superadmin/dashboard" replace />} />
+                <Route path="/admin/analytics" element={<Navigate to="/superadmin/dashboard" replace />} />
               </Route>
               
-              {/* SuperAdmin routes */}
-              <Route path="/superadmin">
-                <Route path="login" element={<SuperAdminLogin />} />
-                <Route path="create" element={<CreateSuperAdmin />} />
-                <Route path="dashboard" element={
-                  <PrivateRoute>
-                    <SuperAdminDashboard />
-                  </PrivateRoute>
-                } />
-                {/* Add any other superadmin routes here */}
-              </Route>
+              {/* Redirect Index to Root */}
+              <Route path="/index" element={<Navigate to="/" replace />} />
               
-              {/* Protected routes */}
-              <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
-                <Route index element={<Dashboard />} />
-                <Route path="profile" element={<Profile />} />
-                <Route path="settings" element={<Settings />} />
-              </Route>
-              
-              {/* Redirect root to dashboard if logged in, otherwise to login */}
-              <Route path="/" element={<Navigate to="/auth/login" replace />} />
-              
-              {/* 404 route */}
+              {/* 404 Route */}
               <Route path="*" element={<NotFound />} />
             </Routes>
-          </Suspense>
-        </Router>
-        <Toaster />
+          </TooltipProvider>
+        </BrowserRouter>
       </AuthProvider>
-    </ThemeProvider>
+    </QueryClientProvider>
   );
-}
+};
 
 export default App;

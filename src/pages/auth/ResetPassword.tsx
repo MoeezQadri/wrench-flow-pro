@@ -1,146 +1,188 @@
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useToast } from '@/components/ui/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { useNavigate } from 'react-router-dom';
-import { AlertCircle, Check, Lock } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Building, KeyRound } from 'lucide-react';
+import { toast } from 'sonner';
+import { requestPasswordReset, resetPassword } from '@/services/auth-service';
 
 const ResetPassword = () => {
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('');
+  const [resetToken, setResetToken] = useState('');
+  const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [requestSent, setRequestSent] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const { toast } = useToast();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    // Clear any previous errors when user changes input
-    if (error) setError(null);
-  }, [password, confirmPassword]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleRequestReset = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setError(null);
-
-    // Basic validation
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters long');
-      setIsLoading(false);
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setError('Passwords do not match');
-      setIsLoading(false);
-      return;
-    }
-
+    
     try {
-      const { error } = await supabase.auth.updateUser({ password });
+      await requestPasswordReset(email);
+      setRequestSent(true);
+      toast.success('Password reset link sent to your email');
+    } catch (error) {
+      toast.error('Failed to send reset link');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-      if (error) throw error;
-
-      setSuccess(true);
-      toast({
-        title: "Password reset successful",
-        description: "Your password has been updated.",
-      });
-
-      // Redirect to login after a short delay
-      setTimeout(() => {
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (newPassword !== confirmPassword) {
+      toast.error('Passwords do not match');
+      return;
+    }
+    
+    if (newPassword.length < 8) {
+      toast.error('Password must be at least 8 characters long');
+      return;
+    }
+    
+    setIsLoading(true);
+    
+    try {
+      const success = resetPassword(email, resetToken, newPassword);
+      
+      if (success) {
+        toast.success('Password reset successful');
         navigate('/auth/login');
-      }, 3000);
-    } catch (err: any) {
-      console.error('Error resetting password:', err);
-      setError(err.message || 'Failed to reset password. Please try again.');
-      toast({
-        variant: "destructive",
-        title: "Reset failed",
-        description: err.message || 'Failed to reset password. Please try again.',
-      });
+      } else {
+        toast.error('Invalid or expired reset token');
+      }
+    } catch (error) {
+      toast.error('Failed to reset password');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="text-2xl">Reset Password</CardTitle>
-          <CardDescription>
-            Create a new password for your account
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {error && (
-            <div className="bg-red-50 p-4 rounded-md border border-red-200 mb-4 flex items-start">
-              <AlertCircle className="h-5 w-5 text-red-600 mr-2 mt-0.5" />
-              <p className="text-red-800">{error}</p>
-            </div>
-          )}
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="w-full max-w-md p-4">
+        <div className="text-center mb-8">
+          <div className="flex justify-center mb-4">
+            <Building size={48} className="text-wrench-light-blue" />
+          </div>
+          <h1 className="text-3xl font-bold">WrenchFlow Pro</h1>
+          <p className="text-muted-foreground">Automotive workshop management system</p>
+        </div>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>Reset Password</CardTitle>
+            <CardDescription>
+              {!requestSent 
+                ? "Enter your email to receive a password reset link" 
+                : "Enter the reset code and your new password"}
+            </CardDescription>
+          </CardHeader>
           
-          {success ? (
-            <div className="bg-green-50 p-4 rounded-md border border-green-200 mb-4 flex items-start">
-              <Check className="h-5 w-5 text-green-600 mr-2 mt-0.5" />
-              <div>
-                <p className="text-green-800">Your password has been reset successfully!</p>
-                <p className="text-green-700 mt-2">Redirecting to login page...</p>
-              </div>
-            </div>
-          ) : (
-            <form onSubmit={handleSubmit}>
-              <div className="space-y-4">
+          {!requestSent ? (
+            <form onSubmit={handleRequestReset}>
+              <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="password">New Password</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="password"
-                      placeholder="New password"
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="pl-10"
-                      required
-                    />
-                  </div>
+                  <Label htmlFor="email">Email</Label>
+                  <Input 
+                    id="email" 
+                    type="email" 
+                    placeholder="your@email.com" 
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
                 </div>
-                
+              </CardContent>
+              <CardFooter className="flex flex-col space-y-3">
+                <Button 
+                  type="submit" 
+                  className="w-full" 
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Sending...' : 'Send Reset Link'}
+                </Button>
+                <div className="text-center text-sm text-muted-foreground">
+                  Remember your password?{' '}
+                  <Link to="/auth/login" className="text-wrench-light-blue hover:underline">
+                    Back to login
+                  </Link>
+                </div>
+              </CardFooter>
+            </form>
+          ) : (
+            <form onSubmit={handleResetPassword}>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="resetToken">Reset Code</Label>
+                  <Input 
+                    id="resetToken" 
+                    placeholder="Enter the code from your email" 
+                    value={resetToken}
+                    onChange={(e) => setResetToken(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="newPassword">New Password</Label>
+                  <Input 
+                    id="newPassword" 
+                    type="password" 
+                    placeholder="••••••••" 
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Password must be at least 8 characters long
+                  </p>
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="confirmPassword">Confirm Password</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="confirmPassword"
-                      placeholder="Confirm password"
-                      type="password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="pl-10"
-                      required
-                    />
-                  </div>
+                  <Input 
+                    id="confirmPassword" 
+                    type="password" 
+                    placeholder="••••••••" 
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                  />
                 </div>
-                
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={isLoading || success}
+              </CardContent>
+              <CardFooter className="flex flex-col space-y-3">
+                <Button 
+                  type="submit" 
+                  className="w-full" 
+                  disabled={isLoading}
                 >
-                  {isLoading ? "Resetting..." : "Reset Password"}
+                  {isLoading ? (
+                    <div className="flex items-center">
+                      <span className="mr-2">Resetting...</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center">
+                      <KeyRound className="h-4 w-4 mr-2" />
+                      <span>Reset Password</span>
+                    </div>
+                  )}
                 </Button>
-              </div>
+                <div className="text-center text-sm text-muted-foreground">
+                  Remember your password?{' '}
+                  <Link to="/auth/login" className="text-wrench-light-blue hover:underline">
+                    Back to login
+                  </Link>
+                </div>
+              </CardFooter>
             </form>
           )}
-        </CardContent>
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 };

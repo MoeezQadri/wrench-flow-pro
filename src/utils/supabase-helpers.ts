@@ -1,231 +1,160 @@
 import { supabase } from '@/integrations/supabase/client';
 
-/**
- * Get all organizations via the superadmin edge function
- */
-export const getOrganizations = async () => {
-  try {
-    const { data, error } = await supabase.functions.invoke('admin-utils', {
-      body: { action: 'get_organizations' }
-    });
-    
-    if (error) {
-      console.error('Error fetching organizations:', error);
-      throw error;
+export async function deleteOrganization(orgId: string) {
+  const { data, error } = await supabase.functions.invoke('admin-utils', {
+    body: {
+      action: 'delete_organization',
+      params: { org_id: orgId }
     }
-    
-    return data.organizations || [];
-  } catch (error) {
-    console.error('Failed to fetch organizations:', error);
-    throw error;
-  }
-};
+  });
+  
+  if (error) throw error;
+  return data;
+}
 
-/**
- * Get all users with profile data via RPC function
- */
-export const getAllUsers = async () => {
-  try {
-    // Use direct database query instead of RPC function
-    const { data: usersData, error: usersError } = await supabase
-      .from('user_profiles')
-      .select('*');
-      
-    if (usersError) {
-      // If query fails, try the edge function as fallback
-      console.warn('Error fetching user profiles, falling back to edge function:', usersError);
-      return getAdminUsers();
-    }
-    
-    return usersData || [];
-  } catch (error) {
-    console.error('Failed to fetch users:', error);
-    throw error;
-  }
-};
-
-/**
- * Alternative method to get users via the admin-utils edge function
- */
-export const getAdminUsers = async () => {
-  try {
-    const { data, error } = await supabase.functions.invoke('admin-utils', {
-      body: { action: 'get_users' }
-    });
-    
-    if (error) {
-      console.error('Error fetching users via admin-utils:', error);
-      throw error;
-    }
-    
-    return data.users || [];
-  } catch (error) {
-    console.error('Failed to fetch users via admin-utils:', error);
-    throw error;
-  }
-};
-
-/**
- * Get inactive users that have been inactive for specified days
- */
-export const getInactiveUsers = async (daysInactive: number = 90) => {
-  try {
-    const { data, error } = await supabase.functions.invoke('admin-utils', {
-      body: { 
-        action: 'get_inactive_users',
-        params: { days_inactive: daysInactive }
+export async function createOrganization(params: {
+  org_name: string, 
+  sub_level: string, 
+  owner_name: string, 
+  owner_email: string
+}) {
+  const { data, error } = await supabase.functions.invoke('admin-utils', {
+    body: {
+      action: 'create_organization',
+      params: {
+        ...params,
+        owner_password: Math.random().toString(36).slice(2, 10) // Generate random password
       }
-    });
+    }
+  });
+  
+  if (error) throw error;
+  return data;
+}
+
+export async function updateOrganization(params: {
+  org_id: string,
+  org_name: string,
+  sub_level: string
+}) {
+  const { data, error } = await supabase.functions.invoke('admin-utils', {
+    body: {
+      action: 'update_organization',
+      params
+    }
+  });
+  
+  if (error) throw error;
+  return data;
+}
+
+export async function getOrganizations() {
+  const { data, error } = await supabase.functions.invoke('admin-utils', {
+    body: {
+      action: 'get_organizations',
+      params: {}
+    }
+  });
+  
+  if (error) throw error;
+  return data || [];
+}
+
+// Add a new helper to fetch user profiles
+export async function getUserProfiles() {
+  const { data, error } = await supabase.functions.invoke('admin-utils', {
+    body: {
+      action: 'get_user_profiles',
+      params: {}
+    }
+  });
+  
+  if (error) throw error;
+  return data || [];
+}
+
+// Add a new helper to search for organizations by ID
+export async function searchOrganizationById(orgId: string) {
+  const { data, error } = await supabase.functions.invoke('admin-utils', {
+    body: {
+      action: 'search_organization',
+      params: { org_id: orgId }
+    }
+  });
+  
+  if (error) throw error;
+  return data || null;
+}
+
+// Get inactive users based on a specified number of days
+export async function getInactiveUsers(daysInactive: number = 90) {
+  try {
+    console.log('Fetching inactive users for', daysInactive, 'days');
+    
+    const { data, error } = await supabase.rpc(
+      'get_inactive_users', 
+      { days_inactive: daysInactive }
+    );
     
     if (error) {
       console.error('Error fetching inactive users:', error);
       throw error;
     }
     
-    return data.users || [];
-  } catch (error) {
-    console.error('Failed to fetch inactive users:', error);
-    throw error;
+    console.log(`Retrieved ${data?.length || 0} inactive users`);
+    return data || [];
+  } catch (e) {
+    console.error('Exception in getInactiveUsers:', e);
+    throw e;
   }
-};
+}
 
-/**
- * Clean user data via the superadmin edge function
- */
-export const cleanUserData = async (userId: string) => {
+// Clean user data for the specified user
+export async function cleanUserData(userId: string) {
   try {
-    const { data, error } = await supabase.functions.invoke('admin-utils', {
-      body: { 
-        action: 'clean_user_data',
-        params: { user_id: userId }
-      }
-    });
+    const { error } = await supabase.rpc('clean_user_data', { user_id: userId });
     
     if (error) {
       console.error('Error cleaning user data:', error);
       throw error;
     }
     
-    return data;
-  } catch (error) {
-    console.error('Failed to clean user data:', error);
-    throw error;
+    return true;
+  } catch (e) {
+    console.error('Exception in cleanUserData:', e);
+    throw e;
   }
-};
+}
 
-/**
- * Delete an organization via the superadmin edge function
- */
-export const deleteOrganization = async (orgId: string) => {
+// Get all users including confirmation status
+export async function getAllUsers() {
   try {
+    console.log('Fetching all users...');
     const { data, error } = await supabase.functions.invoke('admin-utils', {
-      body: { 
-        action: 'delete_organization',
-        params: { org_id: orgId }
+      body: {
+        action: 'get_all_users',
+        params: {}
       }
     });
     
     if (error) {
-      console.error('Error deleting organization:', error);
+      console.error('Error fetching all users:', error);
       throw error;
     }
     
-    return data;
-  } catch (error) {
-    console.error('Failed to delete organization:', error);
-    throw error;
+    console.log(`Fetched ${data?.length || 0} users`);
+    return data || [];
+  } catch (e) {
+    console.error('Exception in getAllUsers:', e);
+    throw e;
   }
-};
+}
 
-/**
- * Update an organization via the superadmin edge function
- */
-export const updateOrganization = async (params: {
-  org_id: string;
-  org_name: string;
-  sub_level: string;
-  sub_status?: string;
-}) => {
+// Enable a user without email confirmation
+export async function enableUserWithoutConfirmation(userId: string) {
   try {
     const { data, error } = await supabase.functions.invoke('admin-utils', {
-      body: { 
-        action: 'update_organization',
-        params
-      }
-    });
-    
-    if (error) {
-      console.error('Error updating organization:', error);
-      throw error;
-    }
-    
-    return data;
-  } catch (error) {
-    console.error('Failed to update organization:', error);
-    throw error;
-  }
-};
-
-/**
- * Create a new organization via the superadmin edge function
- */
-export const createOrganization = async (params: {
-  org_name: string;
-  sub_level: string;
-  owner_name: string;
-  owner_email: string;
-}) => {
-  try {
-    const { data, error } = await supabase.functions.invoke('admin-utils', {
-      body: { 
-        action: 'create_organization',
-        params
-      }
-    });
-    
-    if (error) {
-      console.error('Error creating organization:', error);
-      throw error;
-    }
-    
-    return data;
-  } catch (error) {
-    console.error('Failed to create organization:', error);
-    throw error;
-  }
-};
-
-/**
- * Search for an organization by ID via the superadmin edge function
- */
-export const searchOrganizationById = async (orgId: string) => {
-  try {
-    const { data, error } = await supabase.functions.invoke('admin-utils', {
-      body: { 
-        action: 'search_organization_by_id',
-        params: { org_id: orgId }
-      }
-    });
-    
-    if (error) {
-      console.error('Error searching for organization:', error);
-      throw error;
-    }
-    
-    return data;
-  } catch (error) {
-    console.error('Failed to search for organization:', error);
-    throw error;
-  }
-};
-
-/**
- * Enable a user without requiring email confirmation
- */
-export const enableUserWithoutConfirmation = async (userId: string) => {
-  try {
-    const { data, error } = await supabase.functions.invoke('admin-utils', {
-      body: { 
+      body: {
         action: 'enable_user_without_confirmation',
         params: { user_id: userId }
       }
@@ -237,32 +166,30 @@ export const enableUserWithoutConfirmation = async (userId: string) => {
     }
     
     return data;
-  } catch (error) {
-    console.error('Failed to enable user:', error);
-    throw error;
+  } catch (e) {
+    console.error('Exception in enableUserWithoutConfirmation:', e);
+    throw e;
   }
-};
+}
 
-/**
- * Check if an email already exists and its status
- */
-export const checkEmailExists = async (email: string) => {
+// Check if an email already exists and get its status
+export async function checkEmailExists(email: string) {
   try {
     const { data, error } = await supabase.functions.invoke('admin-utils', {
-      body: { 
+      body: {
         action: 'check_email_exists',
         params: { email }
       }
     });
     
     if (error) {
-      console.error('Error checking email:', error);
+      console.error('Error checking email existence:', error);
       throw error;
     }
     
     return data;
-  } catch (error) {
-    console.error('Failed to check email:', error);
-    throw error;
+  } catch (e) {
+    console.error('Exception in checkEmailExists:', e);
+    throw e;
   }
-};
+}
