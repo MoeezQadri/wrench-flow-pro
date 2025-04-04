@@ -342,7 +342,7 @@ function getSupabaseServiceClient() {
 }
 
 export async function handler(req: Request): Promise<Response> {
-  console.log("Processing request with token starting with:", req.headers.get('Authorization')?.substring(0, 10) + "...\n");
+  console.log("Processing request with token:", req.headers.get('Authorization'));
   
   // Handle CORS preflight request - ensure this is before any other processing
   if (req.method === 'OPTIONS') {
@@ -377,7 +377,7 @@ export async function handler(req: Request): Promise<Response> {
           console.log("Using service key for authentication");
         } else if (token.startsWith('superadmin-')) {
           // Allow superadmin mock tokens
-          console.log("Using superadmin mock token");
+          console.log("Using superadmin mock token:", token);
         } else {
           // For regular user tokens, verify they're authenticated
           const { data: { user }, error: authError } = await client.auth.getUser(token);
@@ -391,7 +391,7 @@ export async function handler(req: Request): Promise<Response> {
         }
       } catch (authError) {
         console.error("Auth error:", authError);
-        return new Response(JSON.stringify({ error: 'Authentication failed', details: authError }), {
+        return new Response(JSON.stringify({ error: 'Authentication failed', details: authError.message }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 401,
         });

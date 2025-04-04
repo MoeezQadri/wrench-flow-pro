@@ -33,7 +33,35 @@ const SuperAdminLogin = () => {
   useEffect(() => {
     const superAdminToken = localStorage.getItem('superadminToken');
     if (superAdminToken) {
-      navigate('/superadmin/dashboard');
+      // Also verify the token actually works before redirecting
+      const verifyToken = async () => {
+        try {
+          // Set the token for the verification request
+          supabase.functions.setAuth(superAdminToken);
+          
+          // Make a test request
+          const { error } = await supabase.functions.invoke('admin-utils', {
+            body: { action: 'get_organizations', params: {} }
+          });
+          
+          if (!error) {
+            // Token is valid, redirect
+            navigate('/superadmin/dashboard');
+          } else {
+            // Token is invalid, clear it
+            console.error("Invalid superadmin token:", error);
+            localStorage.removeItem('superadminToken');
+            // Reset auth
+            supabase.functions.setAuth(null);
+          }
+        } catch (err) {
+          console.error("Token verification error:", err);
+          localStorage.removeItem('superadminToken');
+          supabase.functions.setAuth(null);
+        }
+      };
+      
+      verifyToken();
     }
   }, [navigate]);
   
@@ -78,7 +106,7 @@ const SuperAdminLogin = () => {
         setSession({
           access_token: mockToken,
           refresh_token: '',
-          token_type: 'bearer', // Add the missing token_type property
+          token_type: 'bearer',
           expires_at: Date.now() + 3600000, // 1 hour from now
           expires_in: 3600,
           user: {
@@ -99,10 +127,26 @@ const SuperAdminLogin = () => {
           description: "Welcome to the SuperAdmin portal",
         });
         
-        // Redirect to the dashboard with a slight delay to ensure token is set
-        setTimeout(() => {
-          navigate('/superadmin/dashboard');
-        }, 100);
+        // Verify the token works before redirecting
+        try {
+          const { error: testError } = await supabase.functions.invoke('admin-utils', {
+            body: { action: 'get_organizations', params: {} }
+          });
+          
+          if (testError) {
+            console.error('Error testing admin token:', testError);
+            toast.error('Authentication failed. Please try again.');
+            return;
+          }
+          
+          // Redirect to the dashboard with a slight delay to ensure token is set
+          setTimeout(() => {
+            navigate('/superadmin/dashboard');
+          }, 300);
+        } catch (verifyError) {
+          console.error('Error verifying token:', verifyError);
+          toast.error('Authentication error. Please try again.');
+        }
       } else {
         toast({
           variant: "destructive",

@@ -15,6 +15,7 @@ import RolesManagementTab from "@/components/settings/RolesManagementTab";
 import OrganizationSearch from "@/components/admin/OrganizationSearch";
 import DataCleanupPanel from "@/components/admin/DataCleanupPanel";
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const SuperAdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('metrics');
@@ -30,10 +31,33 @@ const SuperAdminDashboard = () => {
       
       if (superAdminToken) {
         // Set the auth header for all Supabase requests
-        supabase.functions.setAuth(superAdminToken);
-        console.log('SuperAdmin token set for API calls');
+        try {
+          console.log('Setting SuperAdmin token for API calls:', superAdminToken.substring(0, 10) + '...');
+          
+          // Explicitly set the token for Supabase Functions
+          supabase.functions.setAuth(superAdminToken);
+          
+          // Test the auth token with a simple request
+          const { data: testData, error: testError } = await supabase.functions.invoke('admin-utils', {
+            body: { action: 'get_organizations', params: {} }
+          });
+          
+          if (testError) {
+            console.error('Error testing admin token:', testError);
+            toast.error('Authentication failed. Please log in again.');
+            navigate('/superadmin/login');
+            return;
+          }
+          
+          console.log('SuperAdmin authentication successful');
+        } catch (error) {
+          console.error('Error setting auth token:', error);
+          toast.error('Authentication error. Please log in again.');
+          navigate('/superadmin/login');
+        }
       } else {
         // If no token, redirect to login
+        console.warn('No superadmin token found, redirecting to login');
         navigate('/superadmin/login');
       }
     };
