@@ -143,7 +143,24 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      clean_user_data: {
+        Args: {
+          user_id: string
+        }
+        Returns: undefined
+      }
+      get_inactive_users: {
+        Args: {
+          days_inactive?: number
+        }
+        Returns: {
+          id: string
+          name: string
+          email: string
+          last_login: string
+          days_since_login: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

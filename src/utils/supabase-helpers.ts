@@ -87,3 +87,18 @@ export async function searchOrganizationById(orgId: string) {
   return data || null;
 }
 
+// Get inactive users based on a specified number of days
+export async function getInactiveUsers(daysInactive: number = 90) {
+  const { data, error } = await supabase.rpc('get_inactive_users', { days_inactive: daysInactive });
+  
+  if (error) throw error;
+  return data || [];
+}
+
+// Clean user data for the specified user
+export async function cleanUserData(userId: string) {
+  const { error } = await supabase.rpc('clean_user_data', { user_id: userId });
+  
+  if (error) throw error;
+  return true;
+}

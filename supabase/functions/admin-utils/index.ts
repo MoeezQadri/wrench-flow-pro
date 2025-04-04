@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 
@@ -220,6 +219,48 @@ serve(async (req) => {
       
       return new Response(
         JSON.stringify(null),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    // Add a new action to get inactive users
+    if (action === 'get_inactive_users') {
+      const { days_inactive = 90 } = params;
+      
+      const { data, error } = await supabase.rpc('get_inactive_users', { 
+        days_inactive: days_inactive 
+      });
+      
+      if (error) throw error;
+      
+      return new Response(
+        JSON.stringify(data || []),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    // Add a new action to clean user data
+    if (action === 'clean_user_data') {
+      const { user_id } = params;
+      
+      if (!user_id) {
+        return new Response(
+          JSON.stringify({ error: 'User ID is required' }),
+          { 
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" } 
+          }
+        );
+      }
+      
+      const { error } = await supabase.rpc('clean_user_data', { 
+        user_id: user_id 
+      });
+      
+      if (error) throw error;
+      
+      return new Response(
+        JSON.stringify({ success: true, message: 'User data cleaned successfully' }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
