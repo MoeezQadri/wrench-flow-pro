@@ -19,11 +19,12 @@ export const useSessionManagement = () => {
     if (superAdminToken) {
       try {
         console.log("Found existing token, verifying...");
+        
+        // Set the auth token first, before verification
+        supabase.functions.setAuth(superAdminToken);
+        
         const isValid = await verifyToken(superAdminToken);
         if (isValid) {
-          // Set the auth token for future API calls
-          supabase.functions.setAuth(superAdminToken);
-          
           // Create a superadmin user object for context
           const superadminUser = {
             id: 'superadmin-id',

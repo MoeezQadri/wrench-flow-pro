@@ -8,17 +8,14 @@ export const useTokenVerification = () => {
 
   const verifyToken = async (token: string): Promise<boolean> => {
     try {
-      // Create proper authorization header with Bearer prefix
-      const headers = {
-        Authorization: `Bearer ${token}`
-      };
+      // CRITICAL: Set the auth token for all supabase API calls
+      supabase.functions.setAuth(token);
       
       console.log("Sending verification request with token:", token.substring(0, 20) + '...');
       
-      // Make the verification request with authorization header
+      // Make the verification request with proper authorization
       const { data, error } = await supabase.functions.invoke('admin-utils', {
-        body: { action: 'verify_token' },
-        headers
+        body: { action: 'verify_token' }
       });
       
       if (error) {
