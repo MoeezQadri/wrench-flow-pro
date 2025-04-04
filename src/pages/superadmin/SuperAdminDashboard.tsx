@@ -44,8 +44,7 @@ const SuperAdminDashboard = () => {
         
         // Test the auth token with a simple request
         const { data, error } = await supabase.functions.invoke('admin-utils', {
-          body: { action: 'verify_token' },
-          headers: { Authorization: `Bearer ${superAdminToken}` }
+          body: { action: 'verify_token' }
         });
         
         if (error || !data?.verified) {
