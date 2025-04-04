@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -9,6 +8,7 @@ import { Building } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuthContext } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { checkEmailExists } from '@/utils/supabase-helpers';
 
 const Register = () => {
   const [name, setName] = useState('');
@@ -36,44 +36,26 @@ const Register = () => {
     setIsLoading(true);
     
     try {
-      // First, check if the email already exists
-      const { data: existingUsers, error: checkError } = await supabase
-        .from('profiles')
-        .select('is_active')
-        .eq('email', email);
+      // Check if the email already exists using our helper function
+      const emailCheckResult = await checkEmailExists(email);
       
-      // Also check directly in auth.users table via the admin function
-      const { data: authUsers, error: authCheckError } = await supabase.functions.invoke('admin-utils', {
-        body: {
-          action: 'check_email_exists',
-          params: { email }
-        }
-      });
-      
-      if (checkError || authCheckError) {
-        console.error("Error checking email:", checkError || authCheckError);
-        // Continue with registration process if we can't check
-      } else {
-        // If email exists in auth users, check the status
-        if (authUsers && authUsers.exists) {
-          const isActive = authUsers.is_active;
-          
-          if (isActive) {
-            // Active user
-            toast.error('This email is already registered. Please use the login page instead.', {
-              action: {
-                label: 'Go to Login',
-                onClick: () => navigate('/auth/login')
-              }
-            });
-            setIsLoading(false);
-            return;
-          } else {
-            // Inactive user
-            toast.error('This email exists but is inactive. Please contact the administrator at support@garagepro.com');
-            setIsLoading(false);
-            return;
-          }
+      if (emailCheckResult && emailCheckResult.exists) {
+        // Email exists, check if it's active
+        if (emailCheckResult.is_active) {
+          // Active user
+          toast.error('This email is already registered. Please use the login page instead.', {
+            action: {
+              label: 'Go to Login',
+              onClick: () => navigate('/auth/login')
+            }
+          });
+          setIsLoading(false);
+          return;
+        } else {
+          // Inactive user
+          toast.error('This email exists but is inactive. Please contact the administrator at support@garagepro.com');
+          setIsLoading(false);
+          return;
         }
       }
       
