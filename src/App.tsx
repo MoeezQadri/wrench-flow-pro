@@ -32,6 +32,7 @@ const Finance = lazy(() => import('./pages/Finance'));
 const Expenses = lazy(() => import('./pages/Expenses'));
 const Users = lazy(() => import('./pages/Users'));
 const Reports = lazy(() => import('./pages/Reports'));
+const Attendance = lazy(() => import('./pages/Attendance'));
 
 // Report modules
 const AttendanceReport = lazy(() => import('./pages/reports/AttendanceReport'));
@@ -102,6 +103,9 @@ function App() {
                 {/* Finance */}
                 <Route path="finance" element={<Finance />} />
                 <Route path="expenses" element={<Expenses />} />
+                
+                {/* Attendance */}
+                <Route path="attendance" element={<Attendance />} />
                 
                 {/* Users */}
                 <Route path="users" element={<Users />} />
