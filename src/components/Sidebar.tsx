@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
@@ -100,12 +99,6 @@ const navItems = [
     path: '/reports', 
     icon: <FileText className="w-5 h-5" />,
     permission: { resource: 'reports' as ResourceKey, action: 'view' }
-  },
-  { 
-    name: 'Profile', 
-    path: '/profile', 
-    icon: <User className="w-5 h-5" />,
-    permission: { resource: 'dashboard' as ResourceKey, action: 'view' }
   },
   { 
     name: 'Settings', 
