@@ -5,24 +5,44 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
-import { AlertTriangle, LockKeyhole } from 'lucide-react';
+import { AlertTriangle, LockKeyhole, User } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { Label } from '@/components/ui/label';
+import { Form, FormField, FormItem, FormControl, FormMessage } from '@/components/ui/form';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+
+// Form validation schema
+const formSchema = z.object({
+  username: z.string().min(1, { message: "Username is required" }),
+  password: z.string().min(1, { message: "Password is required" })
+});
+
+type FormData = z.infer<typeof formSchema>;
 
 const SuperAdminLogin = () => {
-  const [passcode, setPasscode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
   
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Set up form with validation
+  const form = useForm<FormData>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      username: '',
+      password: ''
+    }
+  });
+  
+  const handleLogin = async (values: FormData) => {
     setIsLoading(true);
     
     try {
       // In a real app, this would verify with a secure backend
-      // For demo purposes, we're using a simple check
-      // Simulate auth process
-      if (passcode === 'superadmin2023') {
+      // For demo purposes, we're using hardcoded credentials
+      // The username is "admin" and password is "superadmin2023"
+      if (values.username === 'admin' && values.password === 'superadmin2023') {
         // Generate a mock token for superadmin
         const mockToken = `superadmin-${Date.now()}`;
         
@@ -42,7 +62,7 @@ const SuperAdminLogin = () => {
         toast({
           variant: "destructive",
           title: "Access denied",
-          description: "Invalid passcode. Please try again.",
+          description: "Invalid username or password. Please try again.",
         });
       }
     } catch (error) {
@@ -66,29 +86,67 @@ const SuperAdminLogin = () => {
             <CardTitle className="text-2xl">SuperAdmin Access</CardTitle>
           </div>
           <CardDescription>
-            This area is restricted. Enter your passcode to continue.
+            This area is restricted. Enter your credentials to continue.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleLogin}>
-            <div className="grid gap-4">
-              <div className="relative">
-                <Input
-                  id="passcode"
-                  placeholder="Enter passcode"
-                  type="password"
-                  value={passcode}
-                  onChange={(e) => setPasscode(e.target.value)}
-                  className="pr-10"
-                  required
-                />
-                <LockKeyhole className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
-              </div>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(handleLogin)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="username"
+                render={({ field }) => (
+                  <FormItem>
+                    <Label htmlFor="username" className="text-sm font-medium">Username</Label>
+                    <FormControl>
+                      <div className="relative">
+                        <Input
+                          id="username"
+                          placeholder="Enter username"
+                          className="pr-10"
+                          {...field}
+                        />
+                        <User className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <Label htmlFor="password" className="text-sm font-medium">Password</Label>
+                    <FormControl>
+                      <div className="relative">
+                        <Input
+                          id="password"
+                          type="password"
+                          placeholder="Enter password"
+                          className="pr-10"
+                          {...field}
+                        />
+                        <LockKeyhole className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
               <Button type="submit" disabled={isLoading} className="w-full bg-red-600 hover:bg-red-700">
                 {isLoading ? "Authenticating..." : "Access System"}
               </Button>
-            </div>
-          </form>
+              
+              <div className="text-xs text-center text-gray-500 mt-4">
+                <p>Default Credentials (for demo):</p>
+                <p>Username: admin | Password: superadmin2023</p>
+              </div>
+            </form>
+          </Form>
         </CardContent>
       </Card>
     </div>
