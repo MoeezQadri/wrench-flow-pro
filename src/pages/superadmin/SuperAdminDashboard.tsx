@@ -1,25 +1,42 @@
 
 import React, { useEffect, useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useAuthContext } from '@/context/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { AlertTriangle, BarChart, Users, CreditCard, Settings, LogOut, Activity, LineChart, PieChart, MousePointer, Package, Shield, Search, Trash } from 'lucide-react';
-import AdminMetricsPanel from '@/components/admin/AdminMetricsPanel';
-import AdminUserManagement from '@/components/admin/AdminUserManagement';
-import AdminPaymentManagement from '@/components/admin/AdminPaymentManagement';
-import AdminAnalyticsIntegration from '@/components/admin/AdminAnalyticsIntegration';
-import SubscriptionPlansManagement from '@/components/admin/SubscriptionPlansManagement';
-import RolesManagementTab from '@/components/settings/RolesManagementTab';
-import OrganizationSearch from '@/components/admin/OrganizationSearch';
-import DataCleanupPanel from '@/components/admin/DataCleanupPanel';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuthContext } from "@/context/AuthContext";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { AlertTriangle, BarChart, Users, CreditCard, Settings, LogOut, Activity, LineChart, PieChart, MousePointer, Package, Shield, Search, Trash } from "lucide-react";
+import AdminMetricsPanel from "@/components/admin/AdminMetricsPanel";
+import AdminUserManagement from "@/components/admin/AdminUserManagement";
+import AdminPaymentManagement from "@/components/admin/AdminPaymentManagement";
+import AdminAnalyticsIntegration from "@/components/admin/AdminAnalyticsIntegration";
+import SubscriptionPlansManagement from "@/components/admin/SubscriptionPlansManagement";
+import RolesManagementTab from "@/components/settings/RolesManagementTab";
+import OrganizationSearch from "@/components/admin/OrganizationSearch";
+import DataCleanupPanel from "@/components/admin/DataCleanupPanel";
+import { supabase } from '@/integrations/supabase/client';
 
 const SuperAdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('metrics');
   const [activeAnalyticsTab, setActiveAnalyticsTab] = useState('overview');
   const { currentUser, logout } = useAuthContext();
   const navigate = useNavigate();
+  
+  // Set up SuperAdmin token for authenticated API calls
+  useEffect(() => {
+    const setupSuperAdminAuth = async () => {
+      // Check if we have the superadmin token in localStorage
+      const superAdminToken = localStorage.getItem('superadminToken');
+      
+      if (superadminToken) {
+        // Set the auth header for all Supabase requests
+        supabase.functions.setAuth(superAdminToken);
+        console.log('SuperAdmin token set for API calls');
+      }
+    };
+    
+    setupSuperAdminAuth();
+  }, []);
   
   useEffect(() => {
     // Check if user is a superuser
@@ -29,8 +46,13 @@ const SuperAdminDashboard = () => {
   }, [currentUser, navigate]);
   
   const handleLogout = () => {
-    logout();
+    // Clear the superadmin token from local storage
     localStorage.removeItem('superadminToken');
+    
+    // Reset auth header
+    supabase.functions.setAuth(null);
+    
+    logout();
     navigate('/superadmin/login');
   };
 

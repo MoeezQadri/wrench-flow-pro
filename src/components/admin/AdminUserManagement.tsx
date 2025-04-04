@@ -8,6 +8,8 @@ import { getOrganizations, getAllUsers } from '@/utils/supabase-helpers';
 import { UserWithConfirmation, Organization } from './types';
 import OrganizationManagement from './OrganizationManagement';
 import UserManagement from './UserManagement';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertTriangle } from 'lucide-react';
 
 const AdminUserManagement = () => {
   const [users, setUsers] = useState<UserWithConfirmation[]>([]);
@@ -15,12 +17,15 @@ const AdminUserManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('organizations');
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { currentUser, session } = useAuthContext();
   
   // Fetch data from Supabase
   useEffect(() => {
     async function fetchData() {
       setIsLoading(true);
+      setError(null);
+      
       try {
         console.log('AdminUserManagement: Fetching data with session:', session?.access_token?.substring(0, 10) + '...');
         
@@ -36,8 +41,10 @@ const AdminUserManagement = () => {
         
         setOrganizations(orgsData || []);
         setUsers(usersData || []);
+        setError(null);
       } catch (error: any) {
         console.error('Error fetching data:', error);
+        setError(`Failed to load data: ${error.message || 'Unknown error'}`);
         toast.error(`Failed to load data: ${error.message || 'Unknown error'}`);
       } finally {
         setIsLoading(false);
@@ -54,6 +61,14 @@ const AdminUserManagement = () => {
   
   return (
     <div className="space-y-6">
+      {error && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="mb-4">
           <TabsTrigger value="organizations">
