@@ -107,6 +107,68 @@ serve(async (req) => {
         );
       }
 
+      case 'get_organizations': {
+        // Verify auth token before proceeding
+        const authHeader = req.headers.get('Authorization');
+        if (!authHeader) {
+          return new Response(
+            JSON.stringify({ error: 'Authentication required' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+          );
+        }
+        
+        console.log('Fetching organizations for superadmin');
+        
+        // Fetch organizations from the database
+        const { data: organizations, error } = await supabaseAdmin
+          .from('organizations')
+          .select('*')
+          .order('created_at', { ascending: false });
+          
+        if (error) {
+          console.error('Error fetching organizations:', error);
+          return new Response(
+            JSON.stringify({ error: error.message }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+          );
+        }
+        
+        return new Response(
+          JSON.stringify({ organizations }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      case 'get_users': {
+        // Verify auth token before proceeding
+        const authHeader = req.headers.get('Authorization');
+        if (!authHeader) {
+          return new Response(
+            JSON.stringify({ error: 'Authentication required' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+          );
+        }
+        
+        console.log('Fetching users for superadmin');
+        
+        // Get users from both auth.users and profiles
+        const { data: users, error } = await supabaseAdmin
+          .rpc('get_all_users_with_profiles');
+          
+        if (error) {
+          console.error('Error fetching users:', error);
+          return new Response(
+            JSON.stringify({ error: error.message }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+          );
+        }
+        
+        return new Response(
+          JSON.stringify({ users }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       default:
         return new Response(
           JSON.stringify({ error: 'Invalid action' }),

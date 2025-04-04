@@ -41,11 +41,12 @@ const SuperAdminDashboard = () => {
         }
         
         // Set the auth header for all Supabase requests
-        supabase.functions.setAuth(superAdminToken);
+        const authHeader = `Bearer ${superAdminToken}`;
         
         // Test the auth token with a simple request
         const { data, error } = await supabase.functions.invoke('admin-utils', {
-          body: { action: 'verify_token' }
+          body: { action: 'verify_token' },
+          headers: { Authorization: authHeader }
         });
         
         if (error || !data?.verified) {
@@ -73,7 +74,7 @@ const SuperAdminDashboard = () => {
     // Clear the superadmin token from local storage
     localStorage.removeItem('superadminToken');
     
-    // Reset auth header
+    // Reset Supabase auth header
     supabase.functions.setAuth(null);
     
     logout();

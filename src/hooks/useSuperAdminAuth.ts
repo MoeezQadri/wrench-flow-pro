@@ -15,14 +15,14 @@ export const useSuperAdminAuth = () => {
 
   const verifyToken = async (token: string): Promise<boolean> => {
     try {
-      // Set the token for verification
+      // Create proper authorization header with Bearer prefix
       const headers = {
         Authorization: `Bearer ${token}`
       };
       
       console.log("Sending verification request with token:", token.substring(0, 20) + '...');
       
-      // Make the verification request
+      // Make the verification request with authorization header
       const { data, error } = await supabase.functions.invoke('admin-utils', {
         body: { action: 'verify_token' },
         headers
@@ -192,6 +192,9 @@ export const useSuperAdminAuth = () => {
         }
         
         console.log("Token verification successful, redirecting to dashboard");
+        
+        // Set the token for future API calls
+        supabase.functions.setAuth(data.token);
         
         // Redirect to the dashboard
         navigate('/superadmin/dashboard');
