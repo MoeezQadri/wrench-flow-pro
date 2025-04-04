@@ -60,20 +60,56 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, newSession) => {
+      async (event, newSession) => {
         setSession(newSession);
         
         if (newSession?.user) {
-          const user: User = {
-            id: newSession.user.id,
-            email: newSession.user.email || '',
-            name: newSession.user.user_metadata?.name || newSession.user.email?.split('@')[0] || '',
-            role: newSession.user.user_metadata?.role || 'owner',
-            isActive: true,
-            organizationId: newSession.user.user_metadata?.organization_id || undefined,
-            lastLogin: new Date().toISOString()
-          };
-          setCurrentUser(user);
+          // Check for existing profile data in Supabase
+          try {
+            const { data: profileData, error: profileError } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', newSession.user.id)
+              .single();
+            
+            if (profileError && profileError.code !== 'PGRST116') {
+              console.error('Error fetching profile:', profileError);
+            }
+            
+            // Create user object from session and profile data
+            const user: User = {
+              id: newSession.user.id,
+              email: newSession.user.email || '',
+              name: profileData?.name || newSession.user.user_metadata?.name || newSession.user.email?.split('@')[0] || '',
+              role: profileData?.role || newSession.user.user_metadata?.role || 'owner',
+              isActive: profileData?.is_active ?? true,
+              organizationId: profileData?.organization_id || newSession.user.user_metadata?.organization_id || undefined,
+              lastLogin: new Date().toISOString()
+            };
+            
+            // Update the last login time if the profile exists
+            if (profileData) {
+              await supabase
+                .from('profiles')
+                .update({ lastLogin: new Date().toISOString() })
+                .eq('id', newSession.user.id);
+            }
+            
+            setCurrentUser(user);
+          } catch (error) {
+            console.error('Error in auth state change:', error);
+            // Fallback to basic user info
+            const user: User = {
+              id: newSession.user.id,
+              email: newSession.user.email || '',
+              name: newSession.user.user_metadata?.name || newSession.user.email?.split('@')[0] || '',
+              role: newSession.user.user_metadata?.role || 'owner',
+              isActive: true,
+              organizationId: newSession.user.user_metadata?.organization_id || undefined,
+              lastLogin: new Date().toISOString()
+            };
+            setCurrentUser(user);
+          }
         } else {
           setCurrentUser(null);
         }
@@ -81,20 +117,56 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     );
 
     // Then check for existing session
-    supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
+    supabase.auth.getSession().then(async ({ data: { session: initialSession } }) => {
       setSession(initialSession);
       
       if (initialSession?.user) {
-        const user: User = {
-          id: initialSession.user.id,
-          email: initialSession.user.email || '',
-          name: initialSession.user.user_metadata?.name || initialSession.user.email?.split('@')[0] || '',
-          role: initialSession.user.user_metadata?.role || 'owner',
-          isActive: true,
-          organizationId: initialSession.user.user_metadata?.organization_id || undefined,
-          lastLogin: new Date().toISOString()
-        };
-        setCurrentUser(user);
+        try {
+          // Get profile data
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', initialSession.user.id)
+            .single();
+          
+          if (profileError && profileError.code !== 'PGRST116') {
+            console.error('Error fetching profile:', profileError);
+          }
+          
+          // Create user object from session and profile data
+          const user: User = {
+            id: initialSession.user.id,
+            email: initialSession.user.email || '',
+            name: profileData?.name || initialSession.user.user_metadata?.name || initialSession.user.email?.split('@')[0] || '',
+            role: profileData?.role || initialSession.user.user_metadata?.role || 'owner',
+            isActive: profileData?.is_active ?? true,
+            organizationId: profileData?.organization_id || initialSession.user.user_metadata?.organization_id || undefined,
+            lastLogin: profileData?.lastLogin || new Date().toISOString()
+          };
+          
+          // Update the last login time if the profile exists
+          if (profileData) {
+            await supabase
+              .from('profiles')
+              .update({ lastLogin: new Date().toISOString() })
+              .eq('id', initialSession.user.id);
+          }
+          
+          setCurrentUser(user);
+        } catch (error) {
+          console.error('Error in get session:', error);
+          // Fallback to basic user info
+          const user: User = {
+            id: initialSession.user.id,
+            email: initialSession.user.email || '',
+            name: initialSession.user.user_metadata?.name || initialSession.user.email?.split('@')[0] || '',
+            role: initialSession.user.user_metadata?.role || 'owner',
+            isActive: true,
+            organizationId: initialSession.user.user_metadata?.organization_id || undefined,
+            lastLogin: new Date().toISOString()
+          };
+          setCurrentUser(user);
+        }
       }
       
       setLoading(false);

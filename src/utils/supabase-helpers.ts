@@ -58,5 +58,18 @@ export async function getOrganizations() {
   });
   
   if (error) throw error;
-  return data;
+  return data || [];
+}
+
+// Add a new helper to fetch user profiles
+export async function getUserProfiles() {
+  const { data, error } = await supabase.functions.invoke('admin-utils', {
+    body: {
+      action: 'get_user_profiles',
+      params: {}
+    }
+  });
+  
+  if (error) throw error;
+  return data || [];
 }

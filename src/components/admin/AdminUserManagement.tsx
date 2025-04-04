@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,12 +12,12 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { UserRole, Organization } from '@/types';
+import { UserRole } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthContext } from '@/context/AuthContext';
 import { getOrganizations, deleteOrganization, updateOrganization, createOrganization } from '@/utils/supabase-helpers';
 
-// Define the types for our database tables since we can't access them directly
+// Define the types for our database tables
 type Profile = {
   id: string;
   name: string | null;
@@ -68,13 +69,20 @@ const AdminUserManagement = () => {
         
         if (profilesError) throw profilesError;
         
-        // Get emails from auth.users for each profile
+        // Get emails from auth.users for each profile (in a real app, this would be done on the server)
+        // For now, we'll use the profiles data we have
         const profilesWithEmail = await Promise.all((profilesData || []).map(async (profile) => {
-          // Note: In a real app, we'd use a proper API to get user emails
-          // This is just a placeholder since we can't call auth.admin functions from the client
+          // Get user email from auth.users via a secure server function in real implementation
+          // Here we use a placeholder or try to fetch from profiles if available
+          const { data: userData, error: userError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', profile.id)
+            .single();
+          
           return {
             ...profile,
-            email: `user-${profile.id.substring(0, 8)}@example.com` // Placeholder email
+            email: `${profile.name?.toLowerCase().replace(/\s+/g, '.')}@example.com` // Generate placeholder email
           };
         }));
         
@@ -137,8 +145,7 @@ const AdminUserManagement = () => {
   
   const handleToggleSuperAdmin = async (userId: string, isSuperAdmin: boolean) => {
     try {
-      // In a real app, we'd use a proper API to update user metadata
-      // For now, we'll just update the profile table
+      // Update the role in the profiles table
       const { error } = await supabase
         .from('profiles')
         .update({ role: isSuperAdmin ? 'superuser' : 'owner' })
@@ -160,8 +167,8 @@ const AdminUserManagement = () => {
   const handleDeleteUser = async (userId: string) => {
     if (window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
       try {
-        // In a real app, we'd call an API to delete the user
-        // For now, we'll just remove them from the UI
+        // In a real app with proper permissions, we would call the admin-utils function
+        // For now, we'll just update the UI
         setUsers(users.filter(user => user.id !== userId));
         toast.success('User deleted successfully');
       } catch (error: any) {
@@ -257,7 +264,7 @@ const AdminUserManagement = () => {
         toast.success('Organization updated successfully');
       } else {
         // Create new organization
-        const result = await createOrganization({
+        await createOrganization({
           org_name: formData.get('name') as string,
           sub_level: formData.get('subscriptionPlan') as string,
           owner_name: formData.get('ownerName') as string,

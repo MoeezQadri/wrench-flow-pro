@@ -30,9 +30,25 @@ serve(async (req) => {
         .eq('organization_id', org_id);
       
       if (profiles && profiles.length > 0) {
-        // Delete users from auth (which will trigger delete from profiles due to cascade)
+        // Update profiles to remove organization reference
+        await supabase
+          .from('profiles')
+          .update({ 
+            organization_id: null,
+            updated_at: new Date().toISOString() 
+          })
+          .eq('organization_id', org_id);
+          
+        // Optionally delete users from auth (in a real app, might just deactivate)
         for (const profile of profiles) {
-          await supabase.auth.admin.deleteUser(profile.id);
+          // Here just updating profile status instead of deleting the auth user
+          await supabase
+            .from('profiles')
+            .update({ 
+              is_active: false,
+              updated_at: new Date().toISOString() 
+            })
+            .eq('id', profile.id);
         }
       }
       
@@ -72,24 +88,34 @@ serve(async (req) => {
       const newOrg = orgData[0];
       
       // 2. Create owner user
+      const password = owner_password || Math.random().toString(36).slice(2, 10); // Use provided or generate random password
+      
       const { data: userData, error: userError } = await supabase.auth.admin.createUser({
         email: owner_email,
-        password: owner_password,
+        password: password,
         email_confirm: true,
         user_metadata: {
           name: owner_name,
-          role: 'owner',
-          organization_id: newOrg.id
+          role: 'owner'
         }
       });
       
       if (userError) throw userError;
       
-      // 3. Update profile with organization
-      await supabase
+      // 3. Create or update profile for the new user with organization
+      const { error: profileError } = await supabase
         .from('profiles')
-        .update({ organization_id: newOrg.id })
-        .eq('id', userData.user.id);
+        .upsert({
+          id: userData.user.id,
+          name: owner_name,
+          role: 'owner',
+          organization_id: newOrg.id,
+          is_active: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+      
+      if (profileError) throw profileError;
       
       return new Response(
         JSON.stringify({ 
@@ -101,7 +127,7 @@ serve(async (req) => {
               id: userData.user.id,
               email: userData.user.email,
               name: owner_name,
-              password: owner_password
+              password: password
             }
           }
         }),
@@ -138,6 +164,23 @@ serve(async (req) => {
       
       return new Response(
         JSON.stringify(data),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    // Add a new action to get user profiles
+    if (action === 'get_user_profiles') {
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('*');
+        
+      if (profilesError) throw profilesError;
+      
+      // Here you'd typically join with auth.users to get emails, but that requires special handling
+      // For demonstration purposes, we'll return the profiles as-is
+      
+      return new Response(
+        JSON.stringify(profiles),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
