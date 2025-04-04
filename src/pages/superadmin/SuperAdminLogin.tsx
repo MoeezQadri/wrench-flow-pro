@@ -5,6 +5,7 @@ import { useSuperAdminAuth } from '@/hooks/useSuperAdminAuth';
 import { Toaster } from '@/components/ui/toaster';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
+import { AlertCircle } from 'lucide-react';
 
 const SuperAdminLogin = () => {
   const { isLoading, handleLogin, checkExistingSession } = useSuperAdminAuth();
@@ -47,7 +48,13 @@ const SuperAdminLogin = () => {
   }
   
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
+      <div className="mb-4 text-center">
+        <div className="inline-flex items-center p-2 bg-red-100 text-red-800 rounded">
+          <AlertCircle className="h-5 w-5 mr-2" />
+          <span className="font-medium">SuperAdmin Access Only</span>
+        </div>
+      </div>
       <SuperAdminLoginForm 
         onSubmit={handleLogin} 
         isLoading={isLoading} 

@@ -6,40 +6,27 @@ import { useToast } from '@/components/ui/use-toast';
 export const useTokenVerification = () => {
   const { toast } = useToast();
 
-  const verifyToken = async (token: string): Promise<boolean> => {
+  const verifyToken = async (): Promise<boolean> => {
     try {
-      if (!token || token.trim() === '') {
-        console.error("Empty token provided for verification");
+      // Get the current session from Supabase
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        console.error("Session error or no session:", sessionError);
         return false;
       }
       
-      // Set the authorization header properly
-      supabase.functions.setAuth(token);
-      
-      console.log("Sending verification request with token...");
-      
-      // Make the verification request with proper authorization
-      const { data, error } = await supabase.functions.invoke('admin-utils', {
-        body: { action: 'verify_token' }
-      });
-      
-      if (error) {
-        console.error("Token verification error:", error);
-        localStorage.removeItem('superadminToken');
+      // Check if the user has the superadmin role in user_metadata
+      const userMetadata = session.user?.user_metadata || {};
+      if (userMetadata.role !== 'superuser' && userMetadata.role !== 'superadmin') {
+        console.error("User doesn't have superadmin role");
         return false;
       }
       
-      if (data?.verified === true) {
-        console.log("Token verification successful:", data);
-        return true;
-      } else {
-        console.error("Invalid token response:", data);
-        localStorage.removeItem('superadminToken');
-        return false;
-      }
+      console.log("Token verification successful - user has superadmin privileges");
+      return true;
     } catch (err) {
       console.error("Token verification error:", err);
-      localStorage.removeItem('superadminToken');
       return false;
     }
   };

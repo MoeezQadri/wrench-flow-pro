@@ -5,72 +5,57 @@ import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthContext } from '@/context/AuthContext';
 import { UserRole } from '@/types';
-import { useTokenVerification } from './useTokenVerification';
 
 export const useSessionManagement = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
   const { setCurrentUser, setSession } = useAuthContext();
-  const { verifyToken } = useTokenVerification();
 
   const checkExistingSession = async (): Promise<boolean> => {
-    const superAdminToken = localStorage.getItem('superadminToken');
-    if (superAdminToken) {
-      try {
-        console.log("Found existing token, verifying...");
-        
-        // Set the auth token first, before verification
-        supabase.functions.setAuth(superAdminToken);
-        
-        const isValid = await verifyToken(superAdminToken);
-        if (isValid) {
-          // Create a superadmin user object for context
-          const superadminUser = {
-            id: 'superadmin-id',
-            email: 'superadmin@admin.system',
-            name: 'Super Admin',
-            role: 'superuser' as UserRole,
-            isActive: true,
-            lastLogin: new Date().toISOString()
-          };
-          
-          // Update auth context with superadmin user
-          setCurrentUser(superadminUser);
-          setSession({
-            access_token: superAdminToken,
-            refresh_token: '',
-            token_type: 'bearer',
-            expires_at: Date.now() + 86400000, // 24 hours from now
-            expires_in: 86400,
-            user: {
-              id: 'superadmin-id',
-              email: 'superadmin@admin.system',
-              app_metadata: {},
-              user_metadata: {
-                name: 'Super Admin',
-                role: 'superuser'
-              },
-              aud: 'authenticated',
-              created_at: new Date().toISOString()
-            }
-          });
-          
-          toast({
-            title: "Session restored",
-            description: "Welcome back, SuperAdmin",
-          });
-          
-          navigate('/superadmin/dashboard');
-          return true;
-        } else {
-          console.log("Existing token invalid, user needs to log in");
-        }
-      } catch (err) {
-        console.error("Error checking existing session:", err);
+    try {
+      console.log("Checking existing session");
+      
+      // Get existing session from Supabase
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        console.log("No existing session found");
+        return false;
       }
+      
+      // Check if the user has superadmin role
+      const userMetadata = session.user?.user_metadata || {};
+      if (userMetadata.role !== 'superuser' && userMetadata.role !== 'superadmin') {
+        console.log("User does not have superadmin privileges");
+        return false;
+      }
+      
+      // Create a superadmin user object for context
+      const superadminUser = {
+        id: session.user.id,
+        email: session.user.email || 'superadmin@admin.system',
+        name: userMetadata.name || 'Super Admin',
+        role: 'superuser' as UserRole,
+        isActive: true,
+        lastLogin: new Date().toISOString()
+      };
+      
+      // Update auth context with superadmin user
+      setCurrentUser(superadminUser);
+      setSession(session);
+      
+      toast({
+        title: "Session restored",
+        description: "Welcome back, SuperAdmin",
+      });
+      
+      navigate('/superadmin/dashboard');
+      return true;
+    } catch (err) {
+      console.error("Error checking existing session:", err);
+      return false;
     }
-    return false;
   };
 
   return {
