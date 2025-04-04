@@ -53,7 +53,8 @@ export const useSessionManagement = () => {
       const superadminToken = localStorage.getItem('superadminToken');
       if (superadminToken) {
         // Verify the token with backend
-        const response = await fetch(`${supabase.functions.url}/admin-utils`, {
+        // Fix: Use explicit URL construction instead of accessing protected 'url' property
+        const response = await fetch(`https://zugmebtirwpdkblijlvx.supabase.co/functions/v1/admin-utils`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
