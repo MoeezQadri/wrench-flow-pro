@@ -135,7 +135,13 @@ const SuperAdminLogin = () => {
           
           if (testError) {
             console.error('Error testing admin token:', testError);
-            toast.error('Authentication failed. Please try again.');
+            
+            // Replace toast.error with proper destructive variant toast
+            toast({
+              variant: "destructive",
+              title: "Authentication Failed",
+              description: "Please try again."
+            });
             return;
           }
           
@@ -145,7 +151,13 @@ const SuperAdminLogin = () => {
           }, 300);
         } catch (verifyError) {
           console.error('Error verifying token:', verifyError);
-          toast.error('Authentication error. Please try again.');
+          
+          // Replace toast.error with proper destructive variant toast
+          toast({
+            variant: "destructive",
+            title: "Authentication Error",
+            description: "Please try again."
+          });
         }
       } else {
         toast({
