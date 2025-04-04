@@ -78,6 +78,7 @@ const SuperAdminLogin = () => {
         setSession({
           access_token: mockToken,
           refresh_token: '',
+          token_type: 'bearer', // Add the missing token_type property
           expires_at: Date.now() + 3600000, // 1 hour from now
           expires_in: 3600,
           user: {

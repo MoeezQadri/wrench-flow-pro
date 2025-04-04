@@ -101,24 +101,41 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     initializeAuth();
     
     // Check for stored superadmin session
-    const storedSuperadminSession = localStorage.getItem('superadminSession');
-    if (storedSuperadminSession && !session) {
+    const storedSuperadminToken = localStorage.getItem('superadminToken');
+    if (storedSuperadminToken && !session) {
       try {
-        const parsedSession = JSON.parse(storedSuperadminSession) as Session;
-        if (parsedSession.user?.user_metadata?.role === 'superuser') {
-          setSession(parsedSession);
-          setCurrentUser({
-            id: parsedSession.user.id,
-            email: parsedSession.user.email || '',
-            name: parsedSession.user.user_metadata?.name || '',
-            role: 'superuser',
-            isActive: true,
-            lastLogin: new Date().toISOString()
-          });
-        }
+        // Create a properly formatted mock Session object for the superadmin
+        const superadminSession: Session = {
+          access_token: storedSuperadminToken,
+          refresh_token: '',
+          token_type: 'bearer', // Add the required token_type property
+          expires_at: Date.now() + 3600000, // 1 hour from now
+          expires_in: 3600,
+          user: {
+            id: 'superadmin-id',
+            email: 'superadmin@example.com',
+            app_metadata: {},
+            user_metadata: {
+              name: 'Super Admin',
+              role: 'superuser'
+            },
+            aud: 'authenticated',
+            created_at: new Date().toISOString()
+          }
+        };
+        
+        setSession(superadminSession);
+        setCurrentUser({
+          id: superadminSession.user.id,
+          email: superadminSession.user.email || '',
+          name: superadminSession.user.user_metadata?.name || '',
+          role: 'superuser',
+          isActive: true,
+          lastLogin: new Date().toISOString()
+        });
       } catch (error) {
         console.error('Failed to parse superadmin session:', error);
-        localStorage.removeItem('superadminSession');
+        localStorage.removeItem('superadminToken');
       }
     }
     
@@ -149,7 +166,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = async () => {
     // Check if it's a superadmin session
     if (currentUser?.role === 'superuser' && session?.access_token?.startsWith('superadmin-')) {
-      localStorage.removeItem('superadminSession');
+      localStorage.removeItem('superadminToken');
       setCurrentUser(null);
       setSession(null);
     } else {
