@@ -1,3 +1,4 @@
+
 // Follow this setup guide to integrate the Deno language server with your editor:
 // https://deno.land/manual/getting_started/setup_your_environment
 // This enables autocomplete, go to definition, etc.
@@ -122,13 +123,14 @@ serve(async (req) => {
       expiresAt.setHours(expiresAt.getHours() + 24);
       
       // Store the token in the superadmin_sessions table
-      const { error: sessionError } = await supabaseAdmin
+      const { data: sessionData, error: sessionError } = await supabaseAdmin
         .from('superadmin_sessions')
         .insert({
           superadmin_id: superadmin.id,
           token,
           expires_at: expiresAt.toISOString()
-        });
+        })
+        .select('*');
         
       if (sessionError) {
         console.error('Error storing session:', sessionError);

@@ -138,6 +138,38 @@ export type Database = {
         }
         Relationships: []
       }
+      superadmin_sessions: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          superadmin_id: string
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          superadmin_id: string
+          token: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          superadmin_id?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "superadmin_sessions_superadmin_id_fkey"
+            columns: ["superadmin_id"]
+            isOneToOne: false
+            referencedRelation: "superadmins"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       superadmins: {
         Row: {
           created_at: string
