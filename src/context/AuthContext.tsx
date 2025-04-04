@@ -89,11 +89,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             
             // Update the last login time if the profile exists
             if (profileData) {
-              // Use a type-safe approach for the RPC function
+              // Fix: Use the correct typing for RPC calls by providing a record type instead of individual parameters
               const { error } = await supabase.rpc('update_last_login', {
                 user_id: newSession.user.id,
                 login_time: new Date().toISOString()
-              } as any);
+              });
               
               if (error) {
                 console.error('Error updating last login:', error);
@@ -153,11 +153,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           
           // Update the last login time if the profile exists
           if (profileData) {
-            // Use a type-safe approach for the RPC function
+            // Fix: Use the correct typing for RPC calls by providing a record type instead of individual parameters
             const { error } = await supabase.rpc('update_last_login', {
               user_id: initialSession.user.id,
               login_time: new Date().toISOString()
-            } as any);
+            });
             
             if (error) {
               console.error('Error updating last login:', error);
