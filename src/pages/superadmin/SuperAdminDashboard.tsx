@@ -28,7 +28,7 @@ const SuperAdminDashboard = () => {
       // Check if we have the superadmin token in localStorage
       const superAdminToken = localStorage.getItem('superadminToken');
       
-      if (superadminToken) {
+      if (superAdminToken) {
         // Set the auth header for all Supabase requests
         supabase.functions.setAuth(superAdminToken);
         console.log('SuperAdmin token set for API calls');
