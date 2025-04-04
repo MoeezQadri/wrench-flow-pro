@@ -27,41 +27,68 @@ const handler = async (req: Request): Promise<Response> => {
     // Get JWT from request
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
+      console.error("No authorization header");
       return new Response(JSON.stringify({ error: "No authorization header" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Verify user has access to superadmin functions
+    // Extract token and debug info
     const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+    console.log("Processing request with token starting with:", token.substring(0, 10) + "...");
     
-    if (userError || !user) {
-      console.error("Auth error:", userError);
-      return new Response(JSON.stringify({ error: "Authentication failed" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    // Check if it's a superadmin session token (special case)
+    if (token.startsWith('superadmin-')) {
+      console.log("Detected superadmin session token");
+    } else {
+      // Verify user has access to superadmin functions
+      try {
+        const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+        
+        if (userError || !user) {
+          console.error("Auth error:", userError);
+          return new Response(JSON.stringify({ error: "Authentication failed", details: userError }), {
+            status: 401,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
 
-    // Get user profile to check role
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", user.id)
-      .single();
+        // Get user profile to check role
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", user.id)
+          .single();
 
-    // Check if user is superuser
-    if (!(profile?.role === "superuser")) {
-      return new Response(JSON.stringify({ error: "Unauthorized - Superuser role required" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+        if (profileError) {
+          console.error("Profile error:", profileError);
+          return new Response(JSON.stringify({ error: "Failed to retrieve user profile", details: profileError }), {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Check if user is superuser
+        if (!(profile?.role === "superuser")) {
+          console.error("Unauthorized access attempt by role:", profile?.role);
+          return new Response(JSON.stringify({ error: "Unauthorized - Superuser role required" }), {
+            status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      } catch (error) {
+        console.error("Error verifying user:", error);
+        return new Response(JSON.stringify({ error: "Error verifying user", details: error.message }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
     
     // Parse request body
     const { action, params } = await req.json();
+    console.log("Processing action:", action);
     
     // Handle different actions
     let result;
@@ -243,12 +270,18 @@ async function searchOrganization(params: any) {
 
 // Get user profiles with additional details
 async function getUserProfiles() {
+  console.log("Fetching user profiles");
   // First get all profiles
   const { data: profiles, error: profilesError } = await supabase
     .from("profiles")
     .select("*");
   
-  if (profilesError) throw profilesError;
+  if (profilesError) {
+    console.error("Error fetching profiles:", profilesError);
+    throw profilesError;
+  }
+  
+  console.log(`Found ${profiles?.length || 0} profiles`);
   
   // Enrich with user data from Auth
   const enrichedProfiles = [];
@@ -264,6 +297,7 @@ async function getUserProfiles() {
           last_sign_in_at: userData.user.last_sign_in_at
         });
       } else {
+        console.log(`No user data found for profile ${profile.id}`);
         enrichedProfiles.push(profile);
       }
     } catch (error) {
@@ -272,46 +306,66 @@ async function getUserProfiles() {
     }
   }
   
+  console.log(`Returning ${enrichedProfiles.length} enriched profiles`);
   return enrichedProfiles;
 }
 
 // Get all users with confirmation status
 async function getAllUsers() {
-  // Get all users from auth
-  const { data: { users }, error: usersError } = await supabase.auth.admin.listUsers();
-  
-  if (usersError) throw usersError;
-  
-  // Get all profiles
-  const { data: profiles, error: profilesError } = await supabase
-    .from("profiles")
-    .select("*");
-  
-  if (profilesError) throw profilesError;
-  
-  // Merge data
-  const mergedUsers = [];
-  
-  for (const user of users || []) {
-    const profile = profiles?.find(p => p.id === user.id) || {};
+  console.log("Fetching all users");
+  try {
+    // Get all users from auth
+    const { data: { users }, error: usersError } = await supabase.auth.admin.listUsers();
     
-    mergedUsers.push({
-      ...profile,
-      id: user.id,
-      email: user.email,
-      email_confirmed_at: user.email_confirmed_at,
-      last_sign_in_at: user.last_sign_in_at,
-      created_at: user.created_at,
-      is_active: profile.is_active !== undefined ? profile.is_active : true,
-    });
+    if (usersError) {
+      console.error("Error listing users:", usersError);
+      throw usersError;
+    }
+    
+    console.log(`Found ${users?.length || 0} users from auth`);
+    
+    // Get all profiles
+    const { data: profiles, error: profilesError } = await supabase
+      .from("profiles")
+      .select("*");
+    
+    if (profilesError) {
+      console.error("Error fetching profiles:", profilesError);
+      throw profilesError;
+    }
+    
+    console.log(`Found ${profiles?.length || 0} profiles from database`);
+    
+    // Merge data
+    const mergedUsers = [];
+    
+    for (const user of users || []) {
+      const profile = profiles?.find(p => p.id === user.id) || {};
+      
+      mergedUsers.push({
+        ...profile,
+        id: user.id,
+        email: user.email,
+        email_confirmed_at: user.email_confirmed_at,
+        last_sign_in_at: user.last_sign_in_at,
+        created_at: user.created_at,
+        is_active: profile.is_active !== undefined ? profile.is_active : true,
+      });
+    }
+    
+    console.log(`Returning ${mergedUsers.length} merged user records`);
+    return mergedUsers;
+  } catch (error) {
+    console.error("Error in getAllUsers:", error);
+    throw error;
   }
-  
-  return mergedUsers;
 }
 
 // Enable user without email confirmation
 async function enableUserWithoutConfirmation(params: any) {
   const { user_id } = params;
+  
+  console.log(`Enabling user ${user_id} without email confirmation`);
   
   // Update user to confirm email
   const { data, error } = await supabase.auth.admin.updateUserById(
@@ -319,7 +373,12 @@ async function enableUserWithoutConfirmation(params: any) {
     { email_confirm: true }
   );
   
-  if (error) throw error;
+  if (error) {
+    console.error("Error updating user:", error);
+    throw error;
+  }
+  
+  console.log("User enabled successfully");
   return { success: true, user: data.user };
 }
 

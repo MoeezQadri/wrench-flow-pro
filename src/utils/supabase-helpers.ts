@@ -89,42 +89,80 @@ export async function searchOrganizationById(orgId: string) {
 
 // Get inactive users based on a specified number of days
 export async function getInactiveUsers(daysInactive: number = 90) {
-  const { data, error } = await supabase.rpc('get_inactive_users', { days_inactive: daysInactive });
-  
-  if (error) throw error;
-  return data || [];
+  try {
+    const { data, error } = await supabase.rpc('get_inactive_users', { days_inactive: daysInactive });
+    
+    if (error) {
+      console.error('Error fetching inactive users:', error);
+      throw error;
+    }
+    
+    return data || [];
+  } catch (e) {
+    console.error('Exception in getInactiveUsers:', e);
+    throw e;
+  }
 }
 
 // Clean user data for the specified user
 export async function cleanUserData(userId: string) {
-  const { error } = await supabase.rpc('clean_user_data', { user_id: userId });
-  
-  if (error) throw error;
-  return true;
+  try {
+    const { error } = await supabase.rpc('clean_user_data', { user_id: userId });
+    
+    if (error) {
+      console.error('Error cleaning user data:', error);
+      throw error;
+    }
+    
+    return true;
+  } catch (e) {
+    console.error('Exception in cleanUserData:', e);
+    throw e;
+  }
 }
 
 // Get all users including confirmation status
 export async function getAllUsers() {
-  const { data, error } = await supabase.functions.invoke('admin-utils', {
-    body: {
-      action: 'get_all_users',
-      params: {}
+  try {
+    console.log('Fetching all users...');
+    const { data, error } = await supabase.functions.invoke('admin-utils', {
+      body: {
+        action: 'get_all_users',
+        params: {}
+      }
+    });
+    
+    if (error) {
+      console.error('Error fetching all users:', error);
+      throw error;
     }
-  });
-  
-  if (error) throw error;
-  return data || [];
+    
+    console.log(`Fetched ${data?.length || 0} users`);
+    return data || [];
+  } catch (e) {
+    console.error('Exception in getAllUsers:', e);
+    throw e;
+  }
 }
 
 // Enable a user without email confirmation
 export async function enableUserWithoutConfirmation(userId: string) {
-  const { data, error } = await supabase.functions.invoke('admin-utils', {
-    body: {
-      action: 'enable_user_without_confirmation',
-      params: { user_id: userId }
+  try {
+    const { data, error } = await supabase.functions.invoke('admin-utils', {
+      body: {
+        action: 'enable_user_without_confirmation',
+        params: { user_id: userId }
+      }
+    });
+    
+    if (error) {
+      console.error('Error enabling user:', error);
+      throw error;
     }
-  });
-  
-  if (error) throw error;
-  return data;
+    
+    return data;
+  } catch (e) {
+    console.error('Exception in enableUserWithoutConfirmation:', e);
+    throw e;
+  }
 }

@@ -15,31 +15,42 @@ const AdminUserManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('organizations');
   const [isLoading, setIsLoading] = useState(true);
-  const { currentUser } = useAuthContext();
+  const { currentUser, session } = useAuthContext();
   
   // Fetch data from Supabase
   useEffect(() => {
     async function fetchData() {
       setIsLoading(true);
       try {
+        console.log('AdminUserManagement: Fetching data with session:', session?.access_token?.substring(0, 10) + '...');
+        
         // Fetch organizations using our helper function
+        console.log('Fetching organizations...');
         const orgsData = await getOrganizations();
+        console.log(`Fetched ${orgsData?.length || 0} organizations`);
         
         // Fetch all users with confirmation status
+        console.log('Fetching users...');
         const usersData = await getAllUsers();
+        console.log(`Fetched ${usersData?.length || 0} users`);
         
         setOrganizations(orgsData || []);
         setUsers(usersData || []);
       } catch (error: any) {
         console.error('Error fetching data:', error);
-        toast.error('Failed to load data');
+        toast.error(`Failed to load data: ${error.message || 'Unknown error'}`);
       } finally {
         setIsLoading(false);
       }
     }
     
-    fetchData();
-  }, []);
+    if (session) {
+      fetchData();
+    } else {
+      console.warn('No session available, skipping data fetch');
+      setIsLoading(false);
+    }
+  }, [session]);
   
   return (
     <div className="space-y-6">
