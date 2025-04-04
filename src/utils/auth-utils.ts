@@ -44,11 +44,13 @@ export const createUserFromSession = (
  * Updates the user's last login time in the database
  */
 export const updateLastLogin = async (userId: string): Promise<void> => {
-  // Fix: Specify the parameter type as Record<string, any> to resolve the TypeScript error
-  const { error } = await supabase.rpc('update_last_login', {
+  // Fix: Use the UpdateLastLoginParams type defined in @/types/auth
+  const params: UpdateLastLoginParams = {
     user_id: userId,
     login_time: new Date().toISOString()
-  } as Record<string, any>);
+  };
+  
+  const { error } = await supabase.rpc('update_last_login', params);
   
   if (error) {
     console.error('Error updating last login:', error);
