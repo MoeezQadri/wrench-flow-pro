@@ -15,52 +15,97 @@ export const useAuthentication = () => {
     setIsLoading(true);
     
     try {
-      // Authenticate directly with Supabase
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: values.username + '@superadmin.system', // Convert username to email format
+      // First try with standard Supabase authentication
+      const { data: supabaseData, error: supabaseError } = await supabase.auth.signInWithPassword({
+        email: values.email,
         password: values.password
       });
       
-      if (error) {
-        console.error('Authentication error:', error);
+      if (supabaseData?.session) {
+        // Check if the user has superadmin metadata or role
+        const userMetadata = supabaseData.user?.user_metadata || {};
+        if (userMetadata.role === 'superuser' || userMetadata.role === 'superadmin') {
+          // Create a superadmin user object for context
+          const superadminUser = {
+            id: supabaseData.user.id,
+            email: supabaseData.user.email || '',
+            name: userMetadata.name || 'Super Admin',
+            role: 'superuser' as UserRole,
+            isActive: true,
+            lastLogin: new Date().toISOString()
+          };
+          
+          // Update auth context with superadmin user
+          setCurrentUser(superadminUser);
+          setSession(supabaseData.session);
+          
+          toast({
+            title: "Access granted",
+            description: "Welcome to the SuperAdmin portal",
+          });
+          
+          navigate('/superadmin/dashboard');
+          setIsLoading(false);
+          return;
+        } else {
+          // Not a superadmin, sign out
+          await supabase.auth.signOut();
+        }
+      }
+      
+      // If standard auth failed or user is not superadmin, try with custom superadmin auth
+      const response = await supabase.functions.invoke('admin-utils', {
+        body: {
+          action: 'authenticate_superadmin',
+          params: {
+            username: values.email,
+            password: values.password
+          }
+        }
+      });
+      
+      if (response.error) {
+        throw new Error(response.error.message || 'Authentication failed');
+      }
+      
+      const { authenticated, token, superadmin } = response.data;
+      
+      if (!authenticated || !token) {
         toast({
           variant: "destructive",
           title: "Access denied",
-          description: error.message || "Invalid username or password. Please try again.",
+          description: "Invalid credentials. Please try again.",
         });
         setIsLoading(false);
         return;
       }
       
-      if (!data.session) {
-        toast({
-          variant: "destructive",
-          title: "Access denied",
-          description: "No session created. Please try again.",
-        });
-        setIsLoading(false);
-        return;
-      }
+      // Store superadmin token
+      localStorage.setItem('superadminToken', token);
       
-      // Check if the user has superadmin metadata or role
-      const userMetadata = data.user?.user_metadata || {};
-      if (userMetadata.role !== 'superuser' && userMetadata.role !== 'superadmin') {
-        // If not superadmin, sign out and show error
-        await supabase.auth.signOut();
-        toast({
-          variant: "destructive",
-          title: "Access denied",
-          description: "You do not have superadmin privileges.",
-        });
-        setIsLoading(false);
-        return;
-      }
+      // Configure Supabase functions to use the token
+      supabase.functions.setAuth(token);
+      
+      // Create a mock session for the superadmin
+      const mockSession = {
+        access_token: token,
+        refresh_token: '',
+        expires_at: Date.now() + 24 * 3600000, // 24 hours from now
+        user: {
+          id: superadmin.id,
+          email: values.email,
+          user_metadata: {
+            name: 'Super Admin',
+            role: 'superuser'
+          }
+        }
+      };
       
       // Create a superadmin user object for context
       const superadminUser = {
-        id: data.user.id,
-        email: data.user.email || `${values.username}@superadmin.system`,
-        name: userMetadata.name || 'Super Admin',
+        id: superadmin.id,
+        email: values.email,
+        name: 'Super Admin',
         role: 'superuser' as UserRole,
         isActive: true,
         lastLogin: new Date().toISOString()
@@ -68,23 +113,20 @@ export const useAuthentication = () => {
       
       // Update auth context with superadmin user
       setCurrentUser(superadminUser);
-      setSession(data.session);
+      setSession(mockSession as any);
       
       toast({
         title: "Access granted",
         description: "Welcome to the SuperAdmin portal",
       });
       
-      console.log("Authentication successful, redirecting to dashboard");
-      
-      // Redirect to the dashboard
       navigate('/superadmin/dashboard');
     } catch (error) {
       console.error('Login error:', error);
       toast({
         variant: "destructive",
         title: "Authentication error",
-        description: "An error occurred during authentication.",
+        description: error instanceof Error ? error.message : "An error occurred during authentication.",
       });
     } finally {
       setIsLoading(false);

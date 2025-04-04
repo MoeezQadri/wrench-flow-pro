@@ -136,7 +136,53 @@ export type Database = {
           role?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      superadmin_activity: {
+        Row: {
+          action_type: string
+          created_at: string
+          details: Json | null
+          id: string
+          resource_id: string | null
+          resource_type: string
+          superadmin_id: string | null
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          resource_id?: string | null
+          resource_type: string
+          superadmin_id?: string | null
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          resource_id?: string | null
+          resource_type?: string
+          superadmin_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "superadmin_activity_superadmin_id_fkey"
+            columns: ["superadmin_id"]
+            isOneToOne: false
+            referencedRelation: "superadmins"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       superadmin_sessions: {
         Row: {
@@ -196,7 +242,22 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      user_profiles: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          email_confirmed_at: string | null
+          id: string | null
+          is_active: boolean | null
+          last_sign_in_at: string | null
+          lastLogin: string | null
+          name: string | null
+          organization_id: string | null
+          role: string | null
+          updated_at: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       clean_user_data: {
@@ -216,6 +277,16 @@ export type Database = {
           last_login: string
           days_since_login: number
         }[]
+      }
+      log_superadmin_activity: {
+        Args: {
+          p_superadmin_id: string
+          p_action_type: string
+          p_resource_type: string
+          p_resource_id: string
+          p_details: Json
+        }
+        Returns: string
       }
       superadmin_login: {
         Args: {

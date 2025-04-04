@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 /**
@@ -23,22 +22,44 @@ export const getOrganizations = async () => {
 };
 
 /**
- * Get all users with profile data via the superadmin edge function
+ * Get all users with profile data via RPC function
  */
 export const getAllUsers = async () => {
+  try {
+    // Use the database function to get all users with profiles
+    const { data, error } = await supabase
+      .rpc('get_all_users_with_profiles');
+      
+    if (error) {
+      // If RPC fails, try the edge function as fallback
+      console.warn('Error using RPC, falling back to edge function:', error);
+      return getAdminUsers();
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('Failed to fetch users:', error);
+    throw error;
+  }
+};
+
+/**
+ * Alternative method to get users via the admin-utils edge function
+ */
+export const getAdminUsers = async () => {
   try {
     const { data, error } = await supabase.functions.invoke('admin-utils', {
       body: { action: 'get_users' }
     });
     
     if (error) {
-      console.error('Error fetching users:', error);
+      console.error('Error fetching users via admin-utils:', error);
       throw error;
     }
     
     return data.users || [];
   } catch (error) {
-    console.error('Failed to fetch users:', error);
+    console.error('Failed to fetch users via admin-utils:', error);
     throw error;
   }
 };
