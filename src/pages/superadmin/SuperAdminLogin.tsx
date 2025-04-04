@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,7 @@ import { Form, FormField, FormItem, FormControl, FormMessage } from '@/component
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { useAuthContext } from '@/context/AuthContext';
 
 // Form validation schema
 const formSchema = z.object({
@@ -25,6 +26,15 @@ const SuperAdminLogin = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { currentUser, setCurrentUser, setSession } = useAuthContext();
+  
+  // Check if already authenticated as superadmin
+  useEffect(() => {
+    const superAdminToken = localStorage.getItem('superadminToken');
+    if (superAdminToken) {
+      navigate('/superadmin/dashboard');
+    }
+  }, [navigate]);
   
   // Set up form with validation
   const form = useForm<FormData>({
@@ -52,12 +62,40 @@ const SuperAdminLogin = () => {
         // Set the auth header for all subsequent Supabase function calls
         supabase.functions.setAuth(mockToken);
         
+        // Create a mock superadmin user object for context
+        const superadminUser = {
+          id: 'superadmin-id',
+          email: 'superadmin@example.com',
+          name: 'Super Admin',
+          role: 'superuser',
+          isActive: true,
+          lastLogin: new Date().toISOString()
+        };
+        
+        // Update auth context with superadmin user
+        setCurrentUser(superadminUser);
+        setSession({
+          access_token: mockToken,
+          refresh_token: '',
+          user: {
+            id: 'superadmin-id',
+            email: 'superadmin@example.com',
+            user_metadata: {
+              name: 'Super Admin',
+              role: 'superuser'
+            }
+          }
+        });
+        
         toast({
           title: "Access granted",
           description: "Welcome to the SuperAdmin portal",
         });
         
-        navigate('/superadmin/dashboard');
+        // Redirect to the dashboard with a slight delay to ensure token is set
+        setTimeout(() => {
+          navigate('/superadmin/dashboard');
+        }, 100);
       } else {
         toast({
           variant: "destructive",

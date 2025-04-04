@@ -32,16 +32,23 @@ const SuperAdminDashboard = () => {
         // Set the auth header for all Supabase requests
         supabase.functions.setAuth(superAdminToken);
         console.log('SuperAdmin token set for API calls');
+      } else {
+        // If no token, redirect to login
+        navigate('/superadmin/login');
       }
     };
     
     setupSuperAdminAuth();
-  }, []);
+  }, [navigate]);
   
   useEffect(() => {
     // Check if user is a superuser
     if (!currentUser || currentUser.role !== 'superuser') {
-      navigate('/superadmin/login');
+      // Check for token as fallback
+      const superAdminToken = localStorage.getItem('superadminToken');
+      if (!superAdminToken) {
+        navigate('/superadmin/login');
+      }
     }
   }, [currentUser, navigate]);
   
@@ -56,8 +63,26 @@ const SuperAdminDashboard = () => {
     navigate('/superadmin/login');
   };
 
-  if (!currentUser || currentUser.role !== 'superuser') {
-    return null; // Or loading indicator
+  // Only render if user has access or token exists
+  const hasAccess = currentUser?.role === 'superuser' || localStorage.getItem('superadminToken');
+  
+  if (!hasAccess) {
+    return <div className="flex items-center justify-center min-h-screen">
+      <Card className="w-96">
+        <CardHeader>
+          <CardTitle className="text-red-600 flex items-center">
+            <AlertTriangle className="mr-2" />
+            Access Denied
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="mb-4">You don't have permission to access this page.</p>
+          <Button onClick={() => navigate('/superadmin/login')} className="w-full">
+            Go to Login
+          </Button>
+        </CardContent>
+      </Card>
+    </div>;
   }
 
   return (
@@ -69,7 +94,7 @@ const SuperAdminDashboard = () => {
             <h1 className="text-xl font-bold">SUPERADMIN PORTAL</h1>
           </div>
           <div className="flex items-center space-x-4">
-            <span>Logged in as {currentUser.name}</span>
+            <span>Logged in as {currentUser?.name || "SuperAdmin"}</span>
             <Button variant="ghost" className="text-white hover:bg-red-700" onClick={handleLogout}>
               <LogOut className="h-4 w-4 mr-2" />
               Logout
