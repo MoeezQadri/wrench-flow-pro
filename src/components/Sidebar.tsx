@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
@@ -17,7 +18,8 @@ import {
   Wallet,
   HelpCircle,
   LogOut,
-  BarChart
+  BarChart,
+  User
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getCurrentUser, hasPermission } from '@/services/data-service';
@@ -99,18 +101,24 @@ const navItems = [
     icon: <FileText className="w-5 h-5" />,
     permission: { resource: 'reports' as ResourceKey, action: 'view' }
   },
-  // Admin section
   { 
-    name: 'SuperAdmin', 
-    path: '/superadmin/dashboard', 
-    icon: <BarChart className="w-5 h-5" />,
-    permission: { resource: 'users' as ResourceKey, action: 'manage' }
+    name: 'Profile', 
+    path: '/profile', 
+    icon: <User className="w-5 h-5" />,
+    permission: { resource: 'dashboard' as ResourceKey, action: 'view' }
   },
   { 
     name: 'Settings', 
     path: '/settings', 
     icon: <Settings className="w-5 h-5" />,
     permission: { resource: 'settings' as ResourceKey, action: 'view' }
+  },
+  // Admin section
+  { 
+    name: 'SuperAdmin', 
+    path: '/superadmin/dashboard', 
+    icon: <BarChart className="w-5 h-5" />,
+    permission: { resource: 'users' as ResourceKey, action: 'manage' }
   },
   { 
     name: 'Help', 

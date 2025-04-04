@@ -71,14 +71,14 @@ function App() {
               </Route>
               
               {/* Protected routes with Layout */}
-              <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
-                <Route index element={<Dashboard />} />
-                <Route path="dashboard" element={<Dashboard />} />
-                <Route path="profile" element={<Profile />} />
-                <Route path="settings" element={<Settings />} />
+              <Route element={<PrivateRoute><Layout /></PrivateRoute>}>
+                <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/settings" element={<Settings />} />
                 
                 {/* Invoices */}
-                <Route path="invoices">
+                <Route path="/invoices">
                   <Route index element={<Invoices />} />
                   <Route path="new" element={<NewInvoice />} />
                   <Route path="edit/:id" element={<EditInvoice />} />
@@ -86,22 +86,22 @@ function App() {
                 </Route>
                 
                 {/* Customers */}
-                <Route path="customers">
+                <Route path="/customers">
                   <Route index element={<Customers />} />
                   <Route path=":id" element={<CustomerDetail />} />
                 </Route>
                 
                 {/* Other core routes */}
-                <Route path="mechanics" element={<Mechanics />} />
-                <Route path="tasks" element={<Tasks />} />
-                <Route path="parts" element={<Parts />} />
-                <Route path="finance" element={<Finance />} />
-                <Route path="expenses" element={<Expenses />} />
-                <Route path="attendance" element={<Attendance />} />
-                <Route path="users" element={<Users />} />
+                <Route path="/mechanics" element={<Mechanics />} />
+                <Route path="/tasks" element={<Tasks />} />
+                <Route path="/parts" element={<Parts />} />
+                <Route path="/finance" element={<Finance />} />
+                <Route path="/expenses" element={<Expenses />} />
+                <Route path="/attendance" element={<Attendance />} />
+                <Route path="/users" element={<Users />} />
                 
                 {/* Reports */}
-                <Route path="reports">
+                <Route path="/reports">
                   <Route index element={<Reports />} />
                   <Route path="attendance" element={<AttendanceReport />} />
                   <Route path="finance" element={<FinanceReport />} />
@@ -109,9 +109,6 @@ function App() {
                   <Route path="tasks" element={<TasksReport />} />
                 </Route>
               </Route>
-              
-              {/* Redirect root to dashboard if logged in, otherwise to login */}
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
               
               {/* 404 route */}
               <Route path="*" element={<NotFound />} />
