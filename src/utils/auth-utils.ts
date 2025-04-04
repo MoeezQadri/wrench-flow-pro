@@ -50,7 +50,11 @@ export const updateLastLogin = async (userId: string): Promise<void> => {
     login_time: new Date().toISOString()
   };
   
-  const { error } = await supabase.rpc('update_last_login', params);
+  // Use direct SQL query instead of RPC function since it's not in the TypeScript types
+  const { error } = await supabase
+    .from('profiles')
+    .update({ lastLogin: params.login_time })
+    .eq('id', params.user_id);
   
   if (error) {
     console.error('Error updating last login:', error);
