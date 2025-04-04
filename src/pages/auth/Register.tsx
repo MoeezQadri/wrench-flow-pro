@@ -70,25 +70,33 @@ const Register = () => {
           // Continue anyway as the user is created
         }
         
-        // Update auth context
-        setSession(data.session);
-        setCurrentUser({
-          id: data.user.id,
-          email: data.user.email || '',
-          name: data.user.user_metadata?.name || '',
-          role: 'owner',
-          isActive: true,
-          organizationId: orgId,
-          lastLogin: new Date().toISOString()
-        });
-        
-        toast.success('Registration successful!');
-        
-        // Redirect to dashboard
-        navigate('/');
+        // Check if email confirmation is required
+        if (data.user.email_confirmed_at) {
+          // Email is already confirmed (instant confirmation)
+          // Update auth context
+          setSession(data.session);
+          setCurrentUser({
+            id: data.user.id,
+            email: data.user.email || '',
+            name: data.user.user_metadata?.name || '',
+            role: 'owner',
+            isActive: true,
+            organizationId: orgId,
+            lastLogin: new Date().toISOString()
+          });
+          
+          toast.success('Registration successful!');
+          
+          // Redirect to dashboard
+          navigate('/');
+        } else {
+          // Email confirmation is required
+          toast.success('Registration successful! Please check your email to confirm your account. You will be redirected to the login page once confirmed.');
+          // No need to redirect now, the user will be redirected after confirming email
+        }
       } else {
-        // Show email confirmation message if no session (email confirmation required)
-        toast.success('Registration successful! Please check your email to confirm your account.');
+        // No session or user - likely email confirmation is required
+        toast.success('Registration successful! Please check your email to confirm your account. You will be redirected to the login page once confirmed.');
       }
     } catch (error: any) {
       console.error('Registration error:', error);

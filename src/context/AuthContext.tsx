@@ -46,6 +46,12 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+// Define the interface for the RPC function parameters
+interface UpdateLastLoginParams {
+  user_id: string;
+  login_time: string;
+}
+
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -58,6 +64,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   });
 
   useEffect(() => {
+    // Check for email confirmation redirects
+    const handleEmailConfirmation = async () => {
+      const url = window.location.href;
+      if (url.includes('#access_token=') && url.includes('type=signup')) {
+        // User has confirmed their email - redirect to login
+        window.location.href = '/auth/login';
+        return true;
+      }
+      return false;
+    };
+
     // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, newSession) => {
@@ -90,10 +107,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             // Update the last login time if the profile exists
             if (profileData) {
               // Fix: Use the correct typing for RPC calls by providing a record type instead of individual parameters
-              const { error } = await supabase.rpc('update_last_login', {
+              const { error } = await supabase.rpc<any>('update_last_login', {
                 user_id: newSession.user.id,
                 login_time: new Date().toISOString()
-              });
+              } as UpdateLastLoginParams);
               
               if (error) {
                 console.error('Error updating last login:', error);
@@ -122,7 +139,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     );
 
     // Then check for existing session
-    supabase.auth.getSession().then(async ({ data: { session: initialSession } }) => {
+    const initializeAuth = async () => {
+      // First check if this is an email confirmation redirect
+      const isEmailConfirmation = await handleEmailConfirmation();
+      if (isEmailConfirmation) {
+        // Skip the rest of the initialization if redirecting
+        return;
+      }
+      
+      const { data: { session: initialSession } } = await supabase.auth.getSession();
       setSession(initialSession);
       
       if (initialSession?.user) {
@@ -154,10 +179,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           // Update the last login time if the profile exists
           if (profileData) {
             // Fix: Use the correct typing for RPC calls by providing a record type instead of individual parameters
-            const { error } = await supabase.rpc('update_last_login', {
+            const { error } = await supabase.rpc<any>('update_last_login', {
               user_id: initialSession.user.id,
               login_time: new Date().toISOString()
-            });
+            } as UpdateLastLoginParams);
             
             if (error) {
               console.error('Error updating last login:', error);
@@ -182,7 +207,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
       
       setLoading(false);
-    });
+    };
+
+    initializeAuth();
     
     // Check for stored superadmin session
     const storedSuperadminSession = localStorage.getItem('superadminSession');
