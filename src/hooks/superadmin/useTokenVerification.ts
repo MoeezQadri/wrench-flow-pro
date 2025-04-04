@@ -13,7 +13,7 @@ export const useTokenVerification = () => {
         return false;
       }
       
-      // CRITICAL: Set the auth token for all supabase API calls
+      // Set the authorization header properly
       supabase.functions.setAuth(token);
       
       console.log("Sending verification request with token...");

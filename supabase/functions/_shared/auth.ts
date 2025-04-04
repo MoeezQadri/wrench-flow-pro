@@ -27,7 +27,7 @@ export function getSupabaseAdmin() {
   );
 }
 
-// Improved JWT verification function using database function
+// Improved verification function that handles both JWT and session token formats
 export async function verifyJWT(token: string): Promise<boolean> {
   if (!token || token.length < 20) {
     console.log("Token missing or too short");
