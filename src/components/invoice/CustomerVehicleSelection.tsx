@@ -28,18 +28,27 @@ const CustomerVehicleSelection = ({
 
   // Update vehicles when customer changes
   useEffect(() => {
-    if (watchCustomerId) {
-      const customerVehicles = getVehiclesByCustomerId(watchCustomerId);
-      setVehicles(customerVehicles);
-      
-      // Reset vehicle selection if current selection doesn't belong to this customer
-      const currentVehicle = form.getValues("vehicleId");
-      if (currentVehicle && !customerVehicles.some(v => v.id === currentVehicle)) {
-        form.setValue("vehicleId", "");
+    const fetchVehicles = async () => {
+      if (watchCustomerId) {
+        try {
+          const customerVehicles = await getVehiclesByCustomerId(watchCustomerId);
+          setVehicles(customerVehicles);
+          
+          // Reset vehicle selection if current selection doesn't belong to this customer
+          const currentVehicle = form.getValues("vehicleId");
+          if (currentVehicle && !customerVehicles.some(v => v.id === currentVehicle)) {
+            form.setValue("vehicleId", "");
+          }
+        } catch (error) {
+          console.error("Error fetching vehicles:", error);
+          setVehicles([]);
+        }
+      } else {
+        setVehicles([]);
       }
-    } else {
-      setVehicles([]);
-    }
+    };
+    
+    fetchVehicles();
   }, [watchCustomerId, form, setVehicles]);
 
   // Get customer name for display

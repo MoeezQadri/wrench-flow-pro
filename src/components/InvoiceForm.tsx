@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, FormProvider } from "react-hook-form";
 import * as z from "zod";
 import { useNavigate } from "react-router-dom";
-import { format, parse } from "date-fns";
+import { format } from "date-fns";
 
 import { Button } from "@/components/ui/button";
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
@@ -14,7 +14,7 @@ import CustomerDialog from "@/components/CustomerDialog";
 import VehicleDialog from "@/components/VehicleDialog";
 
 import { InvoiceItem, Customer, Vehicle, Payment, Invoice } from "@/types";
-import { getCustomers, getVehiclesByCustomerId } from "@/services/data-service";
+import { getCustomers } from "@/services/data-service";
 
 // Import sub-components
 import CustomerVehicleSelection from "@/components/invoice/CustomerVehicleSelection";
@@ -79,27 +79,30 @@ const InvoiceForm = ({ isEditing = false, invoiceData }: InvoiceFormProps) => {
 
   // Fetch customers and setup initial data
   useEffect(() => {
-    const customersList = getCustomers();
-    setCustomers(customersList);
+    const fetchData = async () => {
+      try {
+        const fetchedCustomers = await getCustomers();
+        setCustomers(fetchedCustomers);
+        
+        // If editing, set up initial state
+        if (isEditing && invoiceData) {
+          // Initialize items
+          if (invoiceData.items) {
+            setItems(invoiceData.items);
+          }
+          
+          // Initialize payments
+          if (invoiceData.payments) {
+            setPayments(invoiceData.payments);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        toast.error("Failed to load customers");
+      }
+    };
     
-    // If editing, set up initial state
-    if (isEditing && invoiceData) {
-      // Initialize items
-      if (invoiceData.items) {
-        setItems(invoiceData.items);
-      }
-      
-      // Initialize payments
-      if (invoiceData.payments) {
-        setPayments(invoiceData.payments);
-      }
-      
-      // Load vehicles for the selected customer
-      if (invoiceData.customerId) {
-        const customerVehicles = getVehiclesByCustomerId(invoiceData.customerId);
-        setVehicles(customerVehicles);
-      }
-    }
+    fetchData();
   }, [isEditing, invoiceData]);
 
   // Calculate subtotal (needed for discount calculations and passing to sub-components)

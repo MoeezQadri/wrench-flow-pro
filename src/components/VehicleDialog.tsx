@@ -82,7 +82,6 @@ const VehicleDialog = ({
       // Create a properly typed vehicle object with required fields
       const vehicleData = {
         ...data,
-        customerId,
         // Ensure required fields are always present
         make: data.make,
         model: data.model,
@@ -91,7 +90,7 @@ const VehicleDialog = ({
       };
       
       // Pass customerId as first argument and vehicle data as second
-      const newVehicle = addVehicle(customerId, vehicleData);
+      const newVehicle = await addVehicle(customerId, vehicleData);
       
       onVehicleAdded(newVehicle);
       form.reset();

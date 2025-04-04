@@ -1,4 +1,3 @@
-
 import { User, UserRole, RolePermissionMap as TypesRolePermissionMap, Expense, Vendor, Part, Mechanic, Task, Invoice, InvoiceItem, Customer, Vehicle, Attendance } from '@/types';
 import * as supabaseService from './supabase-service';
 

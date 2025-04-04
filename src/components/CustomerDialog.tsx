@@ -47,14 +47,13 @@ const CustomerDialog = ({ open, onOpenChange, onCustomerAdded }: CustomerDialogP
       };
       
       // Call addCustomer with the customer data directly
-      const newCustomer = addCustomer(customerData);
+      const newCustomer = await addCustomer(customerData);
       
       // Then add all vehicles for this customer if any exist
       if (vehicles.length > 0) {
-        vehicles.forEach(vehicle => {
+        for (const vehicle of vehicles) {
           // Ensure vehicle data has all required fields
           const vehicleData = {
-            customerId: newCustomer.id,
             make: vehicle.make,
             model: vehicle.model,
             year: vehicle.year,
@@ -64,8 +63,8 @@ const CustomerDialog = ({ open, onOpenChange, onCustomerAdded }: CustomerDialogP
           };
           
           // Pass customerId and vehicle data to addVehicle
-          addVehicle(newCustomer.id, vehicleData);
-        });
+          await addVehicle(newCustomer.id, vehicleData);
+        }
       }
       
       onCustomerAdded(newCustomer);
