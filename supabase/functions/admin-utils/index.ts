@@ -1,3 +1,4 @@
+
 // Use esm.sh URL instead of import from package name
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.23.0';
@@ -18,6 +19,49 @@ async function verifyToken() {
     };
   } catch (error) {
     console.error('Error in verifyToken:', error);
+    throw error;
+  }
+}
+
+// New function to authenticate superadmin
+async function authenticateSuperadmin(client: any, params: any) {
+  const { username, password } = params;
+  
+  if (!username || !password) {
+    throw new Error('Username and password are required');
+  }
+
+  try {
+    // Query the superadmin table to check credentials
+    const { data, error } = await client
+      .from('superadmins')
+      .select('id, username')
+      .eq('username', username)
+      .eq('password_hash', password)
+      .single();
+
+    if (error) {
+      console.error('Error querying superadmin:', error);
+      return { authenticated: false, message: 'Authentication failed' };
+    }
+
+    if (!data) {
+      return { authenticated: false, message: 'Invalid credentials' };
+    }
+
+    // Generate a token for the authenticated superadmin
+    const token = `superadmin-${Date.now()}-${Math.random().toString(36).substring(2)}`;
+    
+    return {
+      authenticated: true,
+      token: token,
+      superadmin: {
+        id: data.id,
+        username: data.username
+      }
+    };
+  } catch (error) {
+    console.error('Error in authenticateSuperadmin:', error);
     throw error;
   }
 }
@@ -399,8 +443,16 @@ export async function handler(req: Request): Promise<Response> {
       }
     }
     
+    // Special case for superadmin authentication
+    if (action === 'authenticate_superadmin') {
+      return new Response(JSON.stringify(await authenticateSuperadmin(client, params)), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      });
+    }
+    
     // Verify authentication for all other routes
-    if (!['check_email_exists', 'some_public_action'].includes(action)) {
+    if (!['check_email_exists', 'authenticate_superadmin', 'some_public_action'].includes(action)) {
       try {
         // Check if the user is authenticated with proper permissions
         const authHeader = req.headers.get('Authorization');
@@ -443,6 +495,11 @@ export async function handler(req: Request): Promise<Response> {
     switch (action) {
       case 'verify_token':
         return new Response(JSON.stringify(await verifyToken()), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        });
+      case 'authenticate_superadmin':
+        return new Response(JSON.stringify(await authenticateSuperadmin(client, params)), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 200,
         });

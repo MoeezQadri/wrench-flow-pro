@@ -115,91 +115,97 @@ export const useSuperAdminAuth = () => {
       localStorage.removeItem('superadminToken');
       supabase.functions.setAuth(null);
       
-      // Fixed credentials - in a real app you'd want these in a secure database
-      const validCredentials = [
-        { username: 'admin', password: 'superadmin2023' },
-        { username: 'superadmin', password: 'admin1234' }
-      ];
-      
-      const isValid = validCredentials.some(
-        cred => cred.username === values.username && cred.password === values.password
-      );
-      
-      if (isValid) {
-        // Generate a simple token with prefix for identification
-        const superadminToken = `superadmin-${Date.now()}-${Math.random().toString(36).substring(2)}`;
-        localStorage.setItem('superadminToken', superadminToken);
-        
-        // Set the auth header for all subsequent Supabase function calls
-        supabase.functions.setAuth(superadminToken);
-        
-        // Create a superadmin user object for context
-        const superadminUser = {
-          id: 'superadmin-id',
-          email: values.username + '@admin.system',
-          name: 'Super Admin',
-          role: 'superuser' as UserRole,
-          isActive: true,
-          lastLogin: new Date().toISOString()
-        };
-        
-        // Update auth context with superadmin user
-        setCurrentUser(superadminUser);
-        setSession({
-          access_token: superadminToken,
-          refresh_token: '',
-          token_type: 'bearer',
-          expires_at: Date.now() + 86400000, // 24 hours from now
-          expires_in: 86400,
-          user: {
-            id: 'superadmin-id',
-            email: values.username + '@admin.system',
-            app_metadata: {},
-            user_metadata: {
-              name: 'Super Admin',
-              role: 'superuser'
-            },
-            aud: 'authenticated',
-            created_at: new Date().toISOString()
+      // Authenticate against the database via the edge function
+      const { data, error } = await supabase.functions.invoke('admin-utils', {
+        body: { 
+          action: 'authenticate_superadmin',
+          params: {
+            username: values.username,
+            password: values.password
           }
-        });
-        
-        toast({
-          title: "Access granted",
-          description: "Welcome to the SuperAdmin portal",
-        });
-        
-        // Verify the token works before redirecting
-        try {
-          const isValid = await verifyToken(superadminToken);
-          
-          if (!isValid) {
-            toast({
-              variant: "destructive",
-              title: "Authentication Failed",
-              description: "There was an issue with the token verification."
-            });
-            return;
-          }
-          
-          console.log("Token verification successful, redirecting to dashboard");
-          
-          // Redirect to the dashboard
-          navigate('/superadmin/dashboard');
-        } catch (verifyError) {
-          console.error('Error verifying token:', verifyError);
-          
-          toast({
-            variant: "destructive",
-            title: "Authentication Error",
-            description: "Please try again."
-          });
         }
-      } else {
+      });
+      
+      if (error) {
+        console.error('Authentication error:', error);
+        throw new Error('Authentication failed');
+      }
+      
+      if (!data.authenticated) {
         toast({
           variant: "destructive",
           title: "Access denied",
-          description: "Invalid username or password. Please try again.",
+          description: data.message || "Invalid username or password. Please try again.",
+        });
+        return;
+      }
+      
+      // Store the token
+      localStorage.setItem('superadminToken', data.token);
+      
+      // Set the auth header for all subsequent Supabase function calls
+      supabase.functions.setAuth(data.token);
+      
+      // Create a superadmin user object for context
+      const superadminUser = {
+        id: data.superadmin.id || 'superadmin-id',
+        email: `${data.superadmin.username}@admin.system`,
+        name: 'Super Admin',
+        role: 'superuser' as UserRole,
+        isActive: true,
+        lastLogin: new Date().toISOString()
+      };
+      
+      // Update auth context with superadmin user
+      setCurrentUser(superadminUser);
+      setSession({
+        access_token: data.token,
+        refresh_token: '',
+        token_type: 'bearer',
+        expires_at: Date.now() + 86400000, // 24 hours from now
+        expires_in: 86400,
+        user: {
+          id: data.superadmin.id || 'superadmin-id',
+          email: `${data.superadmin.username}@admin.system`,
+          app_metadata: {},
+          user_metadata: {
+            name: 'Super Admin',
+            role: 'superuser'
+          },
+          aud: 'authenticated',
+          created_at: new Date().toISOString()
+        }
+      });
+      
+      toast({
+        title: "Access granted",
+        description: "Welcome to the SuperAdmin portal",
+      });
+      
+      // Verify the token works before redirecting
+      try {
+        const isValid = await verifyToken(data.token);
+        
+        if (!isValid) {
+          toast({
+            variant: "destructive",
+            title: "Authentication Failed",
+            description: "There was an issue with the token verification."
+          });
+          return;
+        }
+        
+        console.log("Token verification successful, redirecting to dashboard");
+        
+        // Redirect to the dashboard
+        navigate('/superadmin/dashboard');
+      } catch (verifyError) {
+        console.error('Error verifying token:', verifyError);
+        
+        toast({
+          variant: "destructive",
+          title: "Authentication Error",
+          description: "Please try again."
         });
       }
     } catch (error) {

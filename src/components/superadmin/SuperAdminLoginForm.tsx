@@ -104,8 +104,12 @@ const SuperAdminLoginForm: React.FC<SuperAdminLoginFormProps> = ({ onSubmit, isL
             <div className="mt-6 border rounded-lg p-3 bg-slate-50">
               <div className="flex items-center space-x-2 mb-2 text-sm text-gray-700">
                 <Info className="h-4 w-4 text-blue-500" />
-                <span className="font-medium">Available Credentials (for demo)</span>
+                <span className="font-medium">Demo Access</span>
               </div>
+              <p className="text-xs text-gray-500 mb-2">
+                Superadmin credentials are now stored in the database.
+                Use the default accounts below for testing:
+              </p>
               <div className="grid gap-2">
                 <div className="border rounded p-2 text-xs bg-white hover:bg-gray-50 cursor-pointer transition-colors"
                      onClick={() => handleCredentialsFill('admin', 'superadmin2023')}>
