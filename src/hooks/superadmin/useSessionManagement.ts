@@ -52,8 +52,8 @@ export const useSessionManagement = () => {
       // Also check for stored superadmin token
       const superadminToken = localStorage.getItem('superadminToken');
       if (superadminToken) {
-        // Verify the token with backend
-        const response = await fetch(`${supabase.functions.url}/admin-utils`, {
+        // Verify the token with backend - Fix: Use the correct way to invoke edge functions
+        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-utils`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

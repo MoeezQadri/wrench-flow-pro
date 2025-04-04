@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 /**
@@ -22,21 +23,21 @@ export const getOrganizations = async () => {
 };
 
 /**
- * Get all users with profile data via RPC function
+ * Get all users with profile data via direct query
  */
 export const getAllUsers = async () => {
   try {
-    // Use the database function to get all users with profiles
-    const { data, error } = await supabase
-      .rpc('get_all_users_with_profiles');
+    // Instead of using RPC, fetch users directly
+    const { data: profiles, error: profilesError } = await supabase
+      .from('profiles')
+      .select('*');
       
-    if (error) {
-      // If RPC fails, try the edge function as fallback
-      console.warn('Error using RPC, falling back to edge function:', error);
+    if (profilesError) {
+      console.warn('Error fetching profiles, falling back to edge function:', profilesError);
       return getAdminUsers();
     }
     
-    return data || [];
+    return profiles || [];
   } catch (error) {
     console.error('Failed to fetch users:', error);
     throw error;
