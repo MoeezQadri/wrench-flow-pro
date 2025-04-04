@@ -71,7 +71,7 @@ enable_confirmations = false
 port = 9999
 
 [functions.admin-utils]
-verify_jwt = false
+verify_jwt = true
 
 [analytics]
 enabled = false
