@@ -13,6 +13,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useAuthContext } from '@/context/AuthContext';
+import { UserRole } from '@/types';
 
 // Form validation schema
 const formSchema = z.object({
@@ -67,7 +68,7 @@ const SuperAdminLogin = () => {
           id: 'superadmin-id',
           email: 'superadmin@example.com',
           name: 'Super Admin',
-          role: 'superuser',
+          role: 'superuser' as UserRole,
           isActive: true,
           lastLogin: new Date().toISOString()
         };
@@ -77,13 +78,18 @@ const SuperAdminLogin = () => {
         setSession({
           access_token: mockToken,
           refresh_token: '',
+          expires_at: Date.now() + 3600000, // 1 hour from now
+          expires_in: 3600,
           user: {
             id: 'superadmin-id',
             email: 'superadmin@example.com',
+            app_metadata: {},
             user_metadata: {
               name: 'Super Admin',
               role: 'superuser'
-            }
+            },
+            aud: 'authenticated',
+            created_at: new Date().toISOString()
           }
         });
         
