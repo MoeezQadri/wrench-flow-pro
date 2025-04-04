@@ -217,6 +217,19 @@ export type Database = {
           days_since_login: number
         }[]
       }
+      superadmin_login: {
+        Args: {
+          username: string
+          password_hash: string
+        }
+        Returns: Json
+      }
+      verify_superadmin_token: {
+        Args: {
+          token: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

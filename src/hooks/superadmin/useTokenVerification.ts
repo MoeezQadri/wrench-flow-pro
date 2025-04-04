@@ -11,7 +11,7 @@ export const useTokenVerification = () => {
       // CRITICAL: Set the auth token for all supabase API calls
       supabase.functions.setAuth(token);
       
-      console.log("Sending verification request with token:", token.substring(0, 20) + '...');
+      console.log("Sending verification request with token...");
       
       // Make the verification request with proper authorization
       const { data, error } = await supabase.functions.invoke('admin-utils', {
@@ -25,7 +25,7 @@ export const useTokenVerification = () => {
       }
       
       if (data?.verified === true) {
-        console.log("Token verification successful:", data);
+        console.log("Token verification successful");
         return true;
       } else {
         console.error("Invalid token response:", data);

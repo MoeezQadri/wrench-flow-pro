@@ -27,7 +27,7 @@ export function getSupabaseAdmin() {
   );
 }
 
-// Improved JWT verification function
+// Improved JWT verification function using database function
 export async function verifyJWT(token: string): Promise<boolean> {
   if (!token || token.length < 20) {
     console.log("Token missing or too short");
@@ -36,30 +36,19 @@ export async function verifyJWT(token: string): Promise<boolean> {
   
   try {
     const supabaseAdmin = getSupabaseAdmin();
-    // Check if the token exists in our storage
-    const { data, error } = await supabaseAdmin
-      .from('superadmin_sessions')
-      .select('*')
-      .eq('token', token)
-      .single();
-      
-    if (error || !data) {
-      console.log("Token not found in database or error:", error);
+    
+    // Use the database function to verify the token
+    const { data, error } = await supabaseAdmin.rpc(
+      'verify_superadmin_token',
+      { token: token }
+    );
+    
+    if (error) {
+      console.error("Error calling verify_superadmin_token:", error);
       return false;
     }
     
-    // Check if token is expired
-    if (data.expires_at && new Date(data.expires_at) < new Date()) {
-      console.log("Token expired");
-      // Clean up expired token
-      await supabaseAdmin
-        .from('superadmin_sessions')
-        .delete()
-        .eq('token', token);
-      return false;
-    }
-    
-    return true;
+    return data === true;
   } catch (err) {
     console.error("Error verifying token:", err);
     return false;
