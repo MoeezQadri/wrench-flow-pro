@@ -17,7 +17,7 @@ export const useAuthentication = () => {
     try {
       // Authenticate directly with Supabase
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: values.username + '@superadmin.system', // Convert username to email format
+        email: values.email,
         password: values.password
       });
       
@@ -26,7 +26,7 @@ export const useAuthentication = () => {
         toast({
           variant: "destructive",
           title: "Access denied",
-          description: error.message || "Invalid username or password. Please try again.",
+          description: error.message || "Invalid email or password. Please try again.",
         });
         setIsLoading(false);
         return;
@@ -59,7 +59,7 @@ export const useAuthentication = () => {
       // Create a superadmin user object for context
       const superadminUser = {
         id: data.user.id,
-        email: data.user.email || `${values.username}@superadmin.system`,
+        email: data.user.email || '',
         name: userMetadata.name || 'Super Admin',
         role: 'superuser' as UserRole,
         isActive: true,

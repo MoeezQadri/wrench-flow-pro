@@ -9,10 +9,11 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { AlertTriangle, Info, LockKeyhole, User } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 // Form validation schema
 const formSchema = z.object({
-  username: z.string().min(1, { message: "Username is required" }),
+  email: z.string().email({ message: "Please enter a valid email address" }),
   password: z.string().min(1, { message: "Password is required" })
 });
 
@@ -28,13 +29,13 @@ const SuperAdminLoginForm: React.FC<SuperAdminLoginFormProps> = ({ onSubmit, isL
   const form = useForm<SuperAdminLoginFormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      username: '',
+      email: '',
       password: ''
     }
   });
 
-  const handleCredentialsFill = (username: string, password: string) => {
-    form.setValue('username', username);
+  const handleCredentialsFill = (email: string, password: string) => {
+    form.setValue('email', email);
     form.setValue('password', password);
   };
 
@@ -54,15 +55,16 @@ const SuperAdminLoginForm: React.FC<SuperAdminLoginFormProps> = ({ onSubmit, isL
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
-              name="username"
+              name="email"
               render={({ field }) => (
                 <FormItem>
-                  <Label htmlFor="username" className="text-sm font-medium">Username</Label>
+                  <Label htmlFor="email" className="text-sm font-medium">Email</Label>
                   <FormControl>
                     <div className="relative">
                       <Input
-                        id="username"
-                        placeholder="Enter username"
+                        id="email"
+                        type="email"
+                        placeholder="Enter email"
                         className="pr-10"
                         {...field}
                       />
@@ -101,29 +103,20 @@ const SuperAdminLoginForm: React.FC<SuperAdminLoginFormProps> = ({ onSubmit, isL
               {isLoading ? "Authenticating..." : "Access System"}
             </Button>
             
+            <div className="mt-2 text-center">
+              <Link to="/superadmin/create" className="text-sm text-blue-600 hover:text-blue-800">
+                Create a new superadmin account
+              </Link>
+            </div>
+            
             <div className="mt-6 border rounded-lg p-3 bg-slate-50">
               <div className="flex items-center space-x-2 mb-2 text-sm text-gray-700">
                 <Info className="h-4 w-4 text-blue-500" />
-                <span className="font-medium">Demo Access</span>
+                <span className="font-medium">SuperAdmin Access</span>
               </div>
               <p className="text-xs text-gray-500 mb-2">
-                Superadmin credentials are now stored in the database.
-                Use the default accounts below for testing:
+                To login, you need to have a Supabase user account with the role of 'superuser' in the user metadata.
               </p>
-              <div className="grid gap-2">
-                <div className="border rounded p-2 text-xs bg-white hover:bg-gray-50 cursor-pointer transition-colors"
-                     onClick={() => handleCredentialsFill('admin', 'superadmin2023')}>
-                  <div className="font-semibold">Option 1</div>
-                  <div>Username: <span className="text-blue-600">admin</span></div>
-                  <div>Password: <span className="text-blue-600">superadmin2023</span></div>
-                </div>
-                <div className="border rounded p-2 text-xs bg-white hover:bg-gray-50 cursor-pointer transition-colors"
-                     onClick={() => handleCredentialsFill('superadmin', 'admin1234')}>
-                  <div className="font-semibold">Option 2</div>
-                  <div>Username: <span className="text-blue-600">superadmin</span></div>
-                  <div>Password: <span className="text-blue-600">admin1234</span></div>
-                </div>
-              </div>
             </div>
           </form>
         </Form>
