@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
-import { mechanics, invoices, customers, getVehicleById } from "@/services/data-service";
+import { getMechanics, getInvoices, getVehicleById, getCustomerById } from "@/services/data-service";
 
 const taskSchema = z.object({
   title: z.string().min(1, { message: "Title is required" }),
@@ -42,6 +42,25 @@ interface TaskFormProps {
 }
 
 const TaskForm = ({ defaultValues, onSubmit, formId, userRole }: TaskFormProps) => {
+  const [activeMechanics, setActiveMechanics] = useState<any[]>([]);
+  const [availableInvoices, setAvailableInvoices] = useState<any[]>([]);
+  
+  useEffect(() => {
+    const loadData = async () => {
+      // Load mechanics
+      const mechanicsData = await getMechanics();
+      setActiveMechanics(mechanicsData.filter(m => m.isActive));
+      
+      // Load invoices (open or in-progress only)
+      const invoicesData = await getInvoices();
+      setAvailableInvoices(invoicesData.filter(
+        invoice => invoice.status === 'open' || invoice.status === 'in-progress'
+      ));
+    };
+    
+    loadData();
+  }, []);
+  
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(taskSchema),
     defaultValues: defaultValues || {
@@ -56,29 +75,17 @@ const TaskForm = ({ defaultValues, onSubmit, formId, userRole }: TaskFormProps) 
   });
 
   const status = form.watch("status");
-  const activeMechanics = mechanics.filter(mechanic => mechanic.isActive);
   
-  // Get relevant invoices (open or in-progress only)
-  const availableInvoices = invoices.filter(
-    invoice => invoice.status === 'open' || invoice.status === 'in-progress'
-  );
-
   // Format invoice option with vehicle and customer details
-  const formatInvoiceOption = (invoice: typeof invoices[0]) => {
+  const formatInvoiceOption = (invoice: any) => {
     const vehicle = getVehicleById(invoice.vehicleId);
-    const customer = customers.find(c => c.id === invoice.customerId);
+    const customer = getCustomerById(invoice.customerId);
     
-    let label = `${invoice.id.substring(0, 8)}...`;
-    
-    if (vehicle) {
-      label += ` - ${vehicle.make} ${vehicle.model}`;
+    if (!vehicle || !customer) {
+      return `${invoice.id.substring(0, 8)}...`;
     }
     
-    if (customer) {
-      label += ` (${customer.name})`;
-    }
-    
-    return label;
+    return `${invoice.id.substring(0, 8)}... - ${vehicle.make} ${vehicle.model} (${customer.name})`;
   };
 
   // Determine if the invoice selection should be shown
@@ -233,7 +240,7 @@ const TaskForm = ({ defaultValues, onSubmit, formId, userRole }: TaskFormProps) 
                     <SelectItem value="none">Not linked to an invoice</SelectItem>
                     {availableInvoices.map((invoice) => (
                       <SelectItem key={invoice.id} value={invoice.id}>
-                        {formatInvoiceOption(invoice)}
+                        {invoice.id.substring(0, 8)}... - {invoice.vehicleInfo.make} {invoice.vehicleInfo.model}
                       </SelectItem>
                     ))}
                   </SelectContent>

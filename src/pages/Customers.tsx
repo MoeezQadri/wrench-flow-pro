@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -52,8 +53,9 @@ import {
   TabsTrigger 
 } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { customers, getCustomerAnalytics, getVehiclesByCustomerId, addCustomer, addVehicle } from '@/services/data-service';
+import { getCustomers, getCustomerAnalytics, getVehiclesByCustomerId, addCustomer, addVehicle } from '@/services/data-service';
 import { objectsToCSV, downloadCSV } from '@/utils/csv-export';
+import { useEffect } from 'react';
 
 // Define the form validation schema using Zod
 const customerSchema = z.object({
@@ -102,6 +104,16 @@ const Customers = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
+  const [customerList, setCustomerList] = useState<any[]>([]);
+  
+  useEffect(() => {
+    const loadCustomers = async () => {
+      const customers = await getCustomers();
+      setCustomerList(customers);
+    };
+    
+    loadCustomers();
+  }, []);
   
   // Initialize the form
   const form = useForm<CustomerFormValues>({
@@ -129,9 +141,9 @@ const Customers = () => {
   const showVehicleFields = form.watch("addVehicle");
 
   // Form submission handler
-  const onSubmit = (values: CustomerFormValues) => {
+  const onSubmit = async (values: CustomerFormValues) => {
     // Add the new customer to the data service
-    const newCustomer = addCustomer(values.customer);
+    const newCustomer = await addCustomer(values.customer);
     
     // Add vehicle if the checkbox is checked and vehicle data is provided
     if (values.addVehicle && values.vehicle) {
@@ -140,7 +152,7 @@ const Customers = () => {
         customerId: newCustomer.id
       };
       
-      const newVehicle = addVehicle(vehicleData.customerId, vehicleData);
+      const newVehicle = await addVehicle(newCustomer.id, vehicleData);
       
       // Display success message including vehicle
       toast({
@@ -155,13 +167,17 @@ const Customers = () => {
       });
     }
     
+    // Refresh customer list
+    const updatedCustomers = await getCustomers();
+    setCustomerList(updatedCustomers);
+    
     // Reset form and close dialog
     form.reset();
     setIsDialogOpen(false);
   };
   
   // Filter customers based on search query
-  const filteredCustomers = customers.filter(customer => {
+  const filteredCustomers = customerList.filter(customer => {
     const searchLower = searchQuery.toLowerCase();
     return (
       customer.name.toLowerCase().includes(searchLower) ||
@@ -172,10 +188,11 @@ const Customers = () => {
   });
   
   // Handle CSV export
-  const handleExportCSV = () => {
+  const handleExportCSV = async () => {
     // Create a simplified version of customer data for export
-    const exportData = customers.map(customer => {
-      const analytics = getCustomerAnalytics(customer.id);
+    const exportData = await Promise.all(customerList.map(async customer => {
+      const analytics = await getCustomerAnalytics(customer.id);
+      const vehicles = await getVehiclesByCustomerId(customer.id);
       return {
         Name: customer.name,
         Email: customer.email,
@@ -184,9 +201,9 @@ const Customers = () => {
         LastVisit: customer.lastVisit || 'N/A',
         TotalVisits: analytics.totalInvoices,
         LifetimeValue: `$${analytics.lifetimeValue.toFixed(2)}`,
-        Vehicles: getVehiclesByCustomerId(customer.id).length
+        Vehicles: vehicles.length
       };
-    });
+    }));
     
     // Convert to CSV and download
     const csv = objectsToCSV(exportData);
@@ -244,52 +261,9 @@ const Customers = () => {
         </Card>
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {filteredCustomers.map((customer) => {
-            const analytics = getCustomerAnalytics(customer.id);
-            const vehicles = getVehiclesByCustomerId(customer.id);
-            
-            return (
-              <Link to={`/customers/${customer.id}`} key={customer.id}>
-                <Card className="h-full hover:shadow-md transition-shadow duration-200">
-                  <CardContent className="p-6">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="font-medium text-lg">{customer.name}</h3>
-                        <p className="text-sm text-muted-foreground">{customer.email}</p>
-                      </div>
-                      <Badge variant="outline">
-                        {analytics.totalInvoices} {analytics.totalInvoices === 1 ? 'visit' : 'visits'}
-                      </Badge>
-                    </div>
-                    
-                    <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-                      <div className="flex flex-col items-center">
-                        <Car className="h-4 w-4 mb-1 text-muted-foreground" />
-                        <p className="text-sm font-medium">{vehicles.length}</p>
-                        <p className="text-xs text-muted-foreground">Vehicles</p>
-                      </div>
-                      <div className="flex flex-col items-center">
-                        <FileText className="h-4 w-4 mb-1 text-muted-foreground" />
-                        <p className="text-sm font-medium">{analytics.totalInvoices}</p>
-                        <p className="text-xs text-muted-foreground">Invoices</p>
-                      </div>
-                      <div className="flex flex-col items-center">
-                        <DollarSign className="h-4 w-4 mb-1 text-muted-foreground" />
-                        <p className="text-sm font-medium">${analytics.lifetimeValue.toFixed(0)}</p>
-                        <p className="text-xs text-muted-foreground">Value</p>
-                      </div>
-                    </div>
-                    
-                    <div className="mt-4 flex items-center">
-                      <p className="text-xs text-muted-foreground">
-                        Last Visit: {customer.lastVisit || 'N/A'}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            );
-          })}
+          {filteredCustomers.map((customer) => (
+            <CustomerCard key={customer.id} customer={customer} />
+          ))}
         </div>
       )}
 
@@ -500,6 +474,69 @@ const Customers = () => {
         </DialogContent>
       </Dialog>
     </div>
+  );
+};
+
+// Extracted component for customer card
+const CustomerCard = ({ customer }: { customer: any }) => {
+  const [analytics, setAnalytics] = useState<any>({
+    totalInvoices: 0,
+    lifetimeValue: 0
+  });
+  const [vehicles, setVehicles] = useState<any[]>([]);
+
+  useEffect(() => {
+    const loadData = async () => {
+      const analyticsData = await getCustomerAnalytics(customer.id);
+      const vehiclesData = await getVehiclesByCustomerId(customer.id);
+      
+      setAnalytics(analyticsData);
+      setVehicles(vehiclesData);
+    };
+    
+    loadData();
+  }, [customer.id]);
+
+  return (
+    <Link to={`/customers/${customer.id}`}>
+      <Card className="h-full hover:shadow-md transition-shadow duration-200">
+        <CardContent className="p-6">
+          <div className="flex justify-between items-start">
+            <div>
+              <h3 className="font-medium text-lg">{customer.name}</h3>
+              <p className="text-sm text-muted-foreground">{customer.email}</p>
+            </div>
+            <Badge variant="outline">
+              {analytics.totalInvoices} {analytics.totalInvoices === 1 ? 'visit' : 'visits'}
+            </Badge>
+          </div>
+          
+          <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+            <div className="flex flex-col items-center">
+              <Car className="h-4 w-4 mb-1 text-muted-foreground" />
+              <p className="text-sm font-medium">{vehicles.length}</p>
+              <p className="text-xs text-muted-foreground">Vehicles</p>
+            </div>
+            <div className="flex flex-col items-center">
+              <FileText className="h-4 w-4 mb-1 text-muted-foreground" />
+              <p className="text-sm font-medium">{analytics.totalInvoices}</p>
+              <p className="text-xs text-muted-foreground">Invoices</p>
+            </div>
+            <div className="flex flex-col items-center">
+              <DollarSign className="h-4 w-4 mb-1 text-muted-foreground" />
+              <p className="text-sm font-medium">${analytics.lifetimeValue.toFixed(0)}</p>
+              <p className="text-xs text-muted-foreground">Value</p>
+            </div>
+          </div>
+          
+          <div className="mt-4 flex items-center">
+            <p className="text-xs text-muted-foreground">
+              Last Visit: {customer.lastVisit || 'N/A'}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    </Link>
   );
 };
 

@@ -741,14 +741,10 @@ export const getVehiclesByCustomerId = async (customerId: string): Promise<Vehic
   }
 };
 
-export const getVehicleById = async (id: string): Promise<Vehicle | null> => {
+export const getVehicleById = (id: string): Vehicle | null => {
   // First check the existing vehicles array
   const localVehicle = vehicles.find(vehicle => vehicle.id === id);
-  if (localVehicle) return localVehicle;
-  
-  // If not found locally, we would fetch from database
-  // For now we'll just return null
-  return null;
+  return localVehicle || null;
 };
 
 export const addVehicle = async (customerId: string, vehicleData: Omit<Vehicle, 'id' | 'customerId'>): Promise<Vehicle> => {
@@ -782,15 +778,8 @@ export const getInvoices = async (): Promise<Invoice[]> => {
   }
 };
 
-export const getInvoiceById = async (id: string): Promise<Invoice | null> => {
-  try {
-    const fetchedInvoice = await fetchInvoiceById(id);
-    return fetchedInvoice;
-  } catch (error) {
-    console.error(`Error fetching invoice with ID ${id}:`, error);
-    // Fallback to mock data
-    return invoices.find(invoice => invoice.id === id) || null;
-  }
+export const getInvoiceById = (id: string): Invoice | null => {
+  return invoices.find(invoice => invoice.id === id) || null;
 };
 
 export const calculateInvoiceTotal = (invoice: Invoice): { 
@@ -822,15 +811,8 @@ export const getMechanics = async (): Promise<Mechanic[]> => {
   }
 };
 
-export const getMechanicById = async (id: string): Promise<Mechanic | null> => {
-  try {
-    const fetchedMechanic = await fetchMechanicById(id);
-    return fetchedMechanic;
-  } catch (error) {
-    console.error(`Error fetching mechanic with ID ${id}:`, error);
-    // Fallback to mock data
-    return mechanics.find(mechanic => mechanic.id === id) || null;
-  }
+export const getMechanicById = (id: string): Mechanic | null => {
+  return mechanics.find(mechanic => mechanic.id === id) || null;
 };
 
 // ======================
@@ -884,18 +866,17 @@ export const getExpensesByDateRange = async (startDate: string, endDate: string)
 // ======================
 // Customer analytics
 // ======================
-export const getCustomerAnalytics = async (customerId: string): Promise<CustomerAnalytics> => {
+export const getCustomerAnalytics = (customerId: string): CustomerAnalytics => {
   try {
-    // In a real app, you'd fetch this from an API/database
-    // For now, we'll simulate some analytics based on the customer's data
-    const customer = await getCustomerById(customerId);
+    // Find the customer in our mock data
+    const customer = customers.find(c => c.id === customerId);
     if (!customer) throw new Error("Customer not found");
     
-    const customerVehicles = await getVehiclesByCustomerId(customerId);
+    // Get customer vehicles
+    const customerVehicles = vehicles.filter(v => v.customerId === customerId);
     
     // Get all invoices for this customer
-    const allInvoices = await getInvoices();
-    const customerInvoices = allInvoices.filter(inv => inv.customerId === customerId);
+    const customerInvoices = invoices.filter(inv => inv.customerId === customerId);
     
     // Calculate totals
     let lifetimeValue = 0;
@@ -907,14 +888,21 @@ export const getCustomerAnalytics = async (customerId: string): Promise<Customer
     const totalInvoices = customerInvoices.length;
     const averageInvoiceValue = totalInvoices > 0 ? lifetimeValue / totalInvoices : 0;
     
+    // Sort invoices by date and get the most recent (if any)
+    const sortedInvoices = [...customerInvoices].sort((a, b) => 
+      new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+    
+    const lastVisit = sortedInvoices.length > 0 ? sortedInvoices[0].date : 'Never';
+    const firstVisitDate = sortedInvoices.length > 0 ? 
+      sortedInvoices[sortedInvoices.length - 1].date : 'Never';
+    
     return {
-      invoiceCount: totalInvoices,
-      lastVisit: customerInvoices.length > 0 
-        ? customerInvoices.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0].date 
-        : 'Never',
-      lifetimeValue: lifetimeValue,
-      totalInvoices: totalInvoices,
-      averageInvoiceValue: averageInvoiceValue,
+      totalInvoices,
+      lifetimeValue,
+      averageInvoiceValue,
+      firstVisitDate,
+      lastVisitDate: lastVisit,
       vehicles: customerVehicles,
       invoiceHistory: customerInvoices
     };
@@ -922,11 +910,11 @@ export const getCustomerAnalytics = async (customerId: string): Promise<Customer
     console.error(`Error getting analytics for customer ${customerId}:`, error);
     // Return empty/default values
     return {
-      invoiceCount: 0,
-      lastVisit: 'Never',
-      lifetimeValue: 0,
       totalInvoices: 0,
+      lifetimeValue: 0,
       averageInvoiceValue: 0,
+      firstVisitDate: 'Never',
+      lastVisitDate: 'Never',
       vehicles: [],
       invoiceHistory: []
     };
@@ -981,6 +969,34 @@ export const getAttendance = async (): Promise<Attendance[]> => {
   }
 };
 
+// Missing function implementations
+export const addVendor = (vendorData: Omit<Vendor, 'id'>): Vendor => {
+  const newVendor = {
+    id: generateId('ven'),
+    ...vendorData
+  };
+  vendors.push(newVendor);
+  return newVendor;
+};
+
+export const recordAttendance = (attendanceData: Omit<Attendance, 'id'>): Attendance => {
+  const newAttendance = {
+    id: generateId('att'),
+    ...attendanceData
+  };
+  attendanceRecords.push(newAttendance);
+  return newAttendance;
+};
+
+export const approveAttendance = (attendanceId: string, approverId: string): Attendance | null => {
+  const attendance = attendanceRecords.find(a => a.id === attendanceId);
+  if (!attendance) return null;
+  
+  attendance.status = 'approved';
+  attendance.approvedBy = approverId;
+  return attendance;
+};
+
 // Missing Finance-related functions
 export const getPartExpenses = async (): Promise<any[]> => {
   // Implement a simple stub for now
@@ -997,13 +1013,11 @@ export const getReceivables = async (): Promise<any[]> => {
   return [];
 };
 
-export const getPaymentsByDateRange = async (startDate: string, endDate: string): Promise<Payment[]> => {
-  // In a real app, this would fetch payments by date range from the database
-  // For now, we'll extract payments from invoices
-  const allInvoices = await getInvoices();
+export const getPaymentsByDateRange = (startDate: string, endDate: string): Payment[] => {
+  // Extract payments from invoices
   const allPayments: Payment[] = [];
   
-  allInvoices.forEach(invoice => {
+  invoices.forEach(invoice => {
     invoice.payments.forEach(payment => {
       if (payment.date >= startDate && payment.date <= endDate) {
         allPayments.push(payment);
@@ -1014,7 +1028,7 @@ export const getPaymentsByDateRange = async (startDate: string, endDate: string)
   return allPayments;
 };
 
-export const addExpense = async (expenseData: Omit<Expense, 'id'>): Promise<Expense> => {
+export const addExpense = (expenseData: Omit<Expense, 'id'>): Expense => {
   // Create a new expense with an ID
   const newExpense: Expense = {
     id: generateId('exp'),
@@ -1027,12 +1041,44 @@ export const addExpense = async (expenseData: Omit<Expense, 'id'>): Promise<Expe
 };
 
 // Temporary functions to avoid errors in other files
-export const getVendorById = async (id: string): Promise<any> => {
+export const getVendorById = (id: string): Vendor | null => {
   return vendors.find(vendor => vendor.id === id) || null;
 };
+
+// Mock user data for User management
+let users: User[] = [
+  {
+    id: 'user_1',
+    name: 'John Doe',
+    email: 'john@example.com',
+    role: 'manager',
+    isActive: true,
+    lastLogin: '2023-04-01'
+  },
+  {
+    id: 'user_2',
+    name: 'Jane Smith',
+    email: 'jane@example.com',
+    role: 'mechanic',
+    mechanicId: 'mech_2',
+    isActive: true,
+    lastLogin: '2023-04-02'
+  }
+];
 
 // Export for mapping role to permissions
 export type RolePermissionMap = typeof rolePermissions;
 
 // Export mock data for use in components
-export { vendors, parts, tasks, expenses, attendanceRecords as attendance };
+export { 
+  customers, 
+  vehicles, 
+  mechanics, 
+  vendors, 
+  parts, 
+  tasks, 
+  invoices, 
+  expenses, 
+  attendanceRecords as attendance,
+  users
+};
