@@ -21,7 +21,7 @@ import {
   ResponsiveContainer,
   Legend
 } from 'recharts';
-import { calculateDashboardMetrics, getExpensesByDateRange } from '@/services/data-service';
+import { calculateDashboardMetrics } from '@/services/data-service';
 
 // Sample data for charts with expenses added
 const weeklyRevenueData = [
