@@ -1,3 +1,4 @@
+
 import { nanoid } from "nanoid";
 import {
   fetchCustomers,
@@ -1032,3 +1033,67 @@ export const getPartExpenses = async (): Promise<any[]> => {
 };
 
 export const getPayables = async (): Promise<any[]> => {
+  // Filter expenses that are not paid yet
+  const unpaidExpenses = expenses.filter(exp => exp.paymentStatus !== 'paid');
+  return unpaidExpenses.map(expense => ({
+    id: expense.id,
+    date: expense.date,
+    description: expense.description,
+    amount: expense.amount,
+    vendorName: expense.vendorName,
+    category: expense.category,
+    paymentStatus: expense.paymentStatus
+  }));
+};
+
+export const getReceivables = async (): Promise<any[]> => {
+  // Filter invoices that are not fully paid
+  const unpaidInvoices = invoices.filter(inv => inv.status !== 'paid');
+  return unpaidInvoices.map(invoice => {
+    const { total, paidAmount, balanceDue } = calculateInvoiceTotal(invoice);
+    return {
+      id: invoice.id,
+      date: invoice.date,
+      customerId: invoice.customerId,
+      vehicleInfo: invoice.vehicleInfo,
+      total,
+      paidAmount,
+      balanceDue,
+      status: invoice.status
+    };
+  });
+};
+
+export const getPaymentsByDateRange = async (startDate: string, endDate: string): Promise<Payment[]> => {
+  // In a real app, this would fetch payments by date range from the database
+  // For now, we'll extract payments from invoices
+  const allInvoices = await getInvoices();
+  const allPayments: Payment[] = [];
+  
+  allInvoices.forEach(invoice => {
+    invoice.payments.forEach(payment => {
+      if (payment.date >= startDate && payment.date <= endDate) {
+        allPayments.push(payment);
+      }
+    });
+  });
+  
+  return allPayments;
+};
+
+export const addExpense = async (expenseData: Omit<Expense, 'id'>): Promise<Expense> => {
+  // Create a new expense with an ID
+  const newExpense: Expense = {
+    id: generateId('exp'),
+    ...expenseData
+  };
+  
+  // Add to expenses array
+  expenses.push(newExpense);
+  return newExpense;
+};
+
+// Temporary functions to avoid errors in other files
+export const getVendorById = async (id: string): Promise<any> => {
+  return vendors.find(vendor => vendor.id === id) || null;
+};
