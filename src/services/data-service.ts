@@ -1,3 +1,4 @@
+
 import { nanoid } from "nanoid";
 import {
   fetchCustomers,
@@ -1030,4 +1031,8 @@ export const getVendorById = async (id: string): Promise<any> => {
   return vendors.find(vendor => vendor.id === id) || null;
 };
 
-export
+// Export for mapping role to permissions
+export type RolePermissionMap = typeof rolePermissions;
+
+// Export mock data for use in components
+export { vendors, parts, tasks, expenses, attendanceRecords as attendance };
