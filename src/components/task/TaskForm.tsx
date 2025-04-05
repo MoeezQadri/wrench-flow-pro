@@ -53,9 +53,18 @@ const TaskForm = ({ defaultValues, onSubmit, formId, userRole }: TaskFormProps) 
       
       // Load invoices (open or in-progress only)
       const invoicesData = await getInvoices();
-      setAvailableInvoices(invoicesData.filter(
-        invoice => invoice.status === 'open' || invoice.status === 'in-progress'
-      ));
+      
+      // Process invoices to include vehicle and customer info
+      const processedInvoices = invoicesData
+        .filter(invoice => invoice.status === 'open' || invoice.status === 'in-progress')
+        .map(invoice => {
+          return {
+            ...invoice,
+            vehicleInfo: invoice.vehicleInfo
+          };
+        });
+        
+      setAvailableInvoices(processedInvoices);
     };
     
     loadData();
@@ -76,16 +85,13 @@ const TaskForm = ({ defaultValues, onSubmit, formId, userRole }: TaskFormProps) 
 
   const status = form.watch("status");
   
-  // Format invoice option with vehicle and customer details
+  // Format invoice option with vehicle details
   const formatInvoiceOption = (invoice: any) => {
-    const vehicle = getVehicleById(invoice.vehicleId);
-    const customer = getCustomerById(invoice.customerId);
-    
-    if (!vehicle || !customer) {
+    if (!invoice.vehicleInfo) {
       return `${invoice.id.substring(0, 8)}...`;
     }
     
-    return `${invoice.id.substring(0, 8)}... - ${vehicle.make} ${vehicle.model} (${customer.name})`;
+    return `${invoice.id.substring(0, 8)}... - ${invoice.vehicleInfo.make} ${invoice.vehicleInfo.model}`;
   };
 
   // Determine if the invoice selection should be shown

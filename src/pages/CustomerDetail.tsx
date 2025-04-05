@@ -1,5 +1,4 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { 
   Card, 
@@ -29,10 +28,33 @@ import {
   calculateInvoiceTotal 
 } from '@/services/data-service';
 import StatusBadge from '@/components/StatusBadge';
+import { Customer, CustomerAnalytics } from '@/types';
 
 const CustomerDetail = () => {
   const { id } = useParams<{ id: string }>();
   const [activeTab, setActiveTab] = useState("overview");
+  const [customer, setCustomer] = useState<Customer | null>(null);
+  const [analytics, setAnalytics] = useState<CustomerAnalytics | null>(null);
+  const [loading, setLoading] = useState(true);
+  
+  // Load customer data
+  useEffect(() => {
+    if (!id) return;
+    
+    const loadData = async () => {
+      setLoading(true);
+      // Get customer and analytics data
+      const customerData = getCustomerById(id);
+      if (customerData) {
+        setCustomer(customerData);
+        const analyticsData = getCustomerAnalytics(id);
+        setAnalytics(analyticsData);
+      }
+      setLoading(false);
+    };
+    
+    loadData();
+  }, [id]);
   
   // Fallback if ID is not provided
   if (!id) {
@@ -53,8 +75,19 @@ const CustomerDetail = () => {
     );
   }
   
-  const customer = getCustomerById(id);
-  const analytics = customer ? getCustomerAnalytics(id) : null;
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-[80vh]">
+        <Card className="w-[400px]">
+          <CardHeader>
+            <CardTitle>Loading Customer</CardTitle>
+            <CardDescription>Please wait...</CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
   
   if (!customer || !analytics) {
     return (

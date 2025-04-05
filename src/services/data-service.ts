@@ -1,4 +1,3 @@
-
 import { nanoid } from "nanoid";
 import {
   fetchCustomers,
@@ -44,7 +43,7 @@ let customers: Customer[] = [
     email: 'john.doe@example.com',
     phone: '555-1234',
     address: '123 Main St',
-    vehicles: ['veh_1', 'veh_2'],
+    vehicles: [], // Updated to be Vehicle[] instead of string[]
     totalVisits: 3,
     lifetimeValue: 350.00,
     lastVisit: '2023-04-01'
@@ -55,7 +54,7 @@ let customers: Customer[] = [
     email: 'jane.smith@example.com',
     phone: '555-5678',
     address: '456 Elm St',
-    vehicles: ['veh_3'],
+    vehicles: [], // Updated to be Vehicle[] instead of string[]
     totalVisits: 1,
     lifetimeValue: 120.50,
     lastVisit: '2023-04-15'
@@ -77,7 +76,7 @@ let customers: Customer[] = [
     email: 'emily.brown@example.com',
     phone: '555-3456',
     address: '321 Pine St',
-    vehicles: ['veh_4', 'veh_5'],
+    vehicles: [], // Updated to be Vehicle[] instead of string[]
     totalVisits: 2,
     lifetimeValue: 240.75,
     lastVisit: '2023-04-10'
@@ -137,6 +136,11 @@ let vehicles: Vehicle[] = [
     licensePlate: 'MNO-345'
   }
 ];
+
+// Initialize customer vehicles properly
+customers.forEach(customer => {
+  customer.vehicles = vehicles.filter(vehicle => vehicle.customerId === customer.id);
+});
 
 let mechanics: Mechanic[] = [
   {
@@ -699,7 +703,13 @@ export const getCustomers = async (): Promise<Customer[]> => {
   }
 };
 
-export const getCustomerById = async (id: string): Promise<Customer | null> => {
+// Modified to not return a Promise for direct use in components
+export const getCustomerById = (id: string): Customer | null => {
+  return customers.find(customer => customer.id === id) || null;
+};
+
+// Keep the async version as a separate function
+export const fetchCustomerByIdAsync = async (id: string): Promise<Customer | null> => {
   try {
     const foundCustomer = await fetchCustomerById(id);
     return foundCustomer;
@@ -731,20 +741,22 @@ export const addCustomer = async (customerData: Omit<Customer, 'id' | 'vehicles'
 // ======================
 // Vehicle functions
 // ======================
-export const getVehiclesByCustomerId = async (customerId: string): Promise<Vehicle[]> => {
+export const getVehiclesByCustomerId = (customerId: string): Vehicle[] => {
+  return vehicles.filter(v => v.customerId === customerId);
+};
+
+// Keep the async version as a separate function
+export const fetchVehiclesByCustomerIdAsync = async (customerId: string): Promise<Vehicle[]> => {
   try {
     return await fetchVehiclesByCustomerId(customerId);
   } catch (error) {
     console.error(`Error fetching vehicles for customer ${customerId}:`, error);
-    // Fallback to local data
     return vehicles.filter(v => v.customerId === customerId);
   }
 };
 
 export const getVehicleById = (id: string): Vehicle | null => {
-  // First check the existing vehicles array
-  const localVehicle = vehicles.find(vehicle => vehicle.id === id);
-  return localVehicle || null;
+  return vehicles.find(vehicle => vehicle.id === id) || null;
 };
 
 export const addVehicle = async (customerId: string, vehicleData: Omit<Vehicle, 'id' | 'customerId'>): Promise<Vehicle> => {
@@ -844,7 +856,18 @@ export const calculateDashboardMetrics = (): DashboardMetrics => {
 };
 
 // Add the missing getExpensesByDateRange function
-export const getExpensesByDateRange = async (startDate: string, endDate: string): Promise<Expense[]> => {
+export const getExpensesByDateRange = (startDate: string, endDate: string): Expense[] => {
+  // Filter expenses by date range
+  return expenses.filter(expense => {
+    const expenseDate = new Date(expense.date);
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    return expenseDate >= start && expenseDate <= end;
+  });
+};
+
+// Async version
+export const getExpensesByDateRangeAsync = async (startDate: string, endDate: string): Promise<Expense[]> => {
   try {
     // In a real app, this would filter expenses by date from the database
     // For now, we'll just return all expenses
@@ -924,7 +947,12 @@ export const getCustomerAnalytics = (customerId: string): CustomerAnalytics => {
 // ======================
 // Expense functions
 // ======================
-export const getExpenses = async (): Promise<Expense[]> => {
+export const getExpenses = (): Expense[] => {
+  return expenses;
+};
+
+// Async version
+export const getExpensesAsync = async (): Promise<Expense[]> => {
   try {
     return await fetchExpenses();
   } catch (error) {
@@ -979,7 +1007,7 @@ export const addVendor = (vendorData: Omit<Vendor, 'id'>): Vendor => {
   return newVendor;
 };
 
-export const recordAttendance = (attendanceData: Omit<Attendance, 'id'>): Attendance => {
+export const recordAttendance = (attendanceData: Omit<Attendance, 'id'>, userId?: string): Attendance => {
   const newAttendance = {
     id: generateId('att'),
     ...attendanceData
@@ -1004,81 +1032,3 @@ export const getPartExpenses = async (): Promise<any[]> => {
 };
 
 export const getPayables = async (): Promise<any[]> => {
-  // Implement a simple stub for now
-  return [];
-};
-
-export const getReceivables = async (): Promise<any[]> => {
-  // Implement a simple stub for now
-  return [];
-};
-
-export const getPaymentsByDateRange = (startDate: string, endDate: string): Payment[] => {
-  // Extract payments from invoices
-  const allPayments: Payment[] = [];
-  
-  invoices.forEach(invoice => {
-    invoice.payments.forEach(payment => {
-      if (payment.date >= startDate && payment.date <= endDate) {
-        allPayments.push(payment);
-      }
-    });
-  });
-  
-  return allPayments;
-};
-
-export const addExpense = (expenseData: Omit<Expense, 'id'>): Expense => {
-  // Create a new expense with an ID
-  const newExpense: Expense = {
-    id: generateId('exp'),
-    ...expenseData
-  };
-  
-  // Add to expenses array
-  expenses.push(newExpense);
-  return newExpense;
-};
-
-// Temporary functions to avoid errors in other files
-export const getVendorById = (id: string): Vendor | null => {
-  return vendors.find(vendor => vendor.id === id) || null;
-};
-
-// Mock user data for User management
-let users: User[] = [
-  {
-    id: 'user_1',
-    name: 'John Doe',
-    email: 'john@example.com',
-    role: 'manager',
-    isActive: true,
-    lastLogin: '2023-04-01'
-  },
-  {
-    id: 'user_2',
-    name: 'Jane Smith',
-    email: 'jane@example.com',
-    role: 'mechanic',
-    mechanicId: 'mech_2',
-    isActive: true,
-    lastLogin: '2023-04-02'
-  }
-];
-
-// Export for mapping role to permissions
-export type RolePermissionMap = typeof rolePermissions;
-
-// Export mock data for use in components
-export { 
-  customers, 
-  vehicles, 
-  mechanics, 
-  vendors, 
-  parts, 
-  tasks, 
-  invoices, 
-  expenses, 
-  attendanceRecords as attendance,
-  users
-};

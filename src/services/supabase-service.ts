@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import type { 
   Customer, 
@@ -253,7 +252,7 @@ export const fetchInvoices = async (): Promise<Invoice[]> => {
       year: invoice.vehicle.year,
       licensePlate: invoice.vehicle.license_plate
     },
-    status: invoice.status as InvoiceStatus,
+    status: invoice.status as 'open' | 'in-progress' | 'completed' | 'paid' | 'partial',
     date: new Date(invoice.date).toISOString().split('T')[0],
     items: invoice.items.map((item: any) => ({
       id: item.id,
