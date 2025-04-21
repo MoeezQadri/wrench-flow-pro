@@ -155,31 +155,19 @@ export async function checkEmailExists(email: string) {
   const supabaseAdmin = await getSupabaseAdmin();
   const normalizedEmail = email.toLowerCase().trim();
 
-  // Debug: Verify the exact filter being sent
-  console.log(`Filtering for email: "${normalizedEmail}"`);
-  
-  // Check if user exists
+  // Check if user exists -- not working!
   // const { data: users, error } = await supabaseAdmin.auth.admin.listUsers({
   //   filter: {
   //     email: email
   //   }
   // });
-  // console.log({users});
-
-  const [{ data: { users } }, { data: sqlResult }] = await Promise.all([
-      supabaseAdmin.auth.admin.listUsers({
-        page: 1,
-        perPage: 1,
-        filter: `email=eq.${normalizedEmail}`
-      }),
-      supabaseAdmin
+  
+  // Check if user exists
+  const { data: users, error } = await supabaseAdmin
         .from('auth.users')
         .select('*')
-        .eq('email', normalizedEmail)
-    ]);
+        .eq('email', normalizedEmail);
 
-    console.log('Admin API results:', users);
-    console.log('Direct query results:', sqlResult);
   if (error) {
     console.error('Error checking email exists:', error);
     throw error;
