@@ -28,7 +28,7 @@ export async function getSupabaseAdmin() {
       global: {
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${denoSupaServRoleKey}`
+          'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''}`
         }
       }
     }
