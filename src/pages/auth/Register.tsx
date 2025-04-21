@@ -37,6 +37,7 @@ const Register = () => {
     
     try {
       // Check if the email already exists using our helper function
+      console.log('Registering user', {name, email, password, organizationName})
       const emailCheckResult = await checkEmailExists(email);
       console.log({emailCheckResult});
       if (emailCheckResult && emailCheckResult.exists) {
