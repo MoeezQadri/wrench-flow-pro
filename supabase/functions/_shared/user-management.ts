@@ -156,8 +156,6 @@ export async function checkEmailExists(email: string) {
   
   // Check if user exists
   const { data: users, error } = await supabaseAdmin.auth.admin.listUsers({
-    page: 1,
-    perPage: 10,
     filter: {
       email: email
     }
