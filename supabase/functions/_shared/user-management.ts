@@ -19,7 +19,6 @@ export async function getOrganizations() {
 
 export async function getUsers() {
   const supabaseAdmin = await getSupabaseAdmin();
-  
   try {
     // Try to use the user_profiles view first
     const { data: viewData, error: viewError } = await supabaseAdmin
@@ -153,7 +152,7 @@ export async function enableUserWithoutConfirmation(userId: string) {
 
 export async function checkEmailExists(email: string) {
   const supabaseAdmin = await getSupabaseAdmin();
-
+  
   // Check if user exists -- not working!
   // const { data: users, error } = await supabaseAdmin.auth.admin.listUsers({
   //   filter: {
