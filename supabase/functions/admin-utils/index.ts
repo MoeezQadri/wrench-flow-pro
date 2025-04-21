@@ -69,7 +69,7 @@ serve(async (req) => {
     }
 
     // For all other actions, verify authorization
-    if (action !== 'authenticate_superadmin') {
+    if (action !== 'authenticate_superadmin' && action !== 'check_email_exists') {
       // Get the authorization header
       const authHeader = req.headers.get('Authorization');
       
