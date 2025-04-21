@@ -153,7 +153,6 @@ export async function enableUserWithoutConfirmation(userId: string) {
 
 export async function checkEmailExists(email: string) {
   const supabaseAdmin = await getSupabaseAdmin();
-  const normalizedEmail = email.toLowerCase().trim();
 
   // Check if user exists -- not working!
   // const { data: users, error } = await supabaseAdmin.auth.admin.listUsers({
@@ -161,13 +160,10 @@ export async function checkEmailExists(email: string) {
   //     email: email
   //   }
   // });
-  
-  // Check if user exists
-  const { data: users, error } = await supabaseAdmin
-        .from('auth.users')
-        .select('*')
-        .eq('email', normalizedEmail);
 
+  const { data: user, error } = await supabaseAdmin.auth.admin.getUserByEmail(email);
+
+  console.log({user});
   if (error) {
     console.error('Error checking email exists:', error);
     throw error;
