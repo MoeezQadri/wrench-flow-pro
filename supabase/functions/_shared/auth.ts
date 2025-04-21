@@ -24,12 +24,6 @@ export async function getSupabaseAdmin() {
         autoRefreshToken: false,
         persistSession: false,
         detectSessionInUrl: false
-      },
-      global: {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''}`
-        }
       }
     }
   );
