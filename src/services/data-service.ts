@@ -143,7 +143,7 @@ customers.forEach(customer => {
   customer.vehicles = vehicles.filter(vehicle => vehicle.customerId === customer.id);
 });
 
-let mechanics: Mechanic[] = [
+export const mechanics: Mechanic[] = [
   {
     id: 'mech_1',
     name: 'Alice Johnson',
@@ -243,7 +243,7 @@ let vendors: Vendor[] = [
   }
 ];
 
-let parts: Part[] = [
+export const parts: Part[] = [
   {
     id: 'part_1',
     name: 'Oil Filter',
@@ -296,7 +296,7 @@ let parts: Part[] = [
   }
 ];
 
-let tasks: Task[] = [
+export const tasks: Task[] = [
   {
     id: 'task_1',
     title: 'Oil Change',
@@ -348,7 +348,7 @@ let tasks: Task[] = [
   }
 ];
 
-let invoices: Invoice[] = [
+export const invoices: Invoice[] = [
   {
     id: 'inv_1',
     customerId: 'cust_1',
@@ -524,7 +524,7 @@ let invoices: Invoice[] = [
   }
 ];
 
-let expenses: Expense[] = [
+export const expenses: Expense[] = [
   {
     id: 'exp_1',
     date: '2023-04-01',
@@ -582,7 +582,7 @@ let expenses: Expense[] = [
   }
 ];
 
-let attendanceRecords: Attendance[] = [
+export const attendanceRecords: Attendance[] = [
   {
     id: 'att_1',
     mechanicId: 'mech_1',

@@ -7,7 +7,7 @@ import { Plus, Pencil, Users as UsersIcon, ShieldCheck, ShieldAlert } from "luci
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { User, UserRole } from "@/types";
-import { users, getCurrentUser, hasPermission } from "@/services/data-service";
+import { getCurrentUser, hasPermission } from "@/services/data-service";
 import {
   Dialog,
   DialogContent,
@@ -25,9 +25,11 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { getRegisteredUsers } from "@/services/auth-service";
+
 
 const UsersPage = () => {
-  const [usersList, setUsersList] = useState<User[]>(users);
+  const [usersList, setUsersList] = useState<User[]>(getRegisteredUsers());
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const currentUser = getCurrentUser();

@@ -3,7 +3,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { 
-  payments, 
   expenses, 
   getPaymentsByDateRange, 
   getExpensesByDateRange 
@@ -27,7 +26,7 @@ import ExpenseDialog from "@/components/expense/ExpenseDialog";
 import { Expense } from "@/types";
 import DateRangeDropdown from "@/components/DateRangeDropdown";
 
-const FinanceReport = () => {
+const FinanceReport = async () => {
   const [selectedPeriod, setSelectedPeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily');
   const [startDate, setStartDate] = useState<Date>(new Date());
   const [endDate, setEndDate] = useState<Date>(new Date());
@@ -38,10 +37,8 @@ const FinanceReport = () => {
   const formattedEndDate = format(endDate, "yyyy-MM-dd");
 
   // Get payments and expenses for the selected date
-  const dailyPayments = payments.filter(payment => {
-    const paymentDate = new Date(payment.date);
-    return paymentDate >= startDate && paymentDate <= endDate;
-  });
+  const dailyPayments = await getPaymentsByDateRange(startDate.toString(), endDate.toString())
+
   
   const dailyExpenses = expenses.filter(expense => {
     const expenseDate = new Date(expense.date);

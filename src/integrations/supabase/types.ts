@@ -1,3 +1,5 @@
+import { InvoiceStatus } from "@/types"
+
 export type Json =
   | string
   | number
@@ -255,7 +257,7 @@ export type Database = {
           date: string | null
           id: string
           notes: string | null
-          status: string
+          status: InvoiceStatus
           tax_rate: number | null
           updated_at: string | null
           vehicle_id: string
@@ -266,7 +268,7 @@ export type Database = {
           date?: string | null
           id?: string
           notes?: string | null
-          status: string
+          status: InvoiceStatus
           tax_rate?: number | null
           updated_at?: string | null
           vehicle_id: string
@@ -277,7 +279,7 @@ export type Database = {
           date?: string | null
           id?: string
           notes?: string | null
-          status?: string
+          status?: InvoiceStatus
           tax_rate?: number | null
           updated_at?: string | null
           vehicle_id?: string

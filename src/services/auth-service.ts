@@ -278,3 +278,6 @@ export const updateOrganization = (
 
   return registeredOrganizations[orgIndex];
 };
+
+//get list of users
+export const getRegisteredUsers = () => { return registeredUsers }

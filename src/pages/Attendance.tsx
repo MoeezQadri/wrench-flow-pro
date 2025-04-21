@@ -15,7 +15,7 @@ import {
   XCircle 
 } from "lucide-react";
 import { 
-  attendance, 
+  attendanceRecords, 
   approveAttendance, 
   getMechanicById, 
   getCurrentUser, 
@@ -40,7 +40,7 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 
 const AttendancePage = () => {
-  const [attendanceList, setAttendanceList] = useState<Attendance[]>(() => attendance);
+  const [attendanceList, setAttendanceList] = useState<Attendance[]>(() => attendanceRecords);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [notes, setNotes] = useState<string>("");
   const currentUser = getCurrentUser();
@@ -92,7 +92,7 @@ const AttendancePage = () => {
     );
     
     // In a real app, this would call an API
-    approveAttendance(id);
+    approveAttendance(id, currentUser.id);
     
     toast.success("Attendance approved");
     setNotes("");
