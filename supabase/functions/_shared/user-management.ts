@@ -1,7 +1,7 @@
 import { getSupabaseAdmin } from './auth.ts';
 
 export async function getOrganizations() {
-  const supabaseAdmin = getSupabaseAdmin();
+  const supabaseAdmin = await getSupabaseAdmin();
   
   // Fetch organizations from the database
   const { data: organizations, error } = await supabaseAdmin
@@ -18,7 +18,7 @@ export async function getOrganizations() {
 }
 
 export async function getUsers() {
-  const supabaseAdmin = getSupabaseAdmin();
+  const supabaseAdmin = await getSupabaseAdmin();
   
   try {
     // Try to use the user_profiles view first
@@ -94,7 +94,7 @@ export async function getUsers() {
 }
 
 export async function getInactiveUsers(daysInactive: number = 90) {
-  const supabaseAdmin = getSupabaseAdmin();
+  const supabaseAdmin = await getSupabaseAdmin();
   
   // Get inactive users using the RPC function
   const { data: users, error } = await supabaseAdmin
@@ -109,7 +109,7 @@ export async function getInactiveUsers(daysInactive: number = 90) {
 }
 
 export async function cleanUserData(userId: string) {
-  const supabaseAdmin = getSupabaseAdmin();
+  const supabaseAdmin = await getSupabaseAdmin();
   
   // Clean user data using the RPC function
   const { data, error } = await supabaseAdmin
@@ -124,7 +124,7 @@ export async function cleanUserData(userId: string) {
 }
 
 export async function enableUserWithoutConfirmation(userId: string) {
-  const supabaseAdmin = getSupabaseAdmin();
+  const supabaseAdmin = await getSupabaseAdmin();
   
   try {
     // Update the user's email_confirmation_token to null and set the email_confirmed_at to now
