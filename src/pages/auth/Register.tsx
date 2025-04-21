@@ -38,7 +38,7 @@ const Register = () => {
     try {
       // Check if the email already exists using our helper function
       const emailCheckResult = await checkEmailExists(email);
-      
+      console.log({emailCheckResult});
       if (emailCheckResult && emailCheckResult.exists) {
         // Email exists, check if it's active
         if (emailCheckResult.is_active) {
@@ -74,12 +74,12 @@ const Register = () => {
           }
         }
       });
-      
+      console.log('User registered ', {data});
       if (error) throw error;
       
       if (data.user && data.session) {
         // Create the organization in the organizations table
-        const { error: orgError } = await supabase
+        const { error: orgError, data } = await supabase
           .from('organizations')
           .insert({
             id: orgId,
@@ -87,6 +87,7 @@ const Register = () => {
             subscription_level: 'trial',
             subscription_status: 'active'
           });
+        console.log('Org registered ', {data});
           
         if (orgError) {
           console.error('Error creating organization:', orgError);
