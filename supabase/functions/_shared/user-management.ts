@@ -153,22 +153,30 @@ export async function enableUserWithoutConfirmation(userId: string) {
 export async function checkEmailExists(email: string) {
   const supabaseAdmin = await getSupabaseAdmin();
 
-  // Fetch all users (default: 50 per page)
-  const { data, error } = await supabaseAdmin.auth.admin.listUsers();
+  const perPage = 100;
+  let page = 1;
+  let user = null;
 
-  if (error) {
-    console.error('Error fetching users:', error);
-    throw error;
+  while (true) {
+    const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage });
+
+    if (error) {
+      console.error('Error listing users:', error);
+      throw error;
+    }
+
+    user = data.users.find((u) => u.email.toLowerCase() === email.toLowerCase());
+    if (user) break;
+
+    // If less than a full page returned, we've hit the end
+    if (data.users.length < perPage) break;
+
+    page++;
   }
 
-  // Try to find the user with the matching email
-  const user = data.users.find((u) => u.email === email);
+  if (!user) return { exists: false };
 
-  if (!user) {
-    return { exists: false };
-  }
-
-  // User exists, check if they're active in the 'profiles' table
+  // Check profile for is_active
   const { data: profile, error: profileError } = await supabaseAdmin
     .from('profiles')
     .select('is_active')
@@ -179,7 +187,7 @@ export async function checkEmailExists(email: string) {
     console.error('Error fetching profile:', profileError);
     return {
       exists: true,
-      is_active: true // Assume active if unable to fetch profile
+      is_active: true // default to true if uncertain
     };
   }
 
