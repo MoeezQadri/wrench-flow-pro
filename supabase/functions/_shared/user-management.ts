@@ -152,42 +152,38 @@ export async function enableUserWithoutConfirmation(userId: string) {
 
 export async function checkEmailExists(email: string) {
   const supabaseAdmin = await getSupabaseAdmin();
-  // Check if user exists -- not working!
-  // const { data: users, error } = await supabaseAdmin.auth.admin.listUsers({
-  //   filter: {
-  //     email: email
-  //   }
-  // });
 
-  const { data: users, error } = await supabaseAdmin.auth.admin.getUserByEmail(email);
+  // Fetch all users (default: 50 per page)
+  const { data, error } = await supabaseAdmin.auth.admin.listUsers();
 
-  console.log({users});
   if (error) {
-    console.error('Error checking email exists:', error);
+    console.error('Error fetching users:', error);
     throw error;
   }
-  
-  if (users.users.length === 0) {
+
+  // Try to find the user with the matching email
+  const user = data.users.find((u) => u.email === email);
+
+  if (!user) {
     return { exists: false };
   }
-  
-  // User exists, check if they're active
-  const user = users.users[0];
+
+  // User exists, check if they're active in the 'profiles' table
   const { data: profile, error: profileError } = await supabaseAdmin
     .from('profiles')
     .select('is_active')
     .eq('id', user.id)
     .single();
-    
+
   if (profileError) {
     console.error('Error fetching profile:', profileError);
-    return { 
+    return {
       exists: true,
-      is_active: true // Assume active if we can't determine
+      is_active: true // Assume active if unable to fetch profile
     };
   }
-  
-  return { 
+
+  return {
     exists: true,
     is_active: profile.is_active
   };
