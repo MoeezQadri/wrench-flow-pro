@@ -159,9 +159,9 @@ export async function checkEmailExists(email: string) {
   //   }
   // });
 
-  const { data: user, error } = await supabaseAdmin.auth.admin.getUserByEmail(email);
+  const { data: users, error } = await supabaseAdmin.auth.admin.getUserByEmail(email);
 
-  console.log({user});
+  console.log({users});
   if (error) {
     console.error('Error checking email exists:', error);
     throw error;
