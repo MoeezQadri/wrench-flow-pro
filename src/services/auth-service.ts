@@ -20,8 +20,8 @@ export const availableCurrencies = [
 
 // Available countries
 export const availableCountries = [
-  'United States', 'Canada', 'United Kingdom', 'Australia', 
-  'Germany', 'France', 'Italy', 'Spain', 'Japan', 'China', 
+  'United States', 'Canada', 'United Kingdom', 'Australia',
+  'Germany', 'France', 'Italy', 'Spain', 'Japan', 'China',
   'India', 'Brazil', 'Mexico', 'South Africa', 'Nigeria'
 ];
 
@@ -263,7 +263,7 @@ export const getOrganizationById = (organizationId: string): Organization | null
 
 // Update organization settings
 export const updateOrganization = (
-  organizationId: string, 
+  organizationId: string,
   updatedData: Partial<Organization>
 ): Organization | null => {
   const orgIndex = registeredOrganizations.findIndex(org => org.id === organizationId);
@@ -278,3 +278,7 @@ export const updateOrganization = (
 
   return registeredOrganizations[orgIndex];
 };
+
+
+//get list of users
+export const getRegisteredUsers = () => { return registeredUsers }

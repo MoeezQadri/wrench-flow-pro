@@ -1,15 +1,15 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  FileText, 
-  Users, 
-  Wrench, 
-  ShoppingBag, 
-  Calendar, 
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import {
+  LayoutDashboard,
+  FileText,
+  Users,
+  Wrench,
+  ShoppingBag,
+  Calendar,
   DollarSign,
-  Settings, 
-  Menu, 
+  Settings,
+  Menu,
   X,
   ClipboardCheck,
   UserCog,
@@ -21,7 +21,7 @@ import {
   User
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { getCurrentUser, hasPermission, RolePermissionMap } from '@/services/data-service';
+import { getCurrentUser, hasPermission } from '@/services/data-service';
 import { useAuthContext } from '@/context/AuthContext';
 import { toast } from 'sonner';
 import Logo from './Logo';
@@ -34,82 +34,82 @@ interface NavItemPermission {
 
 // Define our navItems with correct typing
 const navItems = [
-  { 
-    name: 'Dashboard', 
-    path: '/dashboard', 
+  {
+    name: 'Dashboard',
+    path: '/dashboard',
     icon: <LayoutDashboard className="w-5 h-5" />,
     permission: { resource: 'dashboard', action: 'view' }
   },
-  { 
-    name: 'Invoices', 
-    path: '/invoices', 
+  {
+    name: 'Invoices',
+    path: '/invoices',
     icon: <FileText className="w-5 h-5" />,
     permission: { resource: 'invoices', action: 'view' }
   },
-  { 
-    name: 'Customers', 
-    path: '/customers', 
+  {
+    name: 'Customers',
+    path: '/customers',
     icon: <Users className="w-5 h-5" />,
     permission: { resource: 'customers', action: 'view' }
   },
-  { 
-    name: 'Mechanics', 
-    path: '/mechanics', 
+  {
+    name: 'Mechanics',
+    path: '/mechanics',
     icon: <Wrench className="w-5 h-5" />,
     permission: { resource: 'mechanics', action: 'view' }
   },
-  { 
-    name: 'Tasks', 
-    path: '/tasks', 
+  {
+    name: 'Tasks',
+    path: '/tasks',
     icon: <CalendarCheck className="w-5 h-5" />,
     permission: { resource: 'tasks', action: 'view' }
   },
-  { 
-    name: 'Parts', 
-    path: '/parts', 
+  {
+    name: 'Parts',
+    path: '/parts',
     icon: <ShoppingBag className="w-5 h-5" />,
     permission: { resource: 'parts', action: 'view' }
   },
-  { 
-    name: 'Finance', 
-    path: '/finance', 
+  {
+    name: 'Finance',
+    path: '/finance',
     icon: <Wallet className="w-5 h-5" />,
     permission: { resource: 'finance', action: 'view' }
   },
-  { 
-    name: 'Attendance', 
-    path: '/attendance', 
+  {
+    name: 'Attendance',
+    path: '/attendance',
     icon: <ClipboardCheck className="w-5 h-5" />,
     permission: { resource: 'attendance', action: 'view' }
   },
-  { 
-    name: 'Users', 
-    path: '/users', 
+  {
+    name: 'Users',
+    path: '/users',
     icon: <UserCog className="w-5 h-5" />,
     permission: { resource: 'users', action: 'view' }
   },
-  { 
-    name: 'Reports', 
-    path: '/reports', 
+  {
+    name: 'Reports',
+    path: '/reports',
     icon: <FileText className="w-5 h-5" />,
     permission: { resource: 'reports', action: 'view' }
   },
-  { 
-    name: 'Settings', 
-    path: '/settings', 
+  {
+    name: 'Settings',
+    path: '/settings',
     icon: <Settings className="w-5 h-5" />,
     permission: { resource: 'settings', action: 'view' }
   },
   // Admin section
-  { 
-    name: 'SuperAdmin', 
-    path: '/superadmin/dashboard', 
+  {
+    name: 'SuperAdmin',
+    path: '/superadmin/dashboard',
     icon: <BarChart className="w-5 h-5" />,
     permission: { resource: 'users', action: 'manage' }
   },
-  { 
-    name: 'Help', 
-    path: '/help', 
+  {
+    name: 'Help',
+    path: '/help',
     icon: <HelpCircle className="w-5 h-5" />,
     permission: { resource: 'dashboard', action: 'view' } // Using dashboard permission so most users can see help
   },
@@ -123,11 +123,12 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
   const location = useLocation();
   const currentUser = getCurrentUser();
-  const { logout } = useAuthContext();
-  
+  const { logout, setCurrentUser, setSession } = useAuthContext();
+  const navigate = useNavigate();
+
   const filteredNavItems = navItems.filter(item => {
     return hasPermission(
-      currentUser, 
+      currentUser,
       item.permission.resource,
       item.permission.action
     );
@@ -136,17 +137,18 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
   const handleLogout = () => {
     logout();
     toast.success('Successfully logged out');
+    navigate('/')
   };
-  
+
   // Group nav items by section
   const regularItems = filteredNavItems.filter(item => !item.path.startsWith('/superadmin'));
   const adminItems = filteredNavItems.filter(item => item.path.startsWith('/superadmin'));
-  
+
   return (
     <>
       {/* Mobile Overlay */}
       {isMobileOpen && (
-        <div 
+        <div
           className="md:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
           onClick={() => setIsMobileOpen(false)}
         ></div>
@@ -156,34 +158,33 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
       <div className={`fixed md:static inset-y-0 left-0 z-50 flex flex-col w-64 bg-sidebar text-sidebar-foreground transition-transform duration-300 transform ${isMobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
         <div className="flex items-center justify-between p-4 border-b border-sidebar-border">
           <Logo textColor="text-sidebar-foreground" />
-          <Button 
-            variant="ghost" 
-            size="icon" 
+          <Button
+            variant="ghost"
+            size="icon"
             className="md:hidden"
             onClick={() => setIsMobileOpen(false)}
           >
             <X className="w-5 h-5" />
           </Button>
         </div>
-        
+
         <nav className="flex-1 overflow-y-auto py-4">
           <ul>
             {regularItems.map((item) => (
               <li key={item.name} className="px-2">
                 <Link
                   to={item.path}
-                  className={`flex items-center p-3 rounded-lg transition-colors ${
-                    location.pathname === item.path
-                      ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                      : 'hover:bg-sidebar-border/50 text-sidebar-foreground/80 hover:text-sidebar-foreground'
-                  }`}
+                  className={`flex items-center p-3 rounded-lg transition-colors ${location.pathname === item.path
+                    ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                    : 'hover:bg-sidebar-border/50 text-sidebar-foreground/80 hover:text-sidebar-foreground'
+                    }`}
                 >
                   {item.icon}
                   <span className="ml-3">{item.name}</span>
                 </Link>
               </li>
             ))}
-            
+
             {/* Admin Section */}
             {adminItems.length > 0 && (
               <>
@@ -192,16 +193,15 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
                     Admin
                   </h3>
                 </li>
-                
+
                 {adminItems.map((item) => (
                   <li key={item.name} className="px-2">
                     <Link
                       to={item.path}
-                      className={`flex items-center p-3 rounded-lg transition-colors ${
-                        location.pathname === item.path
-                          ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                          : 'hover:bg-sidebar-border/50 text-sidebar-foreground/80 hover:text-sidebar-foreground'
-                      }`}
+                      className={`flex items-center p-3 rounded-lg transition-colors ${location.pathname === item.path
+                        ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                        : 'hover:bg-sidebar-border/50 text-sidebar-foreground/80 hover:text-sidebar-foreground'
+                        }`}
                     >
                       {item.icon}
                       <span className="ml-3">{item.name}</span>
@@ -212,7 +212,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
             )}
           </ul>
         </nav>
-        
+
         <div className="p-4 border-t border-sidebar-border">
           <div className="flex items-center">
             <div className="w-10 h-10 rounded-full bg-wrench-light-blue flex items-center justify-center">
@@ -224,9 +224,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
               <p className="font-medium">{currentUser.name}</p>
               <p className="text-sm text-sidebar-foreground/70 capitalize">{currentUser.role}</p>
             </div>
-            <Button 
-              variant="ghost" 
-              size="icon" 
+            <Button
+              variant="ghost"
+              size="icon"
               className="ml-auto"
               onClick={handleLogout}
             >

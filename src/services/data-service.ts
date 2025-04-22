@@ -16,18 +16,18 @@ import {
   fetchAttendance,
 } from './supabase-service';
 
-import { 
-  Customer, 
-  Vehicle, 
-  Mechanic, 
-  Invoice, 
-  InvoiceItem, 
-  Part, 
-  Task, 
-  User, 
-  UserRole, 
-  Expense, 
-  Attendance, 
+import {
+  Customer,
+  Vehicle,
+  Mechanic,
+  Invoice,
+  InvoiceItem,
+  Part,
+  Task,
+  User,
+  UserRole,
+  Expense,
+  Attendance,
   Payment,
   DashboardMetrics,
   CustomerAnalytics,
@@ -143,7 +143,7 @@ customers.forEach(customer => {
   customer.vehicles = vehicles.filter(vehicle => vehicle.customerId === customer.id);
 });
 
-let mechanics: Mechanic[] = [
+export const mechanics: Mechanic[] = [
   {
     id: 'mech_1',
     name: 'Alice Johnson',
@@ -200,7 +200,7 @@ interface Vendor {
   address: string;
 }
 
-let vendors: Vendor[] = [
+export const vendors: Vendor[] = [
   {
     id: 'ven_1',
     name: 'Auto Parts Supplier',
@@ -243,7 +243,7 @@ let vendors: Vendor[] = [
   }
 ];
 
-let parts: Part[] = [
+export const parts: Part[] = [
   {
     id: 'part_1',
     name: 'Oil Filter',
@@ -296,7 +296,7 @@ let parts: Part[] = [
   }
 ];
 
-let tasks: Task[] = [
+export const tasks: Task[] = [
   {
     id: 'task_1',
     title: 'Oil Change',
@@ -348,7 +348,7 @@ let tasks: Task[] = [
   }
 ];
 
-let invoices: Invoice[] = [
+export const invoices: Invoice[] = [
   {
     id: 'inv_1',
     customerId: 'cust_1',
@@ -524,7 +524,7 @@ let invoices: Invoice[] = [
   }
 ];
 
-let expenses: Expense[] = [
+export const expenses: Expense[] = [
   {
     id: 'exp_1',
     date: '2023-04-01',
@@ -582,7 +582,7 @@ let expenses: Expense[] = [
   }
 ];
 
-let attendanceRecords: Attendance[] = [
+export const attendanceRecords: Attendance[] = [
   {
     id: 'att_1',
     mechanicId: 'mech_1',
@@ -795,20 +795,20 @@ export const getInvoiceById = (id: string): Invoice | null => {
   return invoices.find(invoice => invoice.id === id) || null;
 };
 
-export const calculateInvoiceTotal = (invoice: Invoice): { 
-  subtotal: number; 
-  tax: number; 
-  total: number; 
+export const calculateInvoiceTotal = (invoice: Invoice): {
+  subtotal: number;
+  tax: number;
+  total: number;
   paidAmount: number;
   balanceDue: number;
 } => {
   const subtotal = invoice.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const tax = subtotal * (invoice.taxRate / 100);
   const total = subtotal + tax;
-  
+
   const paidAmount = invoice.payments.reduce((sum, payment) => sum + payment.amount, 0);
   const balanceDue = total - paidAmount;
-  
+
   return { subtotal, tax, total, paidAmount, balanceDue };
 };
 
@@ -873,7 +873,7 @@ export const getExpensesByDateRangeAsync = async (startDate: string, endDate: st
     // In a real app, this would filter expenses by date from the database
     // For now, we'll just return all expenses
     const allExpenses = await getExpenses();
-    
+
     // Filter expenses by date range
     return allExpenses.filter(expense => {
       const expenseDate = new Date(expense.date);
@@ -895,32 +895,32 @@ export const getCustomerAnalytics = (customerId: string): CustomerAnalytics => {
     // Find the customer in our mock data
     const customer = customers.find(c => c.id === customerId);
     if (!customer) throw new Error("Customer not found");
-    
+
     // Get customer vehicles
     const customerVehicles = vehicles.filter(v => v.customerId === customerId);
-    
+
     // Get all invoices for this customer
     const customerInvoices = invoices.filter(inv => inv.customerId === customerId);
-    
+
     // Calculate totals
     let lifetimeValue = 0;
     customerInvoices.forEach(invoice => {
       const { total } = calculateInvoiceTotal(invoice);
       lifetimeValue += total;
     });
-    
+
     const totalInvoices = customerInvoices.length;
     const averageInvoiceValue = totalInvoices > 0 ? lifetimeValue / totalInvoices : 0;
-    
+
     // Sort invoices by date and get the most recent (if any)
-    const sortedInvoices = [...customerInvoices].sort((a, b) => 
+    const sortedInvoices = [...customerInvoices].sort((a, b) =>
       new Date(b.date).getTime() - new Date(a.date).getTime()
     );
-    
+
     const lastVisit = sortedInvoices.length > 0 ? sortedInvoices[0].date : 'Never';
-    const firstVisitDate = sortedInvoices.length > 0 ? 
+    const firstVisitDate = sortedInvoices.length > 0 ?
       sortedInvoices[sortedInvoices.length - 1].date : 'Never';
-    
+
     return {
       totalInvoices,
       lifetimeValue,
@@ -1020,7 +1020,7 @@ export const recordAttendance = (attendanceData: Omit<Attendance, 'id'>, userId?
 export const approveAttendance = (attendanceId: string, approverId: string): Attendance | null => {
   const attendance = attendanceRecords.find(a => a.id === attendanceId);
   if (!attendance) return null;
-  
+
   attendance.status = 'approved';
   attendance.approvedBy = approverId;
   return attendance;
@@ -1069,7 +1069,7 @@ export const getPaymentsByDateRange = async (startDate: string, endDate: string)
   // For now, we'll extract payments from invoices
   const allInvoices = await getInvoices();
   const allPayments: Payment[] = [];
-  
+
   allInvoices.forEach(invoice => {
     invoice.payments.forEach(payment => {
       if (payment.date >= startDate && payment.date <= endDate) {
@@ -1077,7 +1077,7 @@ export const getPaymentsByDateRange = async (startDate: string, endDate: string)
       }
     });
   });
-  
+
   return allPayments;
 };
 
@@ -1087,7 +1087,7 @@ export const addExpense = async (expenseData: Omit<Expense, 'id'>): Promise<Expe
     id: generateId('exp'),
     ...expenseData
   };
-  
+
   // Add to expenses array
   expenses.push(newExpense);
   return newExpense;

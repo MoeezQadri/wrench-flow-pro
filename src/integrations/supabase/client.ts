@@ -2,10 +2,22 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = "https://zugmebtirwpdkblijlvx.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp1Z21lYnRpcndwZGtibGlqbHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM2MzU4MTEsImV4cCI6MjA1OTIxMTgxMX0.qSHZrBUacqnjqBH9XDY_6Bq-C5jYpdJTg9V_kN4ghiw";
+// const SUPABASE_URL = "https://zugmebtirwpdkblijlvx.supabase.co";
+// const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp1Z21lYnRpcndwZGtibGlqbHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM2MzU4MTEsImV4cCI6MjA1OTIxMTgxMX0.qSHZrBUacqnjqBH9XDY_6Bq-C5jYpdJTg9V_kN4ghiw";
+const SUPABASE_URL = "http://127.0.0.1:54321";
+const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU";
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+export const supabase = createClient<Database>(
+    SUPABASE_URL,
+    SUPABASE_PUBLISHABLE_KEY,
+    {
+      global: {
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      }
+    }
+  );

@@ -68,7 +68,7 @@ enable_confirmations = false
 
 [functions]
 # Port to use for Functions server.
-port = 9999
+# port = 9999
 
 [functions.admin-utils]
 verify_jwt = true

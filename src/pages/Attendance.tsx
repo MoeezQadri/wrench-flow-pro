@@ -3,23 +3,23 @@ import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { 
-  Calendar as CalendarIcon, 
-  CheckCircle, 
-  ClipboardCheck, 
-  Clock, 
-  Download, 
-  Filter, 
-  MoreVertical, 
-  Plus, 
-  XCircle 
+import {
+  Calendar as CalendarIcon,
+  CheckCircle,
+  ClipboardCheck,
+  Clock,
+  Download,
+  Filter,
+  MoreVertical,
+  Plus,
+  XCircle
 } from "lucide-react";
-import { 
-  attendance, 
-  approveAttendance, 
-  getMechanicById, 
-  getCurrentUser, 
-  hasPermission 
+import {
+  attendanceRecords,
+  approveAttendance,
+  getMechanicById,
+  getCurrentUser,
+  hasPermission
 } from "@/services/data-service";
 import { Attendance } from "@/types";
 import {
@@ -40,19 +40,19 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 
 const AttendancePage = () => {
-  const [attendanceList, setAttendanceList] = useState<Attendance[]>(() => attendance);
+  const [attendanceList, setAttendanceList] = useState<Attendance[]>(() => attendanceRecords);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [notes, setNotes] = useState<string>("");
   const currentUser = getCurrentUser();
-  
+
   // Format the selected date as YYYY-MM-DD for filtering
   const formattedDate = format(selectedDate, "yyyy-MM-dd");
-  
+
   // Check if current user has permission to view attendance
   const canViewAttendance = hasPermission(currentUser, 'attendance', 'view');
   const canManageAttendance = hasPermission(currentUser, 'attendance', 'manage');
   const canApproveAttendance = hasPermission(currentUser, 'attendance', 'approve');
-  
+
   if (!canViewAttendance) {
     return (
       <div className="flex justify-center items-center h-96">
@@ -60,7 +60,7 @@ const AttendancePage = () => {
       </div>
     );
   }
-  
+
   // Filter attendance records based on role
   const filteredAttendance = attendanceList.filter(record => {
     // If mechanic, only show their own records
@@ -76,24 +76,24 @@ const AttendancePage = () => {
       toast.error("You don't have permission to approve attendance records");
       return;
     }
-    
+
     // Update attendance record in state
-    setAttendanceList(prev => 
-      prev.map(record => 
-        record.id === id 
-          ? { 
-              ...record, 
-              status: 'approved', 
-              approvedBy: currentUser.id,
-              notes: notes || record.notes
-            } 
+    setAttendanceList(prev =>
+      prev.map(record =>
+        record.id === id
+          ? {
+            ...record,
+            status: 'approved',
+            approvedBy: currentUser.id,
+            notes: notes || record.notes
+          }
           : record
       )
     );
-    
+
     // In a real app, this would call an API
-    approveAttendance(id);
-    
+    approveAttendance(id, currentUser.id);
+
     toast.success("Attendance approved");
     setNotes("");
   };
@@ -175,7 +175,7 @@ const AttendancePage = () => {
             <TableBody>
               {filteredAttendance.map((record) => {
                 const mechanic = getMechanicById(record.mechanicId);
-                
+
                 return (
                   <TableRow key={record.id}>
                     <TableCell className="font-medium">{mechanic?.name || "Unknown"}</TableCell>
@@ -200,7 +200,7 @@ const AttendancePage = () => {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem 
+                              <DropdownMenuItem
                                 className="flex items-center text-green-600"
                                 onClick={() => handleApprove(record.id)}
                               >

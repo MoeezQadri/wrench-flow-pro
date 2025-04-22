@@ -7,7 +7,7 @@ import { Plus, Pencil, Users as UsersIcon, ShieldCheck, ShieldAlert } from "luci
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { User, UserRole } from "@/types";
-import { users, getCurrentUser, hasPermission } from "@/services/data-service";
+import { getCurrentUser, hasPermission } from "@/services/data-service";
 import {
   Dialog,
   DialogContent,
@@ -25,9 +25,10 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { getRegisteredUsers } from "@/services/auth-service";
 
 const UsersPage = () => {
-  const [usersList, setUsersList] = useState<User[]>(users);
+  const [usersList, setUsersList] = useState<User[]>(getRegisteredUsers());
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const currentUser = getCurrentUser();
@@ -59,32 +60,32 @@ const UsersPage = () => {
       toast.error("You don't have permission to manage users");
       return;
     }
-    
-    setUsersList(prev => 
+
+    setUsersList(prev =>
       prev.map(user => user.id === userId ? { ...user, isActive: active } : user)
     );
-    
+
     toast.success(`User ${active ? 'activated' : 'deactivated'}`);
   };
 
   const handleSaveUser = (formData: React.FormEvent<HTMLFormElement>) => {
     formData.preventDefault();
-    
+
     if (!canManageUsers) {
       toast.error("You don't have permission to manage users");
       return;
     }
-    
+
     // Get form data
     const form = formData.target as HTMLFormElement;
     const name = (form.elements.namedItem('name') as HTMLInputElement).value;
     const email = (form.elements.namedItem('email') as HTMLInputElement).value;
     const role = (form.elements.namedItem('role') as HTMLSelectElement).value as UserRole;
-    
+
     if (selectedUser) {
       // Update existing user
-      setUsersList(prev => 
-        prev.map(user => user.id === selectedUser.id ? 
+      setUsersList(prev =>
+        prev.map(user => user.id === selectedUser.id ?
           { ...user, name, email, role } : user
         )
       );
@@ -99,11 +100,11 @@ const UsersPage = () => {
         isActive: true,
         lastLogin: new Date().toISOString()
       };
-      
+
       setUsersList(prev => [...prev, newUser]);
       toast.success("User added successfully");
     }
-    
+
     setIsDialogOpen(false);
   };
 
@@ -156,8 +157,8 @@ const UsersPage = () => {
                   <TableCell>
                     {canManageUsers ? (
                       <div className="flex items-center">
-                        <Switch 
-                          checked={user.isActive} 
+                        <Switch
+                          checked={user.isActive}
                           onCheckedChange={(checked) => handleToggleActive(user.id, checked)}
                           disabled={user.id === currentUser.id} // Prevent deactivating yourself
                         />
@@ -190,9 +191,9 @@ const UsersPage = () => {
                       <UsersIcon className="w-12 h-12 mb-2 text-muted-foreground/60" />
                       <p>No users found</p>
                       {canManageUsers && (
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
+                        <Button
+                          variant="outline"
+                          size="sm"
                           className="mt-2"
                           onClick={handleAddUser}
                         >

@@ -1,8 +1,7 @@
 import { getSupabaseAdmin } from './auth.ts';
 
 export async function getOrganizations() {
-  const supabaseAdmin = getSupabaseAdmin();
-  
+  const supabaseAdmin = await getSupabaseAdmin();
   // Fetch organizations from the database
   const { data: organizations, error } = await supabaseAdmin
     .from('organizations')
@@ -152,15 +151,17 @@ export async function enableUserWithoutConfirmation(userId: string) {
 }
 
 export async function checkEmailExists(email: string) {
-  const supabaseAdmin = getSupabaseAdmin();
-  
+  const supabaseAdmin = await getSupabaseAdmin();
+  console.log({supabaseAdmin});
   // Check if user exists
   const { data: users, error } = await supabaseAdmin.auth.admin.listUsers({
+    page: 1,
+    perPage: 10,
     filter: {
       email: email
     }
   });
-  
+  console.log({users, error});
   if (error) {
     console.error('Error checking email exists:', error);
     throw error;

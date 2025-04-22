@@ -28,6 +28,8 @@ import {
 } from '../_shared/organization-management.ts';
 
 serve(async (req) => {
+console.log('hello from inside functions>>>');
+
   // This is needed if you're planning to invoke your function from a browser.
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -35,7 +37,8 @@ serve(async (req) => {
 
   try {
     const { action, params } = await req.json();
-    
+    console.log(action);
+    console.log(params);
     // Validate input
     if (!action) {
       return new Response(
@@ -69,7 +72,7 @@ serve(async (req) => {
     }
 
     // For all other actions, verify authorization
-    if (action !== 'authenticate_superadmin') {
+    if (action !== 'authenticate_superadmin' && action !== 'check_email_exists') {
       // Get the authorization header
       const authHeader = req.headers.get('Authorization');
       

@@ -22,23 +22,23 @@ const Register = () => {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (password !== confirmPassword) {
       toast.error('Passwords do not match');
       return;
     }
-    
+
     if (password.length < 8) {
       toast.error('Password must be at least 8 characters long');
       return;
     }
-    
+
     setIsLoading(true);
-    
+
     try {
       // Check if the email already exists using our helper function
       const emailCheckResult = await checkEmailExists(email);
-      
+      console.log({ emailCheckResult })
       if (emailCheckResult && emailCheckResult.exists) {
         // Email exists, check if it's active
         if (emailCheckResult.is_active) {
@@ -58,25 +58,26 @@ const Register = () => {
           return;
         }
       }
-      
+
       // Generate a unique organization ID
       const orgId = crypto.randomUUID();
-      
+
       // Register the user with Supabase
-      const { data, error } = await supabase.auth.signUp({
+      const resp = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
             name,
             organization_id: orgId,
-            role: 'owner'
+            role: 'client'
           }
         }
       });
-      
+      console.log('Resp!!!>>> ', resp)
+      const { data, error } = resp;
       if (error) throw error;
-      
+
       if (data.user && data.session) {
         // Create the organization in the organizations table
         const { error: orgError } = await supabase
@@ -87,12 +88,12 @@ const Register = () => {
             subscription_level: 'trial',
             subscription_status: 'active'
           });
-          
+
         if (orgError) {
           console.error('Error creating organization:', orgError);
           // Continue anyway as the user is created
         }
-        
+
         // Check if email confirmation is required
         if (data.user.email_confirmed_at) {
           // Email is already confirmed (instant confirmation)
@@ -107,9 +108,9 @@ const Register = () => {
             organizationId: orgId,
             lastLogin: new Date().toISOString()
           });
-          
+
           toast.success('Registration successful!');
-          
+
           // Redirect to dashboard
           navigate('/');
         } else {
@@ -149,7 +150,7 @@ const Register = () => {
           <h1 className="text-3xl font-bold">GARAGE PRO</h1>
           <p className="text-muted-foreground">Automotive workshop management system</p>
         </div>
-        
+
         <Card>
           <CardHeader>
             <CardTitle>Create Account</CardTitle>
@@ -159,10 +160,10 @@ const Register = () => {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Full Name</Label>
-                <Input 
-                  id="name" 
-                  type="text" 
-                  placeholder="John Doe" 
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="John Doe"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
@@ -171,34 +172,34 @@ const Register = () => {
 
               <div className="space-y-2">
                 <Label htmlFor="organizationName">Garage Name</Label>
-                <Input 
-                  id="organizationName" 
-                  type="text" 
-                  placeholder="My Garage" 
+                <Input
+                  id="organizationName"
+                  type="text"
+                  placeholder="My Garage"
                   value={organizationName}
                   onChange={(e) => setOrganizationName(e.target.value)}
                   required
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input 
-                  id="email" 
-                  type="email" 
-                  placeholder="your@email.com" 
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="your@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
-                <Input 
-                  id="password" 
-                  type="password" 
-                  placeholder="••••••••" 
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -207,29 +208,29 @@ const Register = () => {
                   Password must be at least 8 characters long
                 </p>
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword">Confirm Password</Label>
-                <Input 
-                  id="confirmPassword" 
-                  type="password" 
-                  placeholder="••••••••" 
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  placeholder="••••••••"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
                 />
               </div>
             </CardContent>
-            
+
             <CardFooter className="flex flex-col gap-4">
-              <Button 
-                type="submit" 
-                className="w-full" 
+              <Button
+                type="submit"
+                className="w-full"
                 disabled={isLoading}
               >
                 {isLoading ? 'Creating Account...' : 'Register'}
               </Button>
-              
+
               <div className="text-center text-sm text-muted-foreground">
                 Already have an account?{' '}
                 <Link to="/auth/login" className="text-wrench-light-blue hover:underline">

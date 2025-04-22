@@ -15,14 +15,29 @@ export function generateSecureToken(): string {
 // Create a Supabase admin client function
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-export function getSupabaseAdmin() {
-  return createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+export async function getSupabaseAdmin() {
+const denoSupaUrl= Deno.env.get('SUPABASE_URL');
+const denoSupaServRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+
+console.log('Getting supabase admin>> ');
+  console.log(
+    {denoSupaUrl: Deno.env.get('SUPABASE_URL'),
+    denoSupaServRoleKey: Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}
+  )
+  return await createClient(
+    denoSupaUrl,
+    denoSupaServRoleKey,
     {
       auth: {
+        persistSession: false,
         autoRefreshToken: false,
-        persistSession: false
+        detectSessionInUrl: false
+      },
+      global: {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${denoSupaServRoleKey}`
+        }
       }
     }
   );
@@ -34,21 +49,21 @@ export async function verifyJWT(token: string): Promise<boolean> {
     console.log("Token missing or too short");
     return false;
   }
-  
+
   try {
     const supabaseAdmin = getSupabaseAdmin();
-    
+
     // Use the database function to verify the token
     const { data, error } = await supabaseAdmin.rpc(
       'verify_superadmin_token',
       { token: token }
     );
-    
+
     if (error) {
       console.error("Error calling verify_superadmin_token:", error);
       return false;
     }
-    
+
     return data === true;
   } catch (err) {
     console.error("Error verifying token:", err);
@@ -62,25 +77,25 @@ export async function verifyUserJWT(token: string): Promise<boolean | object> {
     console.log("User token missing or too short");
     return false;
   }
-  
+
   try {
     // For regular users, we verify the token using the Supabase client
     const supabaseAdmin = getSupabaseAdmin();
-    
+
     // Perform JWT verification here for user tokens
     // This would check the signature using USER_JWT_SECRET
     const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
-    
+
     if (error) {
       console.error("Error verifying user token:", error);
       return false;
     }
-    
+
     if (user) {
       // Return the user object for further checks if needed
       return user;
     }
-    
+
     return false;
   } catch (err) {
     console.error("Error verifying user token:", err);

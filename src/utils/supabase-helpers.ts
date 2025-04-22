@@ -9,12 +9,12 @@ export const getOrganizations = async () => {
     const { data, error } = await supabase.functions.invoke('admin-utils', {
       body: { action: 'get_organizations' }
     });
-    
+
     if (error) {
       console.error('Error fetching organizations:', error);
       throw error;
     }
-    
+
     return data.organizations || [];
   } catch (error) {
     console.error('Failed to fetch organizations:', error);
@@ -31,12 +31,12 @@ export const getAllUsers = async () => {
     const { data: profiles, error: profilesError } = await supabase
       .from('profiles')
       .select('*');
-      
+
     if (profilesError) {
       console.warn('Error fetching profiles, falling back to edge function:', profilesError);
       return getAdminUsers();
     }
-    
+
     return profiles || [];
   } catch (error) {
     console.error('Failed to fetch users:', error);
@@ -52,12 +52,12 @@ export const getAdminUsers = async () => {
     const { data, error } = await supabase.functions.invoke('admin-utils', {
       body: { action: 'get_users' }
     });
-    
+
     if (error) {
       console.error('Error fetching users via admin-utils:', error);
       throw error;
     }
-    
+
     return data.users || [];
   } catch (error) {
     console.error('Failed to fetch users via admin-utils:', error);
@@ -71,17 +71,17 @@ export const getAdminUsers = async () => {
 export const getInactiveUsers = async (daysInactive: number = 90) => {
   try {
     const { data, error } = await supabase.functions.invoke('admin-utils', {
-      body: { 
+      body: {
         action: 'get_inactive_users',
         params: { days_inactive: daysInactive }
       }
     });
-    
+
     if (error) {
       console.error('Error fetching inactive users:', error);
       throw error;
     }
-    
+
     return data.users || [];
   } catch (error) {
     console.error('Failed to fetch inactive users:', error);
@@ -95,17 +95,17 @@ export const getInactiveUsers = async (daysInactive: number = 90) => {
 export const cleanUserData = async (userId: string) => {
   try {
     const { data, error } = await supabase.functions.invoke('admin-utils', {
-      body: { 
+      body: {
         action: 'clean_user_data',
         params: { user_id: userId }
       }
     });
-    
+
     if (error) {
       console.error('Error cleaning user data:', error);
       throw error;
     }
-    
+
     return data;
   } catch (error) {
     console.error('Failed to clean user data:', error);
@@ -119,17 +119,17 @@ export const cleanUserData = async (userId: string) => {
 export const deleteOrganization = async (orgId: string) => {
   try {
     const { data, error } = await supabase.functions.invoke('admin-utils', {
-      body: { 
+      body: {
         action: 'delete_organization',
         params: { org_id: orgId }
       }
     });
-    
+
     if (error) {
       console.error('Error deleting organization:', error);
       throw error;
     }
-    
+
     return data;
   } catch (error) {
     console.error('Failed to delete organization:', error);
@@ -148,17 +148,17 @@ export const updateOrganization = async (params: {
 }) => {
   try {
     const { data, error } = await supabase.functions.invoke('admin-utils', {
-      body: { 
+      body: {
         action: 'update_organization',
         params
       }
     });
-    
+
     if (error) {
       console.error('Error updating organization:', error);
       throw error;
     }
-    
+
     return data;
   } catch (error) {
     console.error('Failed to update organization:', error);
@@ -177,17 +177,17 @@ export const createOrganization = async (params: {
 }) => {
   try {
     const { data, error } = await supabase.functions.invoke('admin-utils', {
-      body: { 
+      body: {
         action: 'create_organization',
         params
       }
     });
-    
+
     if (error) {
       console.error('Error creating organization:', error);
       throw error;
     }
-    
+
     return data;
   } catch (error) {
     console.error('Failed to create organization:', error);
@@ -201,17 +201,17 @@ export const createOrganization = async (params: {
 export const searchOrganizationById = async (orgId: string) => {
   try {
     const { data, error } = await supabase.functions.invoke('admin-utils', {
-      body: { 
+      body: {
         action: 'search_organization_by_id',
         params: { org_id: orgId }
       }
     });
-    
+
     if (error) {
       console.error('Error searching for organization:', error);
       throw error;
     }
-    
+
     return data;
   } catch (error) {
     console.error('Failed to search for organization:', error);
@@ -225,17 +225,17 @@ export const searchOrganizationById = async (orgId: string) => {
 export const enableUserWithoutConfirmation = async (userId: string) => {
   try {
     const { data, error } = await supabase.functions.invoke('admin-utils', {
-      body: { 
+      body: {
         action: 'enable_user_without_confirmation',
         params: { user_id: userId }
       }
     });
-    
+
     if (error) {
       console.error('Error enabling user:', error);
       throw error;
     }
-    
+
     return data;
   } catch (error) {
     console.error('Failed to enable user:', error);
@@ -248,18 +248,19 @@ export const enableUserWithoutConfirmation = async (userId: string) => {
  */
 export const checkEmailExists = async (email: string) => {
   try {
+    console.log('testing email', email);
     const { data, error } = await supabase.functions.invoke('admin-utils', {
-      body: { 
+      body: {
         action: 'check_email_exists',
         params: { email }
       }
     });
-    
+
     if (error) {
       console.error('Error checking email:', error);
       throw error;
     }
-    
+
     return data;
   } catch (error) {
     console.error('Failed to check email:', error);

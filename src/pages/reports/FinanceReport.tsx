@@ -2,23 +2,22 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { 
-  payments, 
-  expenses, 
-  getPaymentsByDateRange, 
-  getExpensesByDateRange 
+import {
+  expenses,
+  getPaymentsByDateRange,
+  getExpensesByDateRange
 } from "@/services/data-service";
 import { format } from "date-fns";
 import { ChevronLeft, Download, Filter, Plus } from "lucide-react";
 import { Link } from "react-router-dom";
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  Legend, 
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
   ResponsiveContainer,
   LineChart,
   Line
@@ -27,7 +26,7 @@ import ExpenseDialog from "@/components/expense/ExpenseDialog";
 import { Expense } from "@/types";
 import DateRangeDropdown from "@/components/DateRangeDropdown";
 
-const FinanceReport = () => {
+const FinanceReport = async () => {
   const [selectedPeriod, setSelectedPeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily');
   const [startDate, setStartDate] = useState<Date>(new Date());
   const [endDate, setEndDate] = useState<Date>(new Date());
@@ -38,30 +37,32 @@ const FinanceReport = () => {
   const formattedEndDate = format(endDate, "yyyy-MM-dd");
 
   // Get payments and expenses for the selected date
-  const dailyPayments = payments.filter(payment => {
-    const paymentDate = new Date(payment.date);
-    return paymentDate >= startDate && paymentDate <= endDate;
-  });
-  
+  // const dailyPayments = payments.filter(payment => {
+  //   const paymentDate = new Date(payment.date);
+  //   return paymentDate >= startDate && paymentDate <= endDate;
+  // });
+  const dailyPayments = await getPaymentsByDateRange(startDate.toString(), endDate.toString())
+
+
   const dailyExpenses = expenses.filter(expense => {
     const expenseDate = new Date(expense.date);
     return expenseDate >= startDate && expenseDate <= endDate;
   });
-  
+
   // Calculate daily totals
   const dailyIncome = dailyPayments.reduce((sum, payment) => sum + payment.amount, 0);
   const dailyExpenseTotal = dailyExpenses.reduce((sum, expense) => sum + expense.amount, 0);
   const dailyProfit = dailyIncome - dailyExpenseTotal;
-  
+
   // Get date range data
-  const rangePayments = getPaymentsByDateRange(formattedStartDate, formattedEndDate);
+  const rangePayments = await getPaymentsByDateRange(formattedStartDate, formattedEndDate);
   const rangeExpenses = getExpensesByDateRange(formattedStartDate, formattedEndDate);
-  
+
   // Calculate range totals
   const rangeIncome = rangePayments.reduce((sum, payment) => sum + payment.amount, 0);
   const rangeExpenseTotal = rangeExpenses.reduce((sum, expense) => sum + expense.amount, 0);
   const rangeProfit = rangeIncome - rangeExpenseTotal;
-  
+
   // Create chart data - daily expenses by category
   const expensesByCategory = {};
   dailyExpenses.forEach(expense => {
@@ -70,12 +71,12 @@ const FinanceReport = () => {
     }
     expensesByCategory[expense.category] += expense.amount;
   });
-  
+
   const expenseChartData = Object.keys(expensesByCategory).map(category => ({
     name: category,
     amount: expensesByCategory[category]
   }));
-  
+
   // Create weekly trend data (mock data - in real app would come from API)
   const weeklyTrendData = [
     { day: "Mon", income: 850, expenses: 320, profit: 530 },
@@ -113,20 +114,20 @@ const FinanceReport = () => {
           <h1 className="text-3xl font-bold tracking-tight">Finance Report</h1>
         </div>
         <div className="flex items-center space-x-4 mt-4 sm:mt-0">
-          <Button 
+          <Button
             onClick={() => setIsExpenseDialogOpen(true)}
             className="bg-green-600 hover:bg-green-700"
           >
             <Plus className="mr-2 h-4 w-4" /> Add Expense
           </Button>
-          <DateRangeDropdown 
+          <DateRangeDropdown
             startDate={startDate}
             endDate={endDate}
             onRangeChange={handleDateRangeChange}
           />
         </div>
       </div>
-      
+
       {/* Rest of the component remains the same */}
       {/* Statistics */}
       <div className="grid gap-4 grid-cols-2 md:grid-cols-3">
@@ -157,7 +158,7 @@ const FinanceReport = () => {
           </CardContent>
         </Card>
       </div>
-      
+
       {/* Date Range Summary */}
       <div className="grid gap-4 grid-cols-2 md:grid-cols-3">
         <Card>
@@ -190,7 +191,7 @@ const FinanceReport = () => {
           </CardContent>
         </Card>
       </div>
-      
+
       {/* Charts and Tables */}
       <div className="grid gap-6 md:grid-cols-2">
         {/* Expense Breakdown Chart */}
@@ -220,7 +221,7 @@ const FinanceReport = () => {
             </div>
           </CardContent>
         </Card>
-        
+
         {/* Weekly Trend Chart */}
         <Card>
           <CardHeader>
@@ -245,7 +246,7 @@ const FinanceReport = () => {
           </CardContent>
         </Card>
       </div>
-      
+
       {/* Daily Transactions Table */}
       <Card>
         <CardHeader>
@@ -283,7 +284,7 @@ const FinanceReport = () => {
                   <TableCell className="text-right text-green-600">${payment.amount.toFixed(2)}</TableCell>
                 </TableRow>
               ))}
-              
+
               {/* Expenses */}
               {dailyExpenses.map(expense => (
                 <TableRow key={expense.id}>
@@ -293,7 +294,7 @@ const FinanceReport = () => {
                   <TableCell className="text-right text-red-600">${expense.amount.toFixed(2)}</TableCell>
                 </TableRow>
               ))}
-              
+
               {/* Total Row */}
               <TableRow>
                 <TableCell colSpan={3} className="text-right font-bold">Total</TableCell>
