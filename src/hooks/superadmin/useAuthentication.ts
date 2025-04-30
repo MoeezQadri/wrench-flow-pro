@@ -20,6 +20,7 @@ export const useAuthentication = () => {
         email: values.email,
         password: values.password
       });
+
       
       if (supabaseData?.session) {
         // Check if the user has superadmin metadata or role
@@ -58,7 +59,7 @@ export const useAuthentication = () => {
         body: {
           action: 'authenticate_superadmin',
           params: {
-            id: supabaseData.user.id
+            userid: supabaseData.user.id
           }
         }
       });
