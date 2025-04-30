@@ -82,9 +82,10 @@ export const useAuthentication = () => {
       
       // Store superadmin token
       localStorage.setItem('superadminToken', token);
+      localStorage.setItem('access_token', supabaseData.session.access_token);
       
       // Configure Supabase functions to use the token
-      supabase.functions.setAuth(token);
+      supabase.functions.setAuth(supabaseData.session.access_token);
       
       // Create a mock session for the superadmin
       const mockSession = {

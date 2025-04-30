@@ -89,8 +89,11 @@ serve(async (req) => {
       const token = authHeader.split(' ')[1];
       console.log(`--- token ${token} ---`)
       
+      let isValid;
       // First try to verify as a superadmin token
-      let isValid = await verifyJWT(token);
+      if (params.superadmin_token)
+        isValid = await verifyJWT(params.superadmin_token);
+      
       console.log(`--- isValid:  ${isValid} ---`)
     
       // If not a valid superadmin token, check if it's a valid user token

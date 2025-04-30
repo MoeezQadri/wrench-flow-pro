@@ -6,12 +6,18 @@ import { supabase } from '@/integrations/supabase/client';
  */
 export const getOrganizations = async () => {  
   try {
-    console.log(`--- Getting Organizations ---`)
+    console.log(`--- Getting Organizations ---`);
+    
     const { data, error } = await supabase.functions.invoke('admin-utils', {
-      body: { action: 'get_organizations' }
+      body: {
+        action: 'get_organizations',
+        params: {
+          superadmin_token: localStorage.getItem('superadminToken') ?? ''
+        }
+       }
     });
     console.log(`--- getOrganizations response received: ${data} \n ${error} ---`);
-    
+
     if (error) {
       console.error('Error fetching organizations:', error);
       throw error;
