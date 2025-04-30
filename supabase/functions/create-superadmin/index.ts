@@ -25,7 +25,7 @@ serve(async (req) => {
       );
     }
     
-    const supabaseAdmin = getSupabaseAdmin();
+    const supabaseAdmin = await getSupabaseAdmin();
     
     // First check if a user with this email already exists
     const { data: existingUser, error: userCheckError } = await supabaseAdmin.auth.admin.listUsers({
