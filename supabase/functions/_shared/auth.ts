@@ -30,9 +30,9 @@ export async function getSupabaseAdmin() {
 }
 
 // Improved verification function that handles both JWT and session token formats
-export async function verifyJWT(token: string): Promise<boolean> {
-  console.log(`--- verifying jwt: ${token} ---`);
-  if (!token || token.length < 20) {
+export async function verifyJWT(superadmin_token: string): Promise<boolean> {
+  console.log(`--- verifying jwt: ${superadmin_token} ---`);
+  if (!superadmin_token || superadmin_token.length < 20) {
     console.log("Token missing or too short");
     return false;
   }
@@ -40,10 +40,10 @@ export async function verifyJWT(token: string): Promise<boolean> {
   try {
     const supabaseAdmin = await getSupabaseAdmin();
     
-    // Use the database function to verify the token
+    // Use the database function to verify the superadmin_token
     const { data, error } = await supabaseAdmin.rpc(
-      'verify_superadmin_token',
-      { token: token }
+      'verify_superadmin_token_new',
+      { superadmin_token }
     );
     console.log(`--- jwt verification response: ${data} ---`);
     console.log(`--- jwt verification error: ${error} ---`);
@@ -55,7 +55,7 @@ export async function verifyJWT(token: string): Promise<boolean> {
     
     return data === true;
   } catch (err) {
-    console.error("Error verifying token:", err);
+    console.error("Error verifying superadmin token:", err);
     return false;
   }
 }

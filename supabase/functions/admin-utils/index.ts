@@ -36,7 +36,8 @@ serve(async (req) => {
   try {
     const { action, params } = await req.json();
     
-    console.log(`--- admin-utils called ${action} \n ${params} ---`);
+    console.log(`--- admin-utils called action: ${action} ---`);
+    console.log(`--- admin-utils called params: ${params.toString()} ---`);
     
     // Validate input
     if (!action) {
@@ -91,8 +92,10 @@ serve(async (req) => {
       
       let isValid;
       // First try to verify as a superadmin token
-      if (params.superadmin_token)
+      if (params.superadmin_token){
+        
         isValid = await verifyJWT(params.superadmin_token);
+      }
       
       console.log(`--- isValid:  ${isValid} ---`)
     
