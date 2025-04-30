@@ -73,7 +73,7 @@ serve(async (req) => {
     if (action !== 'authenticate_superadmin' && action !== 'check_email_exists') {
       // Get the authorization header
       const authHeader = req.headers.get('Authorization');
-      
+      console.log(`--- Auth header ${authHeader} ---`)
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return new Response(
           JSON.stringify({ 
@@ -85,10 +85,12 @@ serve(async (req) => {
       }
       
       const token = authHeader.split(' ')[1];
+      console.log(`--- token ${token} ---`)
       
       // First try to verify as a superadmin token
       let isValid = await verifyJWT(token);
-      
+      console.log(`--- isValid:  ${isValid} ---`)
+    
       // If not a valid superadmin token, check if it's a valid user token
       if (!isValid) {
         const userVerification = await verifyUserJWT(token);

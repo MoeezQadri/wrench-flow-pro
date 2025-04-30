@@ -31,6 +31,7 @@ export async function getSupabaseAdmin() {
 
 // Improved verification function that handles both JWT and session token formats
 export async function verifyJWT(token: string): Promise<boolean> {
+  console.log(`--- verifying jwt: ${token} ---`);
   if (!token || token.length < 20) {
     console.log("Token missing or too short");
     return false;
@@ -44,6 +45,8 @@ export async function verifyJWT(token: string): Promise<boolean> {
       'verify_superadmin_token',
       { token: token }
     );
+    console.log(`--- jwt verification response: ${data} ---`);
+    console.log(`--- jwt verification error: ${error} ---`);
     
     if (error) {
       console.error("Error calling verify_superadmin_token:", error);
