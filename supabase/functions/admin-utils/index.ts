@@ -46,7 +46,7 @@ serve(async (req) => {
 
     // Handle authentication separately
     if (action === 'authenticate_superadmin') {
-      if (!params || !params.id) {
+      if (!params || !params.userid) {
         return new Response(
           JSON.stringify({ error: 'Missing credentials' }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
@@ -54,11 +54,12 @@ serve(async (req) => {
       }
 
       try {
-        const result = await authenticateSuperadmin(params.id);
+        const result = await authenticateSuperadmin(params.userid);
         return new Response(
           JSON.stringify(result),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
+
       } catch (error) {
         console.error('Authentication error:', error);
         return new Response(
