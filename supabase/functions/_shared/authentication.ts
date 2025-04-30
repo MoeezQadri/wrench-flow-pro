@@ -3,7 +3,7 @@ import { getSupabaseAdmin } from './auth.ts';
 export async function authenticateSuperadmin(userid: string) {
   const supabaseAdmin = await getSupabaseAdmin();
 
-  console.log('Authenticating superadmin with id:', id);
+  console.log('Authenticating superadmin with id:', userid);
 
   try {
     const { data, error } = await supabaseAdmin.rpc(
