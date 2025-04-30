@@ -37,7 +37,7 @@ export async function verifyJWT(token: string): Promise<boolean> {
   }
   
   try {
-    const supabaseAdmin = getSupabaseAdmin();
+    const supabaseAdmin = await getSupabaseAdmin();
     
     // Use the database function to verify the token
     const { data, error } = await supabaseAdmin.rpc(
@@ -66,7 +66,7 @@ export async function verifyUserJWT(token: string): Promise<boolean | object> {
   
   try {
     // For regular users, we verify the token using the Supabase client
-    const supabaseAdmin = getSupabaseAdmin();
+    const supabaseAdmin = await getSupabaseAdmin();
     
     // Perform JWT verification here for user tokens
     // This would check the signature using USER_JWT_SECRET

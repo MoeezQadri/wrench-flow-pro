@@ -2,7 +2,7 @@
 import { getSupabaseAdmin } from './auth.ts';
 
 export async function deleteOrganization(orgId: string) {
-  const supabaseAdmin = getSupabaseAdmin();
+  const supabaseAdmin = await getSupabaseAdmin();
   
   // First delete all users associated with the organization
   const { data: profilesData, error: profilesError } = await supabaseAdmin
@@ -48,7 +48,7 @@ export async function updateOrganization(params: {
   sub_level: string;
   sub_status?: string;
 }) {
-  const supabaseAdmin = getSupabaseAdmin();
+  const supabaseAdmin = await getSupabaseAdmin();
   
   const updateData: any = {
     name: params.org_name,
@@ -81,7 +81,7 @@ export async function createOrganization(params: {
   owner_email: string;
   owner_name: string;
 }) {
-  const supabaseAdmin = getSupabaseAdmin();
+  const supabaseAdmin = await getSupabaseAdmin();
   
   // Generate organization ID
   const orgId = crypto.randomUUID();
@@ -140,7 +140,7 @@ export async function createOrganization(params: {
 }
 
 export async function searchOrganizationById(orgId: string) {
-  const supabaseAdmin = getSupabaseAdmin();
+  const supabaseAdmin = await getSupabaseAdmin();
   
   // Find the organization
   const { data: organization, error: orgError } = await supabaseAdmin
