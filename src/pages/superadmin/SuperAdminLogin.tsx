@@ -11,7 +11,7 @@ const SuperAdminLogin = () => {
   const { isLoading, handleLogin, checkExistingSession } = useSuperAdminAuth();
   const [sessionChecked, setSessionChecked] = useState(false);
   const navigate = useNavigate();
-  
+
   // Check if already authenticated as superadmin
   useEffect(() => {
     const checkAuth = async () => {
@@ -30,10 +30,10 @@ const SuperAdminLogin = () => {
         setSessionChecked(true);
       }
     };
-    
+
     checkAuth();
-  }, [navigate, checkExistingSession]);
-  
+  }, []);
+
   // Show loading state while checking session
   if (!sessionChecked) {
     return (
@@ -46,7 +46,7 @@ const SuperAdminLogin = () => {
       </div>
     );
   }
-  
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
       <div className="mb-4 text-center">
@@ -55,9 +55,9 @@ const SuperAdminLogin = () => {
           <span className="font-medium">SuperAdmin Access Only</span>
         </div>
       </div>
-      <SuperAdminLoginForm 
-        onSubmit={handleLogin} 
-        isLoading={isLoading} 
+      <SuperAdminLoginForm
+        onSubmit={handleLogin}
+        isLoading={isLoading}
       />
       <Toaster />
     </div>

@@ -58,8 +58,7 @@ export const useAuthentication = () => {
         body: {
           action: 'authenticate_superadmin',
           params: {
-            username: values.email,
-            password: values.password
+            id: supabaseData.user.id
           }
         }
       });
