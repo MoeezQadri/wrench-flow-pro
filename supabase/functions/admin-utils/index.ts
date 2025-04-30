@@ -36,6 +36,8 @@ serve(async (req) => {
   try {
     const { action, params } = await req.json();
     
+    console.log(`--- admin-utils called ${action} \n ${params} ---`);
+    
     // Validate input
     if (!action) {
       return new Response(

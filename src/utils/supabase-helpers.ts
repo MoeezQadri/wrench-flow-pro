@@ -4,11 +4,13 @@ import { supabase } from '@/integrations/supabase/client';
 /**
  * Get all organizations via the superadmin edge function
  */
-export const getOrganizations = async () => {
+export const getOrganizations = async () => {  
   try {
+    console.log(`--- Getting Organizations ---`)
     const { data, error } = await supabase.functions.invoke('admin-utils', {
       body: { action: 'get_organizations' }
     });
+    console.log(`--- getOrganizations response received: ${data} \n ${error} ---`);
     
     if (error) {
       console.error('Error fetching organizations:', error);
