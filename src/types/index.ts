@@ -1,6 +1,9 @@
+
 export type InvoiceStatus = 'open' | 'in-progress' | 'completed' | 'paid' | 'partial';
 
 export type UserRole = 'owner' | 'manager' | 'mechanic' | 'foreman' | 'superuser';
+
+export type TaskLocation = 'workshop' | 'onsite' | 'remote';
 
 export interface User {
   id: string;
@@ -108,6 +111,14 @@ export interface Task {
   hoursEstimated: number;
   hoursSpent?: number;
   invoiceId?: string;
+  // New fields for task tagging feature
+  vehicleId?: string;
+  location: TaskLocation;
+  price?: number;
+  startTime?: string;
+  endTime?: string;
+  completedBy?: string;
+  completedAt?: string;
 }
 
 export interface InvoiceItem {

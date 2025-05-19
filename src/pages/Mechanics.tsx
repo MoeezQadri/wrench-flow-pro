@@ -1,171 +1,197 @@
 
-import React, { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Pencil, Wrench, IdCard, Phone, MapPin } from "lucide-react";
-import { toast } from "sonner";
+import { Plus, CalendarDays, ChevronDown, BarChart } from "lucide-react";
+import { mechanics as mockMechanics, getMechanics, getCurrentUser, tasks } from "@/services/data-service";
 import MechanicDialog from "@/components/mechanic/MechanicDialog";
-import { mechanics } from "@/services/data-service";
 import { Mechanic } from "@/types";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import MechanicPerformance from "@/components/mechanic/MechanicPerformance";
 
 const Mechanics = () => {
+  const [mechanics, setMechanics] = useState<Mechanic[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedMechanic, setSelectedMechanic] = useState<Mechanic | undefined>(undefined);
-  const [mechanicsList, setMechanicsList] = useState<Mechanic[]>(mechanics);
-
+  const [selectedMechanic, setSelectedMechanic] = useState<Mechanic | null>(null);
+  const [loading, setLoading] = useState(true);
+  const currentUser = getCurrentUser();
+  const canManageMechanics = currentUser.role === 'manager' || currentUser.role === 'owner' || currentUser.role === 'foreman';
+  
+  // Load mechanics
+  useEffect(() => {
+    const loadMechanics = async () => {
+      try {
+        const data = await getMechanics();
+        setMechanics(data);
+      } catch (error) {
+        console.error("Failed to load mechanics:", error);
+        toast.error("Failed to load mechanics");
+        // Fallback to mock data
+        setMechanics(mockMechanics);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadMechanics();
+  }, []);
+  
   const handleAddMechanic = () => {
-    setSelectedMechanic(undefined);
+    setSelectedMechanic(null);
     setIsDialogOpen(true);
   };
-
+  
   const handleEditMechanic = (mechanic: Mechanic) => {
     setSelectedMechanic(mechanic);
     setIsDialogOpen(true);
   };
-
+  
   const handleSaveMechanic = (mechanic: Mechanic) => {
-    setMechanicsList(prev => {
-      const index = prev.findIndex(m => m.id === mechanic.id);
-      if (index >= 0) {
-        const updated = [...prev];
-        updated[index] = mechanic;
-        return updated;
-      } else {
-        return [...prev, mechanic];
-      }
-    });
+    if (selectedMechanic) {
+      // Update existing mechanic
+      setMechanics(prev => 
+        prev.map(m => m.id === mechanic.id ? mechanic : m)
+      );
+      toast.success("Mechanic updated successfully");
+    } else {
+      // Add new mechanic
+      setMechanics(prev => [...prev, mechanic]);
+      toast.success("Mechanic added successfully");
+    }
+    
+    setIsDialogOpen(false);
   };
-
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(part => part[0])
-      .join('')
-      .toUpperCase();
-  };
-
+  
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-96">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+  
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold tracking-tight">Mechanics</h1>
-        <Button onClick={handleAddMechanic}>
-          <Plus className="mr-1 h-4 w-4" />
-          Add Mechanic
-        </Button>
+        {canManageMechanics && (
+          <Button onClick={handleAddMechanic}>
+            <Plus className="h-4 w-4 mr-2" /> Add Mechanic
+          </Button>
+        )}
       </div>
-
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle>Mechanic Roster</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Mechanic</TableHead>
-                <TableHead>Contact Information</TableHead>
-                <TableHead>Specialization</TableHead>
-                <TableHead>Employment</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {mechanicsList.map((mechanic) => (
-                <TableRow key={mechanic.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <Avatar>
-                        <AvatarImage src={mechanic.idCardImage} alt={mechanic.name} />
-                        <AvatarFallback>{getInitials(mechanic.name)}</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-medium">{mechanic.name}</p>
-                        <div className="flex items-center text-xs text-muted-foreground">
-                          <IdCard className="h-3 w-3 mr-1" />
-                          {mechanic.idCardImage ? "ID Card Available" : "No ID Card"}
-                        </div>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="space-y-1">
-                      <div className="flex items-center text-sm">
-                        <Phone className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
-                        {mechanic.phone}
-                      </div>
-                      <div className="flex items-center text-sm">
-                        <MapPin className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
-                        {mechanic.address.length > 25 
-                          ? `${mechanic.address.substring(0, 25)}...` 
-                          : mechanic.address}
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>{mechanic.specialization}</TableCell>
-                  <TableCell>
-                    <div>
-                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                        mechanic.employmentType === 'fulltime'
-                          ? "bg-blue-100 text-blue-800"
-                          : "bg-amber-100 text-amber-800"
-                      }`}>
-                        {mechanic.employmentType === 'fulltime' ? 'Full-Time' : 'Contractor'}
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <span
-                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                        mechanic.isActive
-                          ? "bg-green-100 text-green-800"
-                          : "bg-gray-100 text-gray-800"
-                      }`}
-                    >
-                      {mechanic.isActive ? "Active" : "Inactive"}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
+      
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {mechanics.map((mechanic) => (
+          <Card key={mechanic.id} className={mechanic.isActive ? "" : "opacity-60"}>
+            <CardHeader className="pb-2">
+              <div className="flex justify-between items-start">
+                <CardTitle>{mechanic.name}</CardTitle>
+                <Badge variant={mechanic.isActive ? "default" : "outline"}>
+                  {mechanic.isActive ? "Active" : "Inactive"}
+                </Badge>
+              </div>
+              <CardDescription className="flex items-center">
+                {mechanic.specialization}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Employment:</span>
+                  <span className="font-medium">{mechanic.employmentType === 'fulltime' ? 'Full-time' : 'Contractor'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Contact:</span>
+                  <span className="font-medium">{mechanic.phone}</span>
+                </div>
+                <div className="mt-4 flex justify-between">
+                  {canManageMechanics && (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
                       onClick={() => handleEditMechanic(mechanic)}
                     >
-                      <Pencil className="h-4 w-4" />
+                      Details
                     </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {mechanicsList.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-6">
-                    <div className="flex flex-col items-center justify-center text-muted-foreground">
-                      <Wrench className="w-12 h-12 mb-2 text-muted-foreground/60" />
-                      <p>No mechanics found</p>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="mt-2"
-                        onClick={handleAddMechanic}
-                      >
-                        Add your first mechanic
+                  )}
+                  
+                  <Sheet>
+                    <SheetTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <BarChart className="h-4 w-4 mr-2" />
+                        Performance
                       </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
+                    </SheetTrigger>
+                    <SheetContent className="w-[90vw] sm:w-[540px] md:w-[740px]" side="right">
+                      <SheetHeader>
+                        <SheetTitle>Performance Metrics: {mechanic.name}</SheetTitle>
+                        <SheetDescription>
+                          Detailed performance analysis and task history
+                        </SheetDescription>
+                      </SheetHeader>
+                      
+                      <div className="py-4">
+                        <Tabs defaultValue="metrics">
+                          <TabsList>
+                            <TabsTrigger value="metrics">Performance Metrics</TabsTrigger>
+                            <TabsTrigger value="attendance">Attendance</TabsTrigger>
+                          </TabsList>
+                          
+                          <TabsContent value="metrics" className="py-4">
+                            <MechanicPerformance 
+                              mechanic={mechanic}
+                              tasks={tasks.filter(task => task.mechanicId === mechanic.id)}
+                            />
+                          </TabsContent>
+                          
+                          <TabsContent value="attendance">
+                            <div className="flex items-center justify-center h-64">
+                              <div className="text-center">
+                                <CalendarDays className="h-10 w-10 text-muted-foreground mx-auto mb-4" />
+                                <p className="text-muted-foreground">
+                                  Attendance records can be viewed in the Attendance page
+                                </p>
+                              </div>
+                            </div>
+                          </TabsContent>
+                        </Tabs>
+                      </div>
+                    </SheetContent>
+                  </Sheet>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+        
+        {mechanics.length === 0 && (
+          <div className="col-span-full flex items-center justify-center h-64 border rounded-lg">
+            <div className="text-center">
+              <p className="text-muted-foreground">No mechanics found</p>
+              {canManageMechanics && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="mt-2"
+                  onClick={handleAddMechanic}
+                >
+                  Add your first mechanic
+                </Button>
               )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      <MechanicDialog
+            </div>
+          </div>
+        )}
+      </div>
+      
+      <MechanicDialog 
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
-        onSave={handleSaveMechanic}
         mechanic={selectedMechanic}
+        onSave={handleSaveMechanic}
       />
     </div>
   );

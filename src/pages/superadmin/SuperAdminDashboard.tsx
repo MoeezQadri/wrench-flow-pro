@@ -4,10 +4,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuthContext } from '@/context/AuthContext';
 import AdminUserManagement from '@/components/admin/AdminUserManagement';
-import { AlertTriangle, RefreshCcw } from 'lucide-react';
+import { AlertTriangle, RefreshCcw, Users, Building, CreditCard, LineChart, Settings, ShieldCheck } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
+import SubscriptionPlansManagement from '@/components/admin/SubscriptionPlansManagement';
+import OrganizationManagement from '@/components/admin/OrganizationManagement';
+import SuperAdminAnalytics from '@/components/superadmin/SuperAdminAnalytics';
+import SuperAdminSettings from '@/components/superadmin/SuperAdminSettings';
+import SuperAdminRoles from '@/components/superadmin/SuperAdminRoles';
 
 const SuperAdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('users');
@@ -86,10 +91,30 @@ const SuperAdminDashboard = () => {
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
             <TabsList>
-              <TabsTrigger value="users">User Management</TabsTrigger>
-              <TabsTrigger value="organizations">Organizations</TabsTrigger>
-              <TabsTrigger value="system">System Settings</TabsTrigger>
-              <TabsTrigger value="logs">Audit Logs</TabsTrigger>
+              <TabsTrigger value="users" className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                Users
+              </TabsTrigger>
+              <TabsTrigger value="organizations" className="flex items-center gap-2">
+                <Building className="h-4 w-4" />
+                Organizations
+              </TabsTrigger>
+              <TabsTrigger value="subscriptions" className="flex items-center gap-2">
+                <CreditCard className="h-4 w-4" />
+                Subscriptions
+              </TabsTrigger>
+              <TabsTrigger value="analytics" className="flex items-center gap-2">
+                <LineChart className="h-4 w-4" />
+                Analytics
+              </TabsTrigger>
+              <TabsTrigger value="roles" className="flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4" />
+                Roles
+              </TabsTrigger>
+              <TabsTrigger value="settings" className="flex items-center gap-2">
+                <Settings className="h-4 w-4" />
+                Settings
+              </TabsTrigger>
             </TabsList>
             
             <TabsContent value="users" className="space-y-6">
@@ -97,21 +122,23 @@ const SuperAdminDashboard = () => {
             </TabsContent>
             
             <TabsContent value="organizations">
-              <p className="text-center py-8 text-muted-foreground">
-                Organization management connected to the database
-              </p>
+              <OrganizationManagement />
             </TabsContent>
             
-            <TabsContent value="system">
-              <p className="text-center py-8 text-muted-foreground">
-                System settings management connected to the database
-              </p>
+            <TabsContent value="subscriptions">
+              <SubscriptionPlansManagement />
             </TabsContent>
             
-            <TabsContent value="logs">
-              <p className="text-center py-8 text-muted-foreground">
-                Audit logs from superadmin_activity table
-              </p>
+            <TabsContent value="analytics">
+              <SuperAdminAnalytics />
+            </TabsContent>
+            
+            <TabsContent value="roles">
+              <SuperAdminRoles />
+            </TabsContent>
+            
+            <TabsContent value="settings">
+              <SuperAdminSettings />
             </TabsContent>
           </Tabs>
         </CardContent>

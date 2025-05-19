@@ -20,7 +20,15 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
-import { getMechanics, getInvoices, getVehicleById, getCustomerById } from "@/services/data-service";
+import { 
+  getMechanics, 
+  getInvoices, 
+  getVehicleById, 
+  getCustomerById, 
+  vendors, 
+  getVehiclesByCustomerId
+} from "@/services/data-service";
+import { Task, TaskLocation, Vehicle } from "@/types";
 
 const taskSchema = z.object({
   title: z.string().min(1, { message: "Title is required" }),
@@ -30,6 +38,9 @@ const taskSchema = z.object({
   hoursEstimated: z.coerce.number().min(0.1, { message: "Estimated hours must be at least 0.1" }),
   hoursSpent: z.coerce.number().optional(),
   invoiceId: z.string().optional(),
+  vehicleId: z.string().optional(),
+  location: z.enum(["workshop", "onsite", "remote"]).default("workshop"),
+  price: z.coerce.number().optional(),
 });
 
 export type TaskFormValues = z.infer<typeof taskSchema>;
@@ -44,6 +55,8 @@ interface TaskFormProps {
 const TaskForm = ({ defaultValues, onSubmit, formId, userRole }: TaskFormProps) => {
   const [activeMechanics, setActiveMechanics] = useState<any[]>([]);
   const [availableInvoices, setAvailableInvoices] = useState<any[]>([]);
+  const [availableVehicles, setAvailableVehicles] = useState<Vehicle[]>([]);
+  const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | undefined>(defaultValues?.invoiceId);
   
   useEffect(() => {
     const loadData = async () => {
@@ -65,6 +78,20 @@ const TaskForm = ({ defaultValues, onSubmit, formId, userRole }: TaskFormProps) 
         });
         
       setAvailableInvoices(processedInvoices);
+
+      // Load all vehicles (for direct vehicle selection)
+      const customers = await getCustomers();
+      const vehiclesList: Vehicle[] = [];
+      
+      // Gather all vehicles from all customers
+      for (const customer of customers) {
+        const customerVehicles = getVehiclesByCustomerId(customer.id);
+        if (customerVehicles.length > 0) {
+          vehiclesList.push(...customerVehicles);
+        }
+      }
+      
+      setAvailableVehicles(vehiclesList);
     };
     
     loadData();
@@ -80,10 +107,24 @@ const TaskForm = ({ defaultValues, onSubmit, formId, userRole }: TaskFormProps) 
       hoursEstimated: 1,
       hoursSpent: undefined,
       invoiceId: undefined,
+      vehicleId: undefined,
+      location: "workshop",
+      price: undefined,
     },
   });
 
   const status = form.watch("status");
+  const invoiceId = form.watch("invoiceId");
+  
+  // Update vehicle selection when invoice is selected
+  useEffect(() => {
+    if (invoiceId && invoiceId !== "none") {
+      const selectedInvoice = availableInvoices.find(inv => inv.id === invoiceId);
+      if (selectedInvoice) {
+        form.setValue("vehicleId", selectedInvoice.vehicleId);
+      }
+    }
+  }, [invoiceId, availableInvoices, form]);
   
   // Format invoice option with vehicle details
   const formatInvoiceOption = (invoice: any) => {
@@ -94,9 +135,15 @@ const TaskForm = ({ defaultValues, onSubmit, formId, userRole }: TaskFormProps) 
     return `${invoice.id.substring(0, 8)}... - ${invoice.vehicleInfo.make} ${invoice.vehicleInfo.model}`;
   };
 
+  // Format vehicle option
+  const formatVehicleOption = (vehicle: Vehicle) => {
+    return `${vehicle.make} ${vehicle.model} (${vehicle.licensePlate})`;
+  };
+
   // Determine if the invoice selection should be shown
   // Available to managers, owners, and foremen
   const canSelectInvoice = userRole === 'manager' || userRole === 'owner' || userRole === 'foreman';
+  const canSetPrice = (userRole === 'manager' || userRole === 'owner') && status === 'completed';
 
   return (
     <Form {...form}>
@@ -162,6 +209,33 @@ const TaskForm = ({ defaultValues, onSubmit, formId, userRole }: TaskFormProps) 
 
         <FormField
           control={form.control}
+          name="location"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Location</FormLabel>
+              <Select 
+                onValueChange={field.onChange} 
+                defaultValue={field.value}
+                value={field.value}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a location" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="workshop">Workshop</SelectItem>
+                  <SelectItem value="onsite">Onsite</SelectItem>
+                  <SelectItem value="remote">Remote</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
           name="status"
           render={({ field }) => (
             <FormItem>
@@ -186,44 +260,76 @@ const TaskForm = ({ defaultValues, onSubmit, formId, userRole }: TaskFormProps) 
             </FormItem>
           )}
         />
-
-        <FormField
-          control={form.control}
-          name="hoursEstimated"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Estimated Hours</FormLabel>
-              <FormControl>
-                <Input type="number" min="0.1" step="0.1" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {(status === "completed" || status === "in-progress") && (
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
-            name="hoursSpent"
+            name="hoursEstimated"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Hours Spent {status === "in-progress" ? "(so far)" : ""}</FormLabel>
+                <FormLabel>Estimated Hours</FormLabel>
                 <FormControl>
-                  <Input 
-                    type="number" 
-                    min="0.1" 
-                    step="0.1" 
-                    placeholder="Actual hours spent"
-                    {...field}
-                    value={field.value || ""}
-                    onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
-                  />
+                  <Input type="number" min="0.1" step="0.1" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
-        )}
+
+          {(status === "completed" || status === "in-progress") && (
+            <FormField
+              control={form.control}
+              name="hoursSpent"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Hours Spent {status === "in-progress" ? "(so far)" : ""}</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="number" 
+                      min="0.1" 
+                      step="0.1" 
+                      placeholder="Actual hours spent"
+                      {...field}
+                      value={field.value || ""}
+                      onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
+        </div>
+
+        {/* Vehicle selection - for all authorized roles */}
+        <FormField
+          control={form.control}
+          name="vehicleId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Vehicle</FormLabel>
+              <Select 
+                onValueChange={field.onChange} 
+                value={field.value || "none"}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a vehicle (optional)" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="none">Not linked to a vehicle</SelectItem>
+                  {availableVehicles.map((vehicle) => (
+                    <SelectItem key={vehicle.id} value={vehicle.id}>
+                      {formatVehicleOption(vehicle)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         {/* Invoice selection - only for managers, owners, and foremen */}
         {canSelectInvoice && (
@@ -232,9 +338,12 @@ const TaskForm = ({ defaultValues, onSubmit, formId, userRole }: TaskFormProps) 
             name="invoiceId"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Link to Invoice/Vehicle</FormLabel>
+                <FormLabel>Link to Invoice</FormLabel>
                 <Select 
-                  onValueChange={field.onChange} 
+                  onValueChange={(value) => {
+                    field.onChange(value);
+                    setSelectedInvoiceId(value !== "none" ? value : undefined);
+                  }} 
                   value={field.value || "none"}
                 >
                   <FormControl>
@@ -251,6 +360,31 @@ const TaskForm = ({ defaultValues, onSubmit, formId, userRole }: TaskFormProps) 
                     ))}
                   </SelectContent>
                 </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+
+        {/* Price field - only shown for completed tasks when user has proper permissions */}
+        {canSetPrice && (
+          <FormField
+            control={form.control}
+            name="price"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Task Price ($)</FormLabel>
+                <FormControl>
+                  <Input 
+                    type="number"
+                    min="0" 
+                    step="0.01" 
+                    placeholder="Enter price for this task"
+                    {...field}
+                    value={field.value || ""}
+                    onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}

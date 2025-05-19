@@ -1,9 +1,9 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Pencil, Calendar, CalendarCheck, Tag, Car } from "lucide-react";
+import { Plus, Pencil, Calendar, CalendarCheck, Tag, Car, MapPin, Filter } from "lucide-react";
 import { toast } from "sonner";
 import TaskDialog from "@/components/task/TaskDialog";
 import TaskCheckInOut from "@/components/task/TaskCheckInOut";
@@ -15,15 +15,19 @@ import {
   hasPermission,
   getInvoiceById,
   getVehicleById,
-  getCustomerById
+  getCustomerById,
+  getTasks
 } from "@/services/data-service";
-import { Task } from "@/types";
+import { Task, TaskLocation } from "@/types";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const Tasks = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | undefined>(undefined);
-  const [tasksList, setTasksList] = useState<Task[]>(tasks);
+  const [tasksList, setTasksList] = useState<Task[]>([]);
   const [selectedTaskForTimeTracking, setSelectedTaskForTimeTracking] = useState<Task | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [locationFilter, setLocationFilter] = useState<TaskLocation | 'all'>('all');
   const currentUser = getCurrentUser();
 
   // Check permissions
@@ -31,11 +35,40 @@ const Tasks = () => {
   const canManageTasks = hasPermission(currentUser, 'tasks', 'manage');
   const isForeman = currentUser.role === 'foreman';
   
-  // For mechanics, filter tasks to only show their own
-  // For others, show all tasks
-  const filteredTasks = currentUser.role === 'mechanic' && currentUser.mechanicId 
-    ? tasksList.filter(task => task.mechanicId === currentUser.mechanicId)
-    : tasksList;
+  // Load tasks
+  useEffect(() => {
+    const loadTasks = async () => {
+      try {
+        setIsLoading(true);
+        const tasksData = await getTasks();
+        setTasksList(tasksData);
+      } catch (error) {
+        console.error("Error loading tasks:", error);
+        toast.error("Failed to load tasks");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadTasks();
+  }, []);
+  
+  // Apply filters to tasks
+  const filteredTasks = React.useMemo(() => {
+    let filtered = tasksList;
+    
+    // Filter by mechanic for mechanic users
+    if (currentUser.role === 'mechanic' && currentUser.mechanicId) {
+      filtered = filtered.filter(task => task.mechanicId === currentUser.mechanicId);
+    }
+    
+    // Apply location filter if not set to 'all'
+    if (locationFilter !== 'all') {
+      filtered = filtered.filter(task => task.location === locationFilter);
+    }
+    
+    return filtered;
+  }, [tasksList, currentUser.role, currentUser.mechanicId, locationFilter]);
 
   if (!canViewTasks) {
     return (
@@ -105,6 +138,19 @@ const Tasks = () => {
     }
   };
   
+  const getLocationBadgeClass = (location?: TaskLocation) => {
+    switch (location) {
+      case 'workshop':
+        return 'bg-blue-100 text-blue-800';
+      case 'onsite':
+        return 'bg-purple-100 text-purple-800';
+      case 'remote':
+        return 'bg-teal-100 text-teal-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+  
   const getInvoiceInfo = (task: Task) => {
     if (!task.invoiceId) return null;
     
@@ -120,10 +166,17 @@ const Tasks = () => {
     };
   };
 
-  const getVehicleInfo = (vehicleId: string) => {
+  const getVehicleInfo = (vehicleId?: string) => {
+    if (!vehicleId) return null;
     const vehicle = getVehicleById(vehicleId);
-    if (!vehicle) return "Unknown Vehicle";
-    return `${vehicle.make} ${vehicle.model} (${vehicle.year})`;
+    if (!vehicle) return null;
+    return {
+      make: vehicle.make,
+      model: vehicle.model,
+      year: vehicle.year,
+      licensePlate: vehicle.licensePlate,
+      customerId: vehicle.customerId
+    };
   };
 
   const getCustomerInfo = (customerId: string) => {
@@ -133,6 +186,14 @@ const Tasks = () => {
   };
 
   const shouldShowVehicleColumn = isForeman || currentUser.role === 'manager' || currentUser.role === 'owner';
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-96">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -153,9 +214,30 @@ const Tasks = () => {
         />
       )}
 
+      <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          <MapPin className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium">Filter by location:</span>
+        </div>
+        <Select
+          value={locationFilter}
+          onValueChange={(value) => setLocationFilter(value as TaskLocation | 'all')}
+        >
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Filter by location" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Locations</SelectItem>
+            <SelectItem value="workshop">Workshop</SelectItem>
+            <SelectItem value="onsite">Onsite</SelectItem>
+            <SelectItem value="remote">Remote</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle>All Tasks</CardTitle>
+          <CardTitle>Tasks</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
@@ -164,6 +246,7 @@ const Tasks = () => {
                 <TableHead>Task</TableHead>
                 <TableHead>Mechanic</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Location</TableHead>
                 <TableHead>Est. Hours</TableHead>
                 <TableHead>Hours Spent</TableHead>
                 {shouldShowVehicleColumn && <TableHead>Vehicle/Customer</TableHead>}
@@ -175,6 +258,7 @@ const Tasks = () => {
               {filteredTasks.map((task) => {
                 const mechanic = getMechanicById(task.mechanicId);
                 const invoiceInfo = getInvoiceInfo(task);
+                const vehicleInfo = getVehicleInfo(task.vehicleId);
                 
                 return (
                   <TableRow key={task.id}>
@@ -190,15 +274,32 @@ const Tasks = () => {
                         {task.status.charAt(0).toUpperCase() + task.status.slice(1)}
                       </span>
                     </TableCell>
+                    <TableCell>
+                      <span
+                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${getLocationBadgeClass(task.location)}`}
+                      >
+                        {task.location?.charAt(0).toUpperCase() + task.location?.slice(1) || "Workshop"}
+                      </span>
+                    </TableCell>
                     <TableCell>{task.hoursEstimated}</TableCell>
                     <TableCell>{task.hoursSpent || "—"}</TableCell>
                     {shouldShowVehicleColumn && (
                       <TableCell>
-                        {invoiceInfo ? (
+                        {vehicleInfo ? (
                           <div className="flex flex-col">
                             <span className="text-xs flex items-center">
                               <Car className="h-3 w-3 mr-1 text-blue-500" />
-                              {getVehicleInfo(invoiceInfo.vehicleId)}
+                              {vehicleInfo.make} {vehicleInfo.model} ({vehicleInfo.licensePlate})
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {getCustomerInfo(vehicleInfo.customerId)}
+                            </span>
+                          </div>
+                        ) : invoiceInfo ? (
+                          <div className="flex flex-col">
+                            <span className="text-xs flex items-center">
+                              <Car className="h-3 w-3 mr-1 text-blue-500" />
+                              {invoiceInfo.vehicle}
                             </span>
                             <span className="text-xs text-muted-foreground">
                               {getCustomerInfo(invoiceInfo.customerId)}
@@ -254,7 +355,7 @@ const Tasks = () => {
               })}
               {filteredTasks.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={shouldShowVehicleColumn ? 8 : 7} className="text-center py-6">
+                  <TableCell colSpan={shouldShowVehicleColumn ? 9 : 8} className="text-center py-6">
                     <div className="flex flex-col items-center justify-center text-muted-foreground">
                       <CalendarCheck className="w-12 h-12 mb-2 text-muted-foreground/60" />
                       <p>No tasks found</p>

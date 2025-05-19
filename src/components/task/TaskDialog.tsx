@@ -18,7 +18,8 @@ import {
   hasPermission, 
   getInvoiceById, 
   tasks,
-  invoices
+  invoices,
+  getVehicleById
 } from "@/services/data-service";
 
 interface TaskDialogProps {
@@ -84,10 +85,47 @@ const TaskDialog = ({ open, onOpenChange, onSave, task }: TaskDialogProps) => {
         hoursSpent: data.hoursSpent,
         // Set invoiceId to undefined if "none" is selected
         invoiceId: data.invoiceId === "none" ? undefined : data.invoiceId,
+        // Add new fields
+        vehicleId: data.vehicleId === "none" ? undefined : data.vehicleId,
+        location: data.location || "workshop",
+        price: data.price,
       };
       
-      // Update the invoice if task is completed
-      if (isBeingCompleted && data.invoiceId && data.invoiceId !== "none") {
+      // If task is being completed, add timestamp and user information
+      if (isBeingCompleted) {
+        newTask.completedBy = currentUser.id;
+        newTask.completedAt = new Date().toISOString();
+        newTask.endTime = new Date().toISOString();
+      }
+      
+      // Find open invoice for the vehicle if task is completed and not already assigned to an invoice
+      if (isBeingCompleted && newTask.vehicleId && !newTask.invoiceId) {
+        const openInvoices = invoices.filter(
+          invoice => invoice.vehicleId === newTask.vehicleId && 
+                    (invoice.status === 'open' || invoice.status === 'in-progress')
+        );
+        
+        if (openInvoices.length > 0) {
+          // Use the most recent open invoice
+          const latestInvoice = openInvoices.sort(
+            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+          )[0];
+          
+          newTask.invoiceId = latestInvoice.id;
+          
+          // Notify the user that the task was added to an existing invoice
+          const vehicle = getVehicleById(newTask.vehicleId);
+          toast.info(
+            `Task added to existing invoice for ${vehicle?.make} ${vehicle?.model} (${vehicle?.licensePlate})`,
+            { duration: 5000 }
+          );
+          
+          // Update the invoice with this task
+          await updateInvoiceOnTaskCompletion(latestInvoice.id, newTask);
+        }
+      }
+      // Update the invoice if task is completed and has an invoiceId
+      else if (isBeingCompleted && data.invoiceId && data.invoiceId !== "none") {
         await updateInvoiceOnTaskCompletion(data.invoiceId, newTask);
       }
       
@@ -120,14 +158,17 @@ const TaskDialog = ({ open, onOpenChange, onSave, task }: TaskDialogProps) => {
         return;
       }
       
-      // Create a new invoice item for this task
+      // Use custom price if set, otherwise calculate based on hourly rate
       const hourlyRate = 85; // Default hourly rate for labor
+      const taskPrice = task.price || (task.hoursSpent * hourlyRate);
+      
+      // Create a new invoice item for this task
       const newItem: InvoiceItem = {
         id: generateId("item"),
         type: "labor",
         description: `Labor: ${task.title}`,
         quantity: task.hoursSpent,
-        price: hourlyRate,
+        price: task.price ? (taskPrice / task.hoursSpent) : hourlyRate,
       };
       
       // Add the item to the invoice
@@ -193,7 +234,7 @@ const TaskDialog = ({ open, onOpenChange, onSave, task }: TaskDialogProps) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[550px]">
         <DialogHeader>
           <DialogTitle>{dialogTitle}</DialogTitle>
           <DialogDescription>{dialogDescription}</DialogDescription>
@@ -210,6 +251,9 @@ const TaskDialog = ({ open, onOpenChange, onSave, task }: TaskDialogProps) => {
                   hoursEstimated: task.hoursEstimated,
                   hoursSpent: task.hoursSpent,
                   invoiceId: task.invoiceId,
+                  vehicleId: task.vehicleId,
+                  location: task.location || "workshop",
+                  price: task.price,
                 }
               : undefined
           }
