@@ -34,9 +34,8 @@ const SuperAdminLoginForm: React.FC<SuperAdminLoginFormProps> = ({ onSubmit, isL
     }
   });
 
-  const handleCredentialsFill = (email: string, password: string) => {
-    form.setValue('email', email);
-    form.setValue('password', password);
+  const handleFormSubmit = async (data: SuperAdminLoginFormData) => {
+    await onSubmit(data);
   };
 
   return (
@@ -52,7 +51,7 @@ const SuperAdminLoginForm: React.FC<SuperAdminLoginFormProps> = ({ onSubmit, isL
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
             <FormField
               control={form.control}
               name="email"

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '@/context/AuthContext';
@@ -43,5 +44,11 @@ export const useSessionManagement = () => {
     setIsLoading(false);
   };
 
-  return { isLoading };
+  // Add the missing verifySession method
+  const verifySession = async (token: string): Promise<boolean> => {
+    const { isValid } = await verifySuperAdminToken(token);
+    return isValid;
+  };
+
+  return { isLoading, verifySession };
 };

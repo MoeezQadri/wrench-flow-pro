@@ -8,7 +8,7 @@ import {
 } from '@/services/superadmin-service';
 import AdminUserManagement from '@/components/admin/AdminUserManagement';
 import OrganizationManagement from '@/components/admin/OrganizationManagement';
-import { Profile, Organization } from '@/components/admin/types';
+import { Profile, Organization, UserWithConfirmation } from '@/components/admin/types';
 
 const SuperAdminDashboard: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -16,7 +16,7 @@ const SuperAdminDashboard: React.FC = () => {
   
   // Updated for correct typing from admin/types.ts
   const [organizations, setOrganizations] = useState<Organization[]>([]);
-  const [users, setUsers] = useState<Profile[]>([]);
+  const [users, setUsers] = useState<UserWithConfirmation[]>([]);
   
   useEffect(() => {
     loadData();
@@ -27,8 +27,25 @@ const SuperAdminDashboard: React.FC = () => {
     try {
       const organizationsData = await fetchOrganizations();
       const usersData = await fetchUsers();
-      setOrganizations(organizationsData as Organization[]);
-      setUsers(usersData as Profile[]);
+      
+      // Convert types to match the components/admin/types.ts definitions
+      const convertedOrgs = (organizationsData || []).map(org => ({
+        id: org.id,
+        name: org.name,
+        subscription_level: org.subscriptionLevel || 'trial',
+        subscription_status: org.subscriptionStatus || 'active',
+        trial_ends_at: org.trialEndsAt || '',
+        logo: org.logo || '',
+        address: org.address || '',
+        phone: org.phone || '',
+        email: org.email || '',
+        country: org.country || '',
+        currency: org.currency || '',
+        created_at: new Date().toISOString()
+      })) as Organization[];
+      
+      setOrganizations(convertedOrgs);
+      setUsers(usersData as UserWithConfirmation[]);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -36,40 +53,6 @@ const SuperAdminDashboard: React.FC = () => {
     }
   };
   
-  // Mock data with correct types
-  const mockOrganizations: Organization[] = [
-    {
-      id: 'org-1',
-      name: 'Acme Auto Repair',
-      subscription_level: 'professional',
-      subscription_status: 'active',
-      logo: '',
-      trial_ends_at: '',
-      address: '',
-      phone: '',
-      email: '',
-      country: '',
-      currency: '',
-      created_at: '2023-01-01'
-    },
-    // ... add more organizations as needed
-  ];
-  
-  const mockUsers: Profile[] = [
-    {
-      id: 'user-1',
-      name: 'John Smith',
-      email: 'john@example.com',
-      role: 'owner',
-      is_active: true,
-      organization_id: 'org-1',
-      created_at: '2023-01-01',
-      last_login: '2023-01-01',
-      email_confirmed: true
-    },
-    // ... add more users as needed
-  ];
-
   return (
     <div className="p-4">
       <h1 className="text-2xl font-semibold mb-4">Super Admin Dashboard</h1>

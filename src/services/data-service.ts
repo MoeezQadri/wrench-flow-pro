@@ -661,6 +661,7 @@ export const getTasks = async (): Promise<Task[]> => {
       hoursEstimated: task.hoursEstimated || task.hours_estimated,
       hoursSpent: task.hoursSpent || task.hours_spent,
       invoiceId: task.invoiceId || task.invoice_id,
+      vehicleId: task.vehicleId,
       location: task.location || 'workshop',
       price: task.price || 0,
       startTime: task.startTime || task.start_time || '',

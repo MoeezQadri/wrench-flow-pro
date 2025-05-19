@@ -49,7 +49,7 @@ export const useSuperAdminAuth = () => {
     setIsLoading(sessionManager.isLoading);
   }, [navigate, currentUser, sessionManager.isLoading]);
 
-  return { isLoading, handleLogin, checkExistingSession };
+  return { isLoading, handleLogin, checkExistingSession, error };
 };
 
 export default useSuperAdminAuth;

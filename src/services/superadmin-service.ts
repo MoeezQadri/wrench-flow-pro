@@ -1,7 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { User, Organization } from '@/types';
-import { Profile } from '@/components/admin/types';
+import { User } from '@/types';
+import { Organization, Profile } from '@/components/admin/types';
 
 // Verify the token with Supabase
 export const verifySuperAdminToken = async (token: string) => {
@@ -39,15 +39,16 @@ export const fetchOrganizations = async (): Promise<Organization[]> => {
     return data.map(org => ({
       id: org.id,
       name: org.name,
-      subscriptionLevel: org.subscription_level,
-      subscriptionStatus: org.subscription_status,
-      trialEndsAt: org.trial_ends_at || '',
+      subscription_level: org.subscription_level,
+      subscription_status: org.subscription_status,
+      trial_ends_at: org.trial_ends_at || '',
       logo: org.logo || '',
       address: org.address || '',
       phone: org.phone || '',
       email: org.email || '',
       country: org.country || '',
-      currency: org.currency || ''
+      currency: org.currency || '',
+      created_at: org.created_at || new Date().toISOString()
     }));
   } catch (error) {
     console.error('Error fetching organizations:', error);
