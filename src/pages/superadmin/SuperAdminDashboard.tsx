@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuthContext } from '@/context/AuthContext';
 import AdminUserManagement from '@/components/admin/AdminUserManagement';
-import { AlertTriangle, RefreshCcw, Users, Building, CreditCard, LineChart, Settings, ShieldCheck } from 'lucide-react';
+import { AlertTriangle, RefreshCcw, Users, Building, CreditCard, LineChart, Settings, ShieldCheck, BarChart4, Globe } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
@@ -90,7 +90,7 @@ const SuperAdminDashboard = () => {
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList>
+            <TabsList className="grid grid-cols-3 md:grid-cols-6 lg:grid-cols-9">
               <TabsTrigger value="users" className="flex items-center gap-2">
                 <Users className="h-4 w-4" />
                 Users
@@ -114,6 +114,14 @@ const SuperAdminDashboard = () => {
               <TabsTrigger value="settings" className="flex items-center gap-2">
                 <Settings className="h-4 w-4" />
                 Settings
+              </TabsTrigger>
+              <TabsTrigger value="metrics" className="flex items-center gap-2">
+                <BarChart4 className="h-4 w-4" />
+                Metrics
+              </TabsTrigger>
+              <TabsTrigger value="integration" className="flex items-center gap-2">
+                <Globe className="h-4 w-4" />
+                Integration
               </TabsTrigger>
             </TabsList>
             
@@ -139,6 +147,30 @@ const SuperAdminDashboard = () => {
             
             <TabsContent value="settings">
               <SuperAdminSettings />
+            </TabsContent>
+
+            <TabsContent value="metrics" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>System Metrics</CardTitle>
+                  <CardDescription>Monitor key system performance metrics</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground mb-4">System metrics coming soon</p>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="integration" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Analytics Integration</CardTitle>
+                  <CardDescription>Add Google Analytics or GTM tracking scripts</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-muted-foreground mb-4">Analytics integration coming soon</p>
+                </CardContent>
+              </Card>
             </TabsContent>
           </Tabs>
         </CardContent>

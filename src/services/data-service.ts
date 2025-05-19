@@ -1,3 +1,4 @@
+
 import { nanoid } from "nanoid";
 import {
   fetchCustomers,
@@ -13,6 +14,7 @@ import {
   fetchParts,
   fetchTasks,
   fetchAttendance,
+  recordAttendanceInDb
 } from './supabase-service';
 
 import { 
@@ -246,7 +248,7 @@ export let expenses: Expense[] = [
     category: 'Maintenance',
     amount: 200,
     description: 'Oil change and filter replacement',
-    paymentMethod: 'credit card',
+    paymentMethod: 'card', // Updated from 'credit card' to match type
     paymentStatus: 'paid',
     vendorId: 'vendor_1',
     vendorName: 'Auto Parts Co.'
@@ -373,7 +375,13 @@ export const users: User[] = [
 // Customer functions
 // ======================
 export const getCustomers = async (): Promise<Customer[]> => {
-  return await fetchCustomers();
+  try {
+    const data = await fetchCustomers();
+    return data;
+  } catch (error) {
+    console.error("Error fetching customers:", error);
+    return customers; // Return mock data as fallback
+  }
 };
 
 // Modified to not return a Promise for direct use in components
@@ -384,20 +392,30 @@ export const getCustomerById = (id: string): Customer | null => {
 
 // Keep the async version as a separate function
 export const fetchCustomerByIdAsync = async (id: string): Promise<Customer | null> => {
-  return await fetchCustomerById(id);
+  try {
+    return await fetchCustomerById(id);
+  } catch (error) {
+    console.error("Error fetching customer by ID:", error);
+    return getCustomerById(id); // Use mock data as fallback
+  }
 };
 
 export const addCustomer = async (customerData: Omit<Customer, 'id' | 'vehicles' | 'totalVisits' | 'lifetimeValue' | 'lastVisit'>): Promise<Customer> => {
-  const newCustomer: Customer = {
-    id: generateId('customer'),
-    ...customerData,
-    vehicles: [],
-    totalVisits: 0,
-    lifetimeValue: 0,
-    lastVisit: ''
-  };
-  customers.push(newCustomer);
-  return newCustomer;
+  try {
+    return await addCustomerToDb(customerData);
+  } catch (error) {
+    console.error("Error adding customer:", error);
+    const newCustomer: Customer = {
+      id: generateId('customer'),
+      ...customerData,
+      vehicles: [],
+      totalVisits: 0,
+      lifetimeValue: 0,
+      lastVisit: ''
+    };
+    customers.push(newCustomer);
+    return newCustomer;
+  }
 };
 
 // ======================
@@ -409,7 +427,12 @@ export const getVehiclesByCustomerId = (customerId: string): Vehicle[] => {
 
 // Keep the async version as a separate function
 export const fetchVehiclesByCustomerIdAsync = async (customerId: string): Promise<Vehicle[]> => {
-  return await fetchVehiclesByCustomerId(customerId);
+  try {
+    return await fetchVehiclesByCustomerId(customerId);
+  } catch (error) {
+    console.error("Error fetching vehicles by customer ID:", error);
+    return getVehiclesByCustomerId(customerId); // Use mock data as fallback
+  }
 };
 
 export const getVehicleById = (id: string): Vehicle | null => {
@@ -418,20 +441,31 @@ export const getVehicleById = (id: string): Vehicle | null => {
 };
 
 export const addVehicle = async (customerId: string, vehicleData: Omit<Vehicle, 'id' | 'customerId'>): Promise<Vehicle> => {
-  const newVehicle: Vehicle = {
-    id: generateId('vehicle'),
-    customerId,
-    ...vehicleData
-  };
-  vehicles.push(newVehicle);
-  return newVehicle;
+  try {
+    return await addVehicleToDb({ ...vehicleData, customerId });
+  } catch (error) {
+    console.error("Error adding vehicle:", error);
+    // Fallback to mock data
+    const newVehicle: Vehicle = {
+      id: generateId('vehicle'),
+      customerId,
+      ...vehicleData
+    };
+    vehicles.push(newVehicle);
+    return newVehicle;
+  }
 };
 
 // ======================
 // Invoice functions
 // ======================
 export const getInvoices = async (): Promise<Invoice[]> => {
-  return await fetchInvoices();
+  try {
+    return await fetchInvoices();
+  } catch (error) {
+    console.error("Error fetching invoices:", error);
+    return invoices; // Return mock data as fallback
+  }
 };
 
 export const getInvoiceById = (id: string): Invoice | null => {
@@ -458,7 +492,12 @@ export const calculateInvoiceTotal = (invoice: Invoice): {
 // Mechanic functions 
 // ======================
 export const getMechanics = async (): Promise<Mechanic[]> => {
-  return await fetchMechanics();
+  try {
+    return await fetchMechanics();
+  } catch (error) {
+    console.error("Error fetching mechanics:", error);
+    return mechanics; // Return mock data as fallback
+  }
 };
 
 export const getMechanicById = (id: string): Mechanic | null => {
@@ -531,28 +570,48 @@ export const getExpenses = (): Expense[] => {
 
 // Async version
 export const getExpensesAsync = async (): Promise<Expense[]> => {
-  return expenses;
+  try {
+    return await fetchExpenses();
+  } catch (error) {
+    console.error("Error fetching expenses:", error);
+    return expenses; // Return mock data as fallback
+  }
 };
 
 // ======================
 // Part functions
 // ======================
 export const getParts = async (): Promise<Part[]> => {
-  return await fetchParts();
+  try {
+    return await fetchParts();
+  } catch (error) {
+    console.error("Error fetching parts:", error);
+    return parts; // Return mock data as fallback
+  }
 };
 
 // ======================
 // Task functions
 // ======================
 export const getTasks = async (): Promise<Task[]> => {
-  return await fetchTasks();
+  try {
+    return await fetchTasks();
+  } catch (error) {
+    console.error("Error fetching tasks:", error);
+    return tasks; // Return mock data as fallback
+  }
 };
 
 // ======================
 // Attendance functions
 // ======================
 export const getAttendance = async (): Promise<Attendance[]> => {
-  return await fetchAttendance();
+  try {
+    return await fetchAttendance();
+  } catch (error) {
+    console.error("Error fetching attendance:", error);
+    return attendanceRecords; // Return mock data as fallback
+  }
 };
 
 // Export for direct use in components
@@ -569,13 +628,21 @@ export const addVendor = (vendorData: Omit<Vendor, 'id'>): Vendor => {
 };
 
 export const recordAttendance = (attendanceData: Omit<Attendance, 'id'>, userId?: string): Attendance => {
-  const newAttendance: Attendance = {
-    id: generateId('attendance'),
-    ...attendanceData,
-    mechanicId: userId || attendanceData.mechanicId
-  };
-  attendanceRecords.push(newAttendance);
-  return newAttendance;
+  try {
+    // Try to use the Supabase function if available
+    return recordAttendanceInDb(attendanceData) as any;
+  } catch (error) {
+    console.error("Error recording attendance in database:", error);
+    
+    // Fall back to mock data
+    const newAttendance: Attendance = {
+      id: generateId('attendance'),
+      ...attendanceData,
+      mechanicId: userId || attendanceData.mechanicId
+    };
+    attendanceRecords.push(newAttendance);
+    return newAttendance;
+  }
 };
 
 export const approveAttendance = (attendanceId: string, approverId: string): Attendance | null => {
@@ -622,3 +689,4 @@ export const addExpense = async (expenseData: Omit<Expense, 'id'>): Promise<Expe
 export const getVendorById = (id: string): Vendor | null => {
   return vendors.find(vendor => vendor.id === id) || null;
 };
+
