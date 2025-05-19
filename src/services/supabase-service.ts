@@ -1,5 +1,3 @@
-
-// Supabase service for data fetching and manipulation
 import { supabase } from '@/integrations/supabase/client';
 import { 
   Customer, 
@@ -291,7 +289,7 @@ export const fetchMechanics = async (): Promise<Mechanic[]> => {
       address: mechanic.address || '',
       phone: mechanic.phone || '',
       idCardImage: mechanic.id_card_image || '',
-      employmentType: mechanic.employment_type || 'fulltime',
+      employmentType: (mechanic.employment_type || 'fulltime') as 'fulltime' | 'contractor',
       isActive: mechanic.is_active
     }));
   } catch (error) {
@@ -429,7 +427,7 @@ export const addTaskToInvoice = async (
     
     const newItem = {
       invoice_id: invoiceId,
-      type: 'labor',
+      type: 'labor' as 'labor' | 'part', // Type assertion to fix the error
       description: `Labor: ${task.title}`,
       quantity: task.hoursSpent,
       price: task.price ? (taskPrice / task.hoursSpent) : hourlyRate
@@ -491,7 +489,7 @@ export const recordAttendanceInDb = async (attendanceData: Omit<Attendance, 'id'
       date: attendanceData.date,
       check_in: attendanceData.checkIn,
       check_out: attendanceData.checkOut,
-      status: attendanceData.status,
+      status: attendanceData.status as 'pending' | 'approved' | 'rejected', // Type assertion to fix error
       approved_by: attendanceData.approvedBy,
       notes: attendanceData.notes
     };
@@ -525,4 +523,3 @@ export const recordAttendanceInDb = async (attendanceData: Omit<Attendance, 'id'
 export const getCustomers = async (): Promise<Customer[]> => {
   return await fetchCustomers();
 };
-

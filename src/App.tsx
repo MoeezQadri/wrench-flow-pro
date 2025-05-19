@@ -15,12 +15,15 @@ import Register from '@/pages/auth/Register';
 // Non-lazy loaded reports
 import FinanceReport from '@/pages/reports/FinanceReport';
 
+// Pages created to fix missing module errors
+import CustomerDetails from '@/pages/CustomerDetails';
+import InvoiceDetails from '@/pages/InvoiceDetails';
+import Vehicles from '@/pages/Vehicles';
+
 // Lazy load other pages for performance
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
 const Customers = lazy(() => import('@/pages/Customers'));
-const CustomerDetails = lazy(() => import('@/pages/CustomerDetails'));
 const Invoices = lazy(() => import('@/pages/Invoices'));
-const InvoiceDetails = lazy(() => import('@/pages/InvoiceDetails'));
 const NewInvoice = lazy(() => import('@/pages/NewInvoice'));
 const Mechanics = lazy(() => import('@/pages/Mechanics'));
 const Tasks = lazy(() => import('@/pages/Tasks'));
@@ -29,7 +32,6 @@ const Expenses = lazy(() => import('@/pages/Expenses'));
 const Reports = lazy(() => import('@/pages/Reports'));
 const Settings = lazy(() => import('@/pages/Settings'));
 const Attendance = lazy(() => import('@/pages/Attendance'));
-const Vehicles = lazy(() => import('@/pages/Vehicles'));
 const NotFound = lazy(() => import('@/pages/NotFound'));
 
 // Super Admin pages

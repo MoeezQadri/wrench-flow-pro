@@ -30,9 +30,9 @@ const Layout = () => {
             <div className="hidden md:block">
               <Logo />
             </div>
-            {currentUser?.organizationId && (
+            {currentUser?.user_metadata?.organizationId && (
               <span className="ml-2 text-muted-foreground hidden md:block">
-                | {currentUser.role === 'owner' && 'Admin'} Dashboard
+                | {currentUser.user_metadata.role === 'owner' && 'Admin'} Dashboard
               </span>
             )}
           </div>

@@ -7,6 +7,12 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  isAuthenticated: boolean;
+  currentUser: User | null;
+  isSuperAdmin: boolean;
+  logout: () => Promise<void>;
+  setSession: React.Dispatch<React.SetStateAction<Session | null>>;
+  setCurrentUser: React.Dispatch<React.SetStateAction<User | null>>;
   signIn: (email: string, password: string) => Promise<{
     error: Error | null;
     data: Session | null;
@@ -16,7 +22,6 @@ interface AuthContextType {
     data: User | null;
   }>;
   signOut: () => Promise<{ error: Error | null }>;
-  setSession: React.Dispatch<React.SetStateAction<Session | null>>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -25,6 +30,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -32,6 +38,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
+        setCurrentUser(session?.user ?? null);
       }
     );
 
@@ -39,6 +46,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
+      setCurrentUser(session?.user ?? null);
       setLoading(false);
     });
 
@@ -85,14 +93,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const logout = async () => {
+    await signOut();
+    setCurrentUser(null);
+    setSession(null);
+  };
+
+  const isSuperAdmin = user?.user_metadata?.role === 'superuser';
+
   const value = {
     user,
     session,
     loading,
+    currentUser,
+    isAuthenticated: !!user,
+    isSuperAdmin,
     signIn,
     signUp,
     signOut,
+    logout,
     setSession,
+    setCurrentUser
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
