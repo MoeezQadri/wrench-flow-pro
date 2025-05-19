@@ -119,7 +119,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const value: AuthContextValue = {
     currentUser,
     session,
-    loading,
     isAuthenticated: !!currentUser,
     isSuperAdmin,
     signIn,
@@ -140,3 +139,6 @@ export const useAuthContext = (): AuthContextValue => {
   }
   return context;
 };
+
+// Export AuthContext for direct access
+export { AuthContext };

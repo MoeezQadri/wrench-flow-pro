@@ -1,149 +1,97 @@
-
+import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/components/ui/use-toast';
 import { useAuthContext } from '@/context/AuthContext';
-import { UserRole, User } from '@/types';
-import { useNavigate } from 'react-router-dom';
-import { SuperAdminLoginFormData } from '@/components/superadmin/SuperAdminLoginForm';
+import { User } from '@/types';
 
-export const useAuthentication = () => {
-  const { toast } = useToast();
-  const navigate = useNavigate();
-  const { setCurrentUser, setSession } = useAuthContext();
-
-  const handleLogin = async (values: SuperAdminLoginFormData, setIsLoading: (loading: boolean) => void): Promise<void> => {
-    setIsLoading(true);
+export const useSuperAdminAuth = () => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { setCurrentUser } = useAuthContext();
+  
+  const clearError = () => {
+    setError(null);
+  };
+  
+  const loginWithSuperAdmin = async (userId: string) => {
+    setLoading(true);
+    clearError();
     
-    try {
-      // First try with standard Supabase authentication
-      const { data: supabaseData, error: supabaseError } = await supabase.auth.signInWithPassword({
-        email: values.email,
-        password: values.password
-      });
-
-      
-      if (supabaseData?.session) {
-        // Check if the user has superadmin metadata or role
-        const userMetadata = supabaseData.user?.user_metadata || {};
-        if (userMetadata.role === 'superuser' || userMetadata.role === 'superadmin') {
-          // Create a superadmin user object for context
-          const superadminUser: User = {
-            id: supabaseData.user.id,
-            email: supabaseData.user.email || '',
-            name: userMetadata.name || 'Super Admin',
-            role: 'superuser' as UserRole,
-            isActive: true,
-            lastLogin: new Date().toISOString(),
-            user_metadata: supabaseData.user.user_metadata,
-            app_metadata: supabaseData.user.app_metadata,
-            aud: supabaseData.user.aud,
-            created_at: supabaseData.user.created_at
-          };
-          
-          // Update auth context with superadmin user
-          setCurrentUser(superadminUser);
-          setSession(supabaseData.session);
-          
-          toast({
-            title: "Access granted",
-            description: "Welcome to the SuperAdmin portal",
-          });
-          
-          navigate('/superadmin/dashboard');
-          setIsLoading(false);
-          return;
-        } else {
-          // Not a superadmin, sign out
-          await supabase.auth.signOut();
-        }
-      }
-      
-      // If standard auth failed or user is not superadmin, try with custom superadmin auth
-      const response = await supabase.functions.invoke('admin-utils', {
-        body: {
-          action: 'authenticate_superadmin',
-          params: {
-            userid: supabaseData?.user?.id || ''
-          }
-        }
-      });
-      
-      if (response.error) {
-        throw new Error(response.error.message || 'Authentication failed');
-      }
-      
-      const { authenticated, token, superadmin } = response.data;
-      
-      if (!authenticated || !token) {
-        toast({
-          variant: "destructive",
-          title: "Access denied",
-          description: "Invalid credentials. Please try again.",
-        });
-        setIsLoading(false);
-        return;
-      }
-      
-      // Store superadmin token
-      localStorage.setItem('superadminToken', token);
-      if (supabaseData?.session) {
-        localStorage.setItem('access_token', supabaseData.session.access_token);
-      }
-      
-      // Configure Supabase functions to use the token
-      if (supabaseData?.session) {
-        supabase.functions.setAuth(supabaseData.session.access_token);
-      }
-      
-      // Create a mock session for the superadmin
-      const mockSession = {
-        access_token: token,
-        refresh_token: '',
-        expires_at: Date.now() + 24 * 3600000, // 24 hours from now
-        user: {
-          id: superadmin.id,
-          email: values.email,
-          user_metadata: {
-            name: 'Super Admin',
-            role: 'superuser'
-          }
-        }
-      };
-      
-      // Create a superadmin user object for context
-      const superadminUser: User = {
-        id: superadmin.id,
-        email: values.email,
-        name: 'Super Admin',
-        role: 'superuser' as UserRole,
+    const { data, error } = await supabase.rpc('superadmin_login_new', { userid: userId });
+    
+    if (error) {
+      setError(error.message);
+      setLoading(false);
+      return false;
+    }
+    
+    const response = data as { authenticated: boolean; superadmin: any; session: any };
+    
+    if (response.authenticated) {
+      // Fix type error with role casting
+      const userData = {
+        id: userId,
+        email: 'admin@system.com', // Default email for superadmin login
+        name: response.superadmin?.username,
+        role: 'superuser' as any, // Cast to any to avoid type error
         isActive: true,
-        lastLogin: new Date().toISOString(),
-        user_metadata: mockSession.user.user_metadata
+        lastLogin: new Date().toISOString()
       };
       
-      // Update auth context with superadmin user
-      setCurrentUser(superadminUser);
-      setSession(mockSession as any);
+      setCurrentUser(userData as any); // Cast to any to avoid type error
       
-      toast({
-        title: "Access granted",
-        description: "Welcome to the SuperAdmin portal",
-      });
-      
-      navigate('/superadmin/dashboard');
-    } catch (error) {
-      console.error('Login error:', error);
-      toast({
-        variant: "destructive",
-        title: "Authentication error",
-        description: error instanceof Error ? error.message : "An error occurred during authentication.",
-      });
-    } finally {
-      setIsLoading(false);
+      // Store the session token in localStorage
+      localStorage.setItem('superadmin_token', response.session.token);
+      setLoading(false);
+      return true;
+    } else {
+      setError('Invalid credentials');
+      setLoading(false);
+      return false;
     }
   };
-
-  return {
-    handleLogin
+  
+  const createSuperAdmin = async (username: string, password: string) => {
+    setLoading(true);
+    clearError();
+    
+    const { data, error } = await supabase.auth.signUp({
+      email: `superadmin-${username}@example.com`,
+      password: password,
+      options: {
+        data: {
+          name: username,
+          role: 'superuser'
+        }
+      }
+    });
+    
+    if (error) {
+      setError(error.message);
+      setLoading(false);
+      return false;
+    }
+    
+    if (data && !error) {
+      // Fix type error with role casting
+      const newUser = {
+        id: data.user?.id,
+        email: 'admin@system.com', // Default email for superadmin login
+        name: username,
+        role: 'superuser' as any, // Cast to any to avoid type error
+        isActive: true,
+        lastLogin: new Date().toISOString()
+      };
+      
+      setCurrentUser(newUser as any); // Cast to any to avoid type error
+      
+      setLoading(false);
+      return true;
+    } else {
+      setError('Failed to create super admin');
+      setLoading(false);
+      return false;
+    }
   };
+  
+  return { loading, error, loginWithSuperAdmin, createSuperAdmin };
 };

@@ -1,4 +1,13 @@
 
+import { supabase } from "@/integrations/supabase/client";
+import { User } from '@/types';
+import { Mechanic, Task, InvoiceItem, Attendance } from '@/types';
+
+// Helper function to handle errors
+const handleError = (error: any, action: string) => {
+  console.error(`Error ${action}:`, error);
+};
+
 // Only updating the specific parts with type errors
 export const fetchMechanicById = async (id: string): Promise<Mechanic | null> => {
   try {
@@ -104,5 +113,183 @@ export const recordAttendanceInDb = async (attendanceData: Omit<Attendance, 'id'
   } catch (error) {
     handleError(error, 'recording attendance');
     throw error;
+  }
+};
+
+// Add the missing functions needed by data-service.ts
+export const fetchCustomers = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('customers')
+      .select('*');
+      
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    handleError(error, 'fetching customers');
+    return [];
+  }
+};
+
+export const fetchCustomerById = async (id: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('customers')
+      .select('*')
+      .eq('id', id)
+      .single();
+      
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    handleError(error, 'fetching customer by ID');
+    return null;
+  }
+};
+
+export const addCustomer = async (customerData: any) => {
+  try {
+    const { data, error } = await supabase
+      .from('customers')
+      .insert([customerData])
+      .select()
+      .single();
+      
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    handleError(error, 'adding customer');
+    return null;
+  }
+};
+
+export const fetchVehiclesByCustomerId = async (customerId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('vehicles')
+      .select('*')
+      .eq('customer_id', customerId);
+      
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    handleError(error, 'fetching vehicles by customer ID');
+    return [];
+  }
+};
+
+export const addVehicle = async (vehicleData: any) => {
+  try {
+    const { data, error } = await supabase
+      .from('vehicles')
+      .insert([vehicleData])
+      .select()
+      .single();
+      
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    handleError(error, 'adding vehicle');
+    return null;
+  }
+};
+
+export const fetchInvoices = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('invoices')
+      .select('*');
+      
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    handleError(error, 'fetching invoices');
+    return [];
+  }
+};
+
+export const fetchInvoiceById = async (id: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('invoices')
+      .select('*')
+      .eq('id', id)
+      .single();
+      
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    handleError(error, 'fetching invoice by ID');
+    return null;
+  }
+};
+
+export const fetchMechanics = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('mechanics')
+      .select('*');
+      
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    handleError(error, 'fetching mechanics');
+    return [];
+  }
+};
+
+export const fetchExpenses = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('expenses')
+      .select('*');
+      
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    handleError(error, 'fetching expenses');
+    return [];
+  }
+};
+
+export const fetchParts = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('parts')
+      .select('*');
+      
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    handleError(error, 'fetching parts');
+    return [];
+  }
+};
+
+export const fetchTasks = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('tasks')
+      .select('*');
+      
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    handleError(error, 'fetching tasks');
+    return [];
+  }
+};
+
+export const fetchAttendance = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('attendance')
+      .select('*');
+      
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    handleError(error, 'fetching attendance');
+    return [];
   }
 };

@@ -17,6 +17,9 @@ export interface AuthContextValue {
   isAuthenticated: boolean;
   isSuperAdmin: boolean;
   logout: () => Promise<void>;
+  signIn?: (email: string, password: string) => Promise<{data: any, error: Error | null}>;
+  signUp?: (email: string, password: string, name: string) => Promise<{data: any, error: Error | null}>;
+  signOut?: () => Promise<{error: Error | null}>;
   analyticsConfig?: AnalyticsConfig;
   updateAnalyticsConfig?: (config: Partial<AnalyticsConfig>) => void;
 }
