@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { fetchCustomerById } from '@/services/data-service';
+import { getCustomerById } from '@/services/data-service';
 import { Customer } from '@/types';
 
 const CustomerDetails: React.FC = () => {
@@ -12,7 +13,7 @@ const CustomerDetails: React.FC = () => {
     const loadCustomer = async () => {
       setLoading(true);
       if (id) {
-        const customerData = await fetchCustomerById(id);
+        const customerData = getCustomerById(id);
         if (customerData) {
           setCustomer(customerData);
         }

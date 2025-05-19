@@ -1,97 +1,78 @@
+
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthContext } from '@/context/AuthContext';
-import { User } from '@/types';
+import { UserRole } from '@/types';
 
-export const useSuperAdminAuth = () => {
-  const [loading, setLoading] = useState(false);
+export const useAuthentication = () => {
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { setCurrentUser } = useAuthContext();
-  
-  const clearError = () => {
+  const navigate = useNavigate();
+
+  const login = async (username: string, password: string) => {
+    setIsLoading(true);
     setError(null);
-  };
-  
-  const loginWithSuperAdmin = async (userId: string) => {
-    setLoading(true);
-    clearError();
     
-    const { data, error } = await supabase.rpc('superadmin_login_new', { userid: userId });
-    
-    if (error) {
-      setError(error.message);
-      setLoading(false);
-      return false;
-    }
-    
-    const response = data as { authenticated: boolean; superadmin: any; session: any };
-    
-    if (response.authenticated) {
-      // Fix type error with role casting
-      const userData = {
-        id: userId,
-        email: 'admin@system.com', // Default email for superadmin login
-        name: response.superadmin?.username,
-        role: 'superuser' as any, // Cast to any to avoid type error
-        isActive: true,
-        lastLogin: new Date().toISOString()
-      };
+    try {
+      // Call Supabase Edge Function for authentication
+      const { data, error } = await supabase.functions.invoke('admin-auth', {
+        body: { action: 'login', username, password }
+      });
       
-      setCurrentUser(userData as any); // Cast to any to avoid type error
-      
-      // Store the session token in localStorage
-      localStorage.setItem('superadmin_token', response.session.token);
-      setLoading(false);
-      return true;
-    } else {
-      setError('Invalid credentials');
-      setLoading(false);
-      return false;
-    }
-  };
-  
-  const createSuperAdmin = async (username: string, password: string) => {
-    setLoading(true);
-    clearError();
-    
-    const { data, error } = await supabase.auth.signUp({
-      email: `superadmin-${username}@example.com`,
-      password: password,
-      options: {
-        data: {
-          name: username,
-          role: 'superuser'
-        }
+      if (error) {
+        throw new Error(error.message);
       }
-    });
-    
-    if (error) {
-      setError(error.message);
-      setLoading(false);
-      return false;
-    }
-    
-    if (data && !error) {
-      // Fix type error with role casting
-      const newUser = {
-        id: data.user?.id,
-        email: 'admin@system.com', // Default email for superadmin login
-        name: username,
-        role: 'superuser' as any, // Cast to any to avoid type error
+      
+      if (!data.authenticated) {
+        throw new Error(data.message || 'Authentication failed');
+      }
+      
+      // Store token in localStorage
+      localStorage.setItem('superadmin_token', data.token);
+      
+      // Set current user with superadmin role
+      const userData = {
+        id: data.superadmin.id,
+        email: `${username}@admin.system`,
+        name: data.superadmin.username,
+        role: 'superuser' as UserRole,
         isActive: true,
         lastLogin: new Date().toISOString()
       };
       
-      setCurrentUser(newUser as any); // Cast to any to avoid type error
+      setCurrentUser(userData as any);
+      navigate('/superadmin');
       
-      setLoading(false);
-      return true;
-    } else {
-      setError('Failed to create super admin');
-      setLoading(false);
-      return false;
+    } catch (err: any) {
+      console.error('Login error:', err);
+      setError(err.message || 'Failed to log in');
+    } finally {
+      setIsLoading(false);
     }
   };
   
-  return { loading, error, loginWithSuperAdmin, createSuperAdmin };
+  const logout = async () => {
+    setIsLoading(true);
+    try {
+      localStorage.removeItem('superadmin_token');
+      setCurrentUser(null);
+      navigate('/superadmin/login');
+    } catch (err: any) {
+      console.error('Logout error:', err);
+      setError(err.message || 'Failed to log out');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  return {
+    login,
+    logout,
+    isLoading,
+    error
+  };
 };
+
+export default useAuthentication;

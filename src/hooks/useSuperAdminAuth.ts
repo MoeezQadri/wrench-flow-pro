@@ -1,21 +1,29 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useAuthContext } from '@/context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { useSessionManagement } from './superadmin/useSessionManagement';
-import { useAuthentication } from './superadmin/useAuthentication';
-import { SuperAdminLoginFormData } from '@/components/superadmin/SuperAdminLoginForm';
 
 export const useSuperAdminAuth = () => {
-  const [isLoading, setIsLoading] = useState(false);
-  const { checkExistingSession } = useSessionManagement();
-  const { handleLogin: authenticate } = useAuthentication();
+  const [isLoading, setIsLoading] = useState(true);
+  const { currentUser } = useAuthContext();
+  const navigate = useNavigate();
+  const sessionManager = useSessionManagement();
 
-  const handleLogin = async (values: SuperAdminLoginFormData): Promise<void> => {
-    await authenticate(values, setIsLoading);
-  };
+  useEffect(() => {
+    const token = localStorage.getItem('superadmin_token');
+    
+    if (!token) {
+      setIsLoading(false);
+      navigate('/superadmin/login');
+      return;
+    }
 
-  return {
-    isLoading,
-    handleLogin,
-    checkExistingSession
-  };
+    // Load is handled in useSessionManagement
+    setIsLoading(sessionManager.isLoading);
+  }, [navigate, currentUser, sessionManager.isLoading]);
+
+  return { isLoading };
 };
+
+export default useSuperAdminAuth;

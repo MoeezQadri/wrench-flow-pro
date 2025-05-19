@@ -1,13 +1,16 @@
 
+import { User, UserRole } from '@/types';
+
 export interface Profile {
   id: string;
-  name: string | null;
-  email?: string;
-  role: string | null;
-  is_active: boolean | null;
-  organization_id: string | null;
-  created_at?: string | null;
-  updated_at?: string | null;
+  name: string;
+  email: string;
+  role: UserRole;
+  is_active: boolean;
+  last_login?: string;
+  created_at?: string;
+  organization_id?: string;
+  email_confirmed?: boolean;
 }
 
 export interface Organization {
@@ -15,13 +18,37 @@ export interface Organization {
   name: string;
   subscription_level: string;
   subscription_status: string;
-  created_at: string;
-  updated_at: string;
-  owner_name?: string;
-  owner_email?: string;
+  logo?: string;
+  trial_ends_at?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  country?: string;
+  currency?: string;
 }
 
-export interface UserWithConfirmation extends Profile {
-  email?: string;
-  email_confirmed_at?: string | null;
+export interface RoleResource {
+  name: string;
+  permissions: {
+    [key: string]: boolean;
+    view: boolean;
+    manage: boolean;
+  };
+}
+
+export interface UserManagementProps {
+  users: Profile[];
+  setUsers: React.Dispatch<React.SetStateAction<Profile[]>>;
+  organizations: Organization[];
+  searchTerm: string;
+  setSearchTerm: React.Dispatch<React.SetStateAction<string>>;
+  isLoading: boolean;
+}
+
+export interface OrganizationManagementProps {
+  organizations: Organization[];
+  setOrganizations: React.Dispatch<React.SetStateAction<Organization[]>>;
+  searchTerm: string;
+  setSearchTerm: React.Dispatch<React.SetStateAction<string>>;
+  isLoading: boolean;
 }

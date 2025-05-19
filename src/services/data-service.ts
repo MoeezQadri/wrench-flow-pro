@@ -1,4 +1,3 @@
-
 import { nanoid } from "nanoid";
 import {
   fetchCustomers,
@@ -425,10 +424,22 @@ export const getVehiclesByCustomerId = (customerId: string): Vehicle[] => {
   return vehicles.filter(vehicle => vehicle.customerId === customerId);
 };
 
-// Keep the async version as a separate function
+// Only need to fix the database mapping for the fetchVehiclesByCustomerIdAsync function
 export const fetchVehiclesByCustomerIdAsync = async (customerId: string): Promise<Vehicle[]> => {
   try {
-    return await fetchVehiclesByCustomerId(customerId);
+    const data = await fetchVehiclesByCustomerId(customerId);
+    
+    // Ensure data is mapped to the correct Vehicle type
+    return data.map(vehicle => ({
+      id: vehicle.id,
+      customerId: vehicle.customer_id || customerId, // Map DB field name to client model field name
+      make: vehicle.make,
+      model: vehicle.model,
+      year: vehicle.year,
+      licensePlate: vehicle.license_plate, // Map DB field name to client model field name
+      vin: vehicle.vin,
+      color: vehicle.color
+    }));
   } catch (error) {
     console.error("Error fetching vehicles by customer ID:", error);
     return getVehiclesByCustomerId(customerId); // Use mock data as fallback
@@ -461,7 +472,26 @@ export const addVehicle = async (customerId: string, vehicleData: Omit<Vehicle, 
 // ======================
 export const getInvoices = async (): Promise<Invoice[]> => {
   try {
-    return await fetchInvoices();
+    const data = await fetchInvoices();
+    
+    // Ensure data is mapped to the correct Invoice type
+    return data.map(invoice => ({
+      id: invoice.id,
+      customerId: invoice.customer_id,
+      vehicleId: invoice.vehicle_id,
+      vehicleInfo: {
+        make: invoice.vehicleInfo?.make || '',
+        model: invoice.vehicleInfo?.model || '',
+        year: invoice.vehicleInfo?.year || '',
+        licensePlate: invoice.vehicleInfo?.license_plate || ''
+      },
+      status: invoice.status,
+      date: invoice.date,
+      items: invoice.items || [],
+      notes: invoice.notes || '',
+      taxRate: invoice.tax_rate,
+      payments: invoice.payments || []
+    }));
   } catch (error) {
     console.error("Error fetching invoices:", error);
     return invoices; // Return mock data as fallback
@@ -493,7 +523,19 @@ export const calculateInvoiceTotal = (invoice: Invoice): {
 // ======================
 export const getMechanics = async (): Promise<Mechanic[]> => {
   try {
-    return await fetchMechanics();
+    const data = await fetchMechanics();
+    
+    // Ensure data is mapped to the correct Mechanic type
+    return data.map(mechanic => ({
+      id: mechanic.id,
+      name: mechanic.name,
+      specialization: mechanic.specialization || '',
+      address: mechanic.address || '',
+      phone: mechanic.phone || '',
+      idCardImage: mechanic.id_card_image || '',
+      employmentType: mechanic.employment_type as 'fulltime' | 'contractor' || 'fulltime',
+      isActive: mechanic.is_active
+    }));
   } catch (error) {
     console.error("Error fetching mechanics:", error);
     return mechanics; // Return mock data as fallback
@@ -571,7 +613,20 @@ export const getExpenses = (): Expense[] => {
 // Async version
 export const getExpensesAsync = async (): Promise<Expense[]> => {
   try {
-    return await fetchExpenses();
+    const data = await fetchExpenses();
+    
+    // Ensure data is mapped to the correct Expense type
+    return data.map(expense => ({
+      id: expense.id,
+      date: expense.date,
+      category: expense.category,
+      amount: expense.amount,
+      description: expense.description || '',
+      paymentMethod: expense.payment_method as 'cash' | 'card' | 'bank-transfer',
+      paymentStatus: expense.payment_status as 'paid' | 'pending' | 'overdue',
+      vendorId: expense.vendor_id,
+      vendorName: expense.vendor_name
+    }));
   } catch (error) {
     console.error("Error fetching expenses:", error);
     return expenses; // Return mock data as fallback
@@ -595,7 +650,25 @@ export const getParts = async (): Promise<Part[]> => {
 // ======================
 export const getTasks = async (): Promise<Task[]> => {
   try {
-    return await fetchTasks();
+    const data = await fetchTasks();
+    
+    // Ensure data is mapped to the correct Task type
+    return data.map(task => ({
+      id: task.id,
+      title: task.title,
+      description: task.description || '',
+      mechanicId: task.mechanic_id,
+      status: task.status as 'pending' | 'in-progress' | 'completed',
+      hoursEstimated: task.hours_estimated,
+      hoursSpent: task.hours_spent,
+      invoiceId: task.invoice_id,
+      location: task.location || 'workshop',
+      price: task.price || 0,
+      startTime: task.start_time || '',
+      endTime: task.end_time || '',
+      completedBy: task.completed_by || '',
+      completedAt: task.completed_at || ''
+    }));
   } catch (error) {
     console.error("Error fetching tasks:", error);
     return tasks; // Return mock data as fallback
@@ -607,7 +680,19 @@ export const getTasks = async (): Promise<Task[]> => {
 // ======================
 export const getAttendance = async (): Promise<Attendance[]> => {
   try {
-    return await fetchAttendance();
+    const data = await fetchAttendance();
+    
+    // Ensure data is mapped to the correct Attendance type
+    return data.map(attendance => ({
+      id: attendance.id,
+      mechanicId: attendance.mechanic_id,
+      date: attendance.date,
+      checkIn: attendance.check_in,
+      checkOut: attendance.check_out,
+      status: attendance.status as 'pending' | 'approved' | 'rejected',
+      approvedBy: attendance.approved_by,
+      notes: attendance.notes || ''
+    }));
   } catch (error) {
     console.error("Error fetching attendance:", error);
     return attendanceRecords; // Return mock data as fallback
@@ -689,4 +774,3 @@ export const addExpense = async (expenseData: Omit<Expense, 'id'>): Promise<Expe
 export const getVendorById = (id: string): Vendor | null => {
   return vendors.find(vendor => vendor.id === id) || null;
 };
-

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import {
   fetchOrganizations,
@@ -5,18 +6,17 @@ import {
   updateUserStatus,
   deleteOrganization as deleteOrganizationService
 } from '@/services/superadmin-service';
-import { Profile as UserWithConfirmation, Organization } from '@/components/admin/types';
+import { Profile, Organization } from '@/components/admin/types';
 import AdminUserManagement from '@/components/admin/AdminUserManagement';
 import OrganizationManagement from '@/components/admin/OrganizationManagement';
 
-// Update the component to fix the type issues
 const SuperAdminDashboard: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   
   // Updated for correct typing
   const [organizations, setOrganizations] = useState<Organization[]>([]);
-  const [users, setUsers] = useState<UserWithConfirmation[]>([]);
+  const [users, setUsers] = useState<Profile[]>([]);
   
   useEffect(() => {
     loadData();
@@ -41,10 +41,10 @@ const SuperAdminDashboard: React.FC = () => {
     {
       id: 'org-1',
       name: 'Acme Auto Repair',
-      subscriptionLevel: 'professional',
-      subscriptionStatus: 'active',
+      subscription_level: 'professional',
+      subscription_status: 'active',
       logo: '',
-      trialEndsAt: '',
+      trial_ends_at: '',
       address: '',
       phone: '',
       email: '',
@@ -54,7 +54,7 @@ const SuperAdminDashboard: React.FC = () => {
     // ... add more organizations as needed
   ];
   
-  const mockUsers: UserWithConfirmation[] = [
+  const mockUsers: Profile[] = [
     {
       id: 'user-1',
       name: 'John Smith',
@@ -63,8 +63,8 @@ const SuperAdminDashboard: React.FC = () => {
       is_active: true,
       organization_id: 'org-1',
       created_at: '2023-01-01',
-      updated_at: '2023-01-01',
-      email_confirmed_at: '2023-01-01'
+      last_login: '2023-01-01',
+      email_confirmed: true
     },
     // ... add more users as needed
   ];
