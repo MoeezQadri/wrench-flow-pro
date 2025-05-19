@@ -2,7 +2,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuthContext } from '@/context/AuthContext';
-import { UserRole } from '@/types';
+import { UserRole, User } from '@/types';
 import { useNavigate } from 'react-router-dom';
 import { SuperAdminLoginFormData } from '@/components/superadmin/SuperAdminLoginForm';
 
@@ -27,13 +27,17 @@ export const useAuthentication = () => {
         const userMetadata = supabaseData.user?.user_metadata || {};
         if (userMetadata.role === 'superuser' || userMetadata.role === 'superadmin') {
           // Create a superadmin user object for context
-          const superadminUser = {
+          const superadminUser: User = {
             id: supabaseData.user.id,
             email: supabaseData.user.email || '',
             name: userMetadata.name || 'Super Admin',
             role: 'superuser' as UserRole,
             isActive: true,
-            lastLogin: new Date().toISOString()
+            lastLogin: new Date().toISOString(),
+            user_metadata: supabaseData.user.user_metadata,
+            app_metadata: supabaseData.user.app_metadata,
+            aud: supabaseData.user.aud,
+            created_at: supabaseData.user.created_at
           };
           
           // Update auth context with superadmin user
@@ -59,7 +63,7 @@ export const useAuthentication = () => {
         body: {
           action: 'authenticate_superadmin',
           params: {
-            userid: supabaseData.user.id
+            userid: supabaseData?.user?.id || ''
           }
         }
       });
@@ -82,10 +86,14 @@ export const useAuthentication = () => {
       
       // Store superadmin token
       localStorage.setItem('superadminToken', token);
-      localStorage.setItem('access_token', supabaseData.session.access_token);
+      if (supabaseData?.session) {
+        localStorage.setItem('access_token', supabaseData.session.access_token);
+      }
       
       // Configure Supabase functions to use the token
-      supabase.functions.setAuth(supabaseData.session.access_token);
+      if (supabaseData?.session) {
+        supabase.functions.setAuth(supabaseData.session.access_token);
+      }
       
       // Create a mock session for the superadmin
       const mockSession = {
@@ -103,13 +111,14 @@ export const useAuthentication = () => {
       };
       
       // Create a superadmin user object for context
-      const superadminUser = {
+      const superadminUser: User = {
         id: superadmin.id,
         email: values.email,
         name: 'Super Admin',
         role: 'superuser' as UserRole,
         isActive: true,
-        lastLogin: new Date().toISOString()
+        lastLogin: new Date().toISOString(),
+        user_metadata: mockSession.user.user_metadata
       };
       
       // Update auth context with superadmin user

@@ -1,4 +1,3 @@
-
 export type InvoiceStatus = 'open' | 'in-progress' | 'completed' | 'paid' | 'partial';
 
 export type UserRole = 'owner' | 'manager' | 'mechanic' | 'foreman' | 'superuser';
@@ -7,11 +6,11 @@ export type TaskLocation = 'workshop' | 'onsite' | 'remote';
 
 export interface User {
   id: string;
-  name: string;
+  name?: string;
   email: string;
-  role: UserRole;
+  role?: UserRole;
   mechanicId?: string; // If role is mechanic, this links to their mechanic profile
-  isActive: boolean;
+  isActive?: boolean;
   lastLogin?: string;
   organizationId?: string; // Added for multi-organization support
   passwordHash?: string; // For auth system
@@ -19,6 +18,14 @@ export interface User {
   resetTokenExpires?: string; // Expiration for reset token
   mustChangePassword?: boolean; // For forcing password change
   isSuperAdmin?: boolean; // Added for superadmin access
+  user_metadata?: {
+    name?: string;
+    role?: UserRole;
+    organizationId?: string;
+  };
+  app_metadata?: any;
+  aud?: string;
+  created_at?: string;
 }
 
 export interface Organization {

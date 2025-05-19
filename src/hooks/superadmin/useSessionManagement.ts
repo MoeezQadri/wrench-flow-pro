@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthContext } from '@/context/AuthContext';
-import { UserRole } from '@/types';
+import { UserRole, User } from '@/types';
 
 export const useSessionManagement = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -26,13 +26,17 @@ export const useSessionManagement = () => {
         
         if (userMetadata.role === 'superuser' || userMetadata.role === 'superadmin') {
           // Create a superadmin user object for context
-          const superadminUser = {
+          const superadminUser: User = {
             id: session.user.id,
             email: session.user.email || 'superadmin@admin.system',
             name: userMetadata.name || 'Super Admin',
             role: 'superuser' as UserRole,
             isActive: true,
-            lastLogin: new Date().toISOString()
+            lastLogin: new Date().toISOString(),
+            user_metadata: session.user.user_metadata,
+            app_metadata: session.user.app_metadata,
+            aud: session.user.aud,
+            created_at: session.user.created_at
           };
           
           // Update auth context with superadmin user
@@ -83,13 +87,14 @@ export const useSessionManagement = () => {
           };
           
           // Create a superadmin user object for context
-          const superadminUser = {
+          const superadminUser: User = {
             id: 'superadmin',
             email: 'superadmin@system.local',
             name: 'Super Admin',
             role: 'superuser' as UserRole,
             isActive: true,
-            lastLogin: new Date().toISOString()
+            lastLogin: new Date().toISOString(),
+            user_metadata: mockSession.user.user_metadata,
           };
           
           // Update auth context with superadmin user

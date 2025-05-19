@@ -2,35 +2,16 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
+import { AuthContextValue } from '@/types/auth';
+import { User as AppUser } from '@/types';
 
-interface AuthContextType {
-  user: User | null;
-  session: Session | null;
-  loading: boolean;
-  isAuthenticated: boolean;
-  currentUser: User | null;
-  isSuperAdmin: boolean;
-  logout: () => Promise<void>;
-  setSession: React.Dispatch<React.SetStateAction<Session | null>>;
-  setCurrentUser: React.Dispatch<React.SetStateAction<User | null>>;
-  signIn: (email: string, password: string) => Promise<{
-    error: Error | null;
-    data: Session | null;
-  }>;
-  signUp: (email: string, password: string, name: string) => Promise<{
-    error: Error | null;
-    data: User | null;
-  }>;
-  signOut: () => Promise<{ error: Error | null }>;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState<AppUser | null>(null);
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -38,7 +19,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
-        setCurrentUser(session?.user ?? null);
+        if (session?.user) {
+          const appUser: AppUser = {
+            id: session.user.id,
+            email: session.user.email || '',
+            name: session.user.user_metadata?.name,
+            role: session.user.user_metadata?.role,
+            isActive: true,
+            organizationId: session.user.user_metadata?.organizationId,
+            user_metadata: session.user.user_metadata,
+            app_metadata: session.user.app_metadata,
+            created_at: session.user.created_at,
+            aud: session.user.aud,
+            lastLogin: new Date().toISOString()
+          };
+          setCurrentUser(appUser);
+        } else {
+          setCurrentUser(null);
+        }
       }
     );
 
@@ -46,7 +44,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
-      setCurrentUser(session?.user ?? null);
+      if (session?.user) {
+        const appUser: AppUser = {
+          id: session.user.id,
+          email: session.user.email || '',
+          name: session.user.user_metadata?.name,
+          role: session.user.user_metadata?.role,
+          isActive: true,
+          organizationId: session.user.user_metadata?.organizationId,
+          user_metadata: session.user.user_metadata,
+          app_metadata: session.user.app_metadata,
+          created_at: session.user.created_at,
+          aud: session.user.aud,
+          lastLogin: new Date().toISOString()
+        };
+        setCurrentUser(appUser);
+      } else {
+        setCurrentUser(null);
+      }
       setLoading(false);
     });
 
@@ -99,14 +114,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setSession(null);
   };
 
-  const isSuperAdmin = user?.user_metadata?.role === 'superuser';
+  const isSuperAdmin = currentUser?.role === 'superuser' || currentUser?.user_metadata?.role === 'superuser';
 
-  const value = {
-    user,
+  const value: AuthContextValue = {
+    currentUser,
     session,
     loading,
-    currentUser,
-    isAuthenticated: !!user,
+    isAuthenticated: !!currentUser,
     isSuperAdmin,
     signIn,
     signUp,
@@ -119,7 +133,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-export const useAuthContext = (): AuthContextType => {
+export const useAuthContext = (): AuthContextValue => {
   const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuthContext must be used within an AuthProvider');

@@ -11,34 +11,41 @@ import UserManagement from '@/components/admin/UserManagement';
 import SubscriptionPlansManagement from '@/components/admin/SubscriptionPlansManagement';
 import DataCleanupPanel from '@/components/admin/DataCleanupPanel';
 import { toast } from 'sonner';
+import { Organization } from '@/components/admin/types';
 
 import { Activity, Building, Globe, Users, Zap } from 'lucide-react';
 
 // Mock data for organizations
-const initialOrganizations = [
+const initialOrganizations: Organization[] = [
   {
     id: 'org-1',
     name: 'Acme Auto Shop',
-    subscription: 'Professional',
-    status: 'active',
-    usersCount: 12,
-    createdAt: '2022-04-15T10:30:00Z',
+    subscription_level: 'Professional',
+    subscription_status: 'active',
+    created_at: '2022-04-15T10:30:00Z',
+    updated_at: '2022-04-15T10:30:00Z',
+    owner_name: 'John Doe',
+    owner_email: 'john@acme.com'
   },
   {
     id: 'org-2',
     name: 'City Mechanics',
-    subscription: 'Basic',
-    status: 'active',
-    usersCount: 5,
-    createdAt: '2022-06-22T14:45:00Z',
+    subscription_level: 'Basic',
+    subscription_status: 'active',
+    created_at: '2022-06-22T14:45:00Z',
+    updated_at: '2022-06-22T14:45:00Z',
+    owner_name: 'Jane Smith',
+    owner_email: 'jane@citymechanics.com'
   },
   {
     id: 'org-3',
     name: 'Express Repairs',
-    subscription: 'Professional',
-    status: 'suspended',
-    usersCount: 8,
-    createdAt: '2022-03-10T09:15:00Z',
+    subscription_level: 'Professional',
+    subscription_status: 'suspended',
+    created_at: '2022-03-10T09:15:00Z',
+    updated_at: '2022-03-10T09:15:00Z',
+    owner_name: 'Bob Johnson',
+    owner_email: 'bob@expressrepairs.com'
   }
 ];
 
@@ -47,16 +54,22 @@ const SuperAdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('analytics');
   
   // State for organizations
-  const [organizations, setOrganizations] = useState(initialOrganizations);
+  const [organizations, setOrganizations] = useState<Organization[]>(initialOrganizations);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Mock users for UserManagement
+  const [users, setUsers] = useState([
+    { id: 'user-1', name: 'John Doe', email: 'john@acme.com', role: 'owner', organization: 'Acme Auto Shop' },
+    { id: 'user-2', name: 'Jane Smith', email: 'jane@citymechanics.com', role: 'owner', organization: 'City Mechanics' }
+  ]);
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
   };
 
   // Function to receive data from OrganizationManagement component
-  const handleOrganizationUpdate = (updatedOrgs: any[]) => {
+  const handleOrganizationUpdate = (updatedOrgs: Organization[]) => {
     setOrganizations(updatedOrgs);
     toast.success('Organizations updated successfully');
   };
@@ -79,7 +92,7 @@ const SuperAdminDashboard = () => {
           <CardContent>
             <div className="text-2xl font-bold">{organizations.length}</div>
             <p className="text-xs text-muted-foreground">
-              {organizations.filter(org => org.status === 'active').length} active
+              {organizations.filter(org => org.subscription_status === 'active').length} active
             </p>
           </CardContent>
         </Card>
@@ -91,7 +104,7 @@ const SuperAdminDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {organizations.reduce((sum, org) => sum + org.usersCount, 0)}
+              {users.length}
             </div>
             <p className="text-xs text-muted-foreground">
               Across all organizations
@@ -153,7 +166,14 @@ const SuperAdminDashboard = () => {
         </TabsContent>
 
         <TabsContent value="users" className="mt-4">
-          <UserManagement />
+          <UserManagement 
+            users={users}
+            setUsers={setUsers}
+            organizations={organizations}
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            isLoading={isLoading}
+          />
           <div className="mt-4">
             <DataCleanupPanel />
           </div>

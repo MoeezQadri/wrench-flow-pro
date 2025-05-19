@@ -3,14 +3,17 @@ import React, { useState, useEffect, ReactNode } from 'react';
 import { User } from '@/types';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuthContext } from './AuthContext';
-import { AnalyticsConfig, UpdateLastLoginParams } from '@/types/auth';
+import { AuthContextValue, AnalyticsConfig } from '@/types/auth';
+import { createContext } from 'react';
 import {
   handleEmailConfirmation,
   createUserFromSession,
   updateLastLogin,
   fetchUserProfile
 } from '@/utils/auth-utils';
+
+// Create the context here since we're not importing it
+const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 interface AuthProviderProps {
   children: ReactNode;
@@ -131,7 +134,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           name: superadminSession.user.user_metadata?.name || '',
           role: 'superuser',
           isActive: true,
-          lastLogin: new Date().toISOString()
+          lastLogin: new Date().toISOString(),
+          user_metadata: superadminSession.user.user_metadata,
+          app_metadata: superadminSession.user.app_metadata,
+          aud: superadminSession.user.aud,
+          created_at: superadminSession.user.created_at
         });
       } catch (error) {
         console.error('Failed to parse superadmin session:', error);
@@ -177,7 +184,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const isSuperAdmin = currentUser?.role === 'superuser';
+  const isSuperAdmin = currentUser?.role === 'superuser' || currentUser?.user_metadata?.role === 'superuser';
 
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
@@ -201,3 +208,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     </AuthContext.Provider>
   );
 };
+
+// Export the context hook for usage in other components
+export { AuthContext };
