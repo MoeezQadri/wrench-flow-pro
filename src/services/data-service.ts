@@ -424,7 +424,6 @@ export const getVehiclesByCustomerId = (customerId: string): Vehicle[] => {
   return vehicles.filter(vehicle => vehicle.customerId === customerId);
 };
 
-// Only need to fix the database mapping for the fetchVehiclesByCustomerIdAsync function
 export const fetchVehiclesByCustomerIdAsync = async (customerId: string): Promise<Vehicle[]> => {
   try {
     const data = await fetchVehiclesByCustomerId(customerId);
@@ -432,11 +431,11 @@ export const fetchVehiclesByCustomerIdAsync = async (customerId: string): Promis
     // Ensure data is mapped to the correct Vehicle type
     return data.map(vehicle => ({
       id: vehicle.id,
-      customerId: vehicle.customer_id || customerId, // Map DB field name to client model field name
+      customerId: vehicle.customerId || vehicle.customer_id || customerId, // Handle both naming conventions
       make: vehicle.make,
       model: vehicle.model,
       year: vehicle.year,
-      licensePlate: vehicle.license_plate, // Map DB field name to client model field name
+      licensePlate: vehicle.licensePlate || vehicle.license_plate || '', // Handle both naming conventions
       vin: vehicle.vin,
       color: vehicle.color
     }));
@@ -477,19 +476,19 @@ export const getInvoices = async (): Promise<Invoice[]> => {
     // Ensure data is mapped to the correct Invoice type
     return data.map(invoice => ({
       id: invoice.id,
-      customerId: invoice.customer_id,
-      vehicleId: invoice.vehicle_id,
+      customerId: invoice.customerId || invoice.customer_id,
+      vehicleId: invoice.vehicleId || invoice.vehicle_id,
       vehicleInfo: {
         make: invoice.vehicleInfo?.make || '',
         model: invoice.vehicleInfo?.model || '',
         year: invoice.vehicleInfo?.year || '',
-        licensePlate: invoice.vehicleInfo?.license_plate || ''
+        licensePlate: invoice.vehicleInfo?.licensePlate || invoice.vehicleInfo?.license_plate || ''
       },
       status: invoice.status,
       date: invoice.date,
       items: invoice.items || [],
       notes: invoice.notes || '',
-      taxRate: invoice.tax_rate,
+      taxRate: invoice.taxRate || invoice.tax_rate,
       payments: invoice.payments || []
     }));
   } catch (error) {
@@ -532,9 +531,9 @@ export const getMechanics = async (): Promise<Mechanic[]> => {
       specialization: mechanic.specialization || '',
       address: mechanic.address || '',
       phone: mechanic.phone || '',
-      idCardImage: mechanic.id_card_image || '',
-      employmentType: mechanic.employment_type as 'fulltime' | 'contractor' || 'fulltime',
-      isActive: mechanic.is_active
+      idCardImage: mechanic.idCardImage || mechanic.id_card_image || '',
+      employmentType: (mechanic.employmentType || mechanic.employment_type || 'fulltime') as 'fulltime' | 'contractor',
+      isActive: mechanic.isActive !== undefined ? mechanic.isActive : !!mechanic.is_active
     }));
   } catch (error) {
     console.error("Error fetching mechanics:", error);
@@ -622,10 +621,10 @@ export const getExpensesAsync = async (): Promise<Expense[]> => {
       category: expense.category,
       amount: expense.amount,
       description: expense.description || '',
-      paymentMethod: expense.payment_method as 'cash' | 'card' | 'bank-transfer',
-      paymentStatus: expense.payment_status as 'paid' | 'pending' | 'overdue',
-      vendorId: expense.vendor_id,
-      vendorName: expense.vendor_name
+      paymentMethod: (expense.paymentMethod || expense.payment_method) as 'cash' | 'card' | 'bank-transfer',
+      paymentStatus: (expense.paymentStatus || expense.payment_status) as 'paid' | 'pending' | 'overdue',
+      vendorId: expense.vendorId || expense.vendor_id,
+      vendorName: expense.vendorName || expense.vendor_name
     }));
   } catch (error) {
     console.error("Error fetching expenses:", error);
@@ -657,17 +656,17 @@ export const getTasks = async (): Promise<Task[]> => {
       id: task.id,
       title: task.title,
       description: task.description || '',
-      mechanicId: task.mechanic_id,
+      mechanicId: task.mechanicId || task.mechanic_id,
       status: task.status as 'pending' | 'in-progress' | 'completed',
-      hoursEstimated: task.hours_estimated,
-      hoursSpent: task.hours_spent,
-      invoiceId: task.invoice_id,
+      hoursEstimated: task.hoursEstimated || task.hours_estimated,
+      hoursSpent: task.hoursSpent || task.hours_spent,
+      invoiceId: task.invoiceId || task.invoice_id,
       location: task.location || 'workshop',
       price: task.price || 0,
-      startTime: task.start_time || '',
-      endTime: task.end_time || '',
-      completedBy: task.completed_by || '',
-      completedAt: task.completed_at || ''
+      startTime: task.startTime || task.start_time || '',
+      endTime: task.endTime || task.end_time || '',
+      completedBy: task.completedBy || task.completed_by || '',
+      completedAt: task.completedAt || task.completed_at || ''
     }));
   } catch (error) {
     console.error("Error fetching tasks:", error);
@@ -685,12 +684,12 @@ export const getAttendance = async (): Promise<Attendance[]> => {
     // Ensure data is mapped to the correct Attendance type
     return data.map(attendance => ({
       id: attendance.id,
-      mechanicId: attendance.mechanic_id,
+      mechanicId: attendance.mechanicId || attendance.mechanic_id,
       date: attendance.date,
-      checkIn: attendance.check_in,
-      checkOut: attendance.check_out,
+      checkIn: attendance.checkIn || attendance.check_in,
+      checkOut: attendance.checkOut || attendance.check_out,
       status: attendance.status as 'pending' | 'approved' | 'rejected',
-      approvedBy: attendance.approved_by,
+      approvedBy: attendance.approvedBy || attendance.approved_by,
       notes: attendance.notes || ''
     }));
   } catch (error) {

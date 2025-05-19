@@ -1,6 +1,10 @@
 
 import { User, UserRole } from '@/types';
 
+export interface UserWithConfirmation extends Profile {
+  email_confirmed_at?: string;
+}
+
 export interface Profile {
   id: string;
   name: string;
@@ -25,6 +29,8 @@ export interface Organization {
   email?: string;
   country?: string;
   currency?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface RoleResource {
@@ -37,8 +43,8 @@ export interface RoleResource {
 }
 
 export interface UserManagementProps {
-  users: Profile[];
-  setUsers: React.Dispatch<React.SetStateAction<Profile[]>>;
+  users: UserWithConfirmation[];
+  setUsers: React.Dispatch<React.SetStateAction<UserWithConfirmation[]>>;
   organizations: Organization[];
   searchTerm: string;
   setSearchTerm: React.Dispatch<React.SetStateAction<string>>;

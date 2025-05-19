@@ -32,7 +32,7 @@ const SuperAdminLogin = () => {
     };
 
     checkAuth();
-  }, []);
+  }, [checkExistingSession, navigate]);
 
   // Show loading state while checking session
   if (!sessionChecked) {

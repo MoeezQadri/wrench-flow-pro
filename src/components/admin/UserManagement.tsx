@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,17 +11,8 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthContext } from '@/context/AuthContext';
-import { UserWithConfirmation, Organization } from './types';
+import { UserWithConfirmation, Organization, UserManagementProps } from './types';
 import { enableUserWithoutConfirmation } from '@/utils/supabase-helpers';
-
-interface UserManagementProps {
-  users: UserWithConfirmation[];
-  setUsers: React.Dispatch<React.SetStateAction<UserWithConfirmation[]>>;
-  organizations: Organization[];
-  searchTerm: string;
-  setSearchTerm: React.Dispatch<React.SetStateAction<string>>;
-  isLoading: boolean;
-}
 
 const UserManagement: React.FC<UserManagementProps> = ({
   users,

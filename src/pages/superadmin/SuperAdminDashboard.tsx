@@ -6,15 +6,15 @@ import {
   updateUserStatus,
   deleteOrganization as deleteOrganizationService
 } from '@/services/superadmin-service';
-import { Profile, Organization } from '@/components/admin/types';
 import AdminUserManagement from '@/components/admin/AdminUserManagement';
 import OrganizationManagement from '@/components/admin/OrganizationManagement';
+import { Profile, Organization } from '@/components/admin/types';
 
 const SuperAdminDashboard: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   
-  // Updated for correct typing
+  // Updated for correct typing from admin/types.ts
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [users, setUsers] = useState<Profile[]>([]);
   
@@ -27,8 +27,8 @@ const SuperAdminDashboard: React.FC = () => {
     try {
       const organizationsData = await fetchOrganizations();
       const usersData = await fetchUsers();
-      setOrganizations(organizationsData);
-      setUsers(usersData);
+      setOrganizations(organizationsData as Organization[]);
+      setUsers(usersData as Profile[]);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -49,7 +49,8 @@ const SuperAdminDashboard: React.FC = () => {
       phone: '',
       email: '',
       country: '',
-      currency: ''
+      currency: '',
+      created_at: '2023-01-01'
     },
     // ... add more organizations as needed
   ];
@@ -84,14 +85,7 @@ const SuperAdminDashboard: React.FC = () => {
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <AdminUserManagement 
-          users={users} 
-          setUsers={setUsers}
-          organizations={organizations} 
-          searchTerm={searchTerm}
-          setSearchTerm={setSearchTerm}
-          isLoading={isLoading}
-        />
+        <AdminUserManagement />
         
         <OrganizationManagement 
           organizations={organizations} 
