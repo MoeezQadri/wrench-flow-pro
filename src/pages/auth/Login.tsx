@@ -45,15 +45,15 @@ const Login: React.FC = () => {
           <p className="text-xl mb-8 text-slate-800 text-left">Garage management software helping you streamline:</p>
           <div className="space-y-4 text-lg">
             <div className="flex items-center">
-              <div className="w-2 h-2 rounded-full bg-white mr-3"></div>
+              <div className="w-2 h-2 rounded-full mr-3 bg-slate-800"></div>
               <p className="text-slate-800">Streamline your garage processes </p>
             </div>
             <div className="flex items-center">
-              <div className="w-2 h-2 rounded-full bg-white mr-3"></div>
+              <div className="w-2 h-2 rounded-full mr-3 bg-slate-800"></div>
               <p className="text-slate-800">Customer management</p>
             </div>
             <div className="flex items-center">
-              <div className="w-2 h-2 rounded-full bg-white mr-3"></div>
+              <div className="w-2 h-2 rounded-full mr-3 bg-slate-800"></div>
               <p className="text-slate-800">Vehicle service tracking</p>
             </div>
           </div>
