@@ -129,7 +129,7 @@ const AdminUserManagement: React.FC<UserManagementProps> = ({
         <TabsContent value="organizations" className="space-y-6">
           <OrganizationManagement 
             organizations={organizations}
-            setOrganizations={setUsers}
+            setOrganizations={organizations.length > 0 ? setOrganizations : undefined}
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
             isLoading={isLoading}

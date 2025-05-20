@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,16 +9,8 @@ import { Label } from '@/components/ui/label';
 import { Plus, Search, FileText, Edit, Trash2, Building } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Organization } from './types';
+import { Organization, OrganizationManagementProps } from './types';
 import { deleteOrganization, updateOrganization, createOrganization, getOrganizations } from '@/utils/supabase-helpers';
-
-interface OrganizationManagementProps {
-  organizations: Organization[];
-  setOrganizations: React.Dispatch<React.SetStateAction<Organization[]>>;
-  searchTerm: string;
-  setSearchTerm: React.Dispatch<React.SetStateAction<string>>;
-  isLoading: boolean;
-}
 
 const OrganizationManagement: React.FC<OrganizationManagementProps> = ({
   organizations,
@@ -47,6 +38,8 @@ const OrganizationManagement: React.FC<OrganizationManagementProps> = ({
   };
   
   const handleDeleteOrganization = async (orgId: string) => {
+    if (!setOrganizations) return;
+    
     if (window.confirm('Are you sure you want to delete this organization? This will also remove all associated users.')) {
       try {
         await deleteOrganization(orgId);
@@ -61,6 +54,8 @@ const OrganizationManagement: React.FC<OrganizationManagementProps> = ({
   };
 
   const handleSaveOrganization = async (e: React.FormEvent) => {
+    if (!setOrganizations) return;
+    
     e.preventDefault();
     const form = e.target as HTMLFormElement;
     const formData = new FormData(form);

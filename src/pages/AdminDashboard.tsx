@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuthContext } from '@/context/AuthContext';
@@ -9,10 +9,36 @@ import AdminMetricsPanel from '@/components/admin/AdminMetricsPanel';
 import AdminUserManagement from '@/components/admin/AdminUserManagement';
 import AdminPaymentManagement from '@/components/admin/AdminPaymentManagement';
 import AdminAnalyticsIntegration from '@/components/admin/AdminAnalyticsIntegration';
+import { Organization, UserWithConfirmation } from '@/components/admin/types';
+import { getAllUsers, getOrganizations } from '@/utils/supabase-helpers';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('metrics');
   const { currentUser } = useAuthContext();
+  const [users, setUsers] = useState<UserWithConfirmation[]>([]);
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Fetch data when component mounts
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        const orgsData = await getOrganizations();
+        const usersData = await getAllUsers();
+        
+        setOrganizations(orgsData || []);
+        setUsers(usersData || []);
+      } catch (error) {
+        console.error("Error fetching admin data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, []);
   
   // Only owner and manager roles should access admin dashboard
   const canAccessAdmin = currentUser?.role === 'owner' || currentUser?.role === 'manager';
@@ -67,7 +93,15 @@ const AdminDashboard = () => {
         </TabsContent>
         
         <TabsContent value="users" className="space-y-6">
-          <AdminUserManagement />
+          <AdminUserManagement 
+            users={users}
+            setUsers={setUsers}
+            organizations={organizations}
+            setOrganizations={setOrganizations}
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            isLoading={isLoading}
+          />
         </TabsContent>
         
         <TabsContent value="payments" className="space-y-6">

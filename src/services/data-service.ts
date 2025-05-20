@@ -33,7 +33,8 @@ import {
   CustomerAnalytics,
   rolePermissions,
   PermissionValue,
-  BasePermission
+  BasePermission,
+  InvoiceStatus
 } from '@/types';
 
 // Mock data - will be used as fallback
@@ -484,7 +485,7 @@ export const getInvoices = async (): Promise<Invoice[]> => {
         year: invoice.vehicleInfo?.year || '',
         licensePlate: invoice.vehicleInfo?.licensePlate || invoice.vehicleInfo?.license_plate || ''
       },
-      status: invoice.status,
+      status: invoice.status as InvoiceStatus,
       date: invoice.date,
       items: invoice.items || [],
       notes: invoice.notes || '',

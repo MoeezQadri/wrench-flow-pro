@@ -7,6 +7,11 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { AlertCircle } from 'lucide-react';
 
+interface LoginData {
+  email: string;
+  password: string;
+}
+
 const SuperAdminLogin = () => {
   const { isLoading, handleLogin, checkExistingSession } = useSuperAdminAuth();
   const [sessionChecked, setSessionChecked] = useState(false);
@@ -35,7 +40,7 @@ const SuperAdminLogin = () => {
   }, [checkExistingSession, navigate]);
 
   // Adapter function to convert form data to the expected format
-  const handleFormSubmit = async (data: { email: string; password: string }) => {
+  const handleFormSubmit = async (data: LoginData) => {
     await handleLogin(data.email, data.password);
   };
 

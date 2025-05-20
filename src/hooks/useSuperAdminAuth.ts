@@ -1,21 +1,56 @@
 
-import { useState, useEffect } from 'react';
-import { useAuthContext } from '@/context/AuthContext';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuthContext } from '@/context/AuthContext';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 import { useSessionManagement } from './superadmin/useSessionManagement';
-import { useAuthentication } from './superadmin/useAuthentication';
 
 export const useSuperAdminAuth = () => {
-  const [isLoading, setIsLoading] = useState(true);
-  const { currentUser } = useAuthContext();
+  const [isLoading, setIsLoading] = useState(false);
+  const { setCurrentUser } = useAuthContext();
   const navigate = useNavigate();
-  const sessionManager = useSessionManagement();
-  const { login, logout, error } = useAuthentication();
+  const { verifySession } = useSessionManagement();
 
-  const handleLogin = async (username: string, password: string) => {
+  const handleLogin = async (email: string, password: string) => {
     setIsLoading(true);
+
     try {
-      await login(username, password);
+      // Call Supabase Edge Function to authenticate
+      const { data, error } = await supabase.functions.invoke('superadmin-login', {
+        body: { username: email, password_hash: password }
+      });
+
+      if (error) {
+        toast.error(error.message || 'Login failed');
+        return;
+      }
+
+      if (!data.authenticated) {
+        toast.error(data.message || 'Invalid credentials');
+        return;
+      }
+
+      // Store the token in localStorage
+      localStorage.setItem('superadmin_token', data.token);
+
+      // Set the current user in context
+      const userData = {
+        id: data.superadmin.id,
+        name: data.superadmin.username || 'Super Admin',
+        email: email,
+        role: 'superuser',
+        isActive: true,
+        lastLogin: new Date().toISOString()
+      };
+      setCurrentUser(userData);
+
+      // Navigate to the superadmin dashboard
+      toast.success('Login successful');
+      navigate('/superadmin/dashboard');
+    } catch (error: any) {
+      toast.error(error.message || 'An error occurred during login');
+      console.error('SuperAdmin login error:', error);
     } finally {
       setIsLoading(false);
     }
@@ -28,28 +63,31 @@ export const useSuperAdminAuth = () => {
     }
 
     try {
-      const isValid = await sessionManager.verifySession(token);
-      return isValid;
+      // Verify if the token is valid
+      return await verifySession(token);
     } catch (error) {
-      console.error('Error checking existing session:', error);
+      console.error('Error verifying session:', error);
       return false;
     }
   };
 
-  useEffect(() => {
-    const token = localStorage.getItem('superadmin_token');
+  const logout = () => {
+    // Clear the token
+    localStorage.removeItem('superadmin_token');
     
-    if (!token) {
-      setIsLoading(false);
-      navigate('/superadmin/login');
-      return;
-    }
+    // Reset user state
+    setCurrentUser(null);
+    
+    // Redirect to login
+    navigate('/superadmin/login');
+    
+    toast.success('Logged out successfully');
+  };
 
-    // Load is handled in useSessionManagement
-    setIsLoading(sessionManager.isLoading);
-  }, [navigate, currentUser, sessionManager.isLoading]);
-
-  return { isLoading, handleLogin, checkExistingSession, error };
+  return {
+    isLoading,
+    handleLogin,
+    checkExistingSession,
+    logout
+  };
 };
-
-export default useSuperAdminAuth;
