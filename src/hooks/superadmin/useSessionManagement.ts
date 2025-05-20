@@ -11,7 +11,7 @@ export const useSessionManagement = () => {
 
   useEffect(() => {
     const token = localStorage.getItem('superadmin_token');
-
+    
     if (token) {
       handleExistingSession(token);
     } else {

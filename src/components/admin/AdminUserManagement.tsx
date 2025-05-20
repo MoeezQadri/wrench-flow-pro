@@ -1,10 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Building, UserCog, RefreshCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuthContext } from '@/context/AuthContext';
 import { getOrganizations, getAllUsers } from '@/utils/supabase-helpers';
-import { UserWithConfirmation, Organization } from './types';
+import { UserWithConfirmation, Organization, UserManagementProps } from './types';
 import OrganizationManagement from './OrganizationManagement';
 import UserManagement from './UserManagement';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -13,19 +14,21 @@ import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 
-const AdminUserManagement = () => {
-  const [users, setUsers] = useState<UserWithConfirmation[]>([]);
-  const [organizations, setOrganizations] = useState<Organization[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
+const AdminUserManagement: React.FC<UserManagementProps> = ({
+  users,
+  setUsers,
+  organizations,
+  searchTerm,
+  setSearchTerm,
+  isLoading
+}) => {
   const [activeTab, setActiveTab] = useState('organizations');
-  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { currentUser, session } = useAuthContext();
   const navigate = useNavigate();
   
   // Function to fetch data from Supabase
   const fetchData = async (retryAuth = false) => {
-    setIsLoading(true);
     setError(null);
     
     try {
@@ -52,8 +55,6 @@ const AdminUserManagement = () => {
       const usersData = await getAllUsers();
       console.log(`Fetched ${usersData?.length || 0} users`);
       
-      setOrganizations(orgsData || []);
-      setUsers(usersData || []);
       setError(null);
     } catch (error: any) {
       console.error('Error fetching data:', error);
@@ -74,8 +75,6 @@ const AdminUserManagement = () => {
         setError(`Failed to load data: ${error.message || 'Unknown error'}`);
         toast.error(`Failed to load data: ${error.message || 'Unknown error'}`);
       }
-    } finally {
-      setIsLoading(false);
     }
   };
   
@@ -85,7 +84,6 @@ const AdminUserManagement = () => {
       fetchData();
     } else {
       console.warn('No session available, skipping data fetch');
-      setIsLoading(false);
       setError('No active session. Please log in.');
     }
   }, [session]);
@@ -131,7 +129,7 @@ const AdminUserManagement = () => {
         <TabsContent value="organizations" className="space-y-6">
           <OrganizationManagement 
             organizations={organizations}
-            setOrganizations={setOrganizations}
+            setOrganizations={setUsers}
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
             isLoading={isLoading}

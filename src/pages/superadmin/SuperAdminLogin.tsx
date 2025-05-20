@@ -6,7 +6,6 @@ import { Toaster } from '@/components/ui/toaster';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { AlertCircle } from 'lucide-react';
-import { SuperAdminLoginFormData } from '@/components/superadmin/SuperAdminLoginForm';
 
 const SuperAdminLogin = () => {
   const { isLoading, handleLogin, checkExistingSession } = useSuperAdminAuth();
@@ -36,7 +35,7 @@ const SuperAdminLogin = () => {
   }, [checkExistingSession, navigate]);
 
   // Adapter function to convert form data to the expected format
-  const handleFormSubmit = async (data: SuperAdminLoginFormData) => {
+  const handleFormSubmit = async (data: { email: string; password: string }) => {
     await handleLogin(data.email, data.password);
   };
 
