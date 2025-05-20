@@ -118,7 +118,6 @@ export interface Task {
   hoursEstimated: number;
   hoursSpent?: number;
   invoiceId?: string;
-  // New fields for task tagging feature
   vehicleId?: string;
   location: TaskLocation;
   price?: number;

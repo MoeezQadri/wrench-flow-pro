@@ -37,6 +37,30 @@ import {
   InvoiceStatus
 } from '@/types';
 
+// Helper function to convert snake_case to camelCase for database objects
+const toCamelCase = (obj: any) => {
+  if (!obj || typeof obj !== 'object') return obj;
+  
+  const result: any = Array.isArray(obj) ? [] : {};
+  
+  Object.entries(obj).forEach(([key, value]) => {
+    // Convert key from snake_case to camelCase
+    const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+    
+    // Recursively convert nested objects
+    result[camelKey] = value && typeof value === 'object' 
+      ? toCamelCase(value) 
+      : value;
+  });
+  
+  return result;
+};
+
+// Helper function to get a property regardless of snake_case or camelCase
+const getProperty = (obj: any, snakeKey: string, camelKey: string) => {
+  return obj[snakeKey] !== undefined ? obj[snakeKey] : obj[camelKey];
+};
+
 // Mock data - will be used as fallback
 export let customers: Customer[] = [
   {
@@ -425,6 +449,7 @@ export const getVehiclesByCustomerId = (customerId: string): Vehicle[] => {
   return vehicles.filter(vehicle => vehicle.customerId === customerId);
 };
 
+// Export the function the getVehiclesByCustomerIdAsync to properly map database fields
 export const fetchVehiclesByCustomerIdAsync = async (customerId: string): Promise<Vehicle[]> => {
   try {
     const data = await fetchVehiclesByCustomerId(customerId);
@@ -432,11 +457,11 @@ export const fetchVehiclesByCustomerIdAsync = async (customerId: string): Promis
     // Ensure data is mapped to the correct Vehicle type
     return data.map(vehicle => ({
       id: vehicle.id,
-      customerId: vehicle.customerId || vehicle.customer_id || customerId, // Handle both naming conventions
+      customerId: getProperty(vehicle, 'customer_id', 'customerId') || customerId,
       make: vehicle.make,
       model: vehicle.model,
       year: vehicle.year,
-      licensePlate: vehicle.licensePlate || vehicle.license_plate || '', // Handle both naming conventions
+      licensePlate: getProperty(vehicle, 'license_plate', 'licensePlate') || '',
       vin: vehicle.vin,
       color: vehicle.color
     }));
@@ -477,19 +502,19 @@ export const getInvoices = async (): Promise<Invoice[]> => {
     // Ensure data is mapped to the correct Invoice type
     return data.map(invoice => ({
       id: invoice.id,
-      customerId: invoice.customerId || invoice.customer_id,
-      vehicleId: invoice.vehicleId || invoice.vehicle_id,
+      customerId: getProperty(invoice, 'customer_id', 'customerId'),
+      vehicleId: getProperty(invoice, 'vehicle_id', 'vehicleId'),
       vehicleInfo: {
-        make: invoice.vehicleInfo?.make || '',
-        model: invoice.vehicleInfo?.model || '',
-        year: invoice.vehicleInfo?.year || '',
-        licensePlate: invoice.vehicleInfo?.licensePlate || invoice.vehicleInfo?.license_plate || ''
+        make: getProperty(invoice.vehicleInfo, 'make', 'make') || '',
+        model: getProperty(invoice.vehicleInfo, 'model', 'model') || '',
+        year: getProperty(invoice.vehicleInfo, 'year', 'year') || '',
+        licensePlate: getProperty(invoice.vehicleInfo, 'license_plate', 'licensePlate') || ''
       },
       status: invoice.status as InvoiceStatus,
       date: invoice.date,
       items: invoice.items || [],
       notes: invoice.notes || '',
-      taxRate: invoice.taxRate || invoice.tax_rate,
+      taxRate: getProperty(invoice, 'tax_rate', 'taxRate'),
       payments: invoice.payments || []
     }));
   } catch (error) {
@@ -532,9 +557,9 @@ export const getMechanics = async (): Promise<Mechanic[]> => {
       specialization: mechanic.specialization || '',
       address: mechanic.address || '',
       phone: mechanic.phone || '',
-      idCardImage: mechanic.idCardImage || mechanic.id_card_image || '',
-      employmentType: (mechanic.employmentType || mechanic.employment_type || 'fulltime') as 'fulltime' | 'contractor',
-      isActive: mechanic.isActive !== undefined ? mechanic.isActive : !!mechanic.is_active
+      idCardImage: getProperty(mechanic, 'id_card_image', 'idCardImage') || '',
+      employmentType: getProperty(mechanic, 'employment_type', 'employmentType') as 'fulltime' | 'contractor' || 'fulltime',
+      isActive: getProperty(mechanic, 'is_active', 'isActive') !== undefined ? getProperty(mechanic, 'is_active', 'isActive') : true
     }));
   } catch (error) {
     console.error("Error fetching mechanics:", error);
@@ -610,7 +635,7 @@ export const getExpenses = (): Expense[] => {
   return expenses;
 };
 
-// Async version
+// Update getExpensesAsync to properly map database fields
 export const getExpensesAsync = async (): Promise<Expense[]> => {
   try {
     const data = await fetchExpenses();
@@ -622,10 +647,10 @@ export const getExpensesAsync = async (): Promise<Expense[]> => {
       category: expense.category,
       amount: expense.amount,
       description: expense.description || '',
-      paymentMethod: (expense.paymentMethod || expense.payment_method) as 'cash' | 'card' | 'bank-transfer',
-      paymentStatus: (expense.paymentStatus || expense.payment_status) as 'paid' | 'pending' | 'overdue',
-      vendorId: expense.vendorId || expense.vendor_id,
-      vendorName: expense.vendorName || expense.vendor_name
+      paymentMethod: getProperty(expense, 'payment_method', 'paymentMethod') as 'cash' | 'card' | 'bank-transfer',
+      paymentStatus: getProperty(expense, 'payment_status', 'paymentStatus') as 'paid' | 'pending' | 'overdue',
+      vendorId: getProperty(expense, 'vendor_id', 'vendorId'),
+      vendorName: getProperty(expense, 'vendor_name', 'vendorName')
     }));
   } catch (error) {
     console.error("Error fetching expenses:", error);
@@ -657,18 +682,18 @@ export const getTasks = async (): Promise<Task[]> => {
       id: task.id,
       title: task.title,
       description: task.description || '',
-      mechanicId: task.mechanicId || task.mechanic_id,
+      mechanicId: getProperty(task, 'mechanic_id', 'mechanicId'),
       status: task.status as 'pending' | 'in-progress' | 'completed',
-      hoursEstimated: task.hoursEstimated || task.hours_estimated,
-      hoursSpent: task.hoursSpent || task.hours_spent,
-      invoiceId: task.invoiceId || task.invoice_id,
-      vehicleId: task.vehicleId || task.vehicle_id,
+      hoursEstimated: getProperty(task, 'hours_estimated', 'hoursEstimated'),
+      hoursSpent: getProperty(task, 'hours_spent', 'hoursSpent'),
+      invoiceId: getProperty(task, 'invoice_id', 'invoiceId'),
+      vehicleId: getProperty(task, 'vehicle_id', 'vehicleId'),
       location: task.location || 'workshop',
       price: task.price || 0,
-      startTime: task.startTime || task.start_time || '',
-      endTime: task.endTime || task.end_time || '',
-      completedBy: task.completedBy || task.completed_by || '',
-      completedAt: task.completedAt || task.completed_at || ''
+      startTime: getProperty(task, 'start_time', 'startTime') || '',
+      endTime: getProperty(task, 'end_time', 'endTime') || '',
+      completedBy: getProperty(task, 'completed_by', 'completedBy') || '',
+      completedAt: getProperty(task, 'completed_at', 'completedAt') || ''
     }));
   } catch (error) {
     console.error("Error fetching tasks:", error);
@@ -686,12 +711,12 @@ export const getAttendance = async (): Promise<Attendance[]> => {
     // Ensure data is mapped to the correct Attendance type
     return data.map(attendance => ({
       id: attendance.id,
-      mechanicId: attendance.mechanicId || attendance.mechanic_id,
+      mechanicId: getProperty(attendance, 'mechanic_id', 'mechanicId'),
       date: attendance.date,
-      checkIn: attendance.checkIn || attendance.check_in,
-      checkOut: attendance.checkOut || attendance.check_out,
+      checkIn: getProperty(attendance, 'check_in', 'checkIn'),
+      checkOut: getProperty(attendance, 'check_out', 'checkOut'),
       status: attendance.status as 'pending' | 'approved' | 'rejected',
-      approvedBy: attendance.approvedBy || attendance.approved_by,
+      approvedBy: getProperty(attendance, 'approved_by', 'approvedBy'),
       notes: attendance.notes || ''
     }));
   } catch (error) {

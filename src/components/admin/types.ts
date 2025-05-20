@@ -46,7 +46,7 @@ export interface UserManagementProps {
   users: UserWithConfirmation[];
   setUsers: React.Dispatch<React.SetStateAction<UserWithConfirmation[]>>;
   organizations: Organization[];
-  setOrganizations: React.Dispatch<React.SetStateAction<Organization[]>>;
+  setOrganizations?: React.Dispatch<React.SetStateAction<Organization[]>>;
   searchTerm: string;
   setSearchTerm: React.Dispatch<React.SetStateAction<string>>;
   isLoading: boolean;

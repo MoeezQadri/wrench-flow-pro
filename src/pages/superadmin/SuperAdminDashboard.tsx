@@ -73,6 +73,7 @@ const SuperAdminDashboard: React.FC = () => {
           users={users}
           setUsers={setUsers}
           organizations={organizations}
+          setOrganizations={setOrganizations}
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
           isLoading={isLoading}

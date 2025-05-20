@@ -5,6 +5,7 @@ import { useAuthContext } from '@/context/AuthContext';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useSessionManagement } from './superadmin/useSessionManagement';
+import { User, UserRole } from '@/types';
 
 export const useSuperAdminAuth = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -35,11 +36,11 @@ export const useSuperAdminAuth = () => {
       localStorage.setItem('superadmin_token', data.token);
 
       // Set the current user in context
-      const userData = {
+      const userData: User = {
         id: data.superadmin.id,
         name: data.superadmin.username || 'Super Admin',
         email: email,
-        role: 'superuser',
+        role: 'superuser' as UserRole,
         isActive: true,
         lastLogin: new Date().toISOString()
       };
