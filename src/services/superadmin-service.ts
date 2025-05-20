@@ -36,20 +36,7 @@ export const fetchOrganizations = async (): Promise<Organization[]> => {
     
     if (error) throw error;
     
-    return data.map(org => ({
-      id: org.id,
-      name: org.name,
-      subscription_level: org.subscription_level,
-      subscription_status: org.subscription_status,
-      trial_ends_at: org.trial_ends_at || '',
-      logo: org.logo || '',
-      address: org.address || '',
-      phone: org.phone || '',
-      email: org.email || '',
-      country: org.country || '',
-      currency: org.currency || '',
-      created_at: org.created_at || new Date().toISOString()
-    }));
+    return data as Organization[];
   } catch (error) {
     console.error('Error fetching organizations:', error);
     return [];

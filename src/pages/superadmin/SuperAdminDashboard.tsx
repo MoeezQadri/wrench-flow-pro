@@ -32,16 +32,17 @@ const SuperAdminDashboard: React.FC = () => {
       const convertedOrgs = (organizationsData || []).map(org => ({
         id: org.id,
         name: org.name,
-        subscription_level: org.subscriptionLevel || 'trial',
-        subscription_status: org.subscriptionStatus || 'active',
-        trial_ends_at: org.trialEndsAt || '',
+        subscription_level: org.subscription_level || 'trial',
+        subscription_status: org.subscription_status || 'active',
+        trial_ends_at: org.trial_ends_at || '',
         logo: org.logo || '',
         address: org.address || '',
         phone: org.phone || '',
         email: org.email || '',
         country: org.country || '',
         currency: org.currency || '',
-        created_at: new Date().toISOString()
+        created_at: org.created_at || new Date().toISOString(),
+        updated_at: org.updated_at || undefined
       })) as Organization[];
       
       setOrganizations(convertedOrgs);
@@ -68,7 +69,14 @@ const SuperAdminDashboard: React.FC = () => {
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <AdminUserManagement />
+        <AdminUserManagement 
+          users={users} 
+          setUsers={setUsers}
+          organizations={organizations}
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          isLoading={isLoading}
+        />
         
         <OrganizationManagement 
           organizations={organizations} 

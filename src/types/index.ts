@@ -236,7 +236,7 @@ export interface RolePermissionMap {
   subscription: BasePermission;
   finance: BasePermission;
   organization: BasePermission;
-  roles: BasePermission; // Added roles permission
+  roles: BasePermission;
   [key: string]: PermissionValue | BasePermission | TasksPermission | AttendancePermission;
 }
 

@@ -351,27 +351,48 @@ export type Database = {
       }
       organizations: {
         Row: {
+          address: string | null
+          country: string | null
           created_at: string
+          currency: string | null
+          email: string | null
           id: string
+          logo: string | null
           name: string
+          phone: string | null
           subscription_level: string
           subscription_status: string
+          trial_ends_at: string | null
           updated_at: string
         }
         Insert: {
+          address?: string | null
+          country?: string | null
           created_at?: string
+          currency?: string | null
+          email?: string | null
           id?: string
+          logo?: string | null
           name: string
+          phone?: string | null
           subscription_level?: string
           subscription_status?: string
+          trial_ends_at?: string | null
           updated_at?: string
         }
         Update: {
+          address?: string | null
+          country?: string | null
           created_at?: string
+          currency?: string | null
+          email?: string | null
           id?: string
+          logo?: string | null
           name?: string
+          phone?: string | null
           subscription_level?: string
           subscription_status?: string
+          trial_ends_at?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -604,40 +625,61 @@ export type Database = {
       }
       tasks: {
         Row: {
+          completed_at: string | null
+          completed_by: string | null
           created_at: string | null
           description: string | null
+          end_time: string | null
           hours_estimated: number
           hours_spent: number | null
           id: string
           invoice_id: string | null
+          location: string | null
           mechanic_id: string | null
+          price: number | null
+          start_time: string | null
           status: string
           title: string
           updated_at: string | null
+          vehicle_id: string | null
         }
         Insert: {
+          completed_at?: string | null
+          completed_by?: string | null
           created_at?: string | null
           description?: string | null
+          end_time?: string | null
           hours_estimated: number
           hours_spent?: number | null
           id?: string
           invoice_id?: string | null
+          location?: string | null
           mechanic_id?: string | null
+          price?: number | null
+          start_time?: string | null
           status: string
           title: string
           updated_at?: string | null
+          vehicle_id?: string | null
         }
         Update: {
+          completed_at?: string | null
+          completed_by?: string | null
           created_at?: string | null
           description?: string | null
+          end_time?: string | null
           hours_estimated?: number
           hours_spent?: number | null
           id?: string
           invoice_id?: string | null
+          location?: string | null
           mechanic_id?: string | null
+          price?: number | null
+          start_time?: string | null
           status?: string
           title?: string
           updated_at?: string | null
+          vehicle_id?: string | null
         }
         Relationships: [
           {
@@ -652,6 +694,13 @@ export type Database = {
             columns: ["mechanic_id"]
             isOneToOne: false
             referencedRelation: "mechanics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
             referencedColumns: ["id"]
           },
         ]
