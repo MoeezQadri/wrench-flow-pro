@@ -41,7 +41,7 @@ const Login: React.FC = () => {
       {/* Branding Side */}
       <div className="hidden lg:flex lg:w-1/2 bg-blue-600 flex-col items-center justify-center p-12 text-white">
         <div className="max-w-md">
-          <img src="/garage-pro-logo.svg" alt="Garage Pro" className="w-72 mb-8 text-white" />
+          <img alt="Garage Pro" src="/lovable-uploads/ed35fded-80cf-4192-b64b-e97730ee6384.png" className="w-72 mb-8 text-white object-fill" />
           <p className="text-xl mb-8">Automotive business management simplified</p>
           <div className="space-y-4 text-lg">
             <div className="flex items-center">
