@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthContext } from '@/context/AuthContext';
@@ -79,7 +80,7 @@ const Login: React.FC = () => {
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
                   Email Address
                 </label>
-                <input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required />
+                <input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500" required />
               </div>
               
               <div className="mb-6">
@@ -87,14 +88,14 @@ const Login: React.FC = () => {
                   <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                     Password
                   </label>
-                  <Link to="/auth/forgot-password" className="text-sm text-blue-600 hover:underline">
+                  <Link to="/auth/forgot-password" className="text-sm text-gray-600 hover:underline">
                     Forgot password?
                   </Link>
                 </div>
-                <input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required />
+                <input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500" required />
               </div>
               
-              <button type="submit" disabled={loading} className={`w-full bg-blue-600 text-white py-3 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}>
+              <button type="submit" disabled={loading} className={`w-full bg-gray-700 text-white py-3 rounded-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}>
                 {loading ? 'Logging in...' : 'Log in'}
               </button>
             </form>
@@ -102,7 +103,7 @@ const Login: React.FC = () => {
             <div className="mt-6 text-center">
               <p className="text-gray-600">
                 Don't have an account?{' '}
-                <Link to="/auth/register" className="text-blue-600 hover:underline">
+                <Link to="/auth/register" className="text-gray-700 hover:underline">
                   Register
                 </Link>
               </p>
