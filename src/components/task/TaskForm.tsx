@@ -86,11 +86,9 @@ const TaskForm: React.FC<TaskFormProps> = ({ defaultValues, onSubmit, formId, us
         const mechanicsData = await getMechanics();
         setMechanics(mechanicsData);
         
-        // Load invoices only for managers and owners who can edit prices
-        if (canEditPrice) {
-          const invoicesData = await getInvoices();
-          setInvoices(invoicesData);
-        }
+        // Always load invoices, but only display them for users with proper permissions
+        const invoicesData = await getInvoices();
+        setInvoices(invoicesData);
         
         // Load vehicles
         const allCustomers = await getCustomers();
@@ -111,7 +109,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ defaultValues, onSubmit, formId, us
     };
     
     loadData();
-  }, [canEditPrice]);
+  }, []);
 
   const handleSubmit = (values: TaskFormValues) => {
     if (values.invoiceId === "none") {
@@ -373,7 +371,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ defaultValues, onSubmit, formId, us
                         .filter(inv => inv.status === 'open' || inv.status === 'in-progress')
                         .map(invoice => (
                           <SelectItem key={invoice.id} value={invoice.id}>
-                            #{invoice.id.substring(0, 8)} - {invoice.vehicleInfo.make} {invoice.vehicleInfo.model}
+                            #{invoice.id.substring(0, 8)} - {invoice.vehicleInfo?.make} {invoice.vehicleInfo?.model}
                           </SelectItem>
                         ))
                       }
