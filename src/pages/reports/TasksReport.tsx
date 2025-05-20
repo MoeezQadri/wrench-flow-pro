@@ -1,8 +1,9 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { tasks, mechanics, getMechanicById, getCurrentUser } from "@/services/data-service";
+import { getTasks, getMechanics, getMechanicById, getCurrentUser } from "@/services/data-service";
 import { ChevronLeft, Download, Filter } from "lucide-react";
 import { Link } from "react-router-dom";
 import { 
@@ -19,12 +20,39 @@ import {
   Cell
 } from 'recharts';
 import DateRangeDropdown from "@/components/DateRangeDropdown";
+import { Task, Mechanic } from "@/types";
+import { isWithinInterval, parseISO, subDays } from "date-fns";
 
 const TasksReport = () => {
-  const [startDate, setStartDate] = useState<Date>(new Date());
+  const thirtyDaysAgo = subDays(new Date(), 30);
+  const [startDate, setStartDate] = useState<Date>(thirtyDaysAgo);
   const [endDate, setEndDate] = useState<Date>(new Date());
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [mechanics, setMechanics] = useState<Mechanic[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
   const currentUser = getCurrentUser();
   const isForeman = currentUser.role === 'foreman';
+  
+  // Load task and mechanic data
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        const tasksData = await getTasks();
+        const mechanicsData = await getMechanics();
+        
+        setTasks(tasksData);
+        setMechanics(mechanicsData);
+      } catch (error) {
+        console.error("Error fetching task data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, []);
   
   // Filter tasks - since tasks don't have date property directly, 
   // we'll assume all tasks are within the date range for this example
@@ -42,9 +70,9 @@ const TasksReport = () => {
       name: mechanic.name,
       efficiency: efficiency,
       estimatedHours: totalEstimated,
-      actualHours: totalActual
+      actualHours: totalActual || 0
     };
-  });
+  }).filter(data => data.estimatedHours > 0 || data.actualHours > 0);
 
   // Mechanic utilization data (tasks assigned per mechanic)
   const mechanicUtilizationData = mechanics.map(mechanic => {
@@ -70,7 +98,7 @@ const TasksReport = () => {
       completedTasks,
       value: totalTasks // for pie chart
     };
-  });
+  }).filter(data => data.totalTasks > 0);
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#83a6ed'];
 
@@ -84,6 +112,10 @@ const TasksReport = () => {
   const inProgressTasks = filteredTasks.filter(task => task.status === 'in-progress').length;
   const completedTasks = filteredTasks.filter(task => task.status === 'completed').length;
   const totalTasks = filteredTasks.length;
+
+  if (isLoading) {
+    return <div className="p-8 text-center">Loading task data...</div>;
+  }
 
   return (
     <div className="space-y-6">
@@ -114,7 +146,7 @@ const TasksReport = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{pendingTasks}</div>
-            <p className="text-xs text-muted-foreground">{((pendingTasks / totalTasks) * 100).toFixed(1)}% of total</p>
+            <p className="text-xs text-muted-foreground">{totalTasks > 0 ? ((pendingTasks / totalTasks) * 100).toFixed(1) : 0}% of total</p>
           </CardContent>
         </Card>
         <Card>
@@ -123,7 +155,7 @@ const TasksReport = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{inProgressTasks}</div>
-            <p className="text-xs text-muted-foreground">{((inProgressTasks / totalTasks) * 100).toFixed(1)}% of total</p>
+            <p className="text-xs text-muted-foreground">{totalTasks > 0 ? ((inProgressTasks / totalTasks) * 100).toFixed(1) : 0}% of total</p>
           </CardContent>
         </Card>
         <Card>
@@ -132,7 +164,7 @@ const TasksReport = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{completedTasks}</div>
-            <p className="text-xs text-muted-foreground">{((completedTasks / totalTasks) * 100).toFixed(1)}% of total</p>
+            <p className="text-xs text-muted-foreground">{totalTasks > 0 ? ((completedTasks / totalTasks) * 100).toFixed(1) : 0}% of total</p>
           </CardContent>
         </Card>
         <Card>
@@ -153,19 +185,25 @@ const TasksReport = () => {
           <CardDescription>Estimated vs. actual hours spent on tasks</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={mechanicEfficiencyData} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" />
-                <YAxis dataKey="name" type="category" />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="estimatedHours" name="Estimated Hours" fill="#4ade80" />
-                <Bar dataKey="actualHours" name="Actual Hours" fill="#3b82f6" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+          {mechanicEfficiencyData.length === 0 ? (
+            <div className="h-80 flex items-center justify-center text-muted-foreground">
+              No completed tasks with time data available
+            </div>
+          ) : (
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={mechanicEfficiencyData} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" />
+                  <YAxis dataKey="name" type="category" />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="estimatedHours" name="Estimated Hours" fill="#4ade80" />
+                  <Bar dataKey="actualHours" name="Actual Hours" fill="#3b82f6" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </CardContent>
       </Card>
       
@@ -177,54 +215,60 @@ const TasksReport = () => {
             <CardDescription>Tasks assigned to each mechanic</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="h-80 flex flex-col md:flex-row items-center justify-center">
-              <div className="w-full md:w-1/2 h-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={mechanicUtilizationData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                      nameKey="name"
-                      label={({name, percent}) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                    >
-                      {mechanicUtilizationData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value, name) => [`${value} tasks`, name]} />
-                  </PieChart>
-                </ResponsiveContainer>
+            {mechanicUtilizationData.length === 0 ? (
+              <div className="h-80 flex items-center justify-center text-muted-foreground">
+                No mechanics have tasks assigned currently
               </div>
-              <div className="w-full md:w-1/2 overflow-y-auto h-full">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Mechanic</TableHead>
-                      <TableHead>Total</TableHead>
-                      <TableHead>Pending</TableHead>
-                      <TableHead>In Progress</TableHead>
-                      <TableHead>Completed</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {mechanicUtilizationData.map((mechanic) => (
-                      <TableRow key={mechanic.name}>
-                        <TableCell className="font-medium">{mechanic.name}</TableCell>
-                        <TableCell>{mechanic.totalTasks}</TableCell>
-                        <TableCell>{mechanic.pendingTasks}</TableCell>
-                        <TableCell>{mechanic.inProgressTasks}</TableCell>
-                        <TableCell>{mechanic.completedTasks}</TableCell>
+            ) : (
+              <div className="h-80 flex flex-col md:flex-row items-center justify-center">
+                <div className="w-full md:w-1/2 h-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={mechanicUtilizationData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="value"
+                        nameKey="name"
+                        label={({name, percent}) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                      >
+                        {mechanicUtilizationData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(value, name) => [`${value} tasks`, name]} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="w-full md:w-1/2 overflow-y-auto h-full">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Mechanic</TableHead>
+                        <TableHead>Total</TableHead>
+                        <TableHead>Pending</TableHead>
+                        <TableHead>In Progress</TableHead>
+                        <TableHead>Completed</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {mechanicUtilizationData.map((mechanic) => (
+                        <TableRow key={mechanic.name}>
+                          <TableCell className="font-medium">{mechanic.name}</TableCell>
+                          <TableCell>{mechanic.totalTasks}</TableCell>
+                          <TableCell>{mechanic.pendingTasks}</TableCell>
+                          <TableCell>{mechanic.inProgressTasks}</TableCell>
+                          <TableCell>{mechanic.completedTasks}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               </div>
-            </div>
+            )}
           </CardContent>
         </Card>
       )}
@@ -259,39 +303,47 @@ const TasksReport = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredTasks.map((task) => {
-                const mechanic = getMechanicById(task.mechanicId);
-                const efficiency = task.hoursEstimated && task.hoursSpent
-                  ? Math.round((task.hoursEstimated / task.hoursSpent) * 100)
-                  : null;
-                  
-                return (
-                  <TableRow key={task.id}>
-                    <TableCell className="font-medium">{task.title}</TableCell>
-                    <TableCell>{mechanic?.name || "Unknown"}</TableCell>
-                    <TableCell>
-                      <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                        ${task.status === 'completed' ? 'bg-green-100 text-green-800' : 
-                          task.status === 'in-progress' ? 'bg-blue-100 text-blue-800' : 
-                          'bg-yellow-100 text-yellow-800'}`}>
-                        {task.status.charAt(0).toUpperCase() + task.status.slice(1)}
-                      </div>
-                    </TableCell>
-                    <TableCell>{task.hoursEstimated}</TableCell>
-                    <TableCell>{task.hoursSpent || "In Progress"}</TableCell>
-                    <TableCell>
-                      {efficiency ? (
+              {filteredTasks.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    No tasks found for the selected criteria
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredTasks.map((task) => {
+                  const mechanic = getMechanicById(task.mechanicId);
+                  const efficiency = task.hoursEstimated && task.hoursSpent
+                    ? Math.round((task.hoursEstimated / task.hoursSpent) * 100)
+                    : null;
+                    
+                  return (
+                    <TableRow key={task.id}>
+                      <TableCell className="font-medium">{task.title}</TableCell>
+                      <TableCell>{mechanic?.name || "Unknown"}</TableCell>
+                      <TableCell>
                         <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                          ${efficiency >= 100 ? 'bg-green-100 text-green-800' : 
-                            efficiency >= 70 ? 'bg-yellow-100 text-yellow-800' : 
-                            'bg-red-100 text-red-800'}`}>
-                          {efficiency}%
+                          ${task.status === 'completed' ? 'bg-green-100 text-green-800' : 
+                            task.status === 'in-progress' ? 'bg-blue-100 text-blue-800' : 
+                            'bg-yellow-100 text-yellow-800'}`}>
+                          {task.status.charAt(0).toUpperCase() + task.status.slice(1)}
                         </div>
-                      ) : "N/A"}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
+                      </TableCell>
+                      <TableCell>{task.hoursEstimated}</TableCell>
+                      <TableCell>{task.hoursSpent || "In Progress"}</TableCell>
+                      <TableCell>
+                        {efficiency ? (
+                          <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                            ${efficiency >= 100 ? 'bg-green-100 text-green-800' : 
+                              efficiency >= 70 ? 'bg-yellow-100 text-yellow-800' : 
+                              'bg-red-100 text-red-800'}`}>
+                            {efficiency}%
+                          </div>
+                        ) : "N/A"}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
             </TableBody>
           </Table>
         </CardContent>

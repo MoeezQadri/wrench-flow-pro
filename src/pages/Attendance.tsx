@@ -19,7 +19,8 @@ import {
   approveAttendance, 
   getMechanicById, 
   getCurrentUser, 
-  hasPermission 
+  hasPermission,
+  recordAttendance
 } from "@/services/data-service";
 import { Attendance } from "@/types";
 import {
@@ -38,11 +39,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { AttendanceDialog } from "@/components/attendance/AttendanceDialog";
 
 const AttendancePage = () => {
   const [attendanceList, setAttendanceList] = useState<Attendance[]>(() => attendanceRecords);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [notes, setNotes] = useState<string>("");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const currentUser = getCurrentUser();
   
   // Format the selected date as YYYY-MM-DD for filtering
@@ -98,6 +101,22 @@ const AttendancePage = () => {
     setNotes("");
   };
 
+  const handleAddAttendance = async (attendanceData: Omit<Attendance, "id">) => {
+    try {
+      // In a real app, this would call an API
+      const newAttendance = await recordAttendance(attendanceData);
+      
+      // Update local state
+      setAttendanceList(prev => [...prev, newAttendance]);
+      
+      toast.success("Attendance record added successfully");
+      setIsDialogOpen(false);
+    } catch (error) {
+      console.error("Error adding attendance record:", error);
+      toast.error("Failed to add attendance record");
+    }
+  };
+
   const getStatusBadgeClass = (status: 'pending' | 'approved' | 'rejected') => {
     switch (status) {
       case 'pending':
@@ -143,10 +162,17 @@ const AttendancePage = () => {
             <CardTitle>Attendance Records</CardTitle>
             <div className="flex gap-2">
               {canManageAttendance && (
-                <Button variant="outline" size="sm">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Record
-                </Button>
+                <AttendanceDialog
+                  trigger={
+                    <Button variant="outline" size="sm">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Record
+                    </Button>
+                  }
+                  onSave={handleAddAttendance}
+                  open={isDialogOpen}
+                  onOpenChange={setIsDialogOpen}
+                />
               )}
               <Button variant="outline" size="sm">
                 <Filter className="h-4 w-4 mr-2" />

@@ -1,60 +1,89 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { mechanics } from "@/services/data-service";
+import { getAttendance, getMechanics } from "@/services/data-service";
 import { ChevronLeft, Download, Filter } from "lucide-react";
 import { Link } from "react-router-dom";
 import DateRangeDropdown from "@/components/DateRangeDropdown";
-
-type AttendanceRecord = {
-  id: string;
-  mechanicId: string;
-  date: string;
-  clockIn: string;
-  clockOut: string;
-  status: "present" | "late" | "absent" | "half-day";
-  hoursWorked: number;
-};
-
-// Sample attendance data
-const attendanceData: AttendanceRecord[] = [
-  { id: "1", mechanicId: "1", date: "2023-05-15", clockIn: "08:00", clockOut: "17:00", status: "present", hoursWorked: 8 },
-  { id: "2", mechanicId: "2", date: "2023-05-15", clockIn: "08:30", clockOut: "17:00", status: "late", hoursWorked: 7.5 },
-  { id: "3", mechanicId: "3", date: "2023-05-15", clockIn: "08:00", clockOut: "13:00", status: "half-day", hoursWorked: 4 },
-  { id: "4", mechanicId: "1", date: "2023-05-16", clockIn: "08:00", clockOut: "17:00", status: "present", hoursWorked: 8 },
-  { id: "5", mechanicId: "2", date: "2023-05-16", clockIn: "", clockOut: "", status: "absent", hoursWorked: 0 },
-  { id: "6", mechanicId: "3", date: "2023-05-16", clockIn: "08:00", clockOut: "17:00", status: "present", hoursWorked: 8 },
-];
+import { Attendance } from "@/types";
+import { isWithinInterval, parseISO, format } from "date-fns";
 
 const AttendanceReport = () => {
   const [startDate, setStartDate] = useState<Date>(new Date());
   const [endDate, setEndDate] = useState<Date>(new Date());
+  const [attendanceData, setAttendanceData] = useState<Attendance[]>([]);
+  const [mechanics, setMechanics] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   
-  // Format date for filtering attendance records
-  const formatDateString = (date: Date) => {
-    return date.toISOString().split('T')[0];
-  };
+  // Load attendance data
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        const attendance = await getAttendance();
+        const mechanicsData = await getMechanics();
+        
+        setAttendanceData(attendance);
+        setMechanics(mechanicsData);
+      } catch (error) {
+        console.error("Error fetching attendance data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, []);
   
   // Filter attendance for the selected date range
-  const filteredAttendance = attendanceData.filter(record => 
-    record.date >= formatDateString(startDate) && 
-    record.date <= formatDateString(endDate)
-  );
+  const filteredAttendance = attendanceData.filter(record => {
+    try {
+      const recordDate = parseISO(record.date);
+      return isWithinInterval(recordDate, { start: startDate, end: endDate });
+    } catch (e) {
+      // Handle parsing errors (invalid dates)
+      return false;
+    }
+  });
   
   // Calculate statistics
-  const totalPresent = filteredAttendance.filter(a => a.status === "present").length;
-  const totalLate = filteredAttendance.filter(a => a.status === "late").length;
-  const totalAbsent = filteredAttendance.filter(a => a.status === "absent").length;
-  const totalHalfDay = filteredAttendance.filter(a => a.status === "half-day").length;
-  const averageHours = filteredAttendance.reduce((sum, record) => sum + record.hoursWorked, 0) / 
-                       (filteredAttendance.length || 1);
+  const totalPresent = filteredAttendance.filter(a => a.status === "approved" && a.checkIn && a.checkOut).length;
+  const totalLate = filteredAttendance.filter(a => a.status === "approved" && a.notes?.toLowerCase().includes("late")).length;
+  const totalAbsent = filteredAttendance.filter(a => a.status === "rejected" || (!a.checkIn && !a.checkOut)).length;
+  const totalHalfDay = filteredAttendance.filter(a => 
+    a.status === "approved" && a.notes?.toLowerCase().includes("half-day")).length;
+  
+  // Calculate hours worked
+  const calculateHoursWorked = (checkIn: string, checkOut: string): number => {
+    if (!checkIn || !checkOut) return 0;
+    
+    const [inHours, inMinutes] = checkIn.split(':').map(Number);
+    const [outHours, outMinutes] = checkOut.split(':').map(Number);
+    
+    const inTime = inHours * 60 + inMinutes;
+    const outTime = outHours * 60 + outMinutes;
+    
+    return Math.max(0, (outTime - inTime) / 60);
+  };
+  
+  const totalHours = filteredAttendance
+    .filter(a => a.checkIn && a.checkOut)
+    .reduce((sum, record) => sum + calculateHoursWorked(record.checkIn, record.checkOut || ""), 0);
+    
+  const averageHours = filteredAttendance.length > 0 
+    ? totalHours / filteredAttendance.length 
+    : 0;
   
   const handleDateRangeChange = (start: Date, end: Date) => {
     setStartDate(start);
     setEndDate(end);
   };
+
+  if (isLoading) {
+    return <div className="p-8 text-center">Loading attendance data...</div>;
+  }
 
   return (
     <div className="space-y-6">
@@ -151,27 +180,48 @@ const AttendanceReport = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredAttendance.map((record) => {
-                const mechanic = mechanics.find(m => m.id === record.mechanicId);
-                return (
-                  <TableRow key={record.id}>
-                    <TableCell className="font-medium">{mechanic?.name || "Unknown"}</TableCell>
-                    <TableCell>{record.date}</TableCell>
-                    <TableCell>{record.clockIn || "N/A"}</TableCell>
-                    <TableCell>{record.clockOut || "N/A"}</TableCell>
-                    <TableCell>{record.hoursWorked}</TableCell>
-                    <TableCell>
-                      <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                        ${record.status === 'present' ? 'bg-green-100 text-green-800' : 
-                          record.status === 'late' ? 'bg-yellow-100 text-yellow-800' : 
-                          record.status === 'absent' ? 'bg-red-100 text-red-800' : 
-                          'bg-blue-100 text-blue-800'}`}>
-                        {record.status.charAt(0).toUpperCase() + record.status.slice(1)}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
+              {filteredAttendance.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    No attendance records found for the selected date range
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredAttendance.map((record) => {
+                  const mechanic = mechanics.find(m => m.id === record.mechanicId);
+                  const hoursWorked = calculateHoursWorked(record.checkIn, record.checkOut || "");
+                  
+                  // Derive status display from record
+                  let statusDisplay = "Present";
+                  let statusClass = "bg-green-100 text-green-800";
+                  
+                  if (record.status === "rejected" || (!record.checkIn && !record.checkOut)) {
+                    statusDisplay = "Absent";
+                    statusClass = "bg-red-100 text-red-800";
+                  } else if (record.notes?.toLowerCase().includes("late")) {
+                    statusDisplay = "Late";
+                    statusClass = "bg-yellow-100 text-yellow-800";
+                  } else if (record.notes?.toLowerCase().includes("half-day")) {
+                    statusDisplay = "Half-day";
+                    statusClass = "bg-blue-100 text-blue-800";
+                  }
+                  
+                  return (
+                    <TableRow key={record.id}>
+                      <TableCell className="font-medium">{mechanic?.name || "Unknown"}</TableCell>
+                      <TableCell>{record.date}</TableCell>
+                      <TableCell>{record.checkIn || "N/A"}</TableCell>
+                      <TableCell>{record.checkOut || "N/A"}</TableCell>
+                      <TableCell>{hoursWorked.toFixed(1)}</TableCell>
+                      <TableCell>
+                        <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusClass}`}>
+                          {statusDisplay}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
             </TableBody>
           </Table>
         </CardContent>

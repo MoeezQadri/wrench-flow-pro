@@ -1,6 +1,6 @@
 
-import React, { useState } from "react";
-import { format } from "date-fns";
+import React, { useState, useEffect } from "react";
+import { format, isWithinInterval, parseISO, subDays } from "date-fns";
 import { Link } from "react-router-dom";
 import { 
   PieChart, 
@@ -11,7 +11,7 @@ import {
   Legend
 } from "recharts";
 import { Invoice, InvoiceStatus } from "@/types";
-import { invoices, calculateInvoiceTotal } from "@/services/data-service";
+import { getInvoices, calculateInvoiceTotal } from "@/services/data-service";
 import DateRangeDropdown from "@/components/DateRangeDropdown";
 import StatusBadge from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
@@ -24,8 +24,7 @@ const COLORS = ['#FFC107', '#3B82F6', '#10B981', '#8B5CF6', '#EF4444'];
 
 const InvoicingReport = () => {
   const today = new Date();
-  const thirtyDaysAgo = new Date(today);
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const thirtyDaysAgo = subDays(today, 30);
   
   const [startDate, setStartDate] = useState<Date>(thirtyDaysAgo);
   const [endDate, setEndDate] = useState<Date>(today);
@@ -34,11 +33,35 @@ const InvoicingReport = () => {
     key: keyof Invoice | 'total' | 'customerName';
     direction: 'ascending' | 'descending';
   }>({ key: 'date', direction: 'descending' });
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Load invoice data
+  useEffect(() => {
+    const fetchInvoiceData = async () => {
+      try {
+        setIsLoading(true);
+        const invoicesData = await getInvoices();
+        setInvoices(invoicesData);
+      } catch (error) {
+        console.error("Error fetching invoices:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchInvoiceData();
+  }, []);
 
   // Filter invoices by date range
   const filteredInvoices = invoices.filter(invoice => {
-    const invoiceDate = new Date(invoice.date);
-    return invoiceDate >= startDate && invoiceDate <= endDate;
+    try {
+      const invoiceDate = parseISO(invoice.date);
+      return isWithinInterval(invoiceDate, { start: startDate, end: endDate });
+    } catch (e) {
+      // Handle parsing errors (invalid dates)
+      return false;
+    }
   });
 
   // Calculate statistics
@@ -66,9 +89,9 @@ const InvoicingReport = () => {
   // Apply search filter
   const searchedInvoices = filteredInvoices.filter(invoice => {
     const invoiceId = invoice.id.toLowerCase();
-    const vehicleMake = invoice.vehicleInfo.make.toLowerCase();
-    const vehicleModel = invoice.vehicleInfo.model.toLowerCase();
-    const licensePlate = invoice.vehicleInfo.licensePlate.toLowerCase();
+    const vehicleMake = (invoice.vehicleInfo?.make || "").toLowerCase();
+    const vehicleModel = (invoice.vehicleInfo?.model || "").toLowerCase();
+    const licensePlate = (invoice.vehicleInfo?.licensePlate || "").toLowerCase();
     const search = searchTerm.toLowerCase();
     
     return invoiceId.includes(search) || 
@@ -131,6 +154,10 @@ const InvoicingReport = () => {
     setEndDate(end);
   };
 
+  if (isLoading) {
+    return <div className="p-8 text-center">Loading invoice data...</div>;
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
@@ -187,28 +214,34 @@ const InvoicingReport = () => {
             <CardDescription>Breakdown of invoices by current status</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={chartData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                  >
-                    {chartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value) => [`${value} invoices`, 'Count']} />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
+            {chartData.length === 0 ? (
+              <div className="h-80 flex items-center justify-center text-muted-foreground">
+                No invoice data available for the selected period
+              </div>
+            ) : (
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={chartData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                    >
+                      {chartData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(value) => [`${value} invoices`, 'Count']} />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -310,7 +343,7 @@ const InvoicingReport = () => {
                       <TableCell className="font-medium">{invoice.id}</TableCell>
                       <TableCell>{format(new Date(invoice.date), 'MMM dd, yyyy')}</TableCell>
                       <TableCell>
-                        {`${invoice.vehicleInfo.make} ${invoice.vehicleInfo.model} (${invoice.vehicleInfo.licensePlate})`}
+                        {`${invoice.vehicleInfo?.make || 'N/A'} ${invoice.vehicleInfo?.model || ''} ${invoice.vehicleInfo?.licensePlate ? `(${invoice.vehicleInfo.licensePlate})` : ''}`}
                       </TableCell>
                       <TableCell>
                         <StatusBadge status={invoice.status} />
