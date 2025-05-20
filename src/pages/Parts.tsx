@@ -21,7 +21,6 @@ const Parts = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [customerFilter, setCustomerFilter] = useState("all");
   const [selectedInvoice, setSelectedInvoice] = useState<string | undefined>(undefined);
-  const [partInvoiceMap, setPartInvoiceMap] = useState<Record<string, string[]>>({});
   
   const currentUser = getCurrentUser();
   const canManageParts = hasPermission(currentUser, "parts", "manage");
@@ -55,28 +54,8 @@ const Parts = () => {
     }
     
     // Check if the part is associated with the selected invoice/customer
-    return matchesSearch && partInvoiceMap[part.id]?.includes(customerFilter);
+    return matchesSearch && (part.invoiceIds?.includes(customerFilter) || false);
   });
-
-  // Effect to simulate loading parts-invoice associations
-  // In a real app, this would be loaded from your database
-  useEffect(() => {
-    // Simulating stored associations between parts and invoices
-    // In a real implementation, this would be fetched from your backend
-    const mockPartInvoiceAssociations: Record<string, string[]> = {};
-    
-    // Add some example associations
-    parts.forEach((part, index) => {
-      if (index % 3 === 0 && invoices.length > 0) { // Associate every third part
-        const randomInvoiceIndex = Math.floor(Math.random() * invoices.length);
-        mockPartInvoiceAssociations[part.id] = [invoices[randomInvoiceIndex].id];
-      } else {
-        mockPartInvoiceAssociations[part.id] = [];
-      }
-    });
-    
-    setPartInvoiceMap(mockPartInvoiceAssociations);
-  }, []);
 
   const handleAddPart = (invoiceId?: string) => {
     setSelectedPart(undefined);
@@ -106,49 +85,67 @@ const Parts = () => {
       }
     });
 
-    // If an invoice was selected when creating this part, it should be added to that invoice
-    if (selectedInvoice) {
-      // Update the part-invoice association
-      setPartInvoiceMap(prev => ({
-        ...prev,
-        [part.id]: [...(prev[part.id] || []), selectedInvoice]
-      }));
+    // If an invoice was selected when creating this part and it's not already in the invoiceIds, add it
+    if (selectedInvoice && !part.invoiceIds?.includes(selectedInvoice)) {
+      setPartsList(prev => {
+        const index = prev.findIndex(p => p.id === part.id);
+        if (index >= 0) {
+          const updated = [...prev];
+          const updatedPart = { 
+            ...updated[index], 
+            invoiceIds: [...(updated[index].invoiceIds || []), selectedInvoice]
+          };
+          updated[index] = updatedPart;
+          return updated;
+        }
+        return prev;
+      });
       
       toast.success(`Part added to invoice #${selectedInvoice.substring(0, 8)}`);
     }
   };
 
   const handleTagPart = (partId: string, invoiceId: string) => {
-    // Update the part-invoice mapping
-    setPartInvoiceMap(prev => {
-      const currentAssociations = prev[partId] || [];
-      
-      // Check if this part is already associated with this invoice
-      if (currentAssociations.includes(invoiceId)) {
-        toast.info("This part is already associated with the selected invoice");
-        return prev;
+    // Update the part with the new invoice ID
+    setPartsList(prev => {
+      const index = prev.findIndex(p => p.id === partId);
+      if (index >= 0) {
+        const part = prev[index];
+        
+        // Check if this part is already associated with this invoice
+        if (part.invoiceIds?.includes(invoiceId)) {
+          toast.info("This part is already associated with the selected invoice");
+          return prev;
+        }
+        
+        const updated = [...prev];
+        updated[index] = { 
+          ...part, 
+          invoiceIds: [...(part.invoiceIds || []), invoiceId]
+        };
+        
+        toast.success("Part tagged to invoice successfully");
+        return updated;
       }
-      
-      const updatedAssociations = {
-        ...prev,
-        [partId]: [...currentAssociations, invoiceId]
-      };
-      
-      toast.success("Part tagged to invoice successfully");
-      return updatedAssociations;
+      return prev;
     });
   };
 
   const handleRemoveTag = (partId: string, invoiceId: string) => {
-    setPartInvoiceMap(prev => {
-      const currentAssociations = prev[partId] || [];
-      const updatedAssociations = {
-        ...prev,
-        [partId]: currentAssociations.filter(id => id !== invoiceId)
-      };
-      
-      toast.success("Part untagged from invoice");
-      return updatedAssociations;
+    setPartsList(prev => {
+      const index = prev.findIndex(p => p.id === partId);
+      if (index >= 0) {
+        const part = prev[index];
+        const updated = [...prev];
+        updated[index] = {
+          ...part,
+          invoiceIds: part.invoiceIds?.filter(id => id !== invoiceId) || []
+        };
+        
+        toast.success("Part untagged from invoice");
+        return updated;
+      }
+      return prev;
     });
   };
 
@@ -264,8 +261,8 @@ const Parts = () => {
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-2 max-w-xs">
-                      {partInvoiceMap[part.id]?.length > 0 ? (
-                        partInvoiceMap[part.id].map(invoiceId => {
+                      {(part.invoiceIds?.length || 0) > 0 ? (
+                        part.invoiceIds?.map(invoiceId => {
                           const invoice = invoicesWithCustomers.find(inv => inv.id === invoiceId);
                           if (!invoice) return null;
                           

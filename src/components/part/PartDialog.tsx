@@ -61,6 +61,7 @@ const PartDialog = ({ open, onOpenChange, onSave, part, invoiceId }: PartDialogP
         vendorId: vendorId,
         vendorName: data.vendorName,
         partNumber: data.partNumber,
+        invoiceIds: data.invoiceIds || [],
       };
       
       onSave(newPart);
@@ -87,7 +88,7 @@ const PartDialog = ({ open, onOpenChange, onSave, part, invoiceId }: PartDialogP
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEditing ? "Edit Part" : "Add New Part"}</DialogTitle>
           <DialogDescription>
@@ -111,6 +112,7 @@ const PartDialog = ({ open, onOpenChange, onSave, part, invoiceId }: PartDialogP
                   vendorId: part.vendorId || "none",
                   vendorName: part.vendorName,
                   partNumber: part.partNumber,
+                  invoiceIds: part.invoiceIds || [],
                 }
               : undefined
           }
@@ -118,6 +120,7 @@ const PartDialog = ({ open, onOpenChange, onSave, part, invoiceId }: PartDialogP
           formId={formId}
           invoice={invoice}
           invoiceId={invoiceId}
+          part={part}
         />
 
         <DialogFooter>

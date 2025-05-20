@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -10,6 +10,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -20,8 +21,11 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
-import { vendors } from "@/services/data-service";
-import { Invoice } from "@/types";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import { vendors, getInvoices } from "@/services/data-service";
+import { Invoice, Part } from "@/types";
+import { X } from "lucide-react";
 
 const partSchema = z.object({
   name: z.string().min(1, { message: "Name is required" }),
@@ -31,6 +35,7 @@ const partSchema = z.object({
   vendorId: z.string().optional(),
   vendorName: z.string().optional(),
   partNumber: z.string().optional(),
+  invoiceIds: z.array(z.string()).optional(),
 });
 
 export type PartFormValues = z.infer<typeof partSchema>;
@@ -41,9 +46,15 @@ interface PartFormProps {
   formId: string;
   invoice?: Invoice | null;
   invoiceId?: string;
+  part?: Part;
 }
 
-const PartForm = ({ defaultValues, onSubmit, formId, invoice, invoiceId }: PartFormProps) => {
+const PartForm = ({ defaultValues, onSubmit, formId, invoice, invoiceId, part }: PartFormProps) => {
+  const [availableInvoices, setAvailableInvoices] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showInvoiceSelection, setShowInvoiceSelection] = useState(false);
+  const [selectedInvoiceIds, setSelectedInvoiceIds] = useState<string[]>([]);
+
   const form = useForm<PartFormValues>({
     resolver: zodResolver(partSchema),
     defaultValues: defaultValues || {
@@ -54,12 +65,98 @@ const PartForm = ({ defaultValues, onSubmit, formId, invoice, invoiceId }: PartF
       vendorId: "none",
       vendorName: "",
       partNumber: "",
+      invoiceIds: [],
     },
   });
 
+  // Load available invoices for selection
+  useEffect(() => {
+    const fetchInvoices = async () => {
+      try {
+        setIsLoading(true);
+        const invoices = await getInvoices();
+        // Only show active invoices for selection
+        const activeInvoices = invoices.filter(inv => 
+          ["open", "in-progress", "completed", "partial"].includes(inv.status)
+        );
+        setAvailableInvoices(activeInvoices);
+      } catch (error) {
+        console.error("Error fetching invoices:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchInvoices();
+  }, []);
+
+  // Initialize form with any existing invoice associations
+  useEffect(() => {
+    if (part?.invoiceIds && part.invoiceIds.length > 0) {
+      setShowInvoiceSelection(true);
+      setSelectedInvoiceIds(part.invoiceIds);
+      form.setValue('invoiceIds', part.invoiceIds);
+    }
+    // If form is being opened with a specific invoice already selected
+    if (invoiceId) {
+      setShowInvoiceSelection(true);
+      setSelectedInvoiceIds(prev => {
+        const newIds = [...prev];
+        if (!newIds.includes(invoiceId)) {
+          newIds.push(invoiceId);
+        }
+        return newIds;
+      });
+      form.setValue('invoiceIds', selectedInvoiceIds);
+    }
+  }, [part, invoiceId, form]);
+
+  // Handle selecting an invoice
+  const handleInvoiceSelect = (invoiceId: string) => {
+    setSelectedInvoiceIds(prev => {
+      const newIds = [...prev];
+      if (!newIds.includes(invoiceId)) {
+        newIds.push(invoiceId);
+      }
+      return newIds;
+    });
+    form.setValue('invoiceIds', selectedInvoiceIds);
+  };
+
+  // Handle removing an invoice
+  const handleInvoiceRemove = (invoiceId: string) => {
+    setSelectedInvoiceIds(prev => {
+      const newIds = prev.filter(id => id !== invoiceId);
+      return newIds;
+    });
+    form.setValue('invoiceIds', selectedInvoiceIds);
+  };
+
+  // Before submitting, ensure invoiceIds is properly set
+  const handleFormSubmit = (data: PartFormValues) => {
+    const formData = { ...data };
+    
+    if (showInvoiceSelection) {
+      formData.invoiceIds = selectedInvoiceIds;
+    } else {
+      formData.invoiceIds = [];
+    }
+    
+    onSubmit(formData);
+  };
+
+  // Get invoice details by id
+  const getInvoiceDetails = (invoiceId: string) => {
+    const invoice = availableInvoices.find(inv => inv.id === invoiceId);
+    if (!invoice) return 'Unknown Invoice';
+    
+    const vehicleInfo = invoice.vehicleInfo;
+    return `${vehicleInfo.make} ${vehicleInfo.model} (${vehicleInfo.licensePlate})`;
+  };
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} id={formId} className="space-y-4">
+      <form onSubmit={form.handleSubmit(handleFormSubmit)} id={formId} className="space-y-4">
         {invoice && (
           <div className="rounded-md bg-muted p-3 mb-4">
             <p className="text-sm font-medium">Adding part to invoice:</p>
@@ -197,6 +294,78 @@ const PartForm = ({ defaultValues, onSubmit, formId, invoice, invoiceId }: PartF
             </FormItem>
           )}
         />
+
+        {/* Invoice Association Section */}
+        <div className="border rounded-md p-4 mt-6">
+          <div className="flex items-center space-x-2 mb-4">
+            <Checkbox 
+              id="invoice-tagging" 
+              checked={showInvoiceSelection}
+              onCheckedChange={(checked) => setShowInvoiceSelection(!!checked)}
+            />
+            <label 
+              htmlFor="invoice-tagging" 
+              className="text-sm font-medium leading-none cursor-pointer"
+            >
+              Tag this part to invoices (optional)
+            </label>
+          </div>
+
+          {showInvoiceSelection && (
+            <>
+              <div className="mb-4">
+                <FormLabel>Select Invoices</FormLabel>
+                <Select 
+                  onValueChange={handleInvoiceSelect}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select an invoice to tag" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {availableInvoices.map((invoice) => (
+                      <SelectItem key={invoice.id} value={invoice.id}>
+                        {getInvoiceDetails(invoice.id)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormDescription>
+                  Tag this part to one or more invoices
+                </FormDescription>
+              </div>
+
+              <div>
+                <FormLabel>Selected Invoices</FormLabel>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {selectedInvoiceIds.length > 0 ? (
+                    selectedInvoiceIds.map(id => (
+                      <Badge 
+                        key={id} 
+                        variant="outline" 
+                        className="flex items-center gap-1 pr-1"
+                      >
+                        <span className="truncate max-w-[150px]">
+                          {getInvoiceDetails(id)}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleInvoiceRemove(id)}
+                          className="hover:bg-muted rounded-full p-0.5"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No invoices selected</p>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
       </form>
     </Form>
   );
