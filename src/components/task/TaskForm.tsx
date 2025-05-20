@@ -267,29 +267,31 @@ const TaskForm: React.FC<TaskFormProps> = ({ defaultValues, onSubmit, formId, us
             )}
           />
 
-          {/* Price */}
-          {canEditPrice && (
-            <FormField
-              control={form.control}
-              name="price"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Custom Price (Optional)</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      {...field}
-                      value={field.value || ""}
-                      placeholder="Default: hours × rate"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          )}
+          {/* Price - Modified to always be included in the grid,
+              but only visible to users with permission */}
+          <FormField
+            control={form.control}
+            name="price"
+            render={({ field }) => (
+              <FormItem className={canEditPrice ? "" : "hidden"}>
+                <FormLabel>Custom Price</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    {...field}
+                    value={field.value || ""}
+                    placeholder="Default: hours × rate"
+                  />
+                </FormControl>
+                <FormDescription>
+                  Optional override
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -349,7 +351,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ defaultValues, onSubmit, formId, us
           />
         </div>
 
-        {/* Invoice Selection */}
+        {/* Invoice Selection - Only shown to users with permission */}
         {canEditPrice && (
           <FormField
             control={form.control}
