@@ -1,0 +1,7 @@
+
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 200" fill="none" stroke="currentColor" stroke-width="4">
+  <circle cx="100" cy="100" r="80" stroke="currentColor" fill="none"/>
+  <path d="M100 40 Q 130 70 140 90 Q 150 110 140 130 Q 130 150 100 170" stroke="currentColor" fill="none"/>
+  <line x1="100" y1="100" x2="100" y2="170" stroke="currentColor"/>
+  <text x="220" y="130" font-family="Arial" font-size="90" font-weight="bold" fill="currentColor">GARAGEPRO</text>
+</svg>

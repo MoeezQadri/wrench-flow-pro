@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthContext } from '@/context/AuthContext';
 import Logo from '@/components/Logo';
-import { Car } from 'lucide-react';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState<string>('');
@@ -44,8 +43,7 @@ const Login: React.FC = () => {
       {/* Branding Side */}
       <div className="hidden lg:flex lg:w-1/2 bg-blue-600 flex-col items-center justify-center p-12 text-white">
         <div className="max-w-md">
-          <Car size={80} className="mb-6 text-white" strokeWidth={1.5} />
-          <h1 className="text-4xl font-bold mb-4">Garage Pro</h1>
+          <img src="/garage-pro-logo.svg" alt="Garage Pro" className="w-72 mb-8 text-white" />
           <p className="text-xl mb-8">Automotive business management simplified</p>
           <div className="space-y-4 text-lg">
             <div className="flex items-center">
@@ -69,7 +67,7 @@ const Login: React.FC = () => {
         <div className="w-full max-w-md">
           <div className="bg-white px-8 py-10 shadow-lg rounded-lg">
             <div className="flex justify-center mb-6">
-              <Logo size="lg" showText={true} />
+              <img src="/garage-pro-logo.svg" alt="Garage Pro" className="h-16" />
             </div>
             
             <h2 className="text-2xl font-bold text-center mb-6">Welcome Back</h2>
