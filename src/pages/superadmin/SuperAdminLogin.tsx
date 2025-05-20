@@ -56,7 +56,7 @@ const SuperAdminLogin = () => {
   }
   return <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-slate-100 to-slate-200">
       <div className="mb-4 text-center">
-        <img alt="Garage Pro" src="/lovable-uploads/539c718d-1e53-4312-a00b-bf2e1c4cd757.png" className="h-16 mb-4 object-fill" />
+        <img alt="Garage Pro" src="/lovable-uploads/539c718d-1e53-4312-a00b-bf2e1c4cd757.png" className="h-16 mb-4 object-cover" />
         <div className="inline-flex items-center p-2 bg-red-100 text-red-800 rounded">
           <AlertCircle className="h-5 w-5 mr-2" />
           <span className="font-medium">SuperAdmin Access Only</span>
