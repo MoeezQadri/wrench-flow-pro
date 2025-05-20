@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Pencil, ShoppingBag, Search, Tag, Truck, Link, LinkOff } from "lucide-react";
+import { Plus, Pencil, ShoppingBag, Search, Tag, Truck, Link, Link2Off } from "lucide-react";
 import { toast } from "sonner";
 import PartDialog from "@/components/part/PartDialog";
 import VendorDialog from "@/components/part/VendorDialog";
@@ -280,7 +280,7 @@ const Parts = () => {
                                   className="hover:bg-muted rounded-full p-0.5"
                                   title="Remove tag"
                                 >
-                                  <LinkOff className="h-3 w-3" />
+                                  <Link2Off className="h-3 w-3" />
                                 </button>
                               )}
                             </Badge>
