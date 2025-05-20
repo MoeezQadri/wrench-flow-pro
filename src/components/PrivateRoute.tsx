@@ -2,14 +2,20 @@
 import React from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuthContext } from '@/context/AuthContext';
+import LoadingScreen from '@/components/LoadingScreen';
 
 interface PrivateRouteProps {
   children?: React.ReactNode;
 }
 
 const PrivateRoute = ({ children }: PrivateRouteProps) => {
-  const { isAuthenticated, currentUser, isSuperAdmin } = useAuthContext();
+  const { isAuthenticated, currentUser, isSuperAdmin, loading } = useAuthContext();
   const location = useLocation();
+  
+  // Show loading screen while authentication state is being determined
+  if (loading) {
+    return <LoadingScreen />;
+  }
 
   // If not authenticated, redirect to login
   if (!isAuthenticated) {

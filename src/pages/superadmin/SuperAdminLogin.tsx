@@ -1,69 +1,106 @@
-import React, { useEffect, useState } from 'react';
-import SuperAdminLoginForm from '@/components/superadmin/SuperAdminLoginForm';
-import { useSuperAdminAuth } from '@/hooks/useSuperAdminAuth';
-import { Toaster } from '@/components/ui/toaster';
+
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
-import { AlertCircle } from 'lucide-react';
-interface LoginData {
-  email: string;
-  password: string;
-}
+import SuperAdminLoginForm, { SuperAdminLoginFormData } from '@/components/superadmin/SuperAdminLoginForm';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuthContext } from '@/context/AuthContext';
+import { toast } from 'sonner';
+import Logo from '@/components/Logo';
+
 const SuperAdminLogin = () => {
-  const {
-    isLoading,
-    handleLogin,
-    checkExistingSession
-  } = useSuperAdminAuth();
-  const [sessionChecked, setSessionChecked] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-
-  // Check if already authenticated as superadmin
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        console.log("Checking existing session");
-        const isAuthenticated = await checkExistingSession();
-        if (isAuthenticated) {
-          console.log("User is authenticated, redirecting to dashboard");
-          navigate('/superadmin/dashboard');
-        } else {
-          console.log("No existing session found");
-        }
-      } catch (error) {
-        console.error("Error checking session:", error);
-      } finally {
-        setSessionChecked(true);
+  const { verifySuperAdminToken } = useAuthContext();
+  
+  const handleLogin = async (data: SuperAdminLoginFormData) => {
+    setIsLoading(true);
+    try {
+      console.log('Attempting SuperAdmin login with:', { email: data.email });
+      
+      // Need to hash the password for security - this is just a simple hash for demonstration
+      // In production, use a more secure hashing algorithm
+      const passwordHash = await hashPassword(data.password);
+      
+      // Call our edge function to authenticate
+      const { data: loginData, error } = await supabase.functions.invoke('superadmin-login', {
+        body: { username: data.email, password_hash: passwordHash }
+      });
+      
+      console.log('SuperAdmin login response:', loginData);
+      
+      if (error) {
+        console.error('SuperAdmin login error:', error);
+        toast.error(`Login failed: ${error.message}`);
+        return;
       }
-    };
-    checkAuth();
-  }, [checkExistingSession, navigate]);
-
-  // Adapter function to convert form data to the expected format
-  const handleFormSubmit = async (data: LoginData) => {
-    await handleLogin(data.email, data.password);
+      
+      if (!loginData.authenticated) {
+        toast.error(`Login failed: ${loginData.message || 'Invalid credentials'}`);
+        return;
+      }
+      
+      // Store the superadmin token
+      if (loginData.token && verifySuperAdminToken) {
+        const verified = await verifySuperAdminToken(loginData.token);
+        if (verified) {
+          toast.success('Successfully authenticated as SuperAdmin');
+          // Navigate to SuperAdmin dashboard
+          navigate('/superadmin/dashboard');
+          return;
+        }
+      }
+      
+      // If we get here, something went wrong with verification
+      toast.error('Failed to verify authentication token');
+      
+    } catch (err) {
+      console.error('Unexpected error during login:', err);
+      toast.error(`An unexpected error occurred: ${(err as Error).message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // Simple hash function for password - in production use a proper hashing library
+  const hashPassword = async (password: string): Promise<string> => {
+    // This is a simple implementation - in production use a proper hashing algorithm
+    const encoder = new TextEncoder();
+    const data = encoder.encode(password);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
   };
 
-  // Show loading state while checking session
-  if (!sessionChecked) {
-    return <div className="flex items-center justify-center min-h-screen bg-gray-100">
-        <Card className="p-6">
-          <CardContent className="text-center">
-            Checking authentication status...
-          </CardContent>
-        </Card>
-      </div>;
-  }
-  return <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-slate-100 to-slate-200">
-      <div className="mb-4 text-center">
-        
-        <div className="inline-flex items-center p-2 bg-red-100 text-red-800 rounded">
-          <AlertCircle className="h-5 w-5 mr-2" />
-          <span className="font-medium">SuperAdmin Access Only</span>
-        </div>
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100">
+      <div className="mb-8 text-center">
+        <Logo size="lg" />
+        <h1 className="mt-4 text-2xl font-bold">Super Admin Access</h1>
+        <p className="text-gray-600 mt-1">Restricted area for system administrators</p>
       </div>
-      <SuperAdminLoginForm onSubmit={handleFormSubmit} isLoading={isLoading} />
-      <Toaster />
-    </div>;
+      
+      <SuperAdminLoginForm onSubmit={handleLogin} isLoading={isLoading} />
+      
+      <Card className="mt-8 w-full max-w-md">
+        <CardContent className="p-4">
+          <div className="text-xs text-gray-500">
+            <p className="mb-1">This area is restricted to system administrators only.</p>
+            <p>If you need access, please contact your system administrator.</p>
+          </div>
+        </CardContent>
+      </Card>
+      
+      <div className="mt-6">
+        <a 
+          href="/" 
+          className="text-blue-600 hover:text-blue-800 text-sm"
+        >
+          Return to main application
+        </a>
+      </div>
+    </div>
+  );
 };
+
 export default SuperAdminLogin;
