@@ -17,7 +17,6 @@ import {
   Wallet,
   HelpCircle,
   LogOut,
-  BarChart,
   User
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -100,13 +99,7 @@ const navItems = [
     icon: <Settings className="w-5 h-5" />,
     permission: { resource: 'settings', action: 'view' }
   },
-  // Admin section
-  { 
-    name: 'SuperAdmin', 
-    path: '/superadmin/dashboard', 
-    icon: <BarChart className="w-5 h-5" />,
-    permission: { resource: 'users', action: 'manage' }
-  },
+  // SuperAdmin entry removed from here
   { 
     name: 'Help', 
     path: '/help', 

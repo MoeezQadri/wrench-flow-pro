@@ -1,4 +1,3 @@
-
 import { User, Customer, Vehicle, Invoice, Part, Mechanic, Vendor, Expense, Attendance, Task, CustomerAnalytics, DashboardMetrics, InvoiceItem, Payment, InvoiceStatus, UserRole } from "@/types";
 
 // Mock user data with permissions
