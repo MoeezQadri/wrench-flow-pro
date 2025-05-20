@@ -9,7 +9,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { AlertTriangle, Info, LockKeyhole, User } from 'lucide-react';
-import { Link } from 'react-router-dom';
 
 // Form validation schema
 const formSchema = z.object({
@@ -101,12 +100,6 @@ const SuperAdminLoginForm: React.FC<SuperAdminLoginFormProps> = ({ onSubmit, isL
             <Button type="submit" disabled={isLoading} className="w-full bg-red-600 hover:bg-red-700">
               {isLoading ? "Authenticating..." : "Access System"}
             </Button>
-            
-            <div className="mt-2 text-center">
-              <Link to="/superadmin/create" className="text-sm text-blue-600 hover:text-blue-800">
-                Create a new superadmin account
-              </Link>
-            </div>
             
             <div className="mt-6 border rounded-lg p-3 bg-slate-50">
               <div className="flex items-center space-x-2 mb-2 text-sm text-gray-700">
