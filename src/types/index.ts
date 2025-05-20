@@ -26,6 +26,9 @@ export interface User {
   app_metadata?: any;
   aud?: string;
   created_at?: string;
+  permissions?: {
+    [key: string]: string[];
+  };
 }
 
 export interface Organization {
@@ -185,6 +188,14 @@ export interface DashboardMetrics {
   completedJobs: number;
   activeJobs: number;
   mechanicEfficiency: number;
+  monthlyRevenue: number;
+  monthlyExpenses: number;
+  monthlyProfit: number;
+  pendingTasks: number;
+  activeCustomers: number;
+  activeVehicles: number;
+  inventoryValue: number;
+  lowStockItems: number;
 }
 
 export interface CustomerAnalytics {

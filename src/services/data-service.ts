@@ -1,5 +1,5 @@
 
-import { User, Customer, Vehicle, Invoice, Part, Mechanic, Vendor, Expense, Attendance, Task } from "@/types";
+import { User, Customer, Vehicle, Invoice, Part, Mechanic, Vendor, Expense, Attendance, Task, CustomerAnalytics, DashboardMetrics, InvoiceItem, Payment, InvoiceStatus, UserRole } from "@/types";
 
 // Mock user data with permissions
 const users: User[] = [
@@ -7,7 +7,7 @@ const users: User[] = [
     id: "1",
     name: "Admin User",
     email: "admin@example.com",
-    role: "admin",
+    role: "owner" as UserRole, // Changed from "admin" to "owner" to match UserRole type
     isActive: true,
     permissions: {
       dashboard: ["view", "manage"],
@@ -27,7 +27,7 @@ const users: User[] = [
     id: "2",
     name: "Manager User",
     email: "manager@example.com",
-    role: "manager",
+    role: "manager" as UserRole,
     isActive: true,
     permissions: {
       dashboard: ["view"],
@@ -47,7 +47,7 @@ const users: User[] = [
     id: "3",
     name: "Mechanic User",
     email: "mechanic@example.com",
-    role: "mechanic",
+    role: "mechanic" as UserRole,
     isActive: true,
     permissions: {
       dashboard: ["view"],
@@ -67,7 +67,7 @@ const users: User[] = [
     id: "4",
     name: "Front Desk",
     email: "reception@example.com",
-    role: "receptionist",
+    role: "foreman" as UserRole, // Changed from "receptionist" to "foreman" to match UserRole type
     isActive: true,
     permissions: {
       dashboard: ["view"],
@@ -153,7 +153,7 @@ export const mechanics: Mechanic[] = [
     phone: "555-1111", 
     address: "101 Shop St",
     idCardImage: "/lovable-uploads/adb79866-2bf5-4349-83d4-0212f37959ca.png",
-    employmentType: "full-time",
+    employmentType: "fulltime", // Changed from "full-time" to "fulltime"
     isActive: true
   },
   { 
@@ -163,7 +163,7 @@ export const mechanics: Mechanic[] = [
     phone: "555-2222", 
     address: "202 Garage Ave",
     idCardImage: "/lovable-uploads/b52e749c-5ab7-46f8-9727-4269e4dd0240.png",
-    employmentType: "part-time",
+    employmentType: "contractor", // Changed from "part-time" to "contractor"
     isActive: true
   },
   { 
@@ -209,9 +209,7 @@ export const parts: Part[] = [
     quantity: 25, 
     reorderLevel: 5,
     vendorId: "vendor1",
-    vendorName: "Parts Plus",
-    category: "Filters",
-    location: "Shelf A1"
+    vendorName: "Parts Plus"
   },
   { 
     id: "part2", 
@@ -222,9 +220,7 @@ export const parts: Part[] = [
     quantity: 18, 
     reorderLevel: 4,
     vendorId: "vendor1",
-    vendorName: "Parts Plus",
-    category: "Filters",
-    location: "Shelf A2"
+    vendorName: "Parts Plus"
   },
   { 
     id: "part3", 
@@ -235,9 +231,7 @@ export const parts: Part[] = [
     quantity: 12, 
     reorderLevel: 3,
     vendorId: "vendor2",
-    vendorName: "Auto Parts World",
-    category: "Brakes",
-    location: "Shelf B1"
+    vendorName: "Auto Parts World"
   }
 ];
 
@@ -255,19 +249,21 @@ export const invoices: Invoice[] = [
     },
     items: [
       {
-        type: "service",
+        id: "item1", // Added missing id
+        type: "labor", // Changed from "service" to "labor"
         description: "Oil Change",
         price: 49.99,
         quantity: 1
       },
       {
+        id: "item2", // Added missing id
         type: "part",
         description: "Oil Filter",
         price: 12.99,
         quantity: 1
       }
     ],
-    status: "paid",
+    status: "paid" as InvoiceStatus,
     taxRate: 0.07,
     date: "2023-05-15",
     dueDate: "2023-05-30",
@@ -275,9 +271,11 @@ export const invoices: Invoice[] = [
     payments: [
       {
         id: "pmt1",
+        invoiceId: "inv1", // Added missing invoiceId
         amount: 67.36,
         date: "2023-05-15",
-        method: "credit_card"
+        method: "card", // Changed from "credit_card" to "card"
+        notes: "" // Added missing notes
       }
     ]
   },
@@ -293,19 +291,21 @@ export const invoices: Invoice[] = [
     },
     items: [
       {
-        type: "service",
+        id: "item3", // Added missing id
+        type: "labor", // Changed from "service" to "labor"
         description: "Brake Replacement",
         price: 299.99,
         quantity: 1
       },
       {
+        id: "item4", // Added missing id
         type: "part",
         description: "Brake Pads",
         price: 45.99,
         quantity: 4
       }
     ],
-    status: "pending",
+    status: "open" as InvoiceStatus, // Changed from "pending" to "open"
     taxRate: 0.07,
     date: "2023-06-01",
     dueDate: "2023-06-15",
@@ -324,19 +324,21 @@ export const invoices: Invoice[] = [
     },
     items: [
       {
-        type: "service",
+        id: "item5", // Added missing id
+        type: "labor", // Changed from "service" to "labor"
         description: "A/C Repair",
         price: 199.99,
         quantity: 1
       },
       {
+        id: "item6", // Added missing id
         type: "part",
         description: "A/C Refrigerant",
         price: 29.99,
         quantity: 1
       }
     ],
-    status: "partial",
+    status: "partial" as InvoiceStatus,
     taxRate: 0.07,
     date: "2023-06-10",
     dueDate: "2023-06-25",
@@ -344,9 +346,11 @@ export const invoices: Invoice[] = [
     payments: [
       {
         id: "pmt2",
+        invoiceId: "inv3", // Added missing invoiceId
         amount: 100.00,
         date: "2023-06-10",
-        method: "cash"
+        method: "cash",
+        notes: "" // Added missing notes
       }
     ]
   }
@@ -360,7 +364,7 @@ export const expenses: Expense[] = [
     category: "utilities",
     amount: 245.78,
     description: "Electricity bill",
-    paymentMethod: "bank_transfer",
+    paymentMethod: "bank-transfer", // Changed from "bank_transfer" to "bank-transfer"
     paymentStatus: "paid",
     vendorId: undefined,
     vendorName: undefined
@@ -371,7 +375,7 @@ export const expenses: Expense[] = [
     category: "supplies",
     amount: 125.35,
     description: "Shop supplies",
-    paymentMethod: "credit_card",
+    paymentMethod: "card", // Changed from "credit_card" to "card"
     paymentStatus: "paid",
     vendorId: "vendor1",
     vendorName: "Parts Plus"
@@ -382,7 +386,7 @@ export const expenses: Expense[] = [
     category: "parts",
     amount: 1250.00,
     description: "Bulk parts order",
-    paymentMethod: "check",
+    paymentMethod: "cash", // Changed from "check" to "cash"
     paymentStatus: "pending",
     vendorId: "vendor2",
     vendorName: "Auto Parts World"
@@ -430,48 +434,44 @@ export const tasks: Task[] = [
     title: "Oil Change - Honda Civic",
     description: "Regular oil change service",
     status: "completed",
-    priority: "normal",
-    assignedTo: "mech1",
+    mechanicId: "mech1",
     vehicleId: "veh2",
+    hoursEstimated: 0.5,
+    hoursSpent: 0.5,
     invoiceId: "inv3",
-    createdBy: "1",
-    estimatedHours: 0.5,
-    actualHours: 0.5,
-    deadline: "2023-05-15T10:00:00"
+    location: "workshop",
+    completedBy: "1",
+    completedAt: "2023-05-15T10:30:00"
   },
   {
     id: "task2",
     title: "Brake Replacement - Ford F-150",
     description: "Replace front and rear brake pads",
-    status: "in_progress",
-    priority: "high",
-    assignedTo: "mech2",
+    status: "in-progress", // Changed from "in_progress" to "in-progress"
+    mechanicId: "mech2",
     vehicleId: "veh3",
+    hoursEstimated: 2,
     invoiceId: "inv2",
-    createdBy: "1",
-    estimatedHours: 2,
-    actualHours: null,
-    deadline: "2023-05-18T16:00:00"
+    location: "workshop",
+    price: 299.99
   },
   {
     id: "task3",
     title: "AC Repair - Honda Civic",
     description: "Diagnose and repair AC not cooling",
     status: "pending",
-    priority: "normal",
-    assignedTo: "mech1",
+    mechanicId: "mech1",
     vehicleId: "veh2",
+    hoursEstimated: 1.5,
     invoiceId: "inv3",
-    createdBy: "2",
-    estimatedHours: 1.5,
-    actualHours: null,
-    deadline: "2023-05-20T14:00:00"
+    location: "workshop",
+    price: 199.99
   }
 ];
 
 // Role Permission Map
 export const RolePermissionMap = {
-  admin: {
+  owner: {
     dashboard: ["view", "manage"],
     invoices: ["view", "create", "edit", "delete"],
     customers: ["view", "create", "edit", "delete"],
@@ -510,7 +510,7 @@ export const RolePermissionMap = {
     reports: [],
     settings: []
   },
-  receptionist: {
+  foreman: {
     dashboard: ["view"],
     invoices: ["view", "create"],
     customers: ["view", "create"],
@@ -585,24 +585,30 @@ export const addCustomer = (customerData: Omit<Customer, "id">) => {
   return newCustomer;
 };
 
-export const getCustomerAnalytics = (customerId: string) => {
+// Function to return customer analytics with the correct type
+export const getCustomerAnalytics = (customerId: string): CustomerAnalytics => {
   const customerInvoices = invoices.filter(invoice => invoice.customerId === customerId);
   const totalSpent = customerInvoices.reduce((sum, invoice) => {
     const { total } = calculateInvoiceTotal(invoice);
     return sum + total;
   }, 0);
   
-  const vehicleCount = vehicles.filter(vehicle => vehicle.customerId === customerId).length;
+  const customerVehicles = vehicles.filter(vehicle => vehicle.customerId === customerId);
   
   return {
-    totalSpent,
-    invoiceCount: customerInvoices.length,
-    vehicleCount,
-    lastVisit: customerInvoices.length > 0 
-      ? customerInvoices.reduce((latest, invoice) => 
-          new Date(invoice.date) > new Date(latest.date) ? invoice : latest
-        ).date
-      : null
+    totalInvoices: customerInvoices.length,
+    lifetimeValue: totalSpent,
+    averageInvoiceValue: customerInvoices.length > 0 ? totalSpent / customerInvoices.length : 0,
+    firstVisitDate: customerInvoices.length > 0 ? 
+      customerInvoices.reduce((earliest, invoice) => 
+        new Date(invoice.date) < new Date(earliest.date) ? invoice : earliest
+      ).date : "",
+    lastVisitDate: customerInvoices.length > 0 ? 
+      customerInvoices.reduce((latest, invoice) => 
+        new Date(invoice.date) > new Date(latest.date) ? invoice : latest
+      ).date : "",
+    vehicles: customerVehicles,
+    invoiceHistory: customerInvoices
   };
 };
 
@@ -680,6 +686,16 @@ export const approveAttendance = (id: string, approvedBy: string) => {
   return null;
 };
 
+// Get attendance records for reports
+export const getAttendance = () => {
+  return attendanceRecords;
+};
+
+// Task functions
+export const getTasks = () => {
+  return tasks;
+};
+
 // Finance functions
 export const getExpensesByDateRange = (startDate: string, endDate: string) => {
   return expenses.filter(expense => {
@@ -708,7 +724,7 @@ export const getPaymentsByDateRange = (startDate: string, endDate: string) => {
 };
 
 // Dashboard metrics
-export const calculateDashboardMetrics = () => {
+export const calculateDashboardMetrics = (): DashboardMetrics => {
   const now = new Date();
   const currentMonth = now.getMonth();
   const currentYear = now.getFullYear();
@@ -737,7 +753,7 @@ export const calculateDashboardMetrics = () => {
   }, 0);
   
   // Count pending tasks
-  const pendingTasks = tasks.filter(task => task.status === "pending" || task.status === "in_progress").length;
+  const pendingTasksCount = tasks.filter(task => task.status === "pending" || task.status === "in-progress").length;
   
   // Count active customers (those with invoices in last 3 months)
   const threeMonthsAgo = new Date();
@@ -750,10 +766,15 @@ export const calculateDashboardMetrics = () => {
   const activeCustomers = new Set(recentInvoiceCustomerIds).size;
   
   return {
+    totalRevenue: monthlyRevenue,
+    pendingInvoices: currentMonthInvoices.filter(invoice => invoice.status === "open").length,
+    activeJobs: tasks.filter(task => task.status === "in-progress").length,
+    completedJobs: tasks.filter(task => task.status === "completed").length,
+    mechanicEfficiency: 85, // Placeholder value
     monthlyRevenue,
     monthlyExpenses,
     monthlyProfit: monthlyRevenue - monthlyExpenses,
-    pendingTasks,
+    pendingTasks: pendingTasksCount,
     activeCustomers,
     activeVehicles: vehicles.length,
     inventoryValue: parts.reduce((sum, part) => sum + (part.price * part.quantity), 0),
