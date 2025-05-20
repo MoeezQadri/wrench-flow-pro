@@ -39,7 +39,7 @@ const Login: React.FC = () => {
   };
   return <div className="flex min-h-screen bg-gradient-to-b from-slate-100 to-slate-200">
       {/* Branding Side */}
-      <div className="hidden lg:flex lg:w-1/2 flex-col items-center justify-center p-12 text-white bg-[#f8f8d8]">
+      <div className="hidden lg:flex lg:w-1/2 flex-col items-center justify-center p-12 text-white bg-zinc-100">
         <div className="max-w-md">
           <img alt="Garage Pro" src="/lovable-uploads/ed35fded-80cf-4192-b64b-e97730ee6384.png" className="w-72 mb-8 text-white object-fill" />
           <p className="text-xl mb-8">Automotive business management simplified</p>
