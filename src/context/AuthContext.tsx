@@ -30,7 +30,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (newSession?.user) {
           // Check if this user is a superadmin
           const superAdminToken = localStorage.getItem('superadminToken');
-          const userIsSuperAdmin = newSession.user.user_metadata?.role === 'superuser' || superAdminToken;
+          // Convert to boolean explicitly to avoid type issues
+          const userIsSuperAdmin = !!(newSession.user.user_metadata?.role === 'superuser' || superAdminToken);
           setIsSuperAdmin(userIsSuperAdmin);
           
           // Create AppUser from session
@@ -85,7 +86,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (existingSession?.user) {
           // Check if this user is a superadmin
           const superAdminToken = localStorage.getItem('superadminToken');
-          const userIsSuperAdmin = existingSession.user.user_metadata?.role === 'superuser' || superAdminToken;
+          // Convert to boolean explicitly to avoid type issues
+          const userIsSuperAdmin = !!(existingSession.user.user_metadata?.role === 'superuser' || superAdminToken);
           setIsSuperAdmin(userIsSuperAdmin);
           
           // Create AppUser from session
