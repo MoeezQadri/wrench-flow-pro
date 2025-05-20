@@ -46,10 +46,17 @@ export const fetchOrganizations = async (): Promise<Organization[]> => {
 // Fetch all users with their profiles
 export const fetchUsers = async (): Promise<Profile[]> => {
   try {
+    // Use from() instead of rpc() to query the view
     const { data, error } = await supabase
-      .rpc('get_all_users_with_profiles');
+      .from('user_profiles')
+      .select('*');
     
     if (error) throw error;
+    
+    if (!data || !Array.isArray(data)) {
+      console.error('Invalid data format returned from user_profiles:', data);
+      return [];
+    }
     
     return data.map((user: any) => ({
       id: user.id,
@@ -57,10 +64,10 @@ export const fetchUsers = async (): Promise<Profile[]> => {
       email: user.email,
       role: user.role,
       is_active: user.is_active,
-      last_login: user.last_login,
+      last_login: user.last_sign_in_at || user.lastLogin,
       created_at: user.created_at,
       organization_id: user.organization_id,
-      email_confirmed: user.email_confirmed
+      email_confirmed: user.email_confirmed_at !== null
     }));
   } catch (error) {
     console.error('Error fetching users:', error);
