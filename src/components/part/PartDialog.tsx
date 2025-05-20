@@ -32,6 +32,7 @@ const PartDialog = ({ open, onOpenChange, onSave, part, invoiceId }: PartDialogP
     if (invoiceId) {
       const fetchInvoice = async () => {
         try {
+          setLoading(true);
           const data = await getInvoiceById(invoiceId);
           setInvoice(data);
         } catch (error) {
@@ -41,6 +42,8 @@ const PartDialog = ({ open, onOpenChange, onSave, part, invoiceId }: PartDialogP
         }
       };
       fetchInvoice();
+    } else {
+      setInvoice(null);
     }
   }, [invoiceId]);
 
@@ -91,7 +94,7 @@ const PartDialog = ({ open, onOpenChange, onSave, part, invoiceId }: PartDialogP
             {isEditing
               ? "Update the part information below."
               : invoice 
-                ? `Add a new part to invoice #${invoiceId}.` 
+                ? `Add a new part to invoice #${invoiceId?.substring(0, 8)}.` 
                 : "Enter the details for the new part."
             }
           </DialogDescription>

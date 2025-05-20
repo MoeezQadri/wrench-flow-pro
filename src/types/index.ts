@@ -107,6 +107,7 @@ export interface Part {
   vendorName?: string;
   partNumber?: string;
   reorderLevel?: number; // Keep this optional for backward compatibility
+  invoiceIds?: string[]; // Add this to store associated invoices
 }
 
 export interface Task {
