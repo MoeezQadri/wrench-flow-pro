@@ -30,7 +30,7 @@ const Logo = ({
   };
   return <div className={`flex items-center ${className}`}>
       <div className={`relative ${sizeClasses[size].container} rounded-full flex items-center justify-center`}>
-        <img alt="Garage Pro Road Icon" src="/lovable-uploads/9af715ca-6c10-473f-981b-18bf8e9fb71f.png" className="object-fill" />
+        <img alt="Garage Pro Road Icon" className="object-fill" src="/lovable-uploads/adb79866-2bf5-4349-83d4-0212f37959ca.png" />
       </div>
       {showText && <span className={`ml-2 font-bold ${sizeClasses[size].text} ${textColor}`}>
           GARAGE PRO
