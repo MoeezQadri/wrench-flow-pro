@@ -151,6 +151,7 @@ export interface Invoice {
   };
   status: InvoiceStatus;
   date: string;
+  dueDate: string; // Added this property to fix the errors
   items: InvoiceItem[];
   notes: string;
   taxRate: number;
