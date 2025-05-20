@@ -48,7 +48,7 @@ interface ExpenseFormProps {
 
 const ExpenseForm = ({ defaultValues, onSubmit, formId }: ExpenseFormProps) => {
   const [isVendorDialogOpen, setIsVendorDialogOpen] = useState(false);
-  const [vendorsList, setVendorsList] = useState(vendors);
+  const [vendorsList, setVendorsList] = useState<Vendor[]>(vendors as Vendor[]);
 
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseSchema),
