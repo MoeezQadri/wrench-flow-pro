@@ -30,3 +30,21 @@ export function withDefault<T>(asyncFn: () => Promise<T | null>, defaultValue: T
     }
   };
 }
+
+/**
+ * Utility to safely resolve a promise before using as state
+ * This is useful when setting state with data from promises
+ * @param promise The promise to await
+ * @param setter The state setter function
+ */
+export async function resolvePromiseAndSetState<T>(
+  promise: Promise<T>,
+  setter: (value: T) => void
+): Promise<void> {
+  try {
+    const result = await promise;
+    setter(result);
+  } catch (error) {
+    console.error('Error resolving promise for state:', error);
+  }
+}

@@ -7,8 +7,9 @@ import { toast } from "sonner";
  */
 export async function columnExists(table: string, column: string): Promise<boolean> {
   try {
+    // Using custom RPC function we just created
     const { data, error } = await supabase
-      .rpc('column_exists', { table_name: table, column_name: column });
+      .rpc('column_exists', { p_table_name: table, p_column_name: column });
     
     if (error) {
       console.error('Error checking if column exists:', error);
@@ -33,9 +34,9 @@ export async function runMigrations() {
     if (!hasDueDate) {
       // Add due_date column to invoices table
       const { error } = await supabase.rpc('add_column_if_not_exists', {
-        table_name: 'invoices',
-        column_name: 'due_date',
-        column_type: 'timestamp with time zone'
+        p_table_name: 'invoices',
+        p_column_name: 'due_date',
+        p_column_type: 'timestamp with time zone'
       });
       
       if (error) {

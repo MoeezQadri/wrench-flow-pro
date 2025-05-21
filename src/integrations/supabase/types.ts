@@ -253,6 +253,7 @@ export type Database = {
           created_at: string | null
           customer_id: string
           date: string | null
+          due_date: string | null
           id: string
           notes: string | null
           status: string
@@ -264,6 +265,7 @@ export type Database = {
           created_at?: string | null
           customer_id: string
           date?: string | null
+          due_date?: string | null
           id?: string
           notes?: string | null
           status: string
@@ -275,6 +277,7 @@ export type Database = {
           created_at?: string | null
           customer_id?: string
           date?: string | null
+          due_date?: string | null
           id?: string
           notes?: string | null
           status?: string
@@ -772,9 +775,21 @@ export type Database = {
       }
     }
     Functions: {
+      add_column_if_not_exists: {
+        Args: {
+          p_table_name: string
+          p_column_name: string
+          p_column_type: string
+        }
+        Returns: undefined
+      }
       clean_user_data: {
         Args: { user_id: string }
         Returns: undefined
+      }
+      column_exists: {
+        Args: { p_table_name: string; p_column_name: string }
+        Returns: boolean
       }
       get_inactive_users: {
         Args: { days_inactive?: number }
