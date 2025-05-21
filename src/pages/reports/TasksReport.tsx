@@ -22,6 +22,7 @@ import {
 import DateRangeDropdown from "@/components/DateRangeDropdown";
 import { Task, Mechanic } from "@/types";
 import { isWithinInterval, parseISO, subDays } from "date-fns";
+import { resolvePromiseAndSetState } from "@/utils/async-helpers";
 
 const TasksReport = () => {
   const thirtyDaysAgo = subDays(new Date(), 30);
@@ -30,6 +31,7 @@ const TasksReport = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [mechanics, setMechanics] = useState<Mechanic[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [mechanicCache, setMechanicCache] = useState<Record<string, Mechanic>>({});
   
   const currentUser = getCurrentUser();
   const isForeman = currentUser.role === 'foreman';
@@ -39,11 +41,20 @@ const TasksReport = () => {
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        const tasksData = await getTasks();
-        const mechanicsData = await getMechanics();
+        const tasksPromise = getTasks();
+        const mechanicsPromise = getMechanics();
         
-        setTasks(tasksData);
-        setMechanics(mechanicsData);
+        await Promise.all([
+          resolvePromiseAndSetState(tasksPromise, setTasks),
+          resolvePromiseAndSetState(mechanicsPromise, setMechanics)
+        ]);
+        
+        // Setup mechanic cache
+        const cache: Record<string, Mechanic> = {};
+        for (const mechanic of mechanics) {
+          cache[mechanic.id] = mechanic;
+        }
+        setMechanicCache(cache);
       } catch (error) {
         console.error("Error fetching task data:", error);
       } finally {
@@ -311,7 +322,7 @@ const TasksReport = () => {
                 </TableRow>
               ) : (
                 filteredTasks.map((task) => {
-                  const mechanic = getMechanicById(task.mechanicId);
+                  const mechanic = mechanicCache[task.mechanicId || ""];
                   const efficiency = task.hoursEstimated && task.hoursSpent
                     ? Math.round((task.hoursEstimated / task.hoursSpent) * 100)
                     : null;

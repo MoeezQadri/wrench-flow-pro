@@ -21,6 +21,7 @@ import {
   invoices,
   getVehicleById
 } from "@/services/data-service";
+import { resolvePromiseAndSetState } from "@/utils/async-helpers";
 
 interface TaskDialogProps {
   open: boolean;
@@ -54,10 +55,12 @@ const TaskDialog = ({ open, onOpenChange, onSave, task }: TaskDialogProps) => {
       setLoading(true);
       const fetchInvoice = async () => {
         try {
-          const data = await getInvoiceById(task.invoiceId!);
-          if (data) {
-            setInvoiceData(data);
-          }
+          const invoicePromise = getInvoiceById(task.invoiceId!);
+          await resolvePromiseAndSetState(invoicePromise, (data) => {
+            if (data) {
+              setInvoiceData(data);
+            }
+          });
         } catch (error) {
           console.error("Error fetching invoice:", error);
         } finally {
@@ -114,11 +117,15 @@ const TaskDialog = ({ open, onOpenChange, onSave, task }: TaskDialogProps) => {
           newTask.invoiceId = latestInvoice.id;
           
           // Notify the user that the task was added to an existing invoice
-          const vehicle = getVehicleById(newTask.vehicleId);
-          toast.info(
-            `Task added to existing invoice for ${vehicle?.make} ${vehicle?.model} (${vehicle?.licensePlate})`,
-            { duration: 5000 }
-          );
+          const vehiclePromise = getVehicleById(newTask.vehicleId);
+          await resolvePromiseAndSetState(vehiclePromise, (vehicle) => {
+            if (vehicle) {
+              toast.info(
+                `Task added to existing invoice for ${vehicle.make} ${vehicle.model} (${vehicle.licensePlate})`,
+                { duration: 5000 }
+              );
+            }
+          });
           
           // Update the invoice with this task
           await updateInvoiceOnTaskCompletion(latestInvoice.id, newTask);
@@ -146,7 +153,13 @@ const TaskDialog = ({ open, onOpenChange, onSave, task }: TaskDialogProps) => {
   // Function to update the invoice when a task is completed
   const updateInvoiceOnTaskCompletion = async (invoiceId: string, task: Task) => {
     try {
-      const invoice = await getInvoiceById(invoiceId);
+      const invoicePromise = getInvoiceById(invoiceId);
+      let invoice: Invoice | null = null;
+      
+      await resolvePromiseAndSetState(invoicePromise, (data) => {
+        invoice = data;
+      });
+      
       if (!invoice) {
         toast.warning("Could not find associated invoice.");
         return;
@@ -192,7 +205,13 @@ const TaskDialog = ({ open, onOpenChange, onSave, task }: TaskDialogProps) => {
   // Function to remove task from invoice if the association is removed
   const removeTaskFromInvoice = async (invoiceId: string, taskId: string) => {
     try {
-      const invoice = await getInvoiceById(invoiceId);
+      const invoicePromise = getInvoiceById(invoiceId);
+      let invoice: Invoice | null = null;
+      
+      await resolvePromiseAndSetState(invoicePromise, (data) => {
+        invoice = data;
+      });
+      
       if (!invoice) {
         return;
       }

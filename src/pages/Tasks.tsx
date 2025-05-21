@@ -18,8 +18,9 @@ import {
   getCustomerById,
   getTasks
 } from "@/services/data-service";
-import { Task, TaskLocation } from "@/types";
+import { Task, TaskLocation, Invoice, Vehicle, Mechanic, Customer } from "@/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { resolvePromiseAndSetState } from "@/utils/async-helpers";
 
 const Tasks = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -40,8 +41,8 @@ const Tasks = () => {
     const loadTasks = async () => {
       try {
         setIsLoading(true);
-        const tasksData = await getTasks();
-        setTasksList(tasksData);
+        const tasksPromise = getTasks();
+        await resolvePromiseAndSetState(tasksPromise, setTasksList);
       } catch (error) {
         console.error("Error loading tasks:", error);
         toast.error("Failed to load tasks");
@@ -151,10 +152,16 @@ const Tasks = () => {
     }
   };
   
-  const getInvoiceInfo = (task: Task) => {
+  const getInvoiceInfo = async (task: Task) => {
     if (!task.invoiceId) return null;
     
-    const invoice = getInvoiceById(task.invoiceId);
+    let invoice: Invoice | null = null;
+    const invoicePromise = getInvoiceById(task.invoiceId);
+    
+    await resolvePromiseAndSetState(invoicePromise, (data) => {
+      invoice = data;
+    });
+    
     if (!invoice) return null;
     
     return {
@@ -166,10 +173,18 @@ const Tasks = () => {
     };
   };
 
-  const getVehicleInfo = (vehicleId?: string) => {
+  const getVehicleInfo = async (vehicleId?: string) => {
     if (!vehicleId) return null;
-    const vehicle = getVehicleById(vehicleId);
+    
+    let vehicle: Vehicle | null = null;
+    const vehiclePromise = getVehicleById(vehicleId);
+    
+    await resolvePromiseAndSetState(vehiclePromise, (data) => {
+      vehicle = data;
+    });
+    
     if (!vehicle) return null;
+    
     return {
       make: vehicle.make,
       model: vehicle.model,
@@ -179,11 +194,85 @@ const Tasks = () => {
     };
   };
 
-  const getCustomerInfo = (customerId: string) => {
-    const customer = getCustomerById(customerId);
-    if (!customer) return "Unknown Customer";
-    return customer.name;
+  const getCustomerInfo = async (customerId: string) => {
+    let customerName = "Unknown Customer";
+    const customerPromise = getCustomerById(customerId);
+    
+    await resolvePromiseAndSetState(customerPromise, (customer) => {
+      if (customer) {
+        customerName = customer.name;
+      }
+    });
+    
+    return customerName;
   };
+
+  const [vehicleInfoCache, setVehicleInfoCache] = useState<Record<string, any>>({});
+  const [invoiceInfoCache, setInvoiceInfoCache] = useState<Record<string, any>>({});
+  const [customerInfoCache, setCustomerInfoCache] = useState<Record<string, any>>({});
+  const [mechanicInfoCache, setMechanicInfoCache] = useState<Record<string, Mechanic | null>>({});
+
+  // Prefetch data for displaying in the table
+  useEffect(() => {
+    const prefetchData = async () => {
+      // Prefetch mechanic data
+      for (const task of tasksList) {
+        if (task.mechanicId && !mechanicInfoCache[task.mechanicId]) {
+          const mechanicPromise = getMechanicById(task.mechanicId);
+          await resolvePromiseAndSetState(mechanicPromise, (mechanic) => {
+            setMechanicInfoCache(prev => ({
+              ...prev,
+              [task.mechanicId]: mechanic
+            }));
+          });
+        }
+        
+        // Prefetch vehicle data
+        if (task.vehicleId && !vehicleInfoCache[task.vehicleId]) {
+          const vehicleInfo = await getVehicleInfo(task.vehicleId);
+          if (vehicleInfo) {
+            setVehicleInfoCache(prev => ({
+              ...prev,
+              [task.vehicleId!]: vehicleInfo
+            }));
+            
+            // Prefetch customer data
+            if (!customerInfoCache[vehicleInfo.customerId]) {
+              const customerName = await getCustomerInfo(vehicleInfo.customerId);
+              setCustomerInfoCache(prev => ({
+                ...prev,
+                [vehicleInfo.customerId]: customerName
+              }));
+            }
+          }
+        }
+        
+        // Prefetch invoice data
+        if (task.invoiceId && !invoiceInfoCache[task.invoiceId]) {
+          const invoiceInfo = await getInvoiceInfo(task);
+          if (invoiceInfo) {
+            setInvoiceInfoCache(prev => ({
+              ...prev,
+              [task.invoiceId!]: invoiceInfo
+            }));
+            
+            // Prefetch customer data
+            if (!customerInfoCache[invoiceInfo.customerId]) {
+              const customerName = await getCustomerInfo(invoiceInfo.customerId);
+              setCustomerInfoCache(prev => ({
+                ...prev,
+                [invoiceInfo.customerId]: customerName
+              }));
+            }
+          }
+        }
+      }
+    };
+    
+    if (tasksList.length > 0 && !isLoading) {
+      prefetchData();
+    }
+  }, [tasksList, isLoading]);
 
   const shouldShowVehicleColumn = isForeman || currentUser.role === 'manager' || currentUser.role === 'owner';
 
@@ -256,9 +345,9 @@ const Tasks = () => {
             </TableHeader>
             <TableBody>
               {filteredTasks.map((task) => {
-                const mechanic = getMechanicById(task.mechanicId);
-                const invoiceInfo = getInvoiceInfo(task);
-                const vehicleInfo = getVehicleInfo(task.vehicleId);
+                const mechanic = mechanicInfoCache[task.mechanicId || ""] || null;
+                const vehicleInfo = task.vehicleId ? vehicleInfoCache[task.vehicleId] : null;
+                const invoiceInfo = task.invoiceId ? invoiceInfoCache[task.invoiceId] : null;
                 
                 return (
                   <TableRow key={task.id}>
@@ -292,7 +381,7 @@ const Tasks = () => {
                               {vehicleInfo.make} {vehicleInfo.model} ({vehicleInfo.licensePlate})
                             </span>
                             <span className="text-xs text-muted-foreground">
-                              {getCustomerInfo(vehicleInfo.customerId)}
+                              {customerInfoCache[vehicleInfo.customerId] || "Unknown Customer"}
                             </span>
                           </div>
                         ) : invoiceInfo ? (
@@ -302,7 +391,7 @@ const Tasks = () => {
                               {invoiceInfo.vehicle}
                             </span>
                             <span className="text-xs text-muted-foreground">
-                              {getCustomerInfo(invoiceInfo.customerId)}
+                              {customerInfoCache[invoiceInfo.customerId] || "Unknown Customer"}
                             </span>
                           </div>
                         ) : (

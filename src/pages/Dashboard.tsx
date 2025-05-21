@@ -22,6 +22,9 @@ import {
   Legend
 } from 'recharts';
 import { calculateDashboardMetrics } from '@/services/data-service';
+import { useState, useEffect } from 'react';
+import { DashboardMetrics } from '@/types';
+import { resolvePromiseAndSetState } from '@/utils/async-helpers';
 
 // Sample data for charts with expenses added
 const weeklyRevenueData = [
@@ -35,7 +38,24 @@ const weeklyRevenueData = [
 ];
 
 const Dashboard = () => {
-  const metrics = calculateDashboardMetrics();
+  const [metrics, setMetrics] = useState<DashboardMetrics>({
+    totalRevenue: 0,
+    pendingInvoices: 0,
+    activeJobs: 0,
+    mechanicEfficiency: 0
+  });
+  const [loading, setLoading] = useState<boolean>(true);
+  
+  useEffect(() => {
+    const loadMetrics = async () => {
+      setLoading(true);
+      const metricsPromise = calculateDashboardMetrics();
+      await resolvePromiseAndSetState(metricsPromise, setMetrics);
+      setLoading(false);
+    };
+    
+    loadMetrics();
+  }, []);
 
   return (
     <div className="space-y-6">
