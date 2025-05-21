@@ -1,346 +1,276 @@
-export type InvoiceStatus = 'open' | 'in-progress' | 'completed' | 'paid' | 'partial';
 
-export type UserRole = 'owner' | 'manager' | 'mechanic' | 'foreman' | 'superuser';
+import { Database } from "@/integrations/supabase/types";
 
-export type TaskLocation = 'workshop' | 'onsite' | 'remote';
+// Utility type to get tables from the Database type
+export type Tables = Database['public']['Tables'];
 
+// Type for user roles
+export type UserRole = 'superuser' | 'owner' | 'manager' | 'foreman' | 'mechanic';
+
+// Type for a user in the application
 export interface User {
   id: string;
-  name?: string;
+  name: string;
   email: string;
-  role?: UserRole;
-  mechanicId?: string; // If role is mechanic, this links to their mechanic profile
+  role: UserRole;
   isActive?: boolean;
   lastLogin?: string;
-  organizationId?: string; // Added for multi-organization support
-  passwordHash?: string; // For auth system
-  resetToken?: string; // For password reset
-  resetTokenExpires?: string; // Expiration for reset token
-  mustChangePassword?: boolean; // For forcing password change
-  isSuperAdmin?: boolean; // Added for superadmin access
-  user_metadata?: {
-    name?: string;
-    role?: UserRole;
-    organizationId?: string;
-  };
-  app_metadata?: any;
-  aud?: string;
-  created_at?: string;
-  permissions?: {
-    [key: string]: string[];
-  };
+  organizationId?: string;
+  isSuperAdmin?: boolean;
+  user_metadata?: any;
 }
 
+// Organization type
 export interface Organization {
   id: string;
   name: string;
-  subscriptionLevel: 'basic' | 'professional' | 'enterprise' | 'trial';
-  subscriptionStatus: 'active' | 'trial' | 'expired';
+  subscriptionLevel: string;
+  subscriptionStatus: string;
+  country?: string;
+  currency?: string;
   trialEndsAt?: string;
+  // Extended properties
   logo?: string;
-  address?: string;
-  phone?: string;
   email?: string;
-  country?: string; // Added for geographic information
-  currency?: string; // Added for financial preferences
+  phone?: string;
+  address?: string;
 }
 
-export interface Attendance {
-  id: string;
-  mechanicId: string;
-  date: string;
-  checkIn: string;
-  checkOut?: string;
-  status: 'pending' | 'approved' | 'rejected';
-  approvedBy?: string; // Manager or Owner ID
-  notes?: string;
-}
-
-export interface Customer {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  address: string;
-  vehicles?: Vehicle[]; // Changed from string[] to Vehicle[]
-  totalVisits?: number; // Total number of times customer has visited
-  lifetimeValue?: number; // Total amount spent by customer
-  lastVisit?: string; // Date of last visit
-}
-
+// Vehicle type
 export interface Vehicle {
   id: string;
-  customerId: string;
   make: string;
   model: string;
   year: string;
   licensePlate: string;
   vin?: string;
   color?: string;
+  customerId: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
+// Customer type
+export interface Customer {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  total_visits?: number;
+  lifetime_value?: number;
+  last_visit?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+// Customer analytics data
+export interface CustomerAnalytics {
+  totalVisits: number;
+  lifetimeValue: number;
+  averageInvoiceValue: number;
+  lastVisit: string | null;
+  vehicleCount: number;
+}
+
+// Mechanic type
 export interface Mechanic {
   id: string;
   name: string;
-  specialization: string;
-  address: string;
-  phone: string;
-  idCardImage?: string;
-  employmentType: 'contractor' | 'fulltime';
-  isActive: boolean;
+  specialization?: string;
+  phone?: string;
+  address?: string;
+  isActive?: boolean;
+  id_card_image?: string;
+  employment_type?: string;
+  user_id?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
-export interface Vendor {
-  id: string;
-  name: string;
-  contactName: string;
-  email: string;
-  phone: string;
-  address: string;
-  paymentTerms?: string;
-}
-
-export interface Part {
-  id: string;
-  name: string;
-  price: number;
-  quantity: number;
-  description: string;
-  vendorId?: string;
-  vendorName?: string;
-  partNumber?: string;
-  reorderLevel?: number; // Keep this optional for backward compatibility
-  invoiceIds?: string[]; // Add this to store associated invoices
-}
-
+// Task type
 export interface Task {
   id: string;
   title: string;
-  description: string;
-  mechanicId: string;
-  status: 'pending' | 'in-progress' | 'completed';
-  hoursEstimated: number;
-  hoursSpent?: number;
-  invoiceId?: string;
-  vehicleId?: string;
-  location: TaskLocation;
+  description?: string;
+  status: 'pending' | 'in-progress' | 'completed' | 'cancelled';
+  vehicle_id?: string;
+  mechanic_id?: string;
+  hours_estimated: number;
+  hours_spent?: number;
   price?: number;
-  startTime?: string;
-  endTime?: string;
-  completedBy?: string;
-  completedAt?: string;
-}
-
-export interface InvoiceItem {
-  id: string;
-  type: 'labor' | 'part';
-  description: string;
-  quantity: number;
-  price: number;
-}
-
-export interface Invoice {
-  id: string;
-  customerId: string;
-  vehicleId: string;
-  vehicleInfo: {
+  invoice_id?: string;
+  location?: string;
+  start_time?: string;
+  end_time?: string;
+  completed_by?: string;
+  completed_at?: string;
+  created_at?: string;
+  updated_at?: string;
+  // Joined data
+  vehicleInfo?: {
     make: string;
     model: string;
-    year: string;
     licensePlate: string;
   };
-  status: InvoiceStatus;
+  mechanicInfo?: {
+    name: string;
+  };
+}
+
+// Invoice type
+export interface Invoice {
+  id: string;
+  customer_id: string;
+  vehicle_id: string;
+  customerId: string;
+  vehicleId: string;
   date: string;
-  dueDate: string; // Added this property to fix the errors
-  items: InvoiceItem[];
-  notes: string;
-  taxRate: number;
-  payments: Payment[];
+  due_date?: string;
+  status: 'draft' | 'pending' | 'paid' | 'partial' | 'overdue' | 'cancelled';
+  tax_rate?: number;
+  taxRate?: number;
+  notes?: string;
+  created_at?: string;
+  updated_at?: string;
+  // Joined data
+  items?: InvoiceItem[];
+  payments?: Payment[];
+  customerInfo?: {
+    name: string;
+  };
+  vehicleInfo?: {
+    make: string;
+    model: string;
+    licensePlate: string;
+  };
   discount?: {
     type: 'percentage' | 'fixed';
     value: number;
   };
 }
 
-export interface Payment {
+// Invoice item type
+export interface InvoiceItem {
   id: string;
-  invoiceId: string;
-  amount: number;
-  method: 'cash' | 'card' | 'bank-transfer';
-  date: string;
-  notes: string;
+  invoice_id: string;
+  type: 'part' | 'labor' | 'service';
+  description: string;
+  quantity: number;
+  price: number;
+  created_at?: string;
 }
 
+// Payment type
+export interface Payment {
+  id: string;
+  invoice_id: string;
+  amount: number;
+  date: string;
+  method: 'cash' | 'card' | 'bank-transfer' | 'check' | 'other';
+  notes?: string;
+  created_at?: string;
+}
+
+// Expense type
 export interface Expense {
   id: string;
   date: string;
   category: string;
   amount: number;
-  description: string;
-  paymentMethod: 'cash' | 'card' | 'bank-transfer';
-  paymentStatus: 'paid' | 'pending' | 'overdue'; // Added payment status 
-  vendorId?: string;
-  vendorName?: string;
+  description?: string;
+  payment_method?: string;
+  payment_status?: string;
+  vendor_id?: string;
+  vendor_name?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
+// Vendor type
+export interface Vendor {
+  id: string;
+  name: string;
+  contact_name?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  category?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+// Part type
+export interface Part {
+  id: string;
+  name: string;
+  description?: string;
+  part_number?: string;
+  price: number;
+  quantity: number;
+  reorder_level?: number;
+  vendor_id?: string;
+  vendor_name?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+// Attendance record type
+export interface AttendanceRecord {
+  id: string;
+  mechanic_id: string;
+  date: string;
+  check_in: string;
+  check_out?: string;
+  status: 'present' | 'late' | 'absent' | 'half-day' | 'pending';
+  approved_by?: string;
+  notes?: string;
+  created_at?: string;
+  mechanicInfo?: {
+    name: string;
+  };
+}
+
+// Dashboard metrics type
 export interface DashboardMetrics {
   totalRevenue: number;
   pendingInvoices: number;
-  completedJobs: number;
   activeJobs: number;
   mechanicEfficiency: number;
-  monthlyRevenue: number;
-  monthlyExpenses: number;
-  monthlyProfit: number;
-  pendingTasks: number;
+  completedJobs: number;
+  monthlyRevenue: number[];
+  monthlyExpenses: number[];
+  monthlyProfit: number[];
   activeCustomers: number;
-  activeVehicles: number;
+  vehicleCount: number;
+  averageJobValue: number;
   inventoryValue: number;
+  pendingTasks: number;
+  activeVehicles: number;
   lowStockItems: number;
 }
 
-export interface CustomerAnalytics {
-  totalInvoices: number;
-  lifetimeValue: number;
-  averageInvoiceValue: number;
-  firstVisitDate: string;
-  lastVisitDate: string;
-  vehicles: Vehicle[];
-  invoiceHistory: Invoice[];
-}
+// Permission types
+export type BasePermission = boolean | 'own';
+export type TasksPermission = BasePermission | { assign?: boolean; create?: boolean; update?: boolean; complete?: boolean; };
+export type AttendancePermission = BasePermission | { create?: boolean; update?: boolean; approve?: boolean; };
 
-// Special type for 'own' permission value
-export type PermissionValue = boolean | 'own';
-
-// Define the base permission interface that most resources will use
-export interface BasePermission {
-  view: PermissionValue;
-  manage: PermissionValue;
-}
-
-// Define specific permission interfaces for resources with additional actions
-export interface TasksPermission extends BasePermission {
-  assign?: PermissionValue;
-  create?: PermissionValue;
-  update?: PermissionValue;
-}
-
-export interface AttendancePermission extends BasePermission {
-  approve?: PermissionValue;
-  create?: PermissionValue;
-  update?: PermissionValue;
-}
-
-// Modified RolePermissionMap to properly handle the different permission types
+// Role permission map
 export interface RolePermissionMap {
-  dashboard: PermissionValue;
-  customers: BasePermission;
-  invoices: BasePermission;
-  mechanics: BasePermission;
-  tasks: TasksPermission;
-  parts: BasePermission;
-  expenses: BasePermission;
-  vehicles: BasePermission;
-  reports: BasePermission;
-  users: BasePermission;
-  settings: BasePermission;
-  attendance: AttendancePermission;
-  subscription: BasePermission;
-  finance: BasePermission;
-  organization: BasePermission;
-  roles: BasePermission;
-  [key: string]: PermissionValue | BasePermission | TasksPermission | AttendancePermission;
+  dashboard: boolean;
+  customers: { view: boolean; manage: boolean; };
+  invoices: { view: boolean; manage: boolean; };
+  mechanics: { view: boolean; manage: boolean; };
+  tasks: TasksPermission | { view: boolean; manage: TasksPermission; };
+  parts: { view: boolean; manage: boolean; };
+  finance: { view: boolean; manage: boolean; };
+  expenses: { view: boolean; manage: boolean; };
+  reports: BasePermission | { view: BasePermission; manage: boolean; };
+  attendance: AttendancePermission | { view: BasePermission; manage: AttendancePermission; approve?: boolean; };
+  settings: { view: boolean; manage: boolean; };
+  organization: { view: boolean; manage: boolean; };
+  users: { view: boolean; manage: boolean; };
+  subscription: { view: boolean; manage: boolean; };
+  vehicles: { view: boolean; manage: boolean; };
+  roles: { view: boolean; manage: boolean; };
 }
-
-export const rolePermissions: Record<UserRole, RolePermissionMap> = {
-  superuser: {
-    dashboard: true,
-    customers: { view: true, manage: true },
-    invoices: { view: true, manage: true },
-    mechanics: { view: true, manage: true },
-    tasks: { view: true, manage: true },
-    parts: { view: true, manage: true },
-    finance: { view: true, manage: true },
-    expenses: { view: true, manage: true },
-    reports: { view: true, manage: true },
-    attendance: { view: true, manage: true, approve: true },
-    settings: { view: true, manage: true },
-    organization: { view: true, manage: true },
-    users: { view: true, manage: true },
-    subscription: { view: true, manage: true },
-    vehicles: { view: true, manage: true },
-    roles: { view: true, manage: true }
-  },
-  owner: {
-    dashboard: true,
-    customers: { view: true, manage: true },
-    invoices: { view: true, manage: true },
-    mechanics: { view: true, manage: true },
-    tasks: { view: true, manage: true },
-    parts: { view: true, manage: true },
-    finance: { view: true, manage: true },
-    expenses: { view: true, manage: true },
-    reports: { view: true, manage: true },
-    attendance: { view: true, manage: true, approve: true },
-    settings: { view: true, manage: true },
-    organization: { view: true, manage: true },
-    users: { view: true, manage: true },
-    subscription: { view: true, manage: true },
-    vehicles: { view: true, manage: true },
-    roles: { view: true, manage: true } // Added roles permission for owner
-  },
-  manager: {
-    dashboard: true,
-    customers: { view: true, manage: true },
-    invoices: { view: true, manage: true },
-    mechanics: { view: true, manage: true },
-    tasks: { view: true, manage: true },
-    parts: { view: true, manage: true },
-    finance: { view: true, manage: true },
-    expenses: { view: true, manage: true },
-    reports: { view: true, manage: true },
-    attendance: { view: true, manage: true, approve: true },
-    settings: { view: false, manage: false },
-    organization: { view: true, manage: false },
-    users: { view: true, manage: false },
-    subscription: { view: true, manage: false },
-    vehicles: { view: true, manage: true },
-    roles: { view: true, manage: false } // Added roles permission for manager
-  },
-  foreman: {
-    dashboard: true,
-    customers: { view: true, manage: false },
-    invoices: { view: true, manage: false },
-    mechanics: { view: true, manage: false },
-    tasks: { view: true, manage: true, assign: true, create: true, update: true },
-    parts: { view: true, manage: false },
-    finance: { view: false, manage: false },
-    expenses: { view: false, manage: false },
-    reports: { view: true, manage: false },
-    attendance: { view: true, manage: true, approve: true, create: true, update: true },
-    settings: { view: false, manage: false },
-    organization: { view: false, manage: false },
-    users: { view: false, manage: false },
-    subscription: { view: false, manage: false },
-    vehicles: { view: true, manage: false },
-    roles: { view: false, manage: false } // Added roles permission for foreman
-  },
-  mechanic: {
-    dashboard: false,
-    customers: { view: true, manage: false },
-    invoices: { view: false, manage: false },
-    mechanics: { view: false, manage: false },
-    tasks: { view: true, manage: 'own' },
-    parts: { view: true, manage: false },
-    finance: { view: false, manage: false },
-    expenses: { view: false, manage: false },
-    reports: { view: 'own', manage: false },
-    attendance: { view: 'own', manage: 'own', approve: false },
-    settings: { view: false, manage: false },
-    organization: { view: false, manage: false },
-    users: { view: false, manage: false },
-    subscription: { view: false, manage: false },
-    vehicles: { view: true, manage: false },
-    roles: { view: false, manage: false } // Added roles permission for mechanic
-  }
-};

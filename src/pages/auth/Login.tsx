@@ -166,12 +166,6 @@ const Login: React.FC = () => {
                 </Link>
               </p>
             </div>
-
-            <div className="mt-6 text-center text-sm text-gray-500">
-              <p>Demo credentials:</p>
-              <p>Email: demo@garagepro.com</p>
-              <p>Password: demo1234</p>
-            </div>
           </div>
         </div>
       </div>

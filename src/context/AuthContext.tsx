@@ -14,9 +14,10 @@ interface AuthContextType {
   loading: boolean;
   isSuperAdmin: boolean;
   signIn: (email: string, password: string) => Promise<any>;
-  signUp: (email: string, password: string, userData: Partial<User>) => Promise<any>;
+  signUp: (email: string, password: string, name: string) => Promise<any>;
   logout: () => Promise<void>;
   refreshUserData: () => Promise<void>;
+  verifySuperAdminToken?: (token: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -110,16 +111,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signUp = async (email: string, password: string, userData: Partial<User>) => {
+  const signUp = async (email: string, password: string, name: string) => {
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
-            name: userData.name,
-            role: userData.role || 'owner',
-            organizationId: userData.organizationId
+            name: name,
+            role: 'owner'
           }
         }
       });
@@ -167,6 +167,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // SuperAdmin token verification
+  const verifySuperAdminToken = async (token: string): Promise<boolean> => {
+    try {
+      const { data, error } = await supabase.functions.invoke('verify-superadmin-token', {
+        body: { token }
+      });
+      
+      if (error || !data.isValid) {
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error verifying superadmin token:', error);
+      return false;
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -179,7 +197,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         signIn,
         signUp,
         logout,
-        refreshUserData
+        refreshUserData,
+        verifySuperAdminToken
       }}
     >
       {children}

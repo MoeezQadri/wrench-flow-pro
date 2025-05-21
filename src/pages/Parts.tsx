@@ -1,8 +1,25 @@
+
 import React, { useState, useEffect } from 'react';
 import { resolvePromiseAndSetState } from '@/utils/async-helpers';
 import { useAsyncCache } from '@/hooks/useAsyncData';
-import { getCustomerById } from '@/services/data-service';
+import { supabase } from '@/integrations/supabase/client';
 import { Customer } from '@/types';
+
+// Function to fetch customer by ID from Supabase
+const getCustomerById = async (id: string): Promise<Customer> => {
+  const { data, error } = await supabase
+    .from('customers')
+    .select('*')
+    .eq('id', id)
+    .single();
+  
+  if (error) {
+    console.error('Error fetching customer:', error);
+    throw error;
+  }
+  
+  return data as Customer;
+};
 
 // CustomerCell component to handle async loading of customer data
 const CustomerCell = ({ 
@@ -35,24 +52,88 @@ const CustomerCell = ({
 const Parts: React.FC = () => {
   // Use the async cache hook for customer data
   const [getCustomer, customerCache] = useAsyncCache<Customer>(getCustomerById);
+  const [parts, setParts] = useState<any[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
   
-  // Rest of your component code
-  // When you need to display a customer name, use the CustomerCell component:
-  
-  // Example usage in a table row:
-  // {part.customerId ? (
-  //   <CustomerCell 
-  //     customerId={part.customerId} 
-  //     getCustomer={getCustomer} 
-  //     customerCache={customerCache}
-  //   />
-  // ) : 'N/A'}
+  useEffect(() => {
+    const fetchParts = async () => {
+      setLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('parts')
+          .select('*');
+        
+        if (error) {
+          throw error;
+        }
+        
+        setParts(data || []);
+      } catch (error) {
+        console.error('Error fetching parts:', error);
+        toast.error('Failed to load parts inventory');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchParts();
+  }, []);
   
   return (
-    <div>
-      {/* Your parts listing UI */}
-      <h1>Parts Inventory</h1>
-      {/* Replace direct access to customer names with the CustomerCell component */}
+    <div className="container p-4">
+      <h1 className="text-2xl font-bold mb-4">Parts Inventory</h1>
+      
+      {loading ? (
+        <div className="text-center py-8">Loading parts inventory...</div>
+      ) : parts.length === 0 ? (
+        <div className="text-center py-8 text-gray-500">
+          No parts in inventory. Add parts to get started.
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="min-w-full bg-white rounded-lg">
+            <thead className="bg-gray-100">
+              <tr>
+                <th className="py-2 px-4 text-left">Name</th>
+                <th className="py-2 px-4 text-left">Description</th>
+                <th className="py-2 px-4 text-left">Part Number</th>
+                <th className="py-2 px-4 text-right">Quantity</th>
+                <th className="py-2 px-4 text-right">Price</th>
+                <th className="py-2 px-4 text-left">Vendor</th>
+              </tr>
+            </thead>
+            <tbody>
+              {parts.map(part => (
+                <tr key={part.id} className="border-t border-gray-200">
+                  <td className="py-2 px-4">{part.name}</td>
+                  <td className="py-2 px-4">{part.description || 'N/A'}</td>
+                  <td className="py-2 px-4">{part.part_number || 'N/A'}</td>
+                  <td className="py-2 px-4 text-right">
+                    <span className={`${part.quantity <= part.reorder_level ? 'text-red-600 font-medium' : ''}`}>
+                      {part.quantity}
+                    </span>
+                    {part.quantity <= part.reorder_level && (
+                      <span className="ml-2 px-2 py-1 text-xs bg-red-100 text-red-800 rounded">
+                        Low Stock
+                      </span>
+                    )}
+                  </td>
+                  <td className="py-2 px-4 text-right">${part.price.toFixed(2)}</td>
+                  <td className="py-2 px-4">
+                    {part.customerId ? (
+                      <CustomerCell 
+                        customerId={part.customerId} 
+                        getCustomer={getCustomer} 
+                        customerCache={customerCache}
+                      />
+                    ) : part.vendor_name || 'N/A'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 };

@@ -2,7 +2,6 @@
 import { User } from '@/types';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { UpdateLastLoginParams } from '@/types/auth';
 
 /**
  * Checks if the current URL contains email confirmation parameters
@@ -44,8 +43,7 @@ export const createUserFromSession = (
  * Updates the user's last login time in the database
  */
 export const updateLastLogin = async (userId: string): Promise<void> => {
-  // Fix: Use the correct type for the parameters
-  const params: {user_id: string, login_time: string} = {
+  const params = {
     user_id: userId,
     login_time: new Date().toISOString()
   };

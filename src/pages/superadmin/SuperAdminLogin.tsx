@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
@@ -6,12 +7,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuthContext } from '@/context/AuthContext';
 import { toast } from 'sonner';
 import Logo from '@/components/Logo';
-import { AuthContextValue } from '@/types/auth';
 
 const SuperAdminLogin = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const authContext = useAuthContext() as AuthContextValue;
+  const authContext = useAuthContext();
   
   const handleLogin = async (data: SuperAdminLoginFormData) => {
     setIsLoading(true);
@@ -73,7 +73,6 @@ const SuperAdminLogin = () => {
     }
   };
   
-  
   // Simple hash function for password - in production use a proper hashing library
   const hashPassword = async (password: string): Promise<string> => {
     // This is a simple implementation - in production use a proper hashing algorithm
@@ -85,7 +84,6 @@ const SuperAdminLogin = () => {
   };
 
   return (
-    
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100">
       <div className="mb-8 text-center">
         <Logo size="lg" />

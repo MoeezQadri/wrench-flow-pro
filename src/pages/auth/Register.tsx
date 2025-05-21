@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthContext } from '@/context/AuthContext';
@@ -30,7 +31,7 @@ const Register: React.FC = () => {
     }
 
     try {
-      // Fixed: don't pass name as a User object parameter
+      // Pass name in the appropriate format for Supabase metadata
       const { data, error } = await signUp(email, password, name);
       if (error) {
         setError(error.message);

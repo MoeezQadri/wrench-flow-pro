@@ -1,136 +1,60 @@
 
-import { useState, useEffect } from 'react';
-import { resolvePromiseAndSetState } from '@/utils/async-helpers';
+import { useState, useCallback } from 'react';
 
-/**
- * A hook for working with async data that properly resolves promises
- * @param asyncFn The async function to call
- * @param deps Dependencies array (similar to useEffect)
- * @param initialData Initial data to use before the promise resolves
- * @returns [data, loading, error] tuple
- */
-export function useAsyncData<T>(
-  asyncFn: () => Promise<T>, 
-  deps: any[] = [], 
-  initialData: T | null = null
-): [T | null, boolean, Error | null] {
-  const [data, setData] = useState<T | null>(initialData);
-  const [loading, setLoading] = useState(true);
+export function useAsyncData<T>(asyncFn: (...args: any[]) => Promise<T>) {
+  const [data, setData] = useState<T | null>(null);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
-  useEffect(() => {
-    let isMounted = true;
-    
-    const fetchData = async () => {
+  const execute = useCallback(
+    async (...args: any[]) => {
+      setLoading(true);
+      setError(null);
+      
       try {
-        setLoading(true);
-        setError(null);
-        
-        await resolvePromiseAndSetState(asyncFn(), (result) => {
-          if (isMounted) {
-            setData(result);
-          }
-        });
+        const result = await asyncFn(...args);
+        setData(result);
+        return result;
       } catch (err) {
-        if (isMounted) {
-          setError(err instanceof Error ? err : new Error(String(err)));
-        }
+        const error = err instanceof Error ? err : new Error(String(err));
+        setError(error);
+        throw error;
       } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
+        setLoading(false);
       }
-    };
+    },
+    [asyncFn]
+  );
 
-    fetchData();
-    
-    return () => {
-      isMounted = false;
-    };
-  }, deps);
-
-  return [data, loading, error];
+  return { data, loading, error, execute };
 }
 
-/**
- * A hook for working with async data that properly resolves promises and handles automatic reloading
- * @param asyncFn The async function to call
- * @param deps Dependencies array (similar to useEffect)
- * @param initialData Initial data to use before the promise resolves
- * @returns [data, loading, error, reload] tuple where reload is a function to trigger a reload
- */
-export function useAsyncDataWithReload<T>(
-  asyncFn: () => Promise<T>, 
-  deps: any[] = [], 
-  initialData: T | null = null
-): [T | null, boolean, Error | null, () => void] {
-  const [data, setData] = useState<T | null>(initialData);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-  const [reloadCount, setReloadCount] = useState(0);
-
-  useEffect(() => {
-    let isMounted = true;
-    
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        await resolvePromiseAndSetState(asyncFn(), (result) => {
-          if (isMounted) {
-            setData(result);
-          }
-        });
-      } catch (err) {
-        if (isMounted) {
-          setError(err instanceof Error ? err : new Error(String(err)));
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    };
-
-    fetchData();
-    
-    return () => {
-      isMounted = false;
-    };
-  }, [...deps, reloadCount]);
-
-  const reload = () => {
-    setReloadCount(count => count + 1);
-  };
-
-  return [data, loading, error, reload];
-}
-
-/**
- * A helper hook to create a cache for async data
- * @param getItemFn Function to fetch a single item by id
- * @returns [getItem, cache] tuple
- */
-export function useAsyncCache<T>(
-  getItemFn: (id: string) => Promise<T>
-): [(id: string) => Promise<T>, Record<string, T>] {
+export function useAsyncCache<T>(fetchFn: (id: string) => Promise<T>): [
+  (id: string) => Promise<T>,
+  Record<string, T>
+] {
   const [cache, setCache] = useState<Record<string, T>>({});
-  
-  const getItem = async (id: string): Promise<T> => {
-    if (cache[id]) {
-      return cache[id];
-    }
-    
-    const item = await getItemFn(id);
-    setCache(prev => ({
-      ...prev,
-      [id]: item
-    }));
-    return item;
-  };
-  
-  return [getItem, cache];
-}
 
-export default useAsyncData;
+  const getWithCache = useCallback(
+    async (id: string): Promise<T> => {
+      if (id in cache) {
+        return cache[id];
+      }
+
+      try {
+        const data = await fetchFn(id);
+        setCache(prevCache => ({
+          ...prevCache,
+          [id]: data
+        }));
+        return data;
+      } catch (error) {
+        console.error(`Error fetching data for id ${id}:`, error);
+        throw error;
+      }
+    },
+    [cache, fetchFn]
+  );
+
+  return [getWithCache, cache];
+}
