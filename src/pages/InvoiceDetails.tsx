@@ -1,8 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { getInvoiceById, calculateInvoiceTotal } from '@/services/data-service';
 import { Invoice } from '@/types';
+import { resolvePromiseAndSetState } from '@/utils/async-helpers';
 
 const InvoiceDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -13,10 +13,8 @@ const InvoiceDetails: React.FC = () => {
     const loadInvoice = async () => {
       setLoading(true);
       if (id) {
-        const invoiceData = getInvoiceById(id);
-        if (invoiceData) {
-          setInvoice(invoiceData);
-        }
+        const invoicePromise = getInvoiceById(id);
+        await resolvePromiseAndSetState(invoicePromise, setInvoice);
       }
       setLoading(false);
     };

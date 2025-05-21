@@ -25,6 +25,7 @@ import { calculateDashboardMetrics } from '@/services/data-service';
 import { useState, useEffect } from 'react';
 import { DashboardMetrics } from '@/types';
 import { resolvePromiseAndSetState } from '@/utils/async-helpers';
+import { useAsyncData } from '@/hooks/useAsyncData';
 
 // Sample data for charts with expenses added
 const weeklyRevenueData = [
@@ -42,15 +43,22 @@ const Dashboard = () => {
     totalRevenue: 0,
     pendingInvoices: 0,
     activeJobs: 0,
-    mechanicEfficiency: 0
+    mechanicEfficiency: 0,
+    completedJobs: 0,
+    monthlyRevenue: 0,
+    monthlyExpenses: 0,
+    monthlyProfit: 0,
+    customerCount: 0,
+    vehicleCount: 0,
+    averageJobValue: 0,
+    inventoryValue: 0
   });
   const [loading, setLoading] = useState<boolean>(true);
   
   useEffect(() => {
     const loadMetrics = async () => {
       setLoading(true);
-      const metricsPromise = calculateDashboardMetrics();
-      await resolvePromiseAndSetState(metricsPromise, setMetrics);
+      await resolvePromiseAndSetState(calculateDashboardMetrics(), setMetrics);
       setLoading(false);
     };
     

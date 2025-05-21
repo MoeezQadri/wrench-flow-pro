@@ -107,4 +107,30 @@ export function useAsyncDataWithReload<T>(
   return [data, loading, error, reload];
 }
 
+/**
+ * A helper hook to create a cache for async data
+ * @param getItemFn Function to fetch a single item by id
+ * @returns [getItem, cache] tuple
+ */
+export function useAsyncCache<T>(
+  getItemFn: (id: string) => Promise<T>
+): [(id: string) => Promise<T>, Record<string, T>] {
+  const [cache, setCache] = useState<Record<string, T>>({});
+  
+  const getItem = async (id: string): Promise<T> => {
+    if (cache[id]) {
+      return cache[id];
+    }
+    
+    const item = await getItemFn(id);
+    setCache(prev => ({
+      ...prev,
+      [id]: item
+    }));
+    return item;
+  };
+  
+  return [getItem, cache];
+}
+
 export default useAsyncData;

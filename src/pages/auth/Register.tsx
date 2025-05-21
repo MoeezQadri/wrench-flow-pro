@@ -31,6 +31,7 @@ const Register: React.FC = () => {
     }
 
     try {
+      // Pass name as user metadata rather than trying to directly assign it to the User object
       const { data, error } = await signUp(email, password, name);
       if (error) {
         setError(error.message);

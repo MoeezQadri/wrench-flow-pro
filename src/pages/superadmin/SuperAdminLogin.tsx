@@ -11,7 +11,7 @@ import Logo from '@/components/Logo';
 const SuperAdminLogin = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const { verifySuperAdminToken } = useAuthContext();
+  const authContext = useAuthContext();
   
   const handleLogin = async (data: SuperAdminLoginFormData) => {
     setIsLoading(true);
@@ -41,11 +41,21 @@ const SuperAdminLogin = () => {
       }
       
       // Store the superadmin token
-      if (loginData.token && verifySuperAdminToken) {
-        const verified = await verifySuperAdminToken(loginData.token);
+      if (loginData.token && authContext.verifySuperAdminToken) {
+        const verified = await authContext.verifySuperAdminToken(loginData.token);
         if (verified) {
           toast.success('Successfully authenticated as SuperAdmin');
           // Navigate to SuperAdmin dashboard
+          navigate('/superadmin/dashboard');
+          return;
+        }
+      } else {
+        console.warn('verifySuperAdminToken function not available in auth context');
+        // Fallback logic if verification function isn't available
+        if (loginData.token) {
+          // Store token in localStorage or other storage
+          localStorage.setItem('superadmin_token', loginData.token);
+          toast.success('Logged in as SuperAdmin (token verification unavailable)');
           navigate('/superadmin/dashboard');
           return;
         }

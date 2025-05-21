@@ -4,6 +4,7 @@ import { useParams } from 'react-router-dom';
 import { getCustomerById } from '@/services/data-service';
 import { Customer } from '@/types';
 import { resolvePromiseAndSetState } from '@/utils/async-helpers';
+import { useAsyncData } from '@/hooks/useAsyncData';
 
 const CustomerDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -14,12 +15,7 @@ const CustomerDetails: React.FC = () => {
     const loadCustomer = async () => {
       setLoading(true);
       if (id) {
-        const customerPromise = getCustomerById(id);
-        await resolvePromiseAndSetState(customerPromise, (data) => {
-          if (data) {
-            setCustomer(data);
-          }
-        });
+        await resolvePromiseAndSetState(getCustomerById(id), setCustomer);
       }
       setLoading(false);
     };

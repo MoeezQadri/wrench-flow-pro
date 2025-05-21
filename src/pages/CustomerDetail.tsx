@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { 
@@ -29,6 +30,7 @@ import {
 } from '@/services/data-service';
 import StatusBadge from '@/components/StatusBadge';
 import { Customer, CustomerAnalytics } from '@/types';
+import { resolvePromiseAndSetState } from '@/utils/async-helpers';
 
 const CustomerDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -44,11 +46,12 @@ const CustomerDetail = () => {
     const loadData = async () => {
       setLoading(true);
       // Get customer and analytics data
-      const customerData = getCustomerById(id);
-      if (customerData) {
-        setCustomer(customerData);
-        const analyticsData = getCustomerAnalytics(id);
-        setAnalytics(analyticsData);
+      const customerPromise = getCustomerById(id);
+      await resolvePromiseAndSetState(customerPromise, setCustomer);
+      
+      if (customer) {
+        const analyticsPromise = getCustomerAnalytics(id);
+        await resolvePromiseAndSetState(analyticsPromise, setAnalytics);
       }
       setLoading(false);
     };

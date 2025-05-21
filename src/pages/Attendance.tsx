@@ -22,7 +22,7 @@ import {
   hasPermission,
   recordAttendance
 } from "@/services/data-service";
-import { Attendance } from "@/types";
+import { Attendance, Mechanic } from "@/types";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,12 +40,17 @@ import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { AttendanceDialog } from "@/components/attendance/AttendanceDialog";
+import { resolvePromiseAndSetState } from "@/utils/async-helpers";
+
+// Cache for mechanic data to avoid duplicated async calls
+const mechanicCache: Record<string, Mechanic> = {};
 
 const AttendancePage = () => {
   const [attendanceList, setAttendanceList] = useState<Attendance[]>(() => attendanceRecords);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [notes, setNotes] = useState<string>("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [mechanicNames, setMechanicNames] = useState<Record<string, string>>({});
   const currentUser = getCurrentUser();
   
   // Format the selected date as YYYY-MM-DD for filtering
@@ -55,6 +60,36 @@ const AttendancePage = () => {
   const canViewAttendance = hasPermission(currentUser, 'attendance', 'view');
   const canManageAttendance = hasPermission(currentUser, 'attendance', 'manage');
   const canApproveAttendance = hasPermission(currentUser, 'attendance', 'approve');
+  
+  // Load mechanic data for the filtered attendance records
+  React.useEffect(() => {
+    const loadMechanicNames = async () => {
+      const mechanicIds = attendanceList
+        .filter(record => record.date === formattedDate)
+        .map(record => record.mechanicId);
+      
+      const uniqueIds = [...new Set(mechanicIds)];
+      const newMechanicNames: Record<string, string> = {...mechanicNames};
+      
+      for (const id of uniqueIds) {
+        if (!mechanicCache[id]) {
+          const mechanicPromise = getMechanicById(id);
+          await resolvePromiseAndSetState(mechanicPromise, (mechanic) => {
+            if (mechanic) {
+              mechanicCache[id] = mechanic;
+              newMechanicNames[id] = mechanic.name;
+            }
+          });
+        } else {
+          newMechanicNames[id] = mechanicCache[id].name;
+        }
+      }
+      
+      setMechanicNames(newMechanicNames);
+    };
+    
+    loadMechanicNames();
+  }, [attendanceList, formattedDate]);
   
   if (!canViewAttendance) {
     return (
@@ -200,11 +235,11 @@ const AttendancePage = () => {
             </TableHeader>
             <TableBody>
               {filteredAttendance.map((record) => {
-                const mechanic = getMechanicById(record.mechanicId);
+                const mechanicName = mechanicNames[record.mechanicId] || "Unknown";
                 
                 return (
                   <TableRow key={record.id}>
-                    <TableCell className="font-medium">{mechanic?.name || "Unknown"}</TableCell>
+                    <TableCell className="font-medium">{mechanicName}</TableCell>
                     <TableCell>{record.date}</TableCell>
                     <TableCell>{record.checkIn}</TableCell>
                     <TableCell>{record.checkOut || "—"}</TableCell>
