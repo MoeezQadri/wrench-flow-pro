@@ -25,12 +25,14 @@ const ExpenseDialog = ({ open, onOpenChange, onSave, expense }: ExpenseDialogPro
   const isEditing = !!expense;
   const formId = "expense-form";
 
-  const handleSubmit = (data: ExpenseFormValues) => {
+  const handleSubmit = async (data: ExpenseFormValues) => {
     try {
       // Only attempt to get vendor if vendorId is provided and not "none"
-      const vendor = data.vendorId && data.vendorId !== "none" 
-        ? getVendorById(data.vendorId) 
-        : undefined;
+      let vendorName = "";
+      if (data.vendorId && data.vendorId !== "none") {
+        const vendor = await getVendorById(data.vendorId);
+        vendorName = vendor?.name || "";
+      }
       
       const newExpense: Expense = {
         id: expense?.id || generateId("expense"),
@@ -38,10 +40,10 @@ const ExpenseDialog = ({ open, onOpenChange, onSave, expense }: ExpenseDialogPro
         category: data.category,
         amount: data.amount,
         description: data.description,
-        paymentMethod: data.paymentMethod,
-        paymentStatus: 'pending', // Add default payment status
-        vendorId: data.vendorId !== "none" ? data.vendorId : undefined,
-        vendorName: vendor?.name,
+        payment_method: data.paymentMethod,
+        payment_status: 'pending', // Add default payment status
+        vendor_id: data.vendorId !== "none" ? data.vendorId : undefined,
+        vendor_name: vendorName,
       };
       
       onSave(newExpense);
@@ -79,8 +81,8 @@ const ExpenseDialog = ({ open, onOpenChange, onSave, expense }: ExpenseDialogPro
                   category: expense.category,
                   amount: expense.amount,
                   description: expense.description,
-                  paymentMethod: expense.paymentMethod,
-                  vendorId: expense.vendorId || "none",
+                  paymentMethod: expense.payment_method,
+                  vendorId: expense.vendor_id || "none",
                 }
               : undefined
           }

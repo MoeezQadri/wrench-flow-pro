@@ -34,7 +34,7 @@ const MechanicDialog = ({ open, onOpenChange, onSave, mechanic }: MechanicDialog
     return null;
   }
 
-  const handleSubmit = (data: MechanicFormValues) => {
+  const handleSubmit = async (data: MechanicFormValues) => {
     try {
       // Ensure all required fields are provided
       const newMechanic: Mechanic = {
@@ -43,9 +43,9 @@ const MechanicDialog = ({ open, onOpenChange, onSave, mechanic }: MechanicDialog
         specialization: data.specialization,
         address: data.address,
         phone: data.phone,
-        idCardImage: data.idCardImage,
-        employmentType: data.employmentType,
-        isActive: data.isActive
+        id_card_image: data.idCardImage,
+        employment_type: data.employmentType,
+        is_active: data.isActive
       };
       
       onSave(newMechanic);
@@ -78,9 +78,9 @@ const MechanicDialog = ({ open, onOpenChange, onSave, mechanic }: MechanicDialog
                     specialization: mechanic.specialization,
                     address: mechanic.address,
                     phone: mechanic.phone,
-                    idCardImage: mechanic.idCardImage,
-                    employmentType: mechanic.employmentType,
-                    isActive: mechanic.isActive,
+                    idCardImage: mechanic.id_card_image,
+                    employmentType: mechanic.employment_type,
+                    isActive: mechanic.is_active,
                   }
                 : undefined
             }

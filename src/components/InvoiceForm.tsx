@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import CustomerDialog from "@/components/CustomerDialog";
 import VehicleDialog from "@/components/VehicleDialog";
 
-import { InvoiceItem, Customer, Vehicle, Payment, Invoice } from "@/types";
+import { InvoiceItem, Customer, Vehicle, Payment, Invoice, InvoiceStatus } from "@/types";
 import { getCustomers } from "@/services/data-service";
 
 // Import sub-components
@@ -55,12 +55,12 @@ const InvoiceForm = ({ isEditing = false, invoiceData }: InvoiceFormProps) => {
     resolver: zodResolver(invoiceFormSchema),
     defaultValues: isEditing && invoiceData
       ? {
-          customerId: invoiceData.customerId,
-          vehicleId: invoiceData.vehicleId || "",
+          customerId: invoiceData.customer_id,
+          vehicleId: invoiceData.vehicle_id || "",
           date: invoiceData.date ? new Date(invoiceData.date) : new Date(),
-          status: invoiceData.status,
+          status: invoiceData.status as "open" | "in-progress" | "completed" | "paid" | "partial",
           notes: invoiceData.notes || "",
-          taxRate: invoiceData.taxRate || 7.5,
+          taxRate: invoiceData.tax_rate || 7.5,
           discountType: invoiceData.discount?.type === "percentage" 
             ? "percentage" 
             : invoiceData.discount?.type === "fixed" 
@@ -70,9 +70,9 @@ const InvoiceForm = ({ isEditing = false, invoiceData }: InvoiceFormProps) => {
         }
       : {
           date: new Date(),
-          status: "open",
+          status: "open" as const,
           taxRate: 7.5, // Default tax rate
-          discountType: "none",
+          discountType: "none" as const,
           discountValue: 0,
         },
   });

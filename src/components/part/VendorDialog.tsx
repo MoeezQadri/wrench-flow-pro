@@ -54,7 +54,7 @@ const VendorDialog = ({ open, onOpenChange }: VendorDialogProps) => {
     }
   });
 
-  const handleSubmit = (data: VendorFormValues) => {
+  const handleSubmit = async (data: VendorFormValues) => {
     try {
       // Create a new vendor
       const newVendor: Omit<Vendor, "id"> = {
@@ -62,11 +62,11 @@ const VendorDialog = ({ open, onOpenChange }: VendorDialogProps) => {
         email: data.email || "",
         phone: data.phone,
         address: data.address || "",
-        contactName: data.contactPerson, // Changed contactPerson to contactName to match Vendor interface
-        paymentTerms: data.paymentTerms || undefined
+        contact_name: data.contactPerson, // Changed contactPerson to contact_name to match Vendor interface
+        category: data.paymentTerms || undefined
       };
       
-      addVendor(newVendor);
+      await addVendor(newVendor);
       toast.success("Vendor added successfully!");
       form.reset();
       onOpenChange(false);

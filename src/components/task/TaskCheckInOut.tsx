@@ -4,9 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { CheckCircle, Clock, XCircle, AlertCircle } from 'lucide-react';
 import { Task } from '@/types';
-import { getCurrentUser, hasPermission, recordAttendance } from '@/services/data-service';
+import { getCurrentUser, hasPermission } from '@/services/data-service';
 import { toast } from 'sonner';
 import { Progress } from '@/components/ui/progress';
+import { recordAttendance } from '@/services/data-service';
 
 interface TaskCheckInOutProps {
   task: Task;
@@ -16,7 +17,7 @@ interface TaskCheckInOutProps {
 const TaskCheckInOut: React.FC<TaskCheckInOutProps> = ({ task, onUpdate }) => {
   const [isWorking, setIsWorking] = useState(task.status === 'in-progress');
   const [startTime, setStartTime] = useState<Date | null>(
-    task.startTime ? new Date(task.startTime) : null
+    task.start_time ? new Date(task.start_time) : null
   );
   const [elapsedTime, setElapsedTime] = useState<number>(0);
   const [efficiency, setEfficiency] = useState<number>(100);
@@ -25,7 +26,7 @@ const TaskCheckInOut: React.FC<TaskCheckInOutProps> = ({ task, onUpdate }) => {
   // Check if current user has permission to check in/out for this task
   const canCheckInOut = hasPermission(currentUser, 'tasks', 'manage') || 
     (currentUser.role === 'mechanic' && 
-     currentUser.mechanicId === task.mechanicId && 
+     currentUser.mechanicId === task.mechanic_id && 
      hasPermission(currentUser, 'tasks', 'manage'));
      
   // Calculate elapsed time and update display
@@ -39,8 +40,8 @@ const TaskCheckInOut: React.FC<TaskCheckInOutProps> = ({ task, onUpdate }) => {
         setElapsedTime(elapsedHours);
         
         // Calculate efficiency (estimated vs actual)
-        if (task.hoursEstimated > 0) {
-          const currentEfficiency = task.hoursEstimated / Math.max(elapsedHours, 0.01) * 100;
+        if (task.hours_estimated > 0) {
+          const currentEfficiency = task.hours_estimated / Math.max(elapsedHours, 0.01) * 100;
           setEfficiency(Math.min(Math.round(currentEfficiency), 150));
         }
       }, 1000);
@@ -49,7 +50,7 @@ const TaskCheckInOut: React.FC<TaskCheckInOutProps> = ({ task, onUpdate }) => {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isWorking, startTime, task.hoursEstimated]);
+  }, [isWorking, startTime, task.hours_estimated]);
 
   const handleCheckIn = () => {
     if (!canCheckInOut) {
@@ -66,16 +67,16 @@ const TaskCheckInOut: React.FC<TaskCheckInOutProps> = ({ task, onUpdate }) => {
     const updatedTask = { 
       ...task, 
       status: 'in-progress' as const,
-      startTime: now.toISOString() 
+      start_time: now.toISOString() 
     };
     onUpdate(updatedTask);
     
     // Record attendance if current user is a mechanic
     if (currentUser.role === 'mechanic' && currentUser.mechanicId) {
       recordAttendance({
-        mechanicId: currentUser.mechanicId,
+        mechanic_id: currentUser.mechanicId,
         date: now.toISOString().split('T')[0],
-        checkIn: now.toTimeString().split(' ')[0].substring(0, 5),
+        check_in: now.toTimeString().split(' ')[0].substring(0, 5),
         status: 'pending'
       });
       toast.success("You've checked in for this task");
@@ -92,7 +93,7 @@ const TaskCheckInOut: React.FC<TaskCheckInOutProps> = ({ task, onUpdate }) => {
     setIsWorking(false);
     
     // Calculate hours spent
-    let hoursSpent = task.hoursSpent || 0;
+    let hoursSpent = task.hours_spent || 0;
     if (startTime) {
       const hoursElapsed = (now.getTime() - startTime.getTime()) / (1000 * 60 * 60);
       hoursSpent += parseFloat(hoursElapsed.toFixed(2));
@@ -101,8 +102,8 @@ const TaskCheckInOut: React.FC<TaskCheckInOutProps> = ({ task, onUpdate }) => {
     // Update task with new hours spent
     const updatedTask = { 
       ...task, 
-      hoursSpent,
-      endTime: now.toISOString()
+      hours_spent: hoursSpent,
+      end_time: now.toISOString()
     };
     onUpdate(updatedTask);
     
@@ -134,7 +135,7 @@ const TaskCheckInOut: React.FC<TaskCheckInOutProps> = ({ task, onUpdate }) => {
           <div className="flex items-center">
             <Clock className="w-5 h-5 mr-2 text-muted-foreground" />
             <span>
-              {task.hoursSpent ? `${task.hoursSpent.toFixed(2)} hours spent` : 'No time logged yet'}
+              {task.hours_spent ? `${task.hours_spent.toFixed(2)} hours spent` : 'No time logged yet'}
               {isWorking && ' (Running)'}
             </span>
           </div>
@@ -189,14 +190,14 @@ const TaskCheckInOut: React.FC<TaskCheckInOutProps> = ({ task, onUpdate }) => {
             
             <div className="flex justify-between text-sm">
               <span>Start time: {startTime?.toLocaleTimeString()}</span>
-              <span>Estimated: {task.hoursEstimated} hours</span>
+              <span>Estimated: {task.hours_estimated} hours</span>
             </div>
           </>
         )}
         
-        {task.completedAt && (
+        {task.completed_at && (
           <div className="text-sm text-muted-foreground">
-            Completed on {new Date(task.completedAt).toLocaleDateString()} at {new Date(task.completedAt).toLocaleTimeString()}
+            Completed on {new Date(task.completed_at).toLocaleDateString()} at {new Date(task.completed_at).toLocaleTimeString()}
           </div>
         )}
       </CardContent>

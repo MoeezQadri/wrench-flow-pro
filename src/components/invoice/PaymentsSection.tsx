@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Plus, X } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -49,7 +48,7 @@ const PaymentsSection = ({
 
     const newPayment: Payment = {
       id: Date.now().toString(), // Temporary ID
-      invoiceId: "", // Will be set when the invoice is created
+      invoice_id: "", // Will be set when the invoice is created
       amount: newPaymentAmount as number,
       method: newPaymentMethod,
       date: format(new Date(), "yyyy-MM-dd"),

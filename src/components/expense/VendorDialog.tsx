@@ -1,3 +1,4 @@
+
 import React from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -48,18 +49,18 @@ const VendorDialog = ({ open, onOpenChange, onVendorAdded }: VendorDialogProps) 
     }
   });
 
-  const handleSubmit = (data: VendorFormValues) => {
+  const handleSubmit = async (data: VendorFormValues) => {
     try {
       // Create a new vendor with minimal required fields
       const newVendor: Omit<Vendor, "id"> = {
         name: data.name,
-        contactName: data.contactName,
+        contact_name: data.contactName,
         phone: data.phone,
         email: "", // Adding empty defaults for required fields
         address: "",
       };
       
-      const addedVendor = addVendor(newVendor);
+      const addedVendor = await addVendor(newVendor);
       toast.success("Vendor added successfully!");
       
       if (onVendorAdded && addedVendor) {

@@ -13,22 +13,23 @@ export interface User {
   name: string;
   email: string;
   role: UserRole;
-  isActive?: boolean;
+  is_active?: boolean;
   lastLogin?: string;
-  organizationId?: string;
+  organization_id?: string;
   isSuperAdmin?: boolean;
   user_metadata?: any;
+  mechanicId?: string; // Added for mechanic references
 }
 
 // Organization type
 export interface Organization {
   id: string;
   name: string;
-  subscriptionLevel: string;
-  subscriptionStatus: string;
+  subscription_level: string;
+  subscription_status: string;
   country?: string;
   currency?: string;
-  trialEndsAt?: string;
+  trial_ends_at?: string;
   // Extended properties
   logo?: string;
   email?: string;
@@ -42,11 +43,10 @@ export interface Vehicle {
   make: string;
   model: string;
   year: string;
-  licensePlate: string;
+  license_plate: string;
   vin?: string;
   color?: string;
-  customerId: string;
-  customer_id?: string; // For database compatibility
+  customer_id: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -81,7 +81,7 @@ export interface Mechanic {
   specialization?: string;
   phone?: string;
   address?: string;
-  isActive?: boolean;
+  is_active?: boolean;
   id_card_image?: string;
   employment_type?: string;
   user_id?: string;
@@ -127,13 +127,10 @@ export interface Invoice {
   id: string;
   customer_id: string;
   vehicle_id: string;
-  customerId: string;
-  vehicleId: string;
   date: string;
   due_date?: string;
   status: InvoiceStatus;
   tax_rate?: number;
-  taxRate?: number;
   notes?: string;
   created_at?: string;
   updated_at?: string;
@@ -218,17 +215,18 @@ export interface Part {
   vendor_name?: string;
   created_at?: string;
   updated_at?: string;
+  invoice_ids?: string[]; // Add this for invoice associations
 }
 
 // Attendance record type
-export interface AttendanceRecord {
-  id: string;
+export interface Attendance {
+  id?: string;
   mechanic_id: string;
   date: string;
   check_in: string;
-  check_out?: string;
-  status: 'present' | 'late' | 'absent' | 'half-day' | 'pending';
-  approved_by?: string;
+  check_out?: string | null;
+  status: 'present' | 'late' | 'absent' | 'half-day' | 'pending' | 'approved' | 'rejected';
+  approved_by?: string | null;
   notes?: string;
   created_at?: string;
   mechanicInfo?: {

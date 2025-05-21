@@ -47,7 +47,7 @@ const PartDialog = ({ open, onOpenChange, onSave, part, invoiceId }: PartDialogP
     }
   }, [invoiceId]);
 
-  const handleSubmit = (data: PartFormValues) => {
+  const handleSubmit = async (data: PartFormValues) => {
     try {
       // Only look up vendor if vendorId is provided and not "none"
       const vendorId = data.vendorId !== "none" ? data.vendorId : undefined;
@@ -58,10 +58,10 @@ const PartDialog = ({ open, onOpenChange, onSave, part, invoiceId }: PartDialogP
         price: data.price,
         quantity: data.quantity,
         description: data.description,
-        vendorId: vendorId,
-        vendorName: data.vendorName,
-        partNumber: data.partNumber,
-        invoiceIds: data.invoiceIds || [],
+        vendor_id: vendorId,
+        vendor_name: data.vendorName,
+        part_number: data.partNumber,
+        invoice_ids: data.invoiceIds || [],
       };
       
       onSave(newPart);
@@ -109,10 +109,10 @@ const PartDialog = ({ open, onOpenChange, onSave, part, invoiceId }: PartDialogP
                   price: part.price,
                   quantity: part.quantity,
                   description: part.description,
-                  vendorId: part.vendorId || "none",
-                  vendorName: part.vendorName,
-                  partNumber: part.partNumber,
-                  invoiceIds: part.invoiceIds || [],
+                  vendorId: part.vendor_id || "none",
+                  vendorName: part.vendor_name,
+                  partNumber: part.part_number,
+                  invoiceIds: part.invoice_ids || [],
                 }
               : undefined
           }

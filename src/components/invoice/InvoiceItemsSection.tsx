@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Plus, X } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -27,63 +26,55 @@ const InvoiceItemsSection = ({
   discountValue,
   taxRate,
 }: InvoiceItemsSectionProps) => {
-  const [newItemType, setNewItemType] = useState<"labor" | "part">("labor");
+  const [newItemType, setNewItemType] = useState<"part" | "labor" | "service">("");
   const [newItemDescription, setNewItemDescription] = useState("");
-  const [newItemQuantity, setNewItemQuantity] = useState(1);
-  const [newItemPrice, setNewItemPrice] = useState(0);
+  const [newItemQuantity, setNewItemQuantity] = useState<number | "">("");
+  const [newItemPrice, setNewItemPrice] = useState<number | "">("");
 
-  // Add new item to invoice
+  // Create a new invoice item
   const handleAddItem = () => {
-    if (!newItemDescription || newItemQuantity <= 0 || newItemPrice <= 0) {
-      toast.error("Please fill all item details correctly");
+    if (!newItemType || !newItemDescription || typeof newItemQuantity !== "number" || typeof newItemPrice !== "number") {
+      toast.error("Please fill all item fields");
       return;
     }
-
+    
     const newItem: InvoiceItem = {
       id: Date.now().toString(), // Temporary ID
-      type: newItemType,
+      invoice_id: "", // Will be set when the invoice is created
+      type: newItemType as "part" | "labor" | "service",
       description: newItemDescription,
       quantity: newItemQuantity,
       price: newItemPrice,
     };
-
+    
     setItems([...items, newItem]);
     
-    // Reset item form
+    // Reset form
+    setNewItemType("");
     setNewItemDescription("");
-    setNewItemQuantity(1);
-    setNewItemPrice(0);
+    setNewItemQuantity("");
+    setNewItemPrice("");
   };
 
-  // Remove item from invoice
+  // Remove invoice item
   const handleRemoveItem = (itemId: string) => {
     setItems(items.filter(item => item.id !== itemId));
   };
 
-  // Calculate labor subtotal (only labor items)
-  const laborSubtotal = items
-    .filter(item => item.type === "labor")
-    .reduce((sum, item) => sum + (item.quantity * item.price), 0);
-  
-  // Calculate parts subtotal (only part items)
-  const partsSubtotal = items
-    .filter(item => item.type === "part")
-    .reduce((sum, item) => sum + (item.quantity * item.price), 0);
-  
-  // Calculate discount amount (only applies to labor)
+  // Calculate discount
   let discountAmount = 0;
   if (discountType === "percentage" && discountValue > 0) {
-    discountAmount = laborSubtotal * (discountValue / 100);
+    discountAmount = subtotal * (discountValue / 100);
   } else if (discountType === "fixed" && discountValue > 0) {
-    discountAmount = Math.min(discountValue, laborSubtotal); // Can't discount more than total labor
+    discountAmount = discountValue;
   }
-  
+
   // Calculate subtotal after discount
   const subtotalAfterDiscount = subtotal - discountAmount;
-  
+
   // Calculate tax
   const tax = subtotalAfterDiscount * (taxRate / 100);
-  
+
   // Calculate total
   const total = subtotalAfterDiscount + tax;
 
@@ -93,24 +84,27 @@ const InvoiceItemsSection = ({
       
       {/* Add New Item Form */}
       <Card className="p-4">
-        <div className="grid gap-4 md:grid-cols-5">
+        <div className="grid gap-4 md:grid-cols-4">
           <div>
             <FormLabel htmlFor="itemType">Type</FormLabel>
             <Select
               value={newItemType}
-              onValueChange={(value: "labor" | "part") => setNewItemType(value)}
+              onValueChange={(value: "part" | "labor" | "service") => 
+                setNewItemType(value)
+              }
             >
               <SelectTrigger id="itemType">
                 <SelectValue placeholder="Type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="labor">Labor</SelectItem>
                 <SelectItem value="part">Part</SelectItem>
+                <SelectItem value="labor">Labor</SelectItem>
+                <SelectItem value="service">Service</SelectItem>
               </SelectContent>
             </Select>
           </div>
           
-          <div className="md:col-span-2">
+          <div>
             <FormLabel htmlFor="itemDescription">Description</FormLabel>
             <Input
               id="itemDescription"
@@ -125,9 +119,11 @@ const InvoiceItemsSection = ({
             <Input
               id="itemQuantity"
               type="number"
+              step="1"
               min="1"
               value={newItemQuantity}
-              onChange={(e) => setNewItemQuantity(parseInt(e.target.value) || 0)}
+              onChange={(e) => setNewItemQuantity(parseFloat(e.target.value) || "")}
+              placeholder="Quantity"
             />
           </div>
           
@@ -137,9 +133,10 @@ const InvoiceItemsSection = ({
               id="itemPrice"
               type="number"
               step="0.01"
-              min="0"
+              min="0.01"
               value={newItemPrice}
-              onChange={(e) => setNewItemPrice(parseFloat(e.target.value) || 0)}
+              onChange={(e) => setNewItemPrice(parseFloat(e.target.value) || "")}
+              placeholder="Price"
             />
           </div>
         </div>
@@ -165,20 +162,16 @@ const InvoiceItemsSection = ({
               <TableHead>Description</TableHead>
               <TableHead>Quantity</TableHead>
               <TableHead>Price</TableHead>
-              <TableHead>Total</TableHead>
               <TableHead className="w-[80px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {items.map((item) => (
               <TableRow key={item.id}>
-                <TableCell>
-                  {item.type === "labor" ? "Labor" : "Part"}
-                </TableCell>
+                <TableCell>{item.type}</TableCell>
                 <TableCell>{item.description}</TableCell>
                 <TableCell>{item.quantity}</TableCell>
                 <TableCell>${item.price.toFixed(2)}</TableCell>
-                <TableCell>${(item.quantity * item.price).toFixed(2)}</TableCell>
                 <TableCell>
                   <Button
                     variant="ghost"
@@ -191,78 +184,52 @@ const InvoiceItemsSection = ({
               </TableRow>
             ))}
             
-            {/* Show labor subtotal if there are labor items */}
-            {items.some(item => item.type === "labor") && (
-              <TableRow>
-                <TableCell colSpan={4} className="text-right font-medium">
-                  Labor Subtotal
-                </TableCell>
-                <TableCell className="font-medium">${laborSubtotal.toFixed(2)}</TableCell>
-                <TableCell></TableCell>
-              </TableRow>
-            )}
-            
-            {/* Show parts subtotal if there are part items */}
-            {items.some(item => item.type === "part") && (
-              <TableRow>
-                <TableCell colSpan={4} className="text-right font-medium">
-                  Parts Subtotal
-                </TableCell>
-                <TableCell className="font-medium">${partsSubtotal.toFixed(2)}</TableCell>
-                <TableCell></TableCell>
-              </TableRow>
-            )}
-            
-            {/* Show total subtotal */}
             <TableRow>
-              <TableCell colSpan={4} className="text-right font-medium">
-                Subtotal
+              <TableCell colSpan={3} className="text-right font-medium">
+                Subtotal:
               </TableCell>
               <TableCell className="font-medium">${subtotal.toFixed(2)}</TableCell>
               <TableCell></TableCell>
             </TableRow>
             
-            {/* Display discount row if applicable (only for labor) */}
-            {discountType !== "none" && discountValue > 0 && laborSubtotal > 0 && (
+            {discountType !== "none" && discountValue > 0 && (
               <TableRow>
-                <TableCell colSpan={4} className="text-right font-medium text-red-600">
-                  Discount on Labor {discountType === "percentage" ? `(${discountValue}%)` : ""}
+                <TableCell colSpan={3} className="text-right font-medium">
+                  Discount ({discountType === "percentage" ? `${discountValue}%` : "$"+discountValue}):
                 </TableCell>
-                <TableCell className="font-medium text-red-600">-${discountAmount.toFixed(2)}</TableCell>
-                <TableCell></TableCell>
-              </TableRow>
-            )}
-            
-            {/* Show subtotal after discount if a discount is applied */}
-            {discountType !== "none" && discountValue > 0 && laborSubtotal > 0 && (
-              <TableRow>
-                <TableCell colSpan={4} className="text-right font-medium">
-                  Subtotal after discount
-                </TableCell>
-                <TableCell className="font-medium">${subtotalAfterDiscount.toFixed(2)}</TableCell>
+                <TableCell className="font-medium">-${discountAmount.toFixed(2)}</TableCell>
                 <TableCell></TableCell>
               </TableRow>
             )}
             
             <TableRow>
-              <TableCell colSpan={4} className="text-right font-medium">
-                Tax ({taxRate}%)
+              <TableCell colSpan={3} className="text-right font-medium">
+                Subtotal After Discount:
+              </TableCell>
+              <TableCell className="font-medium">${subtotalAfterDiscount.toFixed(2)}</TableCell>
+              <TableCell></TableCell>
+            </TableRow>
+            
+            <TableRow>
+              <TableCell colSpan={3} className="text-right font-medium">
+                Tax ({taxRate}%):
               </TableCell>
               <TableCell className="font-medium">${tax.toFixed(2)}</TableCell>
               <TableCell></TableCell>
             </TableRow>
+            
             <TableRow>
-              <TableCell colSpan={4} className="text-right text-lg font-bold">
-                Total
+              <TableCell colSpan={3} className="text-right font-bold text-lg">
+                Total:
               </TableCell>
-              <TableCell className="text-lg font-bold">${total.toFixed(2)}</TableCell>
+              <TableCell className="font-bold text-lg">${total.toFixed(2)}</TableCell>
               <TableCell></TableCell>
             </TableRow>
           </TableBody>
         </Table>
       ) : (
         <div className="rounded-md border border-dashed p-8 text-center">
-          <p className="text-muted-foreground">No items added yet. Add some items to the invoice.</p>
+          <p className="text-muted-foreground">No items added yet. Add items to calculate the invoice total.</p>
         </div>
       )}
     </div>

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -81,7 +80,7 @@ export const AttendanceForm = ({
     const loadMechanics = async () => {
       try {
         const mechanicsData = await getMechanics();
-        setMechanics(mechanicsData.filter((m) => m.isActive));
+        setMechanics(mechanicsData.filter((m) => m.is_active));
       } catch (error) {
         console.error("Error loading mechanics:", error);
       }
@@ -94,13 +93,13 @@ export const AttendanceForm = ({
     const formattedDate = format(values.date, "yyyy-MM-dd");
     
     const attendanceData: Omit<Attendance, "id"> = {
-      mechanicId: values.mechanicId,
+      mechanic_id: values.mechanicId,
       date: formattedDate,
-      checkIn: values.checkIn,
-      checkOut: values.checkOut || null,
+      check_in: values.checkIn,
+      check_out: values.checkOut || null,
       status: values.status,
       notes: values.notes || "",
-      approvedBy: null,
+      approved_by: null,
     };
 
     onSubmit(attendanceData);
