@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
@@ -7,11 +6,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuthContext } from '@/context/AuthContext';
 import { toast } from 'sonner';
 import Logo from '@/components/Logo';
+import { AuthContextValue } from '@/types/auth';
 
 const SuperAdminLogin = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const authContext = useAuthContext();
+  const authContext = useAuthContext() as AuthContextValue;
   
   const handleLogin = async (data: SuperAdminLoginFormData) => {
     setIsLoading(true);
@@ -41,18 +41,19 @@ const SuperAdminLogin = () => {
       }
       
       // Store the superadmin token
-      if (loginData.token && authContext.verifySuperAdminToken) {
-        const verified = await authContext.verifySuperAdminToken(loginData.token);
-        if (verified) {
-          toast.success('Successfully authenticated as SuperAdmin');
-          // Navigate to SuperAdmin dashboard
-          navigate('/superadmin/dashboard');
-          return;
-        }
-      } else {
-        console.warn('verifySuperAdminToken function not available in auth context');
-        // Fallback logic if verification function isn't available
-        if (loginData.token) {
+      if (loginData.token) {
+        // Check if verifySuperAdminToken is available in context
+        if (authContext.verifySuperAdminToken) {
+          const verified = await authContext.verifySuperAdminToken(loginData.token);
+          if (verified) {
+            toast.success('Successfully authenticated as SuperAdmin');
+            // Navigate to SuperAdmin dashboard
+            navigate('/superadmin/dashboard');
+            return;
+          }
+        } else {
+          console.warn('verifySuperAdminToken function not available in auth context');
+          // Fallback logic if verification function isn't available
           // Store token in localStorage or other storage
           localStorage.setItem('superadmin_token', loginData.token);
           toast.success('Logged in as SuperAdmin (token verification unavailable)');
@@ -72,6 +73,7 @@ const SuperAdminLogin = () => {
     }
   };
   
+  
   // Simple hash function for password - in production use a proper hashing library
   const hashPassword = async (password: string): Promise<string> => {
     // This is a simple implementation - in production use a proper hashing algorithm
@@ -83,6 +85,7 @@ const SuperAdminLogin = () => {
   };
 
   return (
+    
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100">
       <div className="mb-8 text-center">
         <Logo size="lg" />

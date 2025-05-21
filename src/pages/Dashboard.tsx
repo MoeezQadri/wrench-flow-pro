@@ -1,4 +1,3 @@
-
 import { 
   BarChart, 
   Calendar, 
@@ -48,11 +47,15 @@ const Dashboard = () => {
     monthlyRevenue: 0,
     monthlyExpenses: 0,
     monthlyProfit: 0,
-    customerCount: 0,
+    activeCustomers: 0, // Using activeCustomers instead of customerCount
     vehicleCount: 0,
     averageJobValue: 0,
-    inventoryValue: 0
+    inventoryValue: 0,
+    pendingTasks: 0,
+    activeVehicles: 0,
+    lowStockItems: 0
   });
+  
   const [loading, setLoading] = useState<boolean>(true);
   
   useEffect(() => {

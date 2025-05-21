@@ -1,190 +1,121 @@
+import React, { useState, useEffect } from 'react';
+import { getInvoices, getCustomerById } from '@/services/data-service';
+import { Invoice, Customer } from '@/types';
+import { resolvePromiseAndSetState } from '@/utils/async-helpers';
+import { useAsyncData } from '@/hooks/useAsyncData';
 
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { 
-  PlusCircle, 
-  Search, 
-  Filter, 
-  SortDesc, 
-  FileText,
-  Pencil
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
-import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger 
-} from '@/components/ui/dropdown-menu';
-import { invoices, getCustomerById, calculateInvoiceTotal } from '@/services/data-service';
-import StatusBadge from '@/components/StatusBadge';
-import { InvoiceStatus } from '@/types';
-import { toast } from 'sonner';
+const Invoices: React.FC = () => {
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [customerData, setCustomerData] = useState<Record<string, Customer>>({});
 
-const Invoices = () => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<InvoiceStatus | 'all'>('all');
-  
-  // Filter invoices based on search and status filter
-  const filteredInvoices = invoices.filter(invoice => {
-    const customer = getCustomerById(invoice.customerId);
-    const vehicleInfo = `${invoice.vehicleInfo.make} ${invoice.vehicleInfo.model} ${invoice.vehicleInfo.year}`;
-    const searchMatch = 
-      vehicleInfo.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      invoice.vehicleInfo.licensePlate.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (customer?.name.toLowerCase().includes(searchQuery.toLowerCase()) || false);
+  useEffect(() => {
+    const loadInvoices = async () => {
+      setLoading(true);
+      await resolvePromiseAndSetState(getInvoices(), setInvoices);
+      setLoading(false);
+    };
     
-    const statusMatch = statusFilter === 'all' || invoice.status === statusFilter;
-    
-    return searchMatch && statusMatch;
-  });
+    loadInvoices();
+  }, []);
 
-  // Check if invoice can be edited based on status
-  const canEditInvoice = (status: InvoiceStatus) => {
-    return ['open', 'in-progress', 'completed', 'partial'].includes(status);
+  useEffect(() => {
+    const loadCustomers = async () => {
+      const customerIds = invoices.map(invoice => invoice.customerId);
+      const uniqueIds = [...new Set(customerIds)];
+      
+      for (const id of uniqueIds) {
+        if (!customerData[id]) {
+          const customer = await getCustomerById(id);
+          setCustomerData(prev => ({
+            ...prev,
+            [id]: customer
+          }));
+        }
+      }
+    };
+    
+    if (invoices.length > 0) {
+      loadCustomers();
+    }
+  }, [invoices, customerData]);
+
+  // Create a customer cache to store resolved customers
+  const getCustomerWithCache = async (customerId: string): Promise<Customer> => {
+    if (customerData[customerId]) {
+      return customerData[customerId];
+    }
+    
+    const customer = await getCustomerById(customerId);
+    setCustomerData(prev => ({
+      ...prev,
+      [customerId]: customer
+    }));
+    return customer;
   };
 
+  if (loading) {
+    return <div>Loading invoices...</div>;
+  }
+
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Invoices</h1>
-          <p className="text-muted-foreground">Manage workshop invoices</p>
-        </div>
-        <Button asChild>
-          <Link to="/invoices/new">
-            <PlusCircle className="mr-2 h-4 w-4" />
-            New Invoice
-          </Link>
-        </Button>
-      </div>
-      
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search invoices..."
-            className="pl-8"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-        
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="flex items-center">
-              <Filter className="mr-2 h-4 w-4" />
-              Status: {statusFilter === 'all' ? 'All' : statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)}
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent>
-            <DropdownMenuItem onClick={() => setStatusFilter('all')}>
-              All
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setStatusFilter('open')}>
-              Open
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setStatusFilter('in-progress')}>
-              In Progress
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setStatusFilter('completed')}>
-              Completed
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setStatusFilter('paid')}>
-              Paid
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        
-        <Button variant="outline">
-          <SortDesc className="mr-2 h-4 w-4" />
-          Sort
-        </Button>
-      </div>
-      
-      {filteredInvoices.length === 0 ? (
-        <Card className="p-12 text-center">
-          <FileText className="mx-auto h-12 w-12 text-muted-foreground/60" />
-          <h3 className="mt-4 text-lg font-medium">No invoices found</h3>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Try adjusting your search or filter to find what you're looking for.
-          </p>
-        </Card>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="border-b">
-                <th className="text-left pb-3 font-medium text-sm">Invoice #</th>
-                <th className="text-left pb-3 font-medium text-sm">Customer</th>
-                <th className="text-left pb-3 font-medium text-sm">Vehicle</th>
-                <th className="text-left pb-3 font-medium text-sm">Date</th>
-                <th className="text-left pb-3 font-medium text-sm">Total</th>
-                <th className="text-left pb-3 font-medium text-sm">Status</th>
-                <th className="text-left pb-3 font-medium text-sm">Actions</th>
+    <div className="p-4">
+      <h1 className="text-2xl font-bold mb-4">Invoices</h1>
+      <table className="min-w-full bg-white">
+        <thead>
+          <tr>
+            <th className="py-2 px-4 border-b">ID</th>
+            <th className="py-2 px-4 border-b">Customer</th>
+            <th className="py-2 px-4 border-b">Date</th>
+            <th className="py-2 px-4 border-b">Status</th>
+            <th className="py-2 px-4 border-b">Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          {invoices.map(invoice => {
+            // Calculate total amount
+            const subtotal = invoice.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            const taxAmount = subtotal * (invoice.taxRate / 100);
+            const total = subtotal + taxAmount;
+            
+            // Calculate discount if applicable
+            let discountAmount = 0;
+            if (invoice.discount) {
+              if (invoice.discount.type === 'percentage') {
+                discountAmount = subtotal * (invoice.discount.value / 100);
+              } else {
+                discountAmount = invoice.discount.value;
+              }
+            }
+            
+            const finalTotal = total - discountAmount;
+            
+            return (
+              <tr key={invoice.id}>
+                <td className="py-2 px-4 border-b">{invoice.id}</td>
+                <td className="py-2 px-4 border-b">
+                  {customerData[invoice.customerId]?.name || 'Loading...'}
+                </td>
+                <td className="py-2 px-4 border-b">
+                  {new Date(invoice.date).toLocaleDateString()}
+                </td>
+                <td className="py-2 px-4 border-b">
+                  <span className={`px-2 py-1 rounded text-xs ${
+                    invoice.status === 'paid' ? 'bg-green-100 text-green-800' :
+                    invoice.status === 'partial' ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-red-100 text-red-800'
+                  }`}>
+                    {invoice.status}
+                  </span>
+                </td>
+                <td className="py-2 px-4 border-b">
+                  ${finalTotal.toFixed(2)}
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {filteredInvoices.map((invoice) => {
-                const customer = getCustomerById(invoice.customerId);
-                const { total } = calculateInvoiceTotal(invoice);
-                const isEditable = canEditInvoice(invoice.status);
-                
-                return (
-                  <tr key={invoice.id} className="border-b hover:bg-muted/50">
-                    <td className="py-3 text-sm">#{invoice.id}</td>
-                    <td className="py-3 text-sm">{customer?.name || 'Unknown'}</td>
-                    <td className="py-3 text-sm">
-                      {invoice.vehicleInfo.make} {invoice.vehicleInfo.model} ({invoice.vehicleInfo.year})
-                    </td>
-                    <td className="py-3 text-sm">{invoice.date}</td>
-                    <td className="py-3 text-sm">${total.toFixed(2)}</td>
-                    <td className="py-3 text-sm">
-                      <StatusBadge status={invoice.status} />
-                    </td>
-                    <td className="py-3 text-sm">
-                      <div className="flex space-x-2">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          asChild
-                        >
-                          <Link to={`/invoices/${invoice.id}`}>View</Link>
-                        </Button>
-                        
-                        {isEditable ? (
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            asChild
-                          >
-                            <Link to={`/invoices/edit/${invoice.id}`}>
-                              <Pencil className="mr-1 h-3.5 w-3.5" />
-                              Edit
-                            </Link>
-                          </Button>
-                        ) : (
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => toast.info("This invoice can't be edited in its current status")}
-                            disabled
-                          >
-                            <Pencil className="mr-1 h-3.5 w-3.5" />
-                            Edit
-                          </Button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 };

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthContext } from '@/context/AuthContext';
@@ -31,7 +30,7 @@ const Register: React.FC = () => {
     }
 
     try {
-      // Pass name as user metadata rather than trying to directly assign it to the User object
+      // Fixed: don't pass name as a User object parameter
       const { data, error } = await signUp(email, password, name);
       if (error) {
         setError(error.message);
