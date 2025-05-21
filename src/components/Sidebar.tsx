@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
@@ -20,7 +21,8 @@ import {
   User
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { getCurrentUser, hasPermission, RolePermissionMap } from '@/services/data-service';
+import { getCurrentUser, hasPermission } from '@/services/data-service';
+import { rolePermissions } from '@/types';
 import { useAuthContext } from '@/context/AuthContext';
 import { toast } from 'sonner';
 import Logo from './Logo';

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthContext } from '@/context/AuthContext';
 import Logo from '@/components/Logo';
@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface LoginForm {
   email: string;
@@ -16,10 +17,17 @@ interface LoginForm {
 const Login: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
-  const { signIn } = useAuthContext();
+  const { signIn, currentUser } = useAuthContext();
   const navigate = useNavigate();
   const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>();
   
+  // Redirect if already logged in
+  useEffect(() => {
+    if (currentUser) {
+      navigate('/dashboard');
+    }
+  }, [currentUser, navigate]);
+
   const onSubmit = async (formData: LoginForm) => {
     setLoading(true);
     setError('');
@@ -34,14 +42,18 @@ const Login: React.FC = () => {
       const { data, error } = await signIn(formData.email, formData.password);
       
       if (error) {
-        setError(error.message);
+        if (error.message.includes('credentials')) {
+          setError('Invalid email or password');
+        } else {
+          setError(error.message || 'An error occurred during login');
+        }
       } else if (data) {
         toast.success('Login successful');
-        navigate('/');
+        navigate('/dashboard');
       }
-    } catch (err) {
-      setError('An unexpected error occurred');
+    } catch (err: any) {
       console.error('Login error:', err);
+      setError(err?.message || 'An unexpected error occurred');
     } finally {
       setLoading(false);
     }
@@ -153,6 +165,12 @@ const Login: React.FC = () => {
                   Register
                 </Link>
               </p>
+            </div>
+
+            <div className="mt-6 text-center text-sm text-gray-500">
+              <p>Demo credentials:</p>
+              <p>Email: demo@garagepro.com</p>
+              <p>Password: demo1234</p>
             </div>
           </div>
         </div>

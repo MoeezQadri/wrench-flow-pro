@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 
 interface AuthContextType {
   currentUser: User | null;
+  setCurrentUser: React.Dispatch<React.SetStateAction<User | null>>;
   session: Session | null;
   isAuthenticated: boolean;
   loading: boolean;
@@ -170,6 +171,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <AuthContext.Provider
       value={{
         currentUser,
+        setCurrentUser,
         session,
         isAuthenticated: !!currentUser,
         loading,

@@ -7,6 +7,47 @@ const handleError = (error: any, action: string) => {
   console.error(`Error ${action}:`, error);
 };
 
+// Helper to map DB data to client model
+const mapInvoiceFromDb = (invoice: any): Invoice => {
+  const items = invoice.invoice_items?.map((item: any) => ({
+    id: item.id,
+    type: item.type as 'labor' | 'part',
+    description: item.description,
+    quantity: item.quantity,
+    price: item.price
+  })) || [];
+  
+  const payments = invoice.payments?.map((payment: any) => ({
+    id: payment.id,
+    invoiceId: payment.invoice_id,
+    amount: payment.amount,
+    method: payment.method as 'cash' | 'card' | 'bank-transfer',
+    date: payment.date,
+    notes: payment.notes || ''
+  })) || [];
+  
+  const vehicle = invoice.vehicles;
+  
+  return {
+    id: invoice.id,
+    customerId: invoice.customer_id,
+    vehicleId: invoice.vehicle_id,
+    vehicleInfo: {
+      make: vehicle?.make || '',
+      model: vehicle?.model || '',
+      year: vehicle?.year || '',
+      licensePlate: vehicle?.license_plate || ''
+    },
+    status: invoice.status as 'open' | 'in-progress' | 'completed' | 'paid' | 'partial',
+    date: invoice.date,
+    dueDate: invoice.due_date || invoice.date, // Use due_date if available, fallback to date
+    items,
+    notes: invoice.notes || '',
+    taxRate: invoice.tax_rate,
+    payments
+  };
+};
+
 // Only updating the specific parts with type errors
 export const fetchMechanicById = async (id: string): Promise<Mechanic | null> => {
   try {
@@ -226,7 +267,7 @@ export const addVehicle = async (vehicleData: any) => {
   }
 };
 
-export const fetchInvoices = async () => {
+export const fetchInvoices = async (): Promise<Invoice[]> => {
   try {
     const { data, error } = await supabase
       .from('invoices')
@@ -239,61 +280,30 @@ export const fetchInvoices = async () => {
       
     if (error) throw error;
     
-    // Transform to client model
-    return data.map(invoice => {
-      const items = invoice.invoice_items.map((item: any) => ({
-        id: item.id,
-        type: item.type as 'labor' | 'part',
-        description: item.description,
-        quantity: item.quantity,
-        price: item.price
-      }));
-      
-      const payments = invoice.payments.map((payment: any) => ({
-        id: payment.id,
-        invoiceId: payment.invoice_id,
-        amount: payment.amount,
-        method: payment.method as 'cash' | 'card' | 'bank-transfer',
-        date: payment.date,
-        notes: payment.notes || ''
-      }));
-      
-      const vehicle = invoice.vehicles;
-      
-      return {
-        id: invoice.id,
-        customerId: invoice.customer_id,
-        vehicleId: invoice.vehicle_id,
-        vehicleInfo: {
-          make: vehicle?.make || '',
-          model: vehicle?.model || '',
-          year: vehicle?.year || '',
-          licensePlate: vehicle?.license_plate || ''
-        },
-        status: invoice.status as 'open' | 'in-progress' | 'completed' | 'paid' | 'partial',
-        date: invoice.date,
-        items,
-        notes: invoice.notes || '',
-        taxRate: invoice.tax_rate,
-        payments
-      };
-    });
+    // Transform to client model using our helper
+    return data.map(mapInvoiceFromDb);
   } catch (error) {
     handleError(error, 'fetching invoices');
     return [];
   }
 };
 
-export const fetchInvoiceById = async (id: string) => {
+export const fetchInvoiceById = async (id: string): Promise<Invoice | null> => {
   try {
     const { data, error } = await supabase
       .from('invoices')
-      .select('*')
+      .select(`
+        *,
+        invoice_items(*),
+        payments(*),
+        vehicles(make, model, year, license_plate)
+      `)
       .eq('id', id)
       .single();
       
     if (error) throw error;
-    return data;
+    
+    return mapInvoiceFromDb(data);
   } catch (error) {
     handleError(error, 'fetching invoice by ID');
     return null;
@@ -570,7 +580,7 @@ export const deleteTask = async (taskId: string) => {
 };
 
 // Add an invoice
-export const addInvoice = async (invoiceData: any) => {
+export const addInvoice = async (invoiceData: any): Promise<Invoice | null> => {
   try {
     // First create the invoice
     const { data: invoice, error: invoiceError } = await supabase
@@ -579,6 +589,7 @@ export const addInvoice = async (invoiceData: any) => {
         customer_id: invoiceData.customerId,
         vehicle_id: invoiceData.vehicleId,
         date: invoiceData.date,
+        due_date: invoiceData.dueDate || invoiceData.date, // Add due_date field
         status: invoiceData.status,
         tax_rate: invoiceData.taxRate,
         notes: invoiceData.notes || ''
@@ -623,7 +634,7 @@ export const addInvoice = async (invoiceData: any) => {
     }
     
     // Fetch the complete invoice with items and payments
-    return fetchInvoiceById(invoice.id);
+    return await fetchInvoiceById(invoice.id);
   } catch (error) {
     handleError(error, 'adding invoice');
     throw error;
@@ -734,5 +745,102 @@ export const addExpense = async (expenseData: any) => {
   } catch (error) {
     handleError(error, 'adding expense');
     throw error;
+  }
+};
+
+// Fix vehicle fetching to properly handle promises
+export const fetchVehicleById = async (id: string): Promise<Vehicle | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('vehicles')
+      .select('*')
+      .eq('id', id)
+      .single();
+      
+    if (error) throw error;
+    
+    // Map DB fields to client model field names
+    return {
+      id: data.id,
+      customerId: data.customer_id,
+      make: data.make,
+      model: data.model,
+      year: data.year,
+      licensePlate: data.license_plate,
+      vin: data.vin,
+      color: data.color
+    };
+  } catch (error) {
+    handleError(error, 'fetching vehicle by ID');
+    return null;
+  }
+};
+
+// Add missing function for dashboard metrics
+export const fetchDashboardMetrics = async (): Promise<DashboardMetrics> => {
+  try {
+    // Fetch metrics from Supabase or calculate them
+    // For now, return mock data
+    return {
+      totalRevenue: 24500,
+      pendingInvoices: 7,
+      completedJobs: 34,
+      activeJobs: 12,
+      mechanicEfficiency: 84,
+      monthlyRevenue: 7800,
+      monthlyExpenses: 3200,
+      monthlyProfit: 4600,
+      pendingTasks: 9,
+      activeCustomers: 28,
+      activeVehicles: 42,
+      inventoryValue: 15600,
+      lowStockItems: 3
+    };
+  } catch (error) {
+    handleError(error, 'fetching dashboard metrics');
+    // Return empty metrics on error
+    return {
+      totalRevenue: 0,
+      pendingInvoices: 0,
+      completedJobs: 0,
+      activeJobs: 0,
+      mechanicEfficiency: 0,
+      monthlyRevenue: 0,
+      monthlyExpenses: 0,
+      monthlyProfit: 0,
+      pendingTasks: 0,
+      activeCustomers: 0,
+      activeVehicles: 0,
+      inventoryValue: 0,
+      lowStockItems: 0
+    };
+  }
+};
+
+// Add function for customer analytics
+export const fetchCustomerAnalytics = async (customerId: string): Promise<CustomerAnalytics> => {
+  try {
+    // Perform database operations to calculate analytics
+    // For now, return mock data
+    return {
+      totalInvoices: 5,
+      lifetimeValue: 1250,
+      averageInvoiceValue: 250,
+      firstVisitDate: '2023-01-15',
+      lastVisitDate: '2023-04-22',
+      vehicles: [],
+      invoiceHistory: []
+    };
+  } catch (error) {
+    handleError(error, 'fetching customer analytics');
+    return {
+      totalInvoices: 0,
+      lifetimeValue: 0,
+      averageInvoiceValue: 0,
+      firstVisitDate: '',
+      lastVisitDate: '',
+      vehicles: [],
+      invoiceHistory: []
+    };
   }
 };
