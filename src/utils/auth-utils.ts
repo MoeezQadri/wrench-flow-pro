@@ -75,3 +75,24 @@ export const fetchUserProfile = async (userId: string) => {
   
   return { profileData, profileError };
 };
+
+/**
+ * Verify SuperAdmin token
+ */
+export const verifySuperAdminToken = async (token: string): Promise<boolean> => {
+  try {
+    const { data, error } = await supabase.functions.invoke('verify-superadmin-token', {
+      body: { token }
+    });
+    
+    if (error) {
+      console.error('Error verifying superadmin token:', error);
+      return false;
+    }
+    
+    return data?.verified === true;
+  } catch (error) {
+    console.error('Error verifying superadmin token:', error);
+    return false;
+  }
+};

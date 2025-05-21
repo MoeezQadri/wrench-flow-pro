@@ -1,4 +1,6 @@
 
+import { toast } from 'sonner';
+
 /**
  * A utility function to safely resolve a promise and set it to a state variable
  * Prevents common errors when directly assigning promises to state
@@ -12,7 +14,9 @@ export async function resolvePromiseAndSetState<T>(
     setState(result);
   } catch (error) {
     console.error("Error resolving promise:", error);
-    // You can handle the error here or re-throw if needed
+    // Show error toast to user
+    toast.error("Failed to load data");
+    // Re-throw if needed
     throw error;
   }
 }
@@ -48,4 +52,31 @@ export const downloadAsCSV = (data: any[], filename: string): void => {
   document.body.appendChild(link); // Required for Firefox
   link.click();
   document.body.removeChild(link);
+};
+
+/**
+ * A utility function to fetch data with retry logic
+ */
+export const fetchWithRetry = async<T>(
+  fetchFn: () => Promise<T>,
+  maxRetries = 3,
+  delay = 1000
+): Promise<T> => {
+  let lastError: Error | null = null;
+  
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await fetchFn();
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+      console.warn(`Fetch attempt ${attempt + 1} failed:`, lastError);
+      
+      // Only delay and retry if we have attempts left
+      if (attempt < maxRetries - 1) {
+        await new Promise(resolve => setTimeout(resolve, delay * (attempt + 1)));
+      }
+    }
+  }
+  
+  throw lastError || new Error('Failed after multiple retry attempts');
 };

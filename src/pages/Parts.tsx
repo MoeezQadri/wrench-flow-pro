@@ -1,25 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
-import { resolvePromiseAndSetState } from '@/utils/async-helpers';
+import { toast } from 'sonner';
 import { useAsyncCache } from '@/hooks/useAsyncData';
 import { supabase } from '@/integrations/supabase/client';
+import { getCustomerById } from '@/services/data-service';
 import { Customer } from '@/types';
-
-// Function to fetch customer by ID from Supabase
-const getCustomerById = async (id: string): Promise<Customer> => {
-  const { data, error } = await supabase
-    .from('customers')
-    .select('*')
-    .eq('id', id)
-    .single();
-  
-  if (error) {
-    console.error('Error fetching customer:', error);
-    throw error;
-  }
-  
-  return data as Customer;
-};
 
 // CustomerCell component to handle async loading of customer data
 const CustomerCell = ({ 
@@ -35,15 +20,25 @@ const CustomerCell = ({
   
   useEffect(() => {
     const loadCustomer = async () => {
-      if (customerCache[customerId]) {
-        setName(customerCache[customerId].name);
-      } else {
-        const customer = await getCustomer(customerId);
-        setName(customer.name);
+      try {
+        // Use the cache if available
+        if (customerCache[customerId]) {
+          setName(customerCache[customerId].name);
+        } else {
+          const customer = await getCustomer(customerId);
+          setName(customer.name);
+        }
+      } catch (error) {
+        console.error('Error loading customer:', error);
+        setName('Unknown');
       }
     };
     
-    loadCustomer();
+    if (customerId) {
+      loadCustomer();
+    } else {
+      setName('N/A');
+    }
   }, [customerId, getCustomer, customerCache]);
   
   return <span>{name}</span>;
@@ -120,9 +115,9 @@ const Parts: React.FC = () => {
                   </td>
                   <td className="py-2 px-4 text-right">${part.price.toFixed(2)}</td>
                   <td className="py-2 px-4">
-                    {part.customerId ? (
+                    {part.vendor_id ? (
                       <CustomerCell 
-                        customerId={part.customerId} 
+                        customerId={part.vendor_id} 
                         getCustomer={getCustomer} 
                         customerCache={customerCache}
                       />

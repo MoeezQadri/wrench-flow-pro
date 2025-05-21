@@ -46,6 +46,7 @@ export interface Vehicle {
   vin?: string;
   color?: string;
   customerId: string;
+  customer_id?: string; // For database compatibility
   created_at?: string;
   updated_at?: string;
 }
@@ -118,6 +119,9 @@ export interface Task {
   };
 }
 
+// Invoice status type
+export type InvoiceStatus = 'draft' | 'pending' | 'paid' | 'partial' | 'overdue' | 'cancelled' | 'in-progress' | 'completed' | 'open';
+
 // Invoice type
 export interface Invoice {
   id: string;
@@ -127,7 +131,7 @@ export interface Invoice {
   vehicleId: string;
   date: string;
   due_date?: string;
-  status: 'draft' | 'pending' | 'paid' | 'partial' | 'overdue' | 'cancelled';
+  status: InvoiceStatus;
   tax_rate?: number;
   taxRate?: number;
   notes?: string;
@@ -143,6 +147,7 @@ export interface Invoice {
     make: string;
     model: string;
     licensePlate: string;
+    year?: string;
   };
   discount?: {
     type: 'percentage' | 'fixed';
@@ -243,6 +248,7 @@ export interface DashboardMetrics {
   monthlyProfit: number[];
   activeCustomers: number;
   vehicleCount: number;
+  customerCount: number;
   averageJobValue: number;
   inventoryValue: number;
   pendingTasks: number;
@@ -261,12 +267,12 @@ export interface RolePermissionMap {
   customers: { view: boolean; manage: boolean; };
   invoices: { view: boolean; manage: boolean; };
   mechanics: { view: boolean; manage: boolean; };
-  tasks: TasksPermission | { view: boolean; manage: TasksPermission; };
+  tasks: TasksPermission | { view: boolean; manage: TasksPermission | boolean; };
   parts: { view: boolean; manage: boolean; };
   finance: { view: boolean; manage: boolean; };
   expenses: { view: boolean; manage: boolean; };
   reports: BasePermission | { view: BasePermission; manage: boolean; };
-  attendance: AttendancePermission | { view: BasePermission; manage: AttendancePermission; approve?: boolean; };
+  attendance: AttendancePermission | { view: BasePermission | { view: 'own' }; manage: AttendancePermission | { update: 'own' }; approve?: boolean; };
   settings: { view: boolean; manage: boolean; };
   organization: { view: boolean; manage: boolean; };
   users: { view: boolean; manage: boolean; };

@@ -1,3 +1,4 @@
+
 import { getSupabaseAdmin } from './auth.ts';
 
 export async function authenticateSuperadmin(userid: string) {

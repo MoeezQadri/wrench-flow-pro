@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuthContext } from '@/context/AuthContext';
 import { toast } from 'sonner';
 import Logo from '@/components/Logo';
+import { verifySuperAdminToken } from '@/utils/auth-utils';
 
 const SuperAdminLogin = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -42,22 +43,19 @@ const SuperAdminLogin = () => {
       
       // Store the superadmin token
       if (loginData.token) {
-        // Check if verifySuperAdminToken is available in context
-        if (authContext.verifySuperAdminToken) {
-          const verified = await authContext.verifySuperAdminToken(loginData.token);
-          if (verified) {
-            toast.success('Successfully authenticated as SuperAdmin');
-            // Navigate to SuperAdmin dashboard
-            navigate('/superadmin/dashboard');
-            return;
-          }
-        } else {
-          console.warn('verifySuperAdminToken function not available in auth context');
-          // Fallback logic if verification function isn't available
-          // Store token in localStorage or other storage
+        // Verify the token
+        const verified = await verifySuperAdminToken(loginData.token);
+        
+        if (verified) {
+          // Store token in localStorage
           localStorage.setItem('superadmin_token', loginData.token);
-          toast.success('Logged in as SuperAdmin (token verification unavailable)');
+          
+          toast.success('Successfully authenticated as SuperAdmin');
+          // Navigate to SuperAdmin dashboard
           navigate('/superadmin/dashboard');
+          return;
+        } else {
+          toast.error('Failed to verify authentication token');
           return;
         }
       }
