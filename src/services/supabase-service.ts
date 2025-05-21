@@ -1,6 +1,6 @@
+import { User, Customer, Vehicle, Invoice, Part, Mechanic, Vendor, Expense, Attendance, Task, CustomerAnalytics, DashboardMetrics, InvoiceItem, Payment, InvoiceStatus, UserRole, RolePermissionMap } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
-import { User } from '@/types';
-import { Mechanic, Task, InvoiceItem, Attendance } from '@/types';
+import { toast } from "sonner";
 
 // Helper function to handle errors
 const handleError = (error: any, action: string) => {
@@ -418,5 +418,321 @@ export const fetchAttendance = async () => {
   } catch (error) {
     handleError(error, 'fetching attendance');
     return [];
+  }
+};
+
+// Add additional functions to properly connect with Supabase
+
+// Fetch customers with their vehicles
+export const fetchCustomersWithVehicles = async () => {
+  try {
+    const { data: customers, error: customersError } = await supabase
+      .from('customers')
+      .select('*');
+      
+    if (customersError) throw customersError;
+
+    // For each customer, fetch their vehicles
+    const customersWithVehicles = await Promise.all(
+      customers.map(async (customer) => {
+        const vehicles = await fetchVehiclesByCustomerId(customer.id);
+        return {
+          ...customer,
+          vehicles
+        };
+      })
+    );
+    
+    return customersWithVehicles;
+  } catch (error) {
+    handleError(error, 'fetching customers with vehicles');
+    return [];
+  }
+};
+
+// Update a customer
+export const updateCustomer = async (customerId: string, customerData: any) => {
+  try {
+    const { data, error } = await supabase
+      .from('customers')
+      .update(customerData)
+      .eq('id', customerId)
+      .select()
+      .single();
+      
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    handleError(error, 'updating customer');
+    throw error;
+  }
+};
+
+// Add a task
+export const addTask = async (taskData: any) => {
+  try {
+    const { data, error } = await supabase
+      .from('tasks')
+      .insert([{
+        title: taskData.title,
+        description: taskData.description || '',
+        mechanic_id: taskData.mechanicId,
+        status: taskData.status,
+        hours_estimated: taskData.hoursEstimated,
+        hours_spent: taskData.hoursSpent,
+        vehicle_id: taskData.vehicleId,
+        location: taskData.location || 'workshop',
+        price: taskData.price || 0
+      }])
+      .select()
+      .single();
+      
+    if (error) throw error;
+    
+    return {
+      id: data.id,
+      title: data.title,
+      description: data.description || '',
+      mechanicId: data.mechanic_id,
+      status: data.status as 'pending' | 'in-progress' | 'completed',
+      hoursEstimated: data.hours_estimated,
+      hoursSpent: data.hours_spent,
+      vehicleId: data.vehicle_id,
+      location: data.location as 'workshop' | 'onsite' | 'remote',
+      price: data.price || 0
+    };
+  } catch (error) {
+    handleError(error, 'adding task');
+    throw error;
+  }
+};
+
+// Update a task
+export const updateTask = async (taskId: string, taskData: any) => {
+  try {
+    const dbTask = {
+      title: taskData.title,
+      description: taskData.description || '',
+      mechanic_id: taskData.mechanicId,
+      status: taskData.status,
+      hours_estimated: taskData.hoursEstimated,
+      hours_spent: taskData.hoursSpent,
+      vehicle_id: taskData.vehicleId,
+      location: taskData.location || 'workshop',
+      price: taskData.price || 0,
+      completed_by: taskData.completedBy,
+      completed_at: taskData.completedAt
+    };
+    
+    const { data, error } = await supabase
+      .from('tasks')
+      .update(dbTask)
+      .eq('id', taskId)
+      .select()
+      .single();
+      
+    if (error) throw error;
+    
+    return {
+      id: data.id,
+      title: data.title,
+      description: data.description || '',
+      mechanicId: data.mechanic_id,
+      status: data.status as 'pending' | 'in-progress' | 'completed',
+      hoursEstimated: data.hours_estimated,
+      hoursSpent: data.hours_spent,
+      vehicleId: data.vehicle_id,
+      location: data.location as 'workshop' | 'onsite' | 'remote',
+      price: data.price || 0,
+      completedBy: data.completed_by,
+      completedAt: data.completed_at
+    };
+  } catch (error) {
+    handleError(error, 'updating task');
+    throw error;
+  }
+};
+
+// Delete a task
+export const deleteTask = async (taskId: string) => {
+  try {
+    const { error } = await supabase
+      .from('tasks')
+      .delete()
+      .eq('id', taskId);
+      
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    handleError(error, 'deleting task');
+    throw error;
+  }
+};
+
+// Add an invoice
+export const addInvoice = async (invoiceData: any) => {
+  try {
+    // First create the invoice
+    const { data: invoice, error: invoiceError } = await supabase
+      .from('invoices')
+      .insert([{
+        customer_id: invoiceData.customerId,
+        vehicle_id: invoiceData.vehicleId,
+        date: invoiceData.date,
+        status: invoiceData.status,
+        tax_rate: invoiceData.taxRate,
+        notes: invoiceData.notes || ''
+      }])
+      .select()
+      .single();
+      
+    if (invoiceError) throw invoiceError;
+    
+    // Then add invoice items
+    if (invoiceData.items && invoiceData.items.length > 0) {
+      const invoiceItems = invoiceData.items.map((item: any) => ({
+        invoice_id: invoice.id,
+        type: item.type,
+        description: item.description,
+        quantity: item.quantity,
+        price: item.price
+      }));
+      
+      const { error: itemsError } = await supabase
+        .from('invoice_items')
+        .insert(invoiceItems);
+        
+      if (itemsError) throw itemsError;
+    }
+    
+    // Then add payments if any
+    if (invoiceData.payments && invoiceData.payments.length > 0) {
+      const payments = invoiceData.payments.map((payment: any) => ({
+        invoice_id: invoice.id,
+        amount: payment.amount,
+        method: payment.method,
+        date: payment.date,
+        notes: payment.notes || ''
+      }));
+      
+      const { error: paymentsError } = await supabase
+        .from('payments')
+        .insert(payments);
+        
+      if (paymentsError) throw paymentsError;
+    }
+    
+    // Fetch the complete invoice with items and payments
+    return fetchInvoiceById(invoice.id);
+  } catch (error) {
+    handleError(error, 'adding invoice');
+    throw error;
+  }
+};
+
+// Add a part
+export const addPart = async (partData: any) => {
+  try {
+    const dbPart = {
+      name: partData.name,
+      price: partData.price,
+      quantity: partData.quantity,
+      description: partData.description || '',
+      vendor_id: partData.vendorId,
+      vendor_name: partData.vendorName,
+      part_number: partData.partNumber,
+      reorder_level: partData.reorderLevel || 5
+    };
+    
+    const { data, error } = await supabase
+      .from('parts')
+      .insert([dbPart])
+      .select()
+      .single();
+      
+    if (error) throw error;
+    
+    return {
+      id: data.id,
+      name: data.name,
+      price: data.price,
+      quantity: data.quantity,
+      description: data.description || '',
+      vendorId: data.vendor_id,
+      vendorName: data.vendor_name,
+      partNumber: data.part_number,
+      reorderLevel: data.reorder_level || 5
+    };
+  } catch (error) {
+    handleError(error, 'adding part');
+    throw error;
+  }
+};
+
+// Update part quantity
+export const updatePartQuantity = async (partId: string, newQuantity: number) => {
+  try {
+    const { data, error } = await supabase
+      .from('parts')
+      .update({ quantity: newQuantity })
+      .eq('id', partId)
+      .select()
+      .single();
+      
+    if (error) throw error;
+    
+    return {
+      id: data.id,
+      name: data.name,
+      price: data.price,
+      quantity: data.quantity,
+      description: data.description || '',
+      vendorId: data.vendor_id,
+      vendorName: data.vendor_name,
+      partNumber: data.part_number,
+      reorderLevel: data.reorder_level || 5
+    };
+  } catch (error) {
+    handleError(error, 'updating part quantity');
+    throw error;
+  }
+};
+
+// Add an expense
+export const addExpense = async (expenseData: any) => {
+  try {
+    const dbExpense = {
+      date: expenseData.date,
+      category: expenseData.category,
+      amount: expenseData.amount,
+      description: expenseData.description || '',
+      payment_method: expenseData.paymentMethod,
+      payment_status: expenseData.paymentStatus || 'paid',
+      vendor_id: expenseData.vendorId,
+      vendor_name: expenseData.vendorName
+    };
+    
+    const { data, error } = await supabase
+      .from('expenses')
+      .insert([dbExpense])
+      .select()
+      .single();
+      
+    if (error) throw error;
+    
+    return {
+      id: data.id,
+      date: data.date,
+      category: data.category,
+      amount: data.amount,
+      description: data.description || '',
+      paymentMethod: data.payment_method,
+      paymentStatus: data.payment_status,
+      vendorId: data.vendor_id,
+      vendorName: data.vendor_name
+    };
+  } catch (error) {
+    handleError(error, 'adding expense');
+    throw error;
   }
 };

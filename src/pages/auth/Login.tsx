@@ -1,33 +1,42 @@
+
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthContext } from '@/context/AuthContext';
 import Logo from '@/components/Logo';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
+
+interface LoginForm {
+  email: string;
+  password: string;
+}
+
 const Login: React.FC = () => {
-  const [email, setEmail] = useState<string>('');
-  const [password, setPassword] = useState<string>('');
-  const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
-  const {
-    signIn
-  } = useAuthContext();
+  const [error, setError] = useState<string>('');
+  const { signIn } = useAuthContext();
   const navigate = useNavigate();
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>();
+  
+  const onSubmit = async (formData: LoginForm) => {
     setLoading(true);
     setError('');
+    
     if (!signIn) {
       setError('Authentication service unavailable');
       setLoading(false);
       return;
     }
+    
     try {
-      const {
-        data,
-        error
-      } = await signIn(email, password);
+      const { data, error } = await signIn(formData.email, formData.password);
+      
       if (error) {
         setError(error.message);
       } else if (data) {
+        toast.success('Login successful');
         navigate('/');
       }
     } catch (err) {
@@ -37,11 +46,17 @@ const Login: React.FC = () => {
       setLoading(false);
     }
   };
-  return <div className="flex min-h-screen bg-gradient-to-b from-slate-100 to-slate-200">
+  
+  return (
+    <div className="flex min-h-screen bg-gradient-to-b from-slate-100 to-slate-200">
       {/* Branding Side */}
       <div className="hidden lg:flex lg:w-1/2 flex-col items-center justify-center p-12 text-white bg-zinc-100">
         <div className="max-w-md">
-          <img alt="Garage Pro" src="/lovable-uploads/ed35fded-80cf-4192-b64b-e97730ee6384.png" className="w-72 mb-8 text-white object-contain" />
+          <img 
+            alt="Garage Pro" 
+            src="/lovable-uploads/ed35fded-80cf-4192-b64b-e97730ee6384.png" 
+            className="w-72 mb-8 text-white object-contain" 
+          />
           <p className="text-xl mb-8 text-slate-800 text-left">Garage management software helping you streamline:</p>
           <div className="space-y-4 text-lg">
             <div className="flex items-center">
@@ -65,21 +80,41 @@ const Login: React.FC = () => {
         <div className="w-full max-w-md">
           <div className="bg-white px-8 py-10 shadow-lg rounded-lg">
             <div className="flex justify-center mb-6">
-              <img alt="Garage Pro" className="h-16" src="/lovable-uploads/b52e749c-5ab7-46f8-9727-4269e4dd0240.png" />
+              <img 
+                alt="Garage Pro" 
+                className="h-16" 
+                src="/lovable-uploads/b52e749c-5ab7-46f8-9727-4269e4dd0240.png" 
+              />
             </div>
             
             <h2 className="text-2xl font-bold text-center mb-6">Welcome Back</h2>
             
-            {error && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+            {error && (
+              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
                 <span className="block sm:inline">{error}</span>
-              </div>}
+              </div>
+            )}
             
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit(onSubmit)}>
               <div className="mb-4">
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
                   Email Address
                 </label>
-                <input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500" required />
+                <Input
+                  id="email"
+                  type="email"
+                  {...register('email', { 
+                    required: 'Email is required', 
+                    pattern: { 
+                      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i, 
+                      message: 'Invalid email address' 
+                    } 
+                  })}
+                  className="w-full"
+                />
+                {errors.email && (
+                  <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>
+                )}
               </div>
               
               <div className="mb-6">
@@ -91,12 +126,24 @@ const Login: React.FC = () => {
                     Forgot password?
                   </Link>
                 </div>
-                <input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500" required />
+                <Input
+                  id="password"
+                  type="password"
+                  {...register('password', { required: 'Password is required' })}
+                  className="w-full"
+                />
+                {errors.password && (
+                  <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>
+                )}
               </div>
               
-              <button type="submit" disabled={loading} className={`w-full bg-gray-700 text-white py-3 rounded-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}>
+              <Button
+                type="submit"
+                disabled={loading}
+                className="w-full"
+              >
                 {loading ? 'Logging in...' : 'Log in'}
-              </button>
+              </Button>
             </form>
             
             <div className="mt-6 text-center">
@@ -110,6 +157,8 @@ const Login: React.FC = () => {
           </div>
         </div>
       </div>
-    </div>;
+    </div>
+  );
 };
+
 export default Login;

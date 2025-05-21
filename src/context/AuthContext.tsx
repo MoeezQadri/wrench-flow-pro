@@ -1,258 +1,194 @@
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useState, useEffect, useContext } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { User, Session } from '@supabase/supabase-js';
-import { AuthContextValue } from '@/types/auth';
-import { User as AppUser } from '@/types';
+import { User } from '@/types';
+import { Session } from '@supabase/supabase-js';
+import { createUserFromSession, fetchUserProfile, handleEmailConfirmation, updateLastLogin } from '@/utils/auth-utils';
 import { toast } from 'sonner';
-import { updateLastLogin } from '@/utils/auth-utils';
 
-const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+interface AuthContextType {
+  currentUser: User | null;
+  session: Session | null;
+  isAuthenticated: boolean;
+  loading: boolean;
+  isSuperAdmin: boolean;
+  signIn: (email: string, password: string) => Promise<any>;
+  signUp: (email: string, password: string, userData: Partial<User>) => Promise<any>;
+  logout: () => Promise<void>;
+  refreshUserData: () => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [currentUser, setCurrentUser] = useState<AppUser | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
   const [isSuperAdmin, setIsSuperAdmin] = useState<boolean>(false);
 
+  // Initialize auth state
   useEffect(() => {
-    console.log('AuthProvider: Setting up auth state listener');
-    
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, newSession) => {
-        console.log('Auth state changed:', event, newSession?.user?.id);
-        
-        setSession(newSession);
-        setUser(newSession?.user ?? null);
-        
-        if (newSession?.user) {
-          // Check if this user is a superadmin
-          const superAdminToken = localStorage.getItem('superadminToken');
-          // Convert to boolean explicitly to avoid type issues
-          const userIsSuperAdmin = !!(newSession.user.user_metadata?.role === 'superuser' || superAdminToken);
-          setIsSuperAdmin(userIsSuperAdmin);
-          
-          // Create AppUser from session
-          const appUser: AppUser = {
-            id: newSession.user.id,
-            email: newSession.user.email || '',
-            name: newSession.user.user_metadata?.name || newSession.user.email?.split('@')[0] || 'User',
-            role: newSession.user.user_metadata?.role || 'owner',
-            isActive: true,
-            organizationId: newSession.user.user_metadata?.organizationId,
-            user_metadata: newSession.user.user_metadata,
-            app_metadata: newSession.user.app_metadata,
-            created_at: newSession.user.created_at,
-            aud: newSession.user.aud,
-            lastLogin: new Date().toISOString()
-          };
-          
-          setCurrentUser(appUser);
-          
-          // If this is a login event, update the last login time
-          if (event === 'SIGNED_IN') {
-            try {
-              // Use a timeout to avoid auth deadlock
-              setTimeout(async () => {
-                try {
-                  await updateLastLogin(newSession.user.id);
-                  console.log('Updated last login timestamp');
-                } catch (err) {
-                  console.error('Failed to update last login:', err);
-                }
-              }, 0);
-            } catch (err) {
-              console.error('Error in login callback:', err);
-            }
-          }
-        } else {
-          setCurrentUser(null);
-          setIsSuperAdmin(false);
-        }
-      }
-    );
-
-    // THEN check for existing session
     const initializeAuth = async () => {
       try {
-        const { data: { session: existingSession } } = await supabase.auth.getSession();
-        console.log('Initial session check:', existingSession?.user?.id);
+        // Check if we're coming from an email confirmation link
+        const isEmailConfirmation = await handleEmailConfirmation();
+        if (isEmailConfirmation) return;
+
+        // First set up the auth state change listener
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+          async (event, session) => {
+            setSession(session);
+            
+            if (session) {
+              // Using setTimeout to prevent potential auth deadlocks
+              setTimeout(async () => {
+                const { profileData } = await fetchUserProfile(session.user.id);
+                const user = createUserFromSession(session, profileData);
+                setCurrentUser(user);
+                
+                // Check if the user is a superadmin
+                const isSuperUser = user.role === 'superuser' || user.isSuperAdmin;
+                setIsSuperAdmin(isSuperUser);
+                
+                // Update user's last login time
+                await updateLastLogin(user.id);
+              }, 0);
+            } else {
+              setCurrentUser(null);
+              setIsSuperAdmin(false);
+            }
+          }
+        );
+
+        // Then check for an existing session
+        const { data: { session: initialSession } } = await supabase.auth.getSession();
         
-        setSession(existingSession);
-        setUser(existingSession?.user ?? null);
-        
-        if (existingSession?.user) {
-          // Check if this user is a superadmin
-          const superAdminToken = localStorage.getItem('superadminToken');
-          // Convert to boolean explicitly to avoid type issues
-          const userIsSuperAdmin = !!(existingSession.user.user_metadata?.role === 'superuser' || superAdminToken);
-          setIsSuperAdmin(userIsSuperAdmin);
+        if (initialSession) {
+          setSession(initialSession);
           
-          // Create AppUser from session
-          const appUser: AppUser = {
-            id: existingSession.user.id,
-            email: existingSession.user.email || '',
-            name: existingSession.user.user_metadata?.name || existingSession.user.email?.split('@')[0] || 'User',
-            role: existingSession.user.user_metadata?.role || 'owner',
-            isActive: true,
-            organizationId: existingSession.user.user_metadata?.organizationId,
-            user_metadata: existingSession.user.user_metadata,
-            app_metadata: existingSession.user.app_metadata,
-            created_at: existingSession.user.created_at,
-            aud: existingSession.user.aud,
-            lastLogin: new Date().toISOString()
-          };
+          // Fetch user profile data
+          const { profileData } = await fetchUserProfile(initialSession.user.id);
+          const user = createUserFromSession(initialSession, profileData);
+          setCurrentUser(user);
           
-          setCurrentUser(appUser);
-        } else {
-          setCurrentUser(null);
-          setIsSuperAdmin(false);
+          // Check if the user is a superadmin
+          const isSuperUser = user.role === 'superuser' || user.isSuperAdmin;
+          setIsSuperAdmin(isSuperUser);
+          
+          // Update user's last login time
+          await updateLastLogin(user.id);
         }
+
+        setLoading(false);
+        return () => subscription.unsubscribe();
       } catch (error) {
-        console.error('Error checking session:', error);
-      } finally {
+        console.error("Error initializing auth:", error);
         setLoading(false);
       }
     };
 
     initializeAuth();
-    
-    return () => {
-      console.log('AuthProvider: Unsubscribing from auth state listener');
-      subscription.unsubscribe();
-    };
   }, []);
 
   const signIn = async (email: string, password: string) => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
-        password,
+        password
       });
-      
+
       if (error) {
-        toast.error(`Sign in error: ${error.message}`);
+        console.error('Sign in error:', error);
+        return { data: null, error };
       }
-      
-      return { data: data.session, error };
+
+      return { data, error: null };
     } catch (error) {
-      toast.error(`Unexpected error during sign in: ${(error as Error).message}`);
-      return { data: null, error: error as Error };
+      console.error('Unexpected error during sign in:', error);
+      return { data: null, error };
     }
   };
 
-  const signUp = async (email: string, password: string, name: string) => {
+  const signUp = async (email: string, password: string, userData: Partial<User>) => {
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
-            name,
-            role: 'owner', // Default role for new signups
-          },
-        },
+            name: userData.name,
+            role: userData.role || 'owner',
+            organizationId: userData.organizationId
+          }
+        }
       });
-      
-      if (error) {
-        toast.error(`Sign up error: ${error.message}`);
-      }
-      
-      return { data: data.user, error };
-    } catch (error) {
-      toast.error(`Unexpected error during sign up: ${(error as Error).message}`);
-      return { data: null, error: error as Error };
-    }
-  };
 
-  const signOut = async () => {
-    try {
-      // Clear any superadmin token
-      localStorage.removeItem('superadminToken');
-      
-      const { error } = await supabase.auth.signOut();
       if (error) {
-        toast.error(`Sign out error: ${error.message}`);
+        console.error('Sign up error:', error);
+        return { data: null, error };
       }
-      return { error };
+
+      return { data, error: null };
     } catch (error) {
-      toast.error(`Unexpected error during sign out: ${(error as Error).message}`);
-      return { error: error as Error };
+      console.error('Unexpected error during sign up:', error);
+      return { data: null, error };
     }
   };
 
   const logout = async () => {
-    await signOut();
-    setCurrentUser(null);
-    setSession(null);
-    setIsSuperAdmin(false);
-  };
-
-  const verifySuperAdminToken = async (token: string): Promise<boolean> => {
     try {
-      const { data: verifyData, error: verifyError } = await supabase.functions.invoke(
-        'verify-superadmin-token',
-        {
-          body: { token },
-        }
-      );
-      
-      if (verifyError) {
-        console.error('Token verification error:', verifyError);
-        return false;
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        throw error;
       }
-      
-      if (verifyData?.isValid) {
-        // Store the token in local storage
-        localStorage.setItem('superadminToken', token);
-        setIsSuperAdmin(true);
-        
-        // Update the current user with superadmin info if available
-        if (currentUser && verifyData.username) {
-          setCurrentUser({
-            ...currentUser,
-            role: 'superuser',
-            name: verifyData.username || currentUser.name,
-          });
-        }
-        
-        return true;
-      }
-      
-      return false;
+      setCurrentUser(null);
+      setSession(null);
+      setIsSuperAdmin(false);
     } catch (error) {
-      console.error('Error verifying superadmin token:', error);
-      return false;
+      console.error('Error during logout:', error);
+      toast.error('Error logging out. Please try again.');
     }
   };
 
-  const value: AuthContextValue = {
-    currentUser,
-    session,
-    isAuthenticated: !!currentUser,
-    isSuperAdmin,
-    signIn,
-    signUp,
-    signOut,
-    logout,
-    setSession,
-    setCurrentUser,
-    verifySuperAdminToken,
-    loading
+  const refreshUserData = async () => {
+    if (!session?.user?.id) return;
+    
+    try {
+      const { profileData } = await fetchUserProfile(session.user.id);
+      const updatedUser = createUserFromSession(session, profileData);
+      setCurrentUser(updatedUser);
+      
+      // Check if the user is a superadmin
+      const isSuperUser = updatedUser.role === 'superuser' || updatedUser.isSuperAdmin;
+      setIsSuperAdmin(isSuperUser);
+    } catch (error) {
+      console.error('Error refreshing user data:', error);
+    }
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider
+      value={{
+        currentUser,
+        session,
+        isAuthenticated: !!currentUser,
+        loading,
+        isSuperAdmin,
+        signIn,
+        signUp,
+        logout,
+        refreshUserData
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
 };
 
-export const useAuthContext = (): AuthContextValue => {
+export const useAuthContext = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuthContext must be used within an AuthProvider');
   }
   return context;
 };
-
-// Export AuthContext for direct access
-export { AuthContext };
