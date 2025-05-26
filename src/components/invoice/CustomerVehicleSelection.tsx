@@ -1,150 +1,83 @@
-
-import { useState, useEffect } from "react";
-import { useFormContext } from "react-hook-form";
-import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
+import React, { useState, useEffect } from 'react';
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { UserPlus } from "lucide-react";
+import { fetchCustomers, fetchVehiclesByCustomerId } from "@/services/data-service";
 import { Customer, Vehicle } from "@/types";
-import { getVehicles } from "@/services/data-service";
 
 interface CustomerVehicleSelectionProps {
-  customers: Customer[];
-  vehicles: Vehicle[];
-  setVehicles: React.Dispatch<React.SetStateAction<Vehicle[]>>;
-  setCustomerDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  setVehicleDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  selectedCustomerId: string;
+  onCustomerIdChange: (customerId: string) => void;
+  selectedVehicleId: string;
+  onVehicleIdChange: (vehicleId: string) => void;
 }
 
-const CustomerVehicleSelection = ({
-  customers,
-  vehicles,
-  setVehicles,
-  setCustomerDialogOpen,
-  setVehicleDialogOpen,
-}: CustomerVehicleSelectionProps) => {
-  const form = useFormContext();
-  const watchCustomerId = form.watch("customerId");
-  const [loading, setLoading] = useState(false);
+const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
+  selectedCustomerId,
+  onCustomerIdChange,
+  selectedVehicleId,
+  onVehicleIdChange,
+}) => {
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
 
-  // Update vehicles when customer changes
   useEffect(() => {
-    const fetchVehicles = async () => {
-      if (watchCustomerId) {
-        try {
-          setLoading(true);
-          const allVehicles = await getVehicles();
-          const customerVehicles = allVehicles.filter(v => v.customer_id === watchCustomerId);
-          setVehicles(customerVehicles);
-          
-          // Reset vehicle selection if current selection doesn't belong to this customer
-          const currentVehicle = form.getValues("vehicleId");
-          if (currentVehicle && !customerVehicles.some(v => v.id === currentVehicle)) {
-            form.setValue("vehicleId", "");
-          }
-        } catch (error) {
-          console.error("Error fetching vehicles:", error);
-          setVehicles([]);
-        } finally {
-          setLoading(false);
-        }
+    const loadCustomers = async () => {
+      const fetchedCustomers = await fetchCustomers();
+      setCustomers(fetchedCustomers);
+    };
+
+    loadCustomers();
+  }, []);
+
+  useEffect(() => {
+    const loadVehicles = async () => {
+      if (selectedCustomerId) {
+        const fetchedVehicles = await fetchVehiclesByCustomerId(selectedCustomerId);
+        setVehicles(fetchedVehicles);
       } else {
         setVehicles([]);
       }
     };
-    
-    fetchVehicles();
-  }, [watchCustomerId, form, setVehicles]);
 
-  // Get customer name for display
-  const getCustomerName = (customerId: string) => {
-    const customer = customers.find(c => c.id === customerId);
-    return customer ? customer.name : "";
-  };
+    loadVehicles();
+  }, [selectedCustomerId]);
 
   return (
-    <div className="grid gap-6 md:grid-cols-2">
-      {/* Customer Selection */}
-      <FormField
-        control={form.control}
-        name="customerId"
-        render={({ field }) => (
-          <FormItem className="space-y-2">
-            <FormLabel>Customer</FormLabel>
-            <div className="flex items-center gap-2">
-              <FormControl className="flex-1">
-                <Select
-                  onValueChange={field.onChange}
-                  value={field.value}
-                  disabled={loading}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a customer" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {customers.map((customer) => (
-                      <SelectItem key={customer.id} value={customer.id}>
-                        {customer.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </FormControl>
-              <Button
-                type="button"
-                onClick={() => setCustomerDialogOpen(true)}
-                className="bg-blue-600 hover:bg-blue-700 px-4"
-              >
-                <UserPlus className="h-4 w-4 mr-2" />
-                Add Customer
-              </Button>
-            </div>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <Label htmlFor="customer">Customer</Label>
+        <Select value={selectedCustomerId} onValueChange={(value) => {
+          onCustomerIdChange(value);
+          onVehicleIdChange(""); // Reset vehicle selection when customer changes
+        }} required>
+          <SelectTrigger id="customer">
+            <SelectValue placeholder="Select a customer" />
+          </SelectTrigger>
+          <SelectContent>
+            {customers.map((customer) => (
+              <SelectItem key={customer.id} value={customer.id}>
+                {customer.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
-      {/* Vehicle Selection */}
-      <FormField
-        control={form.control}
-        name="vehicleId"
-        render={({ field }) => (
-          <FormItem className="space-y-2">
-            <FormLabel>Vehicle</FormLabel>
-            <div className="flex items-center gap-2">
-              <FormControl className="flex-1">
-                <Select
-                  onValueChange={field.onChange}
-                  value={field.value}
-                  disabled={!watchCustomerId || loading}
-                >
-                  <SelectTrigger>
-                    <SelectValue
-                      placeholder={
-                        loading ? "Loading..." :
-                        watchCustomerId
-                          ? vehicles.length > 0 
-                            ? "Select a vehicle"
-                            : `No vehicles for ${getCustomerName(watchCustomerId)}`
-                          : "Select a customer first"
-                      }
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {vehicles.map((vehicle) => (
-                      <SelectItem key={vehicle.id} value={vehicle.id}>
-                        {vehicle.make} {vehicle.model} ({vehicle.year}) -{" "}
-                        {vehicle.license_plate}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </FormControl>
-            </div>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+      <div>
+        <Label htmlFor="vehicle">Vehicle</Label>
+        <Select value={selectedVehicleId} onValueChange={onVehicleIdChange} required={vehicles.length > 0}>
+          <SelectTrigger id="vehicle">
+            <SelectValue placeholder="Select a vehicle" />
+          </SelectTrigger>
+          <SelectContent>
+            {vehicles.map((vehicle) => (
+              <SelectItem key={vehicle.id} value={vehicle.id}>
+                {vehicle.year} {vehicle.make} {vehicle.model} ({vehicle.licensePlate})
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
     </div>
   );
 };

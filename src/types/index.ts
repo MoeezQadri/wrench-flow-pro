@@ -9,9 +9,12 @@ export interface User {
   created_at?: string;
   organization_id?: string;
   mechanicId?: string;
+  isSuperAdmin?: boolean;
+  user_metadata?: any;
+  lastLogin?: string;
 }
 
-export type UserRole = 'owner' | 'manager' | 'mechanic' | 'accountant';
+export type UserRole = 'owner' | 'manager' | 'mechanic' | 'accountant' | 'superuser';
 
 export interface Organization {
   id: string;
@@ -35,6 +38,9 @@ export interface Customer {
   totalVisits?: number;
   lifetimeValue?: number;
   created_at?: string;
+  total_visits?: number;
+  lifetime_value?: number;
+  last_visit?: string | null;
 }
 
 export interface Vehicle {
@@ -44,6 +50,7 @@ export interface Vehicle {
   model: string;
   year: string;
   licensePlate: string;
+  license_plate?: string;
   vin?: string;
   color?: string;
   created_at?: string;
@@ -62,6 +69,10 @@ export interface Invoice {
   payments: Payment[];
   vehicleInfo?: Vehicle;
   created_at?: string;
+  discount?: {
+    type: 'percentage' | 'fixed';
+    value: number;
+  };
 }
 
 export type InvoiceStatus = 'open' | 'in-progress' | 'completed' | 'paid' | 'partial' | 'overdue' | 'canceled';
@@ -69,7 +80,7 @@ export type InvoiceStatus = 'open' | 'in-progress' | 'completed' | 'paid' | 'par
 export interface InvoiceItem {
   id: string;
   invoice_id?: string;
-  type: 'labor' | 'part';
+  type: 'labor' | 'part' | 'service';
   description: string;
   quantity: number;
   price: number;
@@ -92,9 +103,12 @@ export interface Mechanic {
   address?: string;
   is_active?: boolean;
   specialty?: string;
+  specialization?: string;
   years_of_experience?: number;
   certifications?: string[];
   created_at?: string;
+  id_card_image?: string;
+  employment_type?: 'fulltime' | 'contractor';
 }
 
 export interface Part {
@@ -110,6 +124,16 @@ export interface Part {
   created_at?: string;
 }
 
+export interface Vendor {
+  id: string;
+  name: string;
+  contact_name: string;
+  phone: string;
+  email?: string;
+  address?: string;
+  created_at?: string;
+}
+
 export interface Expense {
   id: string;
   category: string;
@@ -117,6 +141,7 @@ export interface Expense {
   amount: number;
   date: string;
   payment_method: 'cash' | 'card' | 'bank-transfer';
+  payment_status?: string;
   vendor_name?: string;
   vendor_id?: string;
   created_at: string;
@@ -146,10 +171,13 @@ export interface Task {
 export interface Attendance {
   id: string;
   mechanic_id: string;
+  mechanicId?: string;
   date: string;
   check_in: string;
+  checkIn?: string;
   check_out?: string;
-  status: 'pending' | 'approved' | 'rejected';
+  checkOut?: string;
+  status: 'pending' | 'approved' | 'rejected' | 'present' | 'late' | 'absent' | 'half-day';
   notes?: string;
   approved_by?: string;
   created_at: string;
@@ -178,4 +206,22 @@ export interface CustomerAnalytics {
   averageInvoiceValue: number;
   vehicles: Vehicle[];
   invoiceHistory: Invoice[];
+  firstVisitDate?: string;
+  lastVisitDate?: string;
+}
+
+export interface DashboardMetrics {
+  totalRevenue: number;
+  pendingInvoices: number;
+  completedJobs: number;
+  activeJobs: number;
+  mechanicEfficiency: number;
+  monthlyRevenue: number;
+  monthlyExpenses: number;
+  monthlyProfit: number;
+  pendingTasks: number;
+  activeCustomers: number;
+  activeVehicles: number;
+  inventoryValue: number;
+  lowStockItems: number;
 }

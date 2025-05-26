@@ -1,271 +1,263 @@
-
-import { useState, useEffect } from "react";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm, FormProvider } from "react-hook-form";
-import * as z from "zod";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { format } from "date-fns";
-
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
-import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Invoice, InvoiceItem, Vehicle } from "@/types";
+import { 
+  getCustomers, 
+  getVehiclesByCustomerId,
+  addInvoice,
+  fetchVehicleById
+} from "@/services/data-service";
+import InvoiceItemsSection from "./invoice/InvoiceItemsSection";
 import { toast } from "sonner";
-import CustomerDialog from "@/components/CustomerDialog";
-import VehicleDialog from "@/components/VehicleDialog";
 
-import { InvoiceItem, Customer, Vehicle, Payment, Invoice, InvoiceStatus } from "@/types";
-import { getCustomers } from "@/services/data-service";
-
-// Import sub-components
-import CustomerVehicleSelection from "@/components/invoice/CustomerVehicleSelection";
-import InvoiceDetailsFields from "@/components/invoice/InvoiceDetailsFields";
-import InvoiceItemsSection from "@/components/invoice/InvoiceItemsSection";
-import PaymentsSection from "@/components/invoice/PaymentsSection";
-
-// Invoice form schema
-const invoiceFormSchema = z.object({
-  customerId: z.string({ required_error: "Please select a customer" }),
-  vehicleId: z.string({ required_error: "Please select a vehicle" }),
-  date: z.date({ required_error: "Please select a date" }),
-  status: z.enum(["open", "in-progress", "completed", "paid", "partial"] as const),
+// Define the form schema using Zod
+const formSchema = z.object({
+  customerId: z.string().min(1, { message: "Please select a customer." }),
+  vehicleId: z.string().min(1, { message: "Please select a vehicle." }),
+  date: z.string().min(1, { message: "Please select a date." }),
+  taxRate: z.number().min(0, { message: "Tax rate must be at least 0." }).max(100, { message: "Tax rate cannot exceed 100." }),
   notes: z.string().optional(),
-  taxRate: z.coerce.number().min(0).max(100).default(0),
-  discountType: z.enum(["none", "percentage", "fixed"]).default("none"),
-  discountValue: z.coerce.number().min(0).default(0),
 });
 
-type InvoiceFormValues = z.infer<typeof invoiceFormSchema>;
+// Define the form values type based on the schema
+export type InvoiceFormValues = z.infer<typeof formSchema>;
 
 interface InvoiceFormProps {
   isEditing?: boolean;
-  invoiceData?: Invoice;
+  invoiceData?: Invoice | null;
 }
 
-const InvoiceForm = ({ isEditing = false, invoiceData }: InvoiceFormProps) => {
+const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceData = null }) => {
   const navigate = useNavigate();
-  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [customers, setCustomers] = useState([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [selectedCustomerId, setSelectedCustomerId] = useState("");
+  const [selectedVehicleId, setSelectedVehicleId] = useState("");
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [taxRate, setTaxRate] = useState(7.5);
+  const [notes, setNotes] = useState("");
   const [items, setItems] = useState<InvoiceItem[]>([]);
-  const [customerDialogOpen, setCustomerDialogOpen] = useState(false);
-  const [vehicleDialogOpen, setVehicleDialogOpen] = useState(false);
-  const [payments, setPayments] = useState<Payment[]>([]);
+  
+  // Fetch customers on component mount
+  useEffect(() => {
+    const loadCustomers = async () => {
+      const fetchedCustomers = await getCustomers();
+      setCustomers(fetchedCustomers);
+    };
+    
+    loadCustomers();
+  }, []);
+  
+  // Fetch vehicles when customer is selected
+  useEffect(() => {
+    const loadVehicles = async () => {
+      if (selectedCustomerId) {
+        const fetchedVehicles = await getVehiclesByCustomerId(selectedCustomerId);
+        setVehicles(fetchedVehicles);
+      }
+    };
+    
+    loadVehicles();
+  }, [selectedCustomerId]);
+  
+  // Initialize form values when editing
+  useEffect(() => {
+    if (invoiceData) {
+      setSelectedCustomerId(invoiceData.customer_id);
+      setSelectedVehicleId(invoiceData.vehicle_id);
+      setDate(invoiceData.date);
+      setTaxRate(invoiceData.tax_rate || 7.5);
+      setNotes(invoiceData.notes || "");
+      setItems(invoiceData.items);
+    }
+  }, [invoiceData]);
 
-  // Initialize form with default values or existing invoice data
+  // Calculate totals including discount
+  const calculateTotals = () => {
+    const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const taxAmount = subtotal * (taxRate / 100);
+    
+    let discountAmount = 0;
+    if (invoiceData?.discount) {
+      if (invoiceData.discount.type === 'percentage') {
+        discountAmount = subtotal * (invoiceData.discount.value / 100);
+      } else {
+        discountAmount = invoiceData.discount.value;
+      }
+    }
+    
+    const total = subtotal + taxAmount - discountAmount;
+    
+    return {
+      subtotal,
+      tax: taxAmount,
+      discount: discountAmount,
+      total
+    };
+  };
+
+  const totals = calculateTotals();
+
   const form = useForm<InvoiceFormValues>({
-    resolver: zodResolver(invoiceFormSchema),
-    defaultValues: isEditing && invoiceData
-      ? {
-          customerId: invoiceData.customer_id,
-          vehicleId: invoiceData.vehicle_id || "",
-          date: invoiceData.date ? new Date(invoiceData.date) : new Date(),
-          status: invoiceData.status as "open" | "in-progress" | "completed" | "paid" | "partial",
-          notes: invoiceData.notes || "",
-          taxRate: invoiceData.tax_rate || 7.5,
-          discountType: invoiceData.discount?.type === "percentage" 
-            ? "percentage" 
-            : invoiceData.discount?.type === "fixed" 
-              ? "fixed" 
-              : "none",
-          discountValue: invoiceData.discount?.value || 0,
-        }
-      : {
-          date: new Date(),
-          status: "open" as const,
-          taxRate: 7.5, // Default tax rate
-          discountType: "none" as const,
-          discountValue: 0,
-        },
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      customerId: invoiceData?.customer_id || "",
+      vehicleId: invoiceData?.vehicle_id || "",
+      date: invoiceData?.date || new Date().toISOString().slice(0, 10),
+      taxRate: invoiceData?.tax_rate || 7.5,
+      notes: invoiceData?.notes || "",
+    },
   });
 
-  // Fetch customers and setup initial data
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const fetchedCustomers = await getCustomers();
-        setCustomers(fetchedCustomers);
-        
-        // If editing, set up initial state
-        if (isEditing && invoiceData) {
-          // Initialize items
-          if (invoiceData.items) {
-            setItems(invoiceData.items);
-          }
-          
-          // Initialize payments
-          if (invoiceData.payments) {
-            setPayments(invoiceData.payments);
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching data:", error);
-        toast.error("Failed to load customers");
-      }
-    };
-    
-    fetchData();
-  }, [isEditing, invoiceData]);
+  const { handleSubmit } = form;
 
-  // Calculate subtotal (needed for discount calculations and passing to sub-components)
-  const subtotal = items.reduce((sum, item) => sum + (item.quantity * item.price), 0);
-  
-  // Get current discount settings
-  const discountType = form.watch("discountType");
-  const discountValue = form.watch("discountValue");
-  const taxRate = form.watch("taxRate");
-  
-  // Calculate discount
-  let discountAmount = 0;
-  if (discountType === "percentage" && discountValue > 0) {
-    discountAmount = subtotal * (discountValue / 100);
-  } else if (discountType === "fixed" && discountValue > 0) {
-    discountAmount = discountValue;
-  }
-  
-  // Calculate subtotal after discount
-  const subtotalAfterDiscount = subtotal - discountAmount;
-  
-  // Calculate tax
-  const tax = subtotalAfterDiscount * (taxRate / 100);
-  
-  // Calculate total
-  const total = subtotalAfterDiscount + tax;
-
-  // Handle new customer added
-  const handleCustomerSave = (newCustomer: Customer) => {
-    setCustomers(prev => [...prev, newCustomer]);
-    form.setValue("customerId", newCustomer.id);
-    
-    // Clear vehicle selection since the new customer has no vehicles
-    form.setValue("vehicleId", "");
-    setVehicles([]);
-  };
-
-  // Handle new vehicle added
-  const handleVehicleSave = (newVehicle: Vehicle) => {
-    setVehicles(prev => [...prev, newVehicle]);
-    form.setValue("vehicleId", newVehicle.id);
-  };
-
-  // Handle form submission
-  const onSubmit = (data: InvoiceFormValues) => {
-    if (items.length === 0) {
-      toast.error("Please add at least one item to the invoice");
-      return;
-    }
-
-    // Prepare invoice data
-    const invoiceData: Partial<Invoice> = {
-      ...data,
-      items,
-      payments,
-      date: format(data.date, "yyyy-MM-dd"),
-      vehicleInfo: {
-        make: "",  // These would ideally be populated from the selected vehicle
-        model: "",
-        year: "",
-        licensePlate: ""
-      }
-    };
-
-    // Add discount data if applicable
-    if (data.discountType !== "none" && data.discountValue > 0) {
-      invoiceData.discount = {
-        type: data.discountType === "percentage" ? "percentage" : "fixed",
-        value: data.discountValue
+  const onSubmit = async () => {
+    try {
+      // Prepare invoice data for submission
+      const invoiceData = {
+        customerId: selectedCustomerId,
+        vehicleId: selectedVehicleId,
+        date: date,
+        taxRate: taxRate,
+        notes: notes,
+        items: items
       };
-    }
-
-    // Here you would normally save the invoice to your backend
-    console.log("Invoice data:", invoiceData);
-    
-    if (isEditing) {
-      toast.success("Invoice updated successfully!");
-    } else {
+      
+      // Call the addInvoice function from data-service
+      await addInvoice(invoiceData);
+      
       toast.success("Invoice created successfully!");
+      navigate("/invoices");
+    } catch (error) {
+      console.error("Error creating invoice:", error);
+      toast.error("Failed to create invoice. Please try again.");
     }
-    navigate("/invoices");
   };
 
   return (
-    <div className="space-y-6">
-      <FormProvider {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          {/* Customer and Vehicle Selection */}
-          <CustomerVehicleSelection 
-            customers={customers}
-            vehicles={vehicles}
-            setVehicles={setVehicles}
-            setCustomerDialogOpen={setCustomerDialogOpen}
-            setVehicleDialogOpen={setVehicleDialogOpen}
-          />
+    <div>
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        {/* Customer Selection */}
+        <div>
+          <Label htmlFor="customer">Customer</Label>
+          <Select value={selectedCustomerId} onValueChange={(value) => setSelectedCustomerId(value)} required>
+            <SelectTrigger id="customer">
+              <SelectValue placeholder="Select a customer" />
+            </SelectTrigger>
+            <SelectContent>
+              {customers.map((customer: any) => (
+                <SelectItem key={customer.id} value={customer.id}>
+                  {customer.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-          {/* Invoice Details */}
-          <InvoiceDetailsFields />
-
-          {/* Invoice Items */}
-          <InvoiceItemsSection 
-            items={items}
-            setItems={setItems}
-            subtotal={subtotal}
-            discountType={discountType}
-            discountValue={discountValue}
-            taxRate={taxRate}
-          />
-          
-          {/* Payments Section */}
-          <PaymentsSection 
-            payments={payments}
-            setPayments={setPayments}
-            total={total}
-          />
-          
-          {/* Notes */}
-          <FormField
-            control={form.control}
-            name="notes"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Notes</FormLabel>
-                <FormControl>
-                  <Textarea
-                    placeholder="Any additional notes about this invoice"
-                    className="min-h-[100px]"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          
-          {/* Submit Buttons */}
-          <div className="flex justify-end gap-4">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => navigate("/invoices")}
-            >
-              Cancel
-            </Button>
-            <Button type="submit">{isEditing ? "Update" : "Create"} Invoice</Button>
+        {/* Vehicle Selection */}
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="vehicle">Vehicle</Label>
+            <Select value={selectedVehicleId} onValueChange={setSelectedVehicleId} required>
+              <SelectTrigger id="vehicle">
+                <SelectValue placeholder="Select a vehicle" />
+              </SelectTrigger>
+              <SelectContent>
+                {vehicles.map((vehicle) => (
+                  <SelectItem key={vehicle.id} value={vehicle.id}>
+                    {vehicle.year} {vehicle.make} {vehicle.model}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-        </form>
-      </FormProvider>
+          
+          <div>
+            <Label htmlFor="date">Date</Label>
+            <Input
+              id="date"
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              required
+            />
+          </div>
+        </div>
 
-      {/* Customer Dialog */}
-      <CustomerDialog 
-        open={customerDialogOpen}
-        onOpenChange={setCustomerDialogOpen}
-        onSave={handleCustomerSave}
-      />
+        {/* Invoice Items */}
+        <InvoiceItemsSection
+          items={items}
+          onItemsChange={setItems}
+        />
 
-      {/* Vehicle Dialog */}
-      <VehicleDialog
-        open={vehicleDialogOpen}
-        onOpenChange={setVehicleDialogOpen}
-        customerId={form.watch("customerId")}
-        onSave={handleVehicleSave}
-      />
+        {/* Tax Rate */}
+        <div>
+          <Label htmlFor="taxRate">Tax Rate (%)</Label>
+          <Input
+            id="taxRate"
+            type="number"
+            step="0.01"
+            min="0"
+            max="100"
+            value={taxRate}
+            onChange={(e) => setTaxRate(parseFloat(e.target.value) || 0)}
+          />
+        </div>
+
+        {/* Notes */}
+        <div>
+          <Label htmlFor="notes">Notes</Label>
+          <Textarea
+            id="notes"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Additional notes for this invoice..."
+          />
+        </div>
+
+        {/* Totals */}
+        <div className="bg-gray-50 p-4 rounded-lg">
+          <div className="space-y-2">
+            <div className="flex justify-between">
+              <span>Subtotal:</span>
+              <span>${totals.subtotal.toFixed(2)}</span>
+            </div>
+            {totals.discount > 0 && (
+              <div className="flex justify-between text-red-600">
+                <span>Discount:</span>
+                <span>-${totals.discount.toFixed(2)}</span>
+              </div>
+            )}
+            <div className="flex justify-between">
+              <span>Tax ({taxRate}%):</span>
+              <span>${totals.tax.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between font-bold text-lg">
+              <span>Total:</span>
+              <span>${totals.total.toFixed(2)}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Submit Button */}
+        <Button type="submit" className="w-full">
+          {isEditing ? "Update Invoice" : "Create Invoice"}
+        </Button>
+      </form>
     </div>
   );
 };

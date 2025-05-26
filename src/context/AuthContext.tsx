@@ -1,215 +1,116 @@
-
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, createContext, useContext } from 'react';
+import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@/types';
-import { Session } from '@supabase/supabase-js';
-import { createUserFromSession, fetchUserProfile, handleEmailConfirmation, updateLastLogin } from '@/utils/auth-utils';
-import { toast } from 'sonner';
+import { fetchUserProfile, updateLastLogin, createUserFromSession } from '@/utils/auth-utils';
 
-interface AuthContextType {
+interface AuthContextValue {
   currentUser: User | null;
   setCurrentUser: React.Dispatch<React.SetStateAction<User | null>>;
   session: Session | null;
+  setSession: React.Dispatch<React.SetStateAction<Session | null>>;
   isAuthenticated: boolean;
-  loading: boolean;
   isSuperAdmin: boolean;
-  signIn: (email: string, password: string) => Promise<any>;
-  signUp: (email: string, password: string, name: string) => Promise<any>;
   logout: () => Promise<void>;
-  refreshUserData: () => Promise<void>;
+  signIn?: (email: string, password: string) => Promise<{data: any, error: Error | null}>;
+  signUp?: (email: string, password: string, name: string) => Promise<{data: any, error: Error | null}>;
+  signOut?: () => Promise<{error: Error | null}>;
   verifySuperAdminToken?: (token: string) => Promise<boolean>;
+  loading: boolean;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+interface AuthProviderProps {
+  children: React.ReactNode;
+}
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const AuthContext = createContext<AuthContextValue>({
+  currentUser: null,
+  setCurrentUser: () => {},
+  session: null,
+  setSession: () => {},
+  isAuthenticated: false,
+  isSuperAdmin: false,
+  logout: async () => {},
+  loading: true,
+});
+
+export const useAuthContext = () => useContext(AuthContext);
+
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [isSuperAdmin, setIsSuperAdmin] = useState<boolean>(false);
+  const [loading, setLoading] = useState(true);
 
-  // Initialize auth state
+  const isAuthenticated = !!session && !!currentUser;
+  const isSuperAdmin = currentUser?.role === 'superuser' || !!currentUser?.isSuperAdmin;
+
   useEffect(() => {
-    const initializeAuth = async () => {
-      try {
-        // Check if we're coming from an email confirmation link
-        const isEmailConfirmation = await handleEmailConfirmation();
-        if (isEmailConfirmation) return;
-
-        // First set up the auth state change listener
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-          async (event, session) => {
-            setSession(session);
-            
-            if (session) {
-              // Using setTimeout to prevent potential auth deadlocks
-              setTimeout(async () => {
-                const { profileData } = await fetchUserProfile(session.user.id);
-                const user = createUserFromSession(session, profileData);
-                setCurrentUser(user);
-                
-                // Check if the user is a superadmin
-                const isSuperUser = user.role === 'superuser' || user.isSuperAdmin;
-                setIsSuperAdmin(isSuperUser);
-                
-                // Update user's last login time
-                await updateLastLogin(user.id);
-              }, 0);
-            } else {
-              setCurrentUser(null);
-              setIsSuperAdmin(false);
-            }
-          }
-        );
-
-        // Then check for an existing session
-        const { data: { session: initialSession } } = await supabase.auth.getSession();
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.email);
+        setSession(session);
         
-        if (initialSession) {
-          setSession(initialSession);
+        if (session?.user) {
+          // Fetch or create user profile
+          const { profileData } = await fetchUserProfile(session.user.id);
+          const user = createUserFromSession(session, profileData);
           
-          // Fetch user profile data
-          const { profileData } = await fetchUserProfile(initialSession.user.id);
-          const user = createUserFromSession(initialSession, profileData);
+          // Check if user is superadmin
+          if (user.role === 'superuser') {
+            user.isSuperAdmin = true;
+          }
+          
           setCurrentUser(user);
           
-          // Check if the user is a superadmin
-          const isSuperUser = user.role === 'superuser' || user.isSuperAdmin;
-          setIsSuperAdmin(isSuperUser);
-          
-          // Update user's last login time
-          await updateLastLogin(user.id);
+          // Update last login
+          setTimeout(() => {
+            updateLastLogin(session.user.id);
+          }, 0);
+        } else {
+          setCurrentUser(null);
         }
-
-        setLoading(false);
-        return () => subscription.unsubscribe();
-      } catch (error) {
-        console.error("Error initializing auth:", error);
         setLoading(false);
       }
-    };
+    );
 
-    initializeAuth();
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        // Will be handled by the auth state change listener above
+      } else {
+        setLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const signIn = async (email: string, password: string) => {
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-
-      if (error) {
-        console.error('Sign in error:', error);
-        return { data: null, error };
-      }
-
-      return { data, error: null };
-    } catch (error) {
-      console.error('Unexpected error during sign in:', error);
-      return { data: null, error };
-    }
-  };
-
-  const signUp = async (email: string, password: string, name: string) => {
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            name: name,
-            role: 'owner'
-          }
-        }
-      });
-
-      if (error) {
-        console.error('Sign up error:', error);
-        return { data: null, error };
-      }
-
-      return { data, error: null };
-    } catch (error) {
-      console.error('Unexpected error during sign up:', error);
-      return { data: null, error };
-    }
-  };
-
   const logout = async () => {
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        throw error;
-      }
-      setCurrentUser(null);
-      setSession(null);
-      setIsSuperAdmin(false);
-    } catch (error) {
-      console.error('Error during logout:', error);
-      toast.error('Error logging out. Please try again.');
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      console.error('Logout error:', error);
     }
+    setCurrentUser(null);
+    setSession(null);
   };
 
-  const refreshUserData = async () => {
-    if (!session?.user?.id) return;
-    
-    try {
-      const { profileData } = await fetchUserProfile(session.user.id);
-      const updatedUser = createUserFromSession(session, profileData);
-      setCurrentUser(updatedUser);
-      
-      // Check if the user is a superadmin
-      const isSuperUser = updatedUser.role === 'superuser' || updatedUser.isSuperAdmin;
-      setIsSuperAdmin(isSuperUser);
-    } catch (error) {
-      console.error('Error refreshing user data:', error);
-    }
-  };
-
-  // SuperAdmin token verification
-  const verifySuperAdminToken = async (token: string): Promise<boolean> => {
-    try {
-      const { data, error } = await supabase.functions.invoke('verify-superadmin-token', {
-        body: { token }
-      });
-      
-      if (error || !data.isValid) {
-        return false;
-      }
-      
-      return true;
-    } catch (error) {
-      console.error('Error verifying superadmin token:', error);
-      return false;
-    }
+  const value: AuthContextValue = {
+    currentUser,
+    setCurrentUser,
+    session,
+    setSession,
+    isAuthenticated,
+    isSuperAdmin,
+    logout,
+    loading
   };
 
   return (
-    <AuthContext.Provider
-      value={{
-        currentUser,
-        setCurrentUser,
-        session,
-        isAuthenticated: !!currentUser,
-        loading,
-        isSuperAdmin,
-        signIn,
-        signUp,
-        logout,
-        refreshUserData,
-        verifySuperAdminToken
-      }}
-    >
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
 };
 
-export const useAuthContext = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuthContext must be used within an AuthProvider');
-  }
-  return context;
-};
+export { AuthContext, AuthContextValue };

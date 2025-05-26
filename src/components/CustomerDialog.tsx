@@ -1,4 +1,3 @@
-
 import React from "react";
 import {
   Dialog,
@@ -41,11 +40,13 @@ const CustomerDialog = ({ open, onOpenChange, onSave, customer }: CustomerDialog
         email: data.email,
         phone: data.phone,
         address: data.address,
+        totalVisits: customer?.totalVisits || 0,
+        lifetimeValue: customer?.lifetimeValue || 0,
+        lastVisit: customer?.lastVisit || null,
+        created_at: customer?.created_at || new Date().toISOString(),
         total_visits: customer?.total_visits || 0,
         lifetime_value: customer?.lifetime_value || 0,
         last_visit: customer?.last_visit || null,
-        created_at: customer?.created_at || new Date().toISOString(),
-        updated_at: new Date().toISOString(),
       };
       
       onSave(newCustomer);

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import {
   Dialog,
@@ -81,7 +80,7 @@ const TaskDialog = ({ open, onOpenChange, onSave, task, invoiceId }: TaskDialogP
       
       // Show success message
       if (invoiceId && vehicle) {
-        toast.success(`Task ${isEditing ? "updated" : "added"} for ${vehicle.make} ${vehicle.model} (${vehicle.license_plate})!`);
+        toast.success(`Task ${isEditing ? "updated" : "added"} for ${vehicle.make} ${vehicle.model} (${vehicle.licensePlate})!`);
       } else {
         toast.success(`Task ${isEditing ? "updated" : "added"} successfully!`);
       }
@@ -106,7 +105,7 @@ const TaskDialog = ({ open, onOpenChange, onSave, task, invoiceId }: TaskDialogP
             {isEditing
               ? "Update the task information below."
               : invoice && vehicle
-                ? `Add a new task for ${vehicle.make} ${vehicle.model} (${vehicle.license_plate}).` 
+                ? `Add a new task for ${vehicle.make} ${vehicle.model} (${vehicle.licensePlate}).` 
                 : "Enter the details for the new task."
             }
           </DialogDescription>

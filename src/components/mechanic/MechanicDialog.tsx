@@ -1,5 +1,7 @@
-
 import React from "react";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Dialog,
   DialogContent,
@@ -8,12 +10,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Mechanic } from "@/types";
-import MechanicForm, { MechanicFormValues } from "./MechanicForm";
 import { generateId, getCurrentUser, hasPermission } from "@/services/data-service";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import MechanicForm from "./MechanicForm";
 
 interface MechanicDialogProps {
   open: boolean;
@@ -26,26 +36,17 @@ const MechanicDialog = ({ open, onOpenChange, onSave, mechanic }: MechanicDialog
   const isEditing = !!mechanic;
   const formId = "mechanic-form";
   const currentUser = getCurrentUser();
-  
-  // Check if user has permission to manage mechanics
-  const canManageMechanics = hasPermission(currentUser, 'mechanics', 'manage');
-  
-  if (!canManageMechanics) {
-    return null;
-  }
 
   const handleSubmit = async (data: MechanicFormValues) => {
     try {
-      // Ensure all required fields are provided
       const newMechanic: Mechanic = {
         id: mechanic?.id || generateId("mechanic"),
         name: data.name,
-        specialization: data.specialization,
-        address: data.address,
-        phone: data.phone,
-        id_card_image: data.idCardImage,
-        employment_type: data.employmentType,
-        is_active: data.isActive
+        specialization: data.specialization || "",
+        phone: data.phone || "",
+        address: data.address || "",
+        is_active: true,
+        created_at: mechanic?.created_at || new Date().toISOString(),
       };
       
       onSave(newMechanic);
@@ -59,35 +60,32 @@ const MechanicDialog = ({ open, onOpenChange, onSave, mechanic }: MechanicDialog
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] w-full">
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>{isEditing ? "Edit Mechanic" : "Add New Mechanic"}</DialogTitle>
           <DialogDescription>
             {isEditing
-              ? "Update the mechanic's information below."
+              ? "Update the mechanic information below."
               : "Enter the details for the new mechanic."}
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="max-h-[60vh] pr-4">
-          <MechanicForm
-            defaultValues={
-              mechanic
-                ? {
-                    name: mechanic.name,
-                    specialization: mechanic.specialization,
-                    address: mechanic.address,
-                    phone: mechanic.phone,
-                    idCardImage: mechanic.id_card_image,
-                    employmentType: mechanic.employment_type as "fulltime" | "contractor",
-                    isActive: mechanic.is_active,
-                  }
-                : undefined
-            }
-            onSubmit={handleSubmit}
-            formId={formId}
-          />
-        </ScrollArea>
+        <MechanicForm
+          defaultValues={
+            mechanic
+              ? {
+                  name: mechanic.name,
+                  specialization: mechanic.specialization || "",
+                  phone: mechanic.phone || "",
+                  address: mechanic.address || "",
+                  idCardImage: mechanic.id_card_image || "",
+                  employmentType: mechanic.employment_type || "fulltime",
+                }
+              : undefined
+          }
+          onSubmit={handleSubmit}
+          formId={formId}
+        />
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>

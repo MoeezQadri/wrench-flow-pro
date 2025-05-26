@@ -1,4 +1,3 @@
-
 import React from "react";
 import {
   Dialog,
@@ -42,11 +41,10 @@ const VehicleDialog = ({ open, onOpenChange, onSave, vehicle, customerId }: Vehi
         make: data.make,
         model: data.model,
         year: data.year,
-        license_plate: data.licensePlate,
+        licensePlate: data.licensePlate,
         vin: data.vin || "",
         color: data.color || "",
         created_at: vehicle?.created_at || new Date().toISOString(),
-        updated_at: new Date().toISOString(),
       };
       
       onSave(newVehicle);
@@ -77,7 +75,7 @@ const VehicleDialog = ({ open, onOpenChange, onSave, vehicle, customerId }: Vehi
                   make: vehicle.make,
                   model: vehicle.model,
                   year: vehicle.year,
-                  licensePlate: vehicle.license_plate,
+                  licensePlate: vehicle.licensePlate,
                   vin: vehicle.vin || "",
                   color: vehicle.color || "",
                 }

@@ -1,4 +1,3 @@
-
 import React from "react";
 import {
   Dialog,
@@ -12,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Expense } from "@/types";
 import ExpenseForm, { ExpenseFormValues } from "./ExpenseForm";
-import { generateId, getVendorById } from "@/services/data-service";
+import { generateId, getCurrentUser, hasPermission, getVendorById } from "@/services/data-service";
 
 interface ExpenseDialogProps {
   open: boolean;
@@ -24,26 +23,28 @@ interface ExpenseDialogProps {
 const ExpenseDialog = ({ open, onOpenChange, onSave, expense }: ExpenseDialogProps) => {
   const isEditing = !!expense;
   const formId = "expense-form";
+  const currentUser = getCurrentUser();
+  
+  // Check if user has permission to manage expenses
+  const canManageExpenses = hasPermission(currentUser, 'expenses', 'manage');
+  
+  if (!canManageExpenses) {
+    return null;
+  }
 
   const handleSubmit = async (data: ExpenseFormValues) => {
     try {
-      // Only attempt to get vendor if vendorId is provided and not "none"
-      let vendorName = "";
-      if (data.vendorId && data.vendorId !== "none") {
-        const vendor = await getVendorById(data.vendorId);
-        vendorName = vendor?.name || "";
-      }
-      
       const newExpense: Expense = {
         id: expense?.id || generateId("expense"),
-        date: data.date.toISOString().split('T')[0], // format as YYYY-MM-DD
         category: data.category,
-        amount: data.amount,
         description: data.description,
+        amount: data.amount,
+        date: data.date,
         payment_method: data.paymentMethod,
-        payment_status: 'pending', // Add default payment status
-        vendor_id: data.vendorId !== "none" ? data.vendorId : undefined,
-        vendor_name: vendorName,
+        vendor_name: data.vendorName,
+        vendor_id: data.vendorId,
+        created_at: expense?.created_at || new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       };
       
       onSave(newExpense);
@@ -55,15 +56,9 @@ const ExpenseDialog = ({ open, onOpenChange, onSave, expense }: ExpenseDialogPro
     }
   };
 
-  // Convert string date to Date object for the form
-  const getDateFromString = (dateString?: string) => {
-    if (!dateString) return new Date();
-    return new Date(dateString);
-  };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>{isEditing ? "Edit Expense" : "Add New Expense"}</DialogTitle>
           <DialogDescription>
@@ -77,12 +72,13 @@ const ExpenseDialog = ({ open, onOpenChange, onSave, expense }: ExpenseDialogPro
           defaultValues={
             expense
               ? {
-                  date: getDateFromString(expense.date),
                   category: expense.category,
-                  amount: expense.amount,
                   description: expense.description,
-                  paymentMethod: expense.payment_method as "cash" | "card" | "bank-transfer",
-                  vendorId: expense.vendor_id || "none",
+                  amount: expense.amount,
+                  date: expense.date,
+                  paymentMethod: expense.payment_method,
+                  vendorName: expense.vendor_name,
+                  vendorId: expense.vendor_id,
                 }
               : undefined
           }
