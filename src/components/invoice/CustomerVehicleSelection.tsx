@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { UserPlus } from "lucide-react";
 import { Customer, Vehicle } from "@/types";
-import { getVehiclesByCustomerId } from "@/services/data-service";
+import { getVehicles } from "@/services/data-service";
 
 interface CustomerVehicleSelectionProps {
   customers: Customer[];
@@ -33,7 +33,8 @@ const CustomerVehicleSelection = ({
       if (watchCustomerId) {
         try {
           setLoading(true);
-          const customerVehicles = await getVehiclesByCustomerId(watchCustomerId);
+          const allVehicles = await getVehicles();
+          const customerVehicles = allVehicles.filter(v => v.customer_id === watchCustomerId);
           setVehicles(customerVehicles);
           
           // Reset vehicle selection if current selection doesn't belong to this customer
@@ -133,7 +134,7 @@ const CustomerVehicleSelection = ({
                     {vehicles.map((vehicle) => (
                       <SelectItem key={vehicle.id} value={vehicle.id}>
                         {vehicle.make} {vehicle.model} ({vehicle.year}) -{" "}
-                        {vehicle.licensePlate}
+                        {vehicle.license_plate}
                       </SelectItem>
                     ))}
                   </SelectContent>

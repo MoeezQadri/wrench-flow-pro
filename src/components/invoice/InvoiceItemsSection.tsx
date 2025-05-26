@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Plus, X } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -26,7 +27,7 @@ const InvoiceItemsSection = ({
   discountValue,
   taxRate,
 }: InvoiceItemsSectionProps) => {
-  const [newItemType, setNewItemType] = useState<"part" | "labor" | "service">("");
+  const [newItemType, setNewItemType] = useState<"part" | "labor" | "service">("part");
   const [newItemDescription, setNewItemDescription] = useState("");
   const [newItemQuantity, setNewItemQuantity] = useState<number | "">("");
   const [newItemPrice, setNewItemPrice] = useState<number | "">("");
@@ -41,7 +42,7 @@ const InvoiceItemsSection = ({
     const newItem: InvoiceItem = {
       id: Date.now().toString(), // Temporary ID
       invoice_id: "", // Will be set when the invoice is created
-      type: newItemType as "part" | "labor" | "service",
+      type: newItemType,
       description: newItemDescription,
       quantity: newItemQuantity,
       price: newItemPrice,
@@ -50,7 +51,7 @@ const InvoiceItemsSection = ({
     setItems([...items, newItem]);
     
     // Reset form
-    setNewItemType("");
+    setNewItemType("part");
     setNewItemDescription("");
     setNewItemQuantity("");
     setNewItemPrice("");

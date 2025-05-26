@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -63,8 +64,12 @@ export const AttendanceForm = ({
     resolver: zodResolver(attendanceFormSchema),
     defaultValues: defaultValues
       ? {
-          ...defaultValues,
+          mechanicId: defaultValues.mechanic_id,
           date: new Date(defaultValues.date),
+          checkIn: defaultValues.check_in,
+          checkOut: defaultValues.check_out || "",
+          status: defaultValues.status,
+          notes: defaultValues.notes || "",
         }
       : {
           mechanicId: "",
@@ -100,6 +105,7 @@ export const AttendanceForm = ({
       status: values.status,
       notes: values.notes || "",
       approved_by: null,
+      created_at: new Date().toISOString(),
     };
 
     onSubmit(attendanceData);

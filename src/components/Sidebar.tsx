@@ -1,236 +1,249 @@
+import React from "react";
+import { useLocation } from "react-router-dom";
+import {
+  LayoutDashboard,
+  Users,
+  Car,
+  CheckSquare,
+  FileInvoice,
+  Wrench,
+  Coins,
+  Settings,
+  User,
+  Calendar,
+} from "lucide-react";
 
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  FileText, 
-  Users, 
-  Wrench, 
-  ShoppingBag, 
-  Calendar, 
-  DollarSign,
-  Settings, 
-  Menu, 
-  X,
-  ClipboardCheck,
-  UserCog,
-  CalendarCheck,
-  Wallet,
-  HelpCircle,
-  LogOut,
-  User
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { getCurrentUser, hasPermission } from '@/services/data-service';
-import { RolePermissionMap } from '@/types';
-import { useAuthContext } from '@/context/AuthContext';
-import { toast } from 'sonner';
-import Logo from './Logo';
-
-// Define permission interface
-interface NavItemPermission {
-  resource: string;
-  action: string;
-}
-
-// Define our navItems with correct typing
-const navItems = [
-  { 
-    name: 'Dashboard', 
-    path: '/dashboard', 
-    icon: <LayoutDashboard className="w-5 h-5" />,
-    permission: { resource: 'dashboard', action: 'view' }
-  },
-  { 
-    name: 'Invoices', 
-    path: '/invoices', 
-    icon: <FileText className="w-5 h-5" />,
-    permission: { resource: 'invoices', action: 'view' }
-  },
-  { 
-    name: 'Customers', 
-    path: '/customers', 
-    icon: <Users className="w-5 h-5" />,
-    permission: { resource: 'customers', action: 'view' }
-  },
-  { 
-    name: 'Mechanics', 
-    path: '/mechanics', 
-    icon: <Wrench className="w-5 h-5" />,
-    permission: { resource: 'mechanics', action: 'view' }
-  },
-  { 
-    name: 'Tasks', 
-    path: '/tasks', 
-    icon: <CalendarCheck className="w-5 h-5" />,
-    permission: { resource: 'tasks', action: 'view' }
-  },
-  { 
-    name: 'Parts', 
-    path: '/parts', 
-    icon: <ShoppingBag className="w-5 h-5" />,
-    permission: { resource: 'parts', action: 'view' }
-  },
-  { 
-    name: 'Finance', 
-    path: '/finance', 
-    icon: <Wallet className="w-5 h-5" />,
-    permission: { resource: 'finance', action: 'view' }
-  },
-  { 
-    name: 'Attendance', 
-    path: '/attendance', 
-    icon: <ClipboardCheck className="w-5 h-5" />,
-    permission: { resource: 'attendance', action: 'view' }
-  },
-  { 
-    name: 'Users', 
-    path: '/users', 
-    icon: <UserCog className="w-5 h-5" />,
-    permission: { resource: 'users', action: 'view' }
-  },
-  { 
-    name: 'Reports', 
-    path: '/reports', 
-    icon: <FileText className="w-5 h-5" />,
-    permission: { resource: 'reports', action: 'view' }
-  },
-  { 
-    name: 'Settings', 
-    path: '/settings', 
-    icon: <Settings className="w-5 h-5" />,
-    permission: { resource: 'settings', action: 'view' }
-  },
-  // SuperAdmin entry removed from here
-  { 
-    name: 'Help', 
-    path: '/help', 
-    icon: <HelpCircle className="w-5 h-5" />,
-    permission: { resource: 'dashboard', action: 'view' } // Using dashboard permission so most users can see help
-  },
-];
+import { useSidebar } from "@/hooks/use-sidebar";
+import { cn } from "@/lib/utils";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useAuthContext } from "@/context/AuthContext";
+import { hasPermission, RolePermissionMap } from "@/services/data-service";
 
 interface SidebarProps {
-  isMobileOpen: boolean;
-  setIsMobileOpen: (open: boolean) => void;
+  className?: string;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
+interface MenuItem {
+  title: string;
+  href: string;
+  icon: any;
+  description: string;
+  show: boolean;
+}
+
+interface MenuGroup {
+  title: string;
+  items: MenuItem[];
+}
+
+const Sidebar: React.FC<SidebarProps> = ({ className }) => {
+  const { currentUser } = useAuthContext();
+  const { collapsed, setCollapsed } = useSidebar();
   const location = useLocation();
-  const currentUser = getCurrentUser();
-  const { logout } = useAuthContext();
-  
-  const filteredNavItems = navItems.filter(item => {
-    return hasPermission(
-      currentUser, 
-      item.permission.resource,
-      item.permission.action
-    );
-  });
 
-  const handleLogout = () => {
-    logout();
-    toast.success('Successfully logged out');
+  // Type-safe permission checking
+  const checkPermission = (resource: string, action: string): boolean => {
+    if (!currentUser) return false;
+    
+    // Map old permission resource names to new ones for backward compatibility
+    const resourceMap: Record<string, keyof RolePermissionMap> = {
+      'dashboard': 'dashboard',
+      'customers': 'customers', 
+      'vehicles': 'vehicles',
+      'invoices': 'invoices',
+      'tasks': 'tasks',
+      'mechanics': 'mechanics',
+      'parts': 'parts',
+      'expenses': 'expenses',
+      'reports': 'reports',
+      'settings': 'settings',
+      'users': 'users',
+      'attendance': 'attendance'
+    };
+    
+    const mappedResource = resourceMap[resource];
+    if (!mappedResource) return false;
+    
+    return hasPermission(currentUser, mappedResource, action);
   };
-  
-  // Group nav items by section
-  const regularItems = filteredNavItems.filter(item => !item.path.startsWith('/superadmin'));
-  const adminItems = filteredNavItems.filter(item => item.path.startsWith('/superadmin'));
-  
-  return (
-    <>
-      {/* Mobile Overlay */}
-      {isMobileOpen && (
-        <div 
-          className="md:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
-          onClick={() => setIsMobileOpen(false)}
-        ></div>
-      )}
 
-      {/* Sidebar */}
-      <div className={`fixed md:static inset-y-0 left-0 z-50 flex flex-col w-64 bg-sidebar text-sidebar-foreground transition-transform duration-300 transform ${isMobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
-        <div className="flex items-center justify-between p-4 border-b border-sidebar-border">
-          <Logo textColor="text-sidebar-foreground" />
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="md:hidden"
-            onClick={() => setIsMobileOpen(false)}
+  const menuItems: MenuGroup[] = [
+    {
+      title: "Main",
+      items: [
+        {
+          title: "Dashboard",
+          href: "/dashboard",
+          icon: LayoutDashboard,
+          description: "Overview and key metrics",
+          show: checkPermission('dashboard', 'view'),
+        },
+        {
+          title: "Customers",
+          href: "/customers",
+          icon: Users,
+          description: "Manage customer information",
+          show: checkPermission('customers', 'view'),
+        },
+        {
+          title: "Vehicles",
+          href: "/vehicles", 
+          icon: Car,
+          description: "Vehicle database and history",
+          show: checkPermission('vehicles', 'view'),
+        },
+        {
+          title: "Tasks",
+          href: "/tasks",
+          icon: CheckSquare,
+          description: "Work assignments and progress",
+          show: checkPermission('tasks', 'view'),
+        },
+      ],
+    },
+    {
+      title: "Financials",
+      items: [
+        {
+          title: "Invoices",
+          href: "/invoices",
+          icon: FileInvoice,
+          description: "Billing and payments",
+          show: checkPermission('invoices', 'view'),
+        },
+        {
+          title: "Expenses",
+          href: "/expenses",
+          icon: Coins,
+          description: "Record and track expenses",
+          show: checkPermission('expenses', 'view'),
+        },
+      ],
+    },
+    {
+      title: "Resources",
+      items: [
+        {
+          title: "Mechanics",
+          href: "/mechanics",
+          icon: Wrench,
+          description: "Manage mechanic profiles",
+          show: checkPermission('mechanics', 'view'),
+        },
+        {
+          title: "Parts",
+          href: "/parts",
+          icon: Wrench,
+          description: "Manage parts inventory",
+          show: checkPermission('parts', 'view'),
+        },
+      ],
+    },
+    {
+      title: "Management",
+      items: [
+        {
+          title: "Attendance",
+          href: "/attendance",
+          icon: Calendar,
+          description: "Track attendance",
+          show: checkPermission('attendance', 'view'),
+        },
+        {
+          title: "Users",
+          href: "/users",
+          icon: User,
+          description: "Manage user accounts",
+          show: checkPermission('users', 'view'),
+        },
+        {
+          title: "Settings",
+          href: "/settings",
+          icon: Settings,
+          description: "Configure system settings",
+          show: checkPermission('settings', 'view'),
+        },
+      ],
+    },
+  ];
+
+  if (!currentUser) {
+    return null;
+  }
+
+  return (
+    <div className={cn(
+      "flex flex-col h-full bg-secondary border-r",
+      collapsed ? "w-16" : "w-[240px]",
+      className
+    )}>
+      <div className="flex items-center py-4 px-3">
+        <div className="relative min-w-[40px] h-10 mr-2">
+          <Avatar className="h-8 w-8">
+            <AvatarImage src="/avatars/01.png" alt="Your profile" />
+            <AvatarFallback>OM</AvatarFallback>
+          </Avatar>
+        </div>
+        <h1 className={cn(
+          "text-2xl font-bold text-primary",
+          collapsed && "hidden"
+        )}>
+          Garage Pro
+        </h1>
+      </div>
+      <div className="space-y-1">
+        {menuItems.map((group, index) => (
+          <Accordion type="single" collapsible key={index}>
+            <AccordionItem value={group.title}>
+              <AccordionTrigger className={cn(
+                "hover:no-underline transition-all font-medium border-b px-3"
+              )}>
+                {group.title}
+              </AccordionTrigger>
+              <AccordionContent className="pl-2">
+                <div className="grid gap-1">
+                  {group.items.filter(item => item.show).map((item) => (
+                    <Button
+                      key={item.title}
+                      variant="ghost"
+                      className={cn(
+                        "w-full justify-start font-normal",
+                        location.pathname === item.href && "bg-secondary/10"
+                      )}
+                      onClick={() => { }}
+                    >
+                      <item.icon className="h-4 w-4 mr-2" />
+                      <span>
+                        {item.title}
+                      </span>
+                    </Button>
+                  ))}
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        ))}
+      </div>
+      <div className="mt-auto flex items-center border-t p-3">
+        <Avatar className="h-8 w-8">
+          <AvatarImage src="/avatars/01.png" alt="Your profile" />
+          <AvatarFallback>OM</AvatarFallback>
+        </Avatar>
+        <div className="flex flex-col text-xs ml-2">
+          <span className="font-medium">{currentUser.name}</span>
+          <Button
+            onClick={() => setCollapsed((prev) => !prev)}
+            className="h-auto p-0 w-auto text-muted-foreground"
+            variant="link"
+            size="sm"
           >
-            <X className="w-5 h-5" />
+            {collapsed ? "Expand" : "Collapse"}
           </Button>
         </div>
-        
-        <nav className="flex-1 overflow-y-auto py-4">
-          <ul>
-            {regularItems.map((item) => (
-              <li key={item.name} className="px-2">
-                <Link
-                  to={item.path}
-                  className={`flex items-center p-3 rounded-lg transition-colors ${
-                    location.pathname === item.path
-                      ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                      : 'hover:bg-sidebar-border/50 text-sidebar-foreground/80 hover:text-sidebar-foreground'
-                  }`}
-                >
-                  {item.icon}
-                  <span className="ml-3">{item.name}</span>
-                </Link>
-              </li>
-            ))}
-            
-            {/* Admin Section */}
-            {adminItems.length > 0 && (
-              <>
-                <li className="px-4 py-2 mt-2">
-                  <h3 className="text-xs font-semibold text-sidebar-foreground/60 uppercase tracking-wider">
-                    Admin
-                  </h3>
-                </li>
-                
-                {adminItems.map((item) => (
-                  <li key={item.name} className="px-2">
-                    <Link
-                      to={item.path}
-                      className={`flex items-center p-3 rounded-lg transition-colors ${
-                        location.pathname === item.path
-                          ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                          : 'hover:bg-sidebar-border/50 text-sidebar-foreground/80 hover:text-sidebar-foreground'
-                      }`}
-                    >
-                      {item.icon}
-                      <span className="ml-3">{item.name}</span>
-                    </Link>
-                  </li>
-                ))}
-              </>
-            )}
-          </ul>
-        </nav>
-        
-        <div className="p-4 border-t border-sidebar-border">
-          <div className="flex items-center">
-            <div className="w-10 h-10 rounded-full bg-wrench-light-blue flex items-center justify-center">
-              <span className="font-bold text-white">
-                {currentUser.name.split(' ').map(n => n[0]).join('')}
-              </span>
-            </div>
-            <div className="ml-3">
-              <p className="font-medium">{currentUser.name}</p>
-              <p className="text-sm text-sidebar-foreground/70 capitalize">{currentUser.role}</p>
-            </div>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="ml-auto"
-              onClick={handleLogout}
-            >
-              <LogOut className="h-5 w-5" />
-            </Button>
-          </div>
-        </div>
       </div>
-    </>
+    </div>
   );
 };
 

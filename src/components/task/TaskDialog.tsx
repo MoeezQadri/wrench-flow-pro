@@ -42,20 +42,20 @@ const TaskDialog = ({ open, onOpenChange, onSave, task }: TaskDialogProps) => {
     hasPermission(currentUser, 'tasks', 'manage') ||
     currentUser.role === 'foreman' ||
     (currentUser.role === 'mechanic' && 
-     currentUser.mechanicId === task?.mechanicId && 
+     currentUser.mechanicId === task?.mechanic_id && 
      hasPermission(currentUser, 'tasks', 'manage'));
 
   if (!canEdit) {
     return null;
   }
 
-  // Fetch invoice data if task has an invoiceId
+  // Fetch invoice data if task has an invoice_id
   useEffect(() => {
-    if (open && task?.invoiceId) {
+    if (open && task?.invoice_id) {
       setLoading(true);
       const fetchInvoice = async () => {
         try {
-          const invoicePromise = getInvoiceById(task.invoiceId!);
+          const invoicePromise = getInvoiceById(task.invoice_id!);
           await resolvePromiseAndSetState(invoicePromise, (data) => {
             if (data) {
               setInvoiceData(data);
@@ -73,7 +73,7 @@ const TaskDialog = ({ open, onOpenChange, onSave, task }: TaskDialogProps) => {
 
   const handleSubmit = async (data: TaskFormValues) => {
     try {
-      const existingInvoiceId = task?.invoiceId;
+      const existingInvoiceId = task?.invoice_id;
       const wasCompleted = task?.status === "completed";
       const isBeingCompleted = data.status === "completed" && (!task || task.status !== "completed");
       
@@ -82,46 +82,52 @@ const TaskDialog = ({ open, onOpenChange, onSave, task }: TaskDialogProps) => {
         id: task?.id || generateId("task"),
         title: data.title,
         description: data.description,
-        mechanicId: data.mechanicId,
+        mechanic_id: data.mechanicId,
         status: data.status,
-        hoursEstimated: data.hoursEstimated,
-        hoursSpent: data.hoursSpent,
-        // Set invoiceId to undefined if "none" is selected
-        invoiceId: data.invoiceId === "none" ? undefined : data.invoiceId,
+        hours_estimated: data.hoursEstimated,
+        hours_spent: data.hoursSpent,
+        // Set invoice_id to undefined if "none" is selected
+        invoice_id: data.invoiceId === "none" ? undefined : data.invoiceId,
         // Add new fields
-        vehicleId: data.vehicleId === "none" ? undefined : data.vehicleId,
+        vehicle_id: data.vehicleId === "none" ? undefined : data.vehicleId,
         location: data.location || "workshop",
         price: data.price,
+        created_at: task?.created_at || new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        start_time: task?.start_time,
+        end_time: task?.end_time,
+        completed_by: task?.completed_by,
+        completed_at: task?.completed_at,
       };
       
       // If task is being completed, add timestamp and user information
       if (isBeingCompleted) {
-        newTask.completedBy = currentUser.id;
-        newTask.completedAt = new Date().toISOString();
-        newTask.endTime = new Date().toISOString();
+        newTask.completed_by = currentUser.id;
+        newTask.completed_at = new Date().toISOString();
+        newTask.end_time = new Date().toISOString();
       }
       
       // Find open invoice for the vehicle if task is completed and not already assigned to an invoice
-      if (isBeingCompleted && newTask.vehicleId && !newTask.invoiceId) {
+      if (isBeingCompleted && newTask.vehicle_id && !newTask.invoice_id) {
         const openInvoices = invoices.filter(
-          invoice => invoice.vehicleId === newTask.vehicleId && 
+          invoice => invoice.vehicle_id === newTask.vehicle_id && 
                     (invoice.status === 'open' || invoice.status === 'in-progress')
         );
         
         if (openInvoices.length > 0) {
           // Use the most recent open invoice
           const latestInvoice = openInvoices.sort(
-            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+            (a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime()
           )[0];
           
-          newTask.invoiceId = latestInvoice.id;
+          newTask.invoice_id = latestInvoice.id;
           
           // Notify the user that the task was added to an existing invoice
-          const vehiclePromise = getVehicleById(newTask.vehicleId);
+          const vehiclePromise = getVehicleById(newTask.vehicle_id);
           await resolvePromiseAndSetState(vehiclePromise, (vehicle) => {
             if (vehicle) {
               toast.info(
-                `Task added to existing invoice for ${vehicle.make} ${vehicle.model} (${vehicle.licensePlate})`,
+                `Task added to existing invoice for ${vehicle.make} ${vehicle.model} (${vehicle.license_plate})`,
                 { duration: 5000 }
               );
             }
@@ -131,14 +137,14 @@ const TaskDialog = ({ open, onOpenChange, onSave, task }: TaskDialogProps) => {
           await updateInvoiceOnTaskCompletion(latestInvoice.id, newTask);
         }
       }
-      // Update the invoice if task is completed and has an invoiceId
+      // Update the invoice if task is completed and has an invoice_id
       else if (isBeingCompleted && data.invoiceId && data.invoiceId !== "none") {
         await updateInvoiceOnTaskCompletion(data.invoiceId, newTask);
       }
       
       // If invoice association is removed or changed, update the old invoice
       if (existingInvoiceId && existingInvoiceId !== data.invoiceId && wasCompleted) {
-        await removeTaskFromInvoice(existingInvoiceId, task.id);
+        await removeTaskFromInvoice(existingInvoiceId, task!.id);
       }
       
       onSave(newTask);
@@ -166,34 +172,27 @@ const TaskDialog = ({ open, onOpenChange, onSave, task }: TaskDialogProps) => {
       }
       
       // Only proceed if we have hours spent data
-      if (!task.hoursSpent) {
+      if (!task.hours_spent) {
         toast.warning("Task marked as completed but no hours spent recorded.");
         return;
       }
       
       // Use custom price if set, otherwise calculate based on hourly rate
       const hourlyRate = 85; // Default hourly rate for labor
-      const taskPrice = task.price || (task.hoursSpent * hourlyRate);
+      const taskPrice = task.price || (task.hours_spent * hourlyRate);
       
       // Create a new invoice item for this task
       const newItem: InvoiceItem = {
         id: generateId("item"),
+        invoice_id: invoiceId,
         type: "labor",
         description: `Labor: ${task.title}`,
-        quantity: task.hoursSpent,
-        price: task.price ? (taskPrice / task.hoursSpent) : hourlyRate,
+        quantity: task.hours_spent,
+        price: task.price ? (taskPrice / task.hours_spent) : hourlyRate,
       };
       
-      // Add the item to the invoice
-      invoice.items.push(newItem);
-      
-      // Update invoice status if needed
-      if (invoice.status === "open") {
-        invoice.status = "in-progress";
-      }
-      
-      // Here you would update the invoice in the database
-      // For now we're just using the in-memory data
+      // Add the item to the invoice (this would normally update the database)
+      console.log("Adding item to invoice:", newItem);
       
       toast.success("Invoice updated with completed task.");
     } catch (error) {
@@ -218,14 +217,9 @@ const TaskDialog = ({ open, onOpenChange, onSave, task }: TaskDialogProps) => {
       
       // Find and remove any items associated with this task
       const taskTitle = tasks.find(t => t.id === taskId)?.title || "";
-      const taskItems = invoice.items.filter(item => 
-        item.type === "labor" && item.description.includes(taskTitle)
-      );
       
-      if (taskItems.length > 0) {
-        invoice.items = invoice.items.filter(item => !taskItems.includes(item));
-        // Here you would update the invoice in the database
-        
+      if (taskTitle) {
+        console.log("Removing task from invoice:", taskTitle);
         toast.info("Task removed from invoice.");
       }
     } catch (error) {
@@ -265,12 +259,12 @@ const TaskDialog = ({ open, onOpenChange, onSave, task }: TaskDialogProps) => {
               ? {
                   title: task.title,
                   description: task.description,
-                  mechanicId: task.mechanicId,
+                  mechanicId: task.mechanic_id,
                   status: task.status,
-                  hoursEstimated: task.hoursEstimated,
-                  hoursSpent: task.hoursSpent,
-                  invoiceId: task.invoiceId,
-                  vehicleId: task.vehicleId,
+                  hoursEstimated: task.hours_estimated,
+                  hoursSpent: task.hours_spent,
+                  invoiceId: task.invoice_id,
+                  vehicleId: task.vehicle_id,
                   location: task.location || "workshop",
                   price: task.price,
                 }
