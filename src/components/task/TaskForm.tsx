@@ -1,14 +1,11 @@
 
 import React, { useState, useEffect } from "react";
+import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -16,124 +13,93 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { UserRole, TaskLocation } from "@/types";
 import { 
-  getMechanics, 
-  getInvoices, 
-  getCurrentUser,
-  hasPermission,
-  getCustomers
-} from "@/services/data-service";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select";
+import { getMechanics, getCustomers, getVehiclesByCustomerId, getInvoices } from "@/services/data-service";
+import { Task, TaskLocation } from "@/types";
 
-// Define the form schema
-const taskFormSchema = z.object({
-  title: z.string().min(2, { message: "Title must be at least 2 characters long" }),
+const taskSchema = z.object({
+  title: z.string().min(1, { message: "Title is required" }),
   description: z.string().optional(),
-  mechanicId: z.string().min(1, { message: "Please select a mechanic" }),
   status: z.enum(["pending", "in-progress", "completed"]),
-  hoursEstimated: z.coerce.number().min(0.1, { message: "Please enter estimated hours" }),
-  hoursSpent: z.coerce.number().optional(),
-  invoiceId: z.string().optional(),
-  vehicleId: z.string().optional(),
+  price: z.coerce.number().min(0, { message: "Price must be 0 or greater" }),
   location: z.enum(["workshop", "onsite", "remote"]),
-  price: z.coerce.number().optional(),
+  vehicleId: z.string().optional(),
+  mechanicId: z.string().optional(),
+  invoiceId: z.string().optional(),
+  hoursEstimated: z.coerce.number().min(0, { message: "Hours must be 0 or greater" }),
+  hoursSpent: z.coerce.number().min(0, { message: "Hours must be 0 or greater" }),
 });
 
-export type TaskFormValues = z.infer<typeof taskFormSchema>;
+export type TaskFormValues = z.infer<typeof taskSchema>;
 
 interface TaskFormProps {
-  defaultValues?: TaskFormValues;
-  onSubmit: (values: TaskFormValues) => void;
+  defaultValues?: Partial<TaskFormValues>;
+  onSubmit: (data: TaskFormValues) => void;
   formId: string;
-  userRole: UserRole;
+  task?: Task;
 }
 
-const TaskForm: React.FC<TaskFormProps> = ({ defaultValues, onSubmit, formId, userRole }) => {
+const TaskForm = ({ defaultValues, onSubmit, formId, task }: TaskFormProps) => {
   const [mechanics, setMechanics] = useState<any[]>([]);
-  const [invoices, setInvoices] = useState<any[]>([]);
+  const [customers, setCustomers] = useState<any[]>([]);
   const [vehicles, setVehicles] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  
+  const [invoices, setInvoices] = useState<any[]>([]);
+  const [selectedCustomer, setSelectedCustomer] = useState<string>("");
+
   const form = useForm<TaskFormValues>({
-    resolver: zodResolver(taskFormSchema),
+    resolver: zodResolver(taskSchema),
     defaultValues: defaultValues || {
       title: "",
       description: "",
-      mechanicId: "",
       status: "pending",
-      hoursEstimated: 1,
-      hoursSpent: 0,
-      invoiceId: "none",
-      vehicleId: "none",
+      price: 0,
       location: "workshop",
-      price: undefined,
+      vehicleId: "",
+      mechanicId: "",
+      invoiceId: "",
+      hoursEstimated: 0,
+      hoursSpent: 0,
     },
   });
 
-  // Check which fields the user can edit based on role
-  const currentUser = getCurrentUser();
-  const canEditMechanic = hasPermission(currentUser, 'mechanics', 'manage') || userRole === 'foreman';
-  const canEditPrice = hasPermission(currentUser, 'invoices', 'manage') || userRole === 'manager' || userRole === 'owner';
-
-  // Load mechanics and invoices when component mounts
   useEffect(() => {
     const loadData = async () => {
-      try {
-        setIsLoading(true);
-        
-        // Load mechanics
-        const mechanicsData = await getMechanics();
-        setMechanics(mechanicsData);
-        
-        // Always load invoices, but only display them for users with proper permissions
-        const invoicesData = await getInvoices();
-        setInvoices(invoicesData);
-        
-        // Load vehicles
-        const allCustomers = await getCustomers();
-        const allVehicles = allCustomers.flatMap(customer => 
-          (customer.vehicles || []).map(vehicle => ({
-            ...vehicle,
-            customerName: customer.name
-          }))
-        );
-        setVehicles(allVehicles);
-        
-      } catch (error) {
-        console.error("Error loading form data:", error);
-        toast.error("Failed to load form data");
-      } finally {
-        setIsLoading(false);
-      }
+      const [mechanicsData, customersData, invoicesData] = await Promise.all([
+        getMechanics(),
+        getCustomers(),
+        getInvoices()
+      ]);
+      
+      setMechanics(mechanicsData);
+      setCustomers(customersData);
+      setInvoices(invoicesData);
     };
     
     loadData();
   }, []);
 
-  const handleSubmit = (values: TaskFormValues) => {
-    if (values.invoiceId === "none") {
-      values.invoiceId = undefined;
-    }
+  useEffect(() => {
+    const loadVehicles = async () => {
+      if (selectedCustomer) {
+        const vehiclesData = await getVehiclesByCustomerId(selectedCustomer);
+        setVehicles(vehiclesData);
+      } else {
+        setVehicles([]);
+      }
+    };
     
-    if (values.vehicleId === "none") {
-      values.vehicleId = undefined;
-    }
-    
-    onSubmit(values);
-  };
-
-  if (isLoading) {
-    return <div className="flex justify-center py-4">Loading...</div>;
-  }
+    loadVehicles();
+  }, [selectedCustomer]);
 
   return (
     <Form {...form}>
-      <form
-        id={formId}
-        onSubmit={form.handleSubmit(handleSubmit)}
-        className="space-y-6"
-      >
+      <form onSubmit={form.handleSubmit(onSubmit)} id={formId} className="space-y-4">
         <FormField
           control={form.control}
           name="title"
@@ -141,7 +107,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ defaultValues, onSubmit, formId, us
             <FormItem>
               <FormLabel>Task Title</FormLabel>
               <FormControl>
-                <Input placeholder="Oil Change, Brake Repair, etc." {...field} />
+                <Input placeholder="Oil Change" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -155,7 +121,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ defaultValues, onSubmit, formId, us
             <FormItem>
               <FormLabel>Description</FormLabel>
               <FormControl>
-                <Textarea placeholder="Enter detailed task description..." {...field} />
+                <Textarea placeholder="Task description" {...field} rows={3} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -163,49 +129,16 @@ const TaskForm: React.FC<TaskFormProps> = ({ defaultValues, onSubmit, formId, us
         />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Mechanic Selection */}
-          <FormField
-            control={form.control}
-            name="mechanicId"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Assign Mechanic</FormLabel>
-                <Select
-                  disabled={!canEditMechanic && !form.formState.defaultValues?.mechanicId}
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a mechanic" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {mechanics
-                      .filter((mechanic) => mechanic.isActive)
-                      .map((mechanic) => (
-                        <SelectItem key={mechanic.id} value={mechanic.id}>
-                          {mechanic.name} - {mechanic.specialization || "General"}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* Status Selection */}
           <FormField
             control={form.control}
             name="status"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Status</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue placeholder="Select status" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
@@ -218,74 +151,25 @@ const TaskForm: React.FC<TaskFormProps> = ({ defaultValues, onSubmit, formId, us
               </FormItem>
             )}
           />
-        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Hours Estimated */}
           <FormField
             control={form.control}
-            name="hoursEstimated"
+            name="location"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Estimated Hours</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    step="0.1"
-                    min="0.1"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* Hours Spent */}
-          <FormField
-            control={form.control}
-            name="hoursSpent"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Hours Spent</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    {...field}
-                    value={field.value || ""}
-                  />
-                </FormControl>
-                <FormDescription>
-                  Leave blank if task not started
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* Price - Modified to always be included in the grid,
-              but only visible to users with permission */}
-          <FormField
-            control={form.control}
-            name="price"
-            render={({ field }) => (
-              <FormItem className={canEditPrice ? "" : "hidden"}>
-                <FormLabel>Custom Price</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    {...field}
-                    value={field.value || ""}
-                    placeholder="Default: hours × rate"
-                  />
-                </FormControl>
-                <FormDescription>
-                  Optional override
-                </FormDescription>
+                <FormLabel>Location</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select location" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="workshop">Workshop</SelectItem>
+                    <SelectItem value="onsite">On-site</SelectItem>
+                    <SelectItem value="remote">Remote</SelectItem>
+                  </SelectContent>
+                </Select>
                 <FormMessage />
               </FormItem>
             )}
@@ -293,98 +177,94 @@ const TaskForm: React.FC<TaskFormProps> = ({ defaultValues, onSubmit, formId, us
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Vehicle Selection */}
           <FormField
             control={form.control}
-            name="vehicleId"
+            name="price"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Vehicle</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a vehicle (optional)" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="none">None</SelectItem>
-                    {vehicles.map((vehicle) => (
-                      <SelectItem key={vehicle.id} value={vehicle.id}>
-                        {vehicle.customerName}: {vehicle.make} {vehicle.model} ({vehicle.licensePlate})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormDescription>
-                  Associate this task with a specific vehicle
-                </FormDescription>
+                <FormLabel>Price ($)</FormLabel>
+                <FormControl>
+                  <Input 
+                    type="number" 
+                    min="0" 
+                    step="0.01" 
+                    placeholder="50.00" 
+                    {...field} 
+                  />
+                </FormControl>
+                <FormMessage />
               </FormItem>
             )}
           />
 
-          {/* Location Selection */}
           <FormField
             control={form.control}
-            name="location"
+            name="mechanicId"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Location</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormLabel>Assigned Mechanic</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue placeholder="Select mechanic" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="workshop">Workshop</SelectItem>
-                    <SelectItem value="onsite">Onsite</SelectItem>
-                    <SelectItem value="remote">Remote</SelectItem>
+                    <SelectItem value="">None</SelectItem>
+                    {mechanics.map((mechanic) => (
+                      <SelectItem key={mechanic.id} value={mechanic.id}>
+                        {mechanic.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
-                <FormDescription>
-                  Where the work will be performed
-                </FormDescription>
+                <FormMessage />
               </FormItem>
             )}
           />
         </div>
 
-        {/* Invoice Selection - Only shown to users with permission */}
-        {canEditPrice && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
-            name="invoiceId"
+            name="hoursEstimated"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Invoice</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Link to invoice (optional)" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="none">None</SelectItem>
-                    <SelectGroup>
-                      <SelectLabel>Open Invoices</SelectLabel>
-                      {invoices
-                        .filter(inv => inv.status === 'open' || inv.status === 'in-progress')
-                        .map(invoice => (
-                          <SelectItem key={invoice.id} value={invoice.id}>
-                            #{invoice.id.substring(0, 8)} - {invoice.vehicleInfo?.make} {invoice.vehicleInfo?.model}
-                          </SelectItem>
-                        ))
-                      }
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-                <FormDescription>
-                  Link this task to an invoice
-                </FormDescription>
+                <FormLabel>Estimated Hours</FormLabel>
+                <FormControl>
+                  <Input 
+                    type="number" 
+                    min="0" 
+                    step="0.5" 
+                    placeholder="2.0" 
+                    {...field} 
+                  />
+                </FormControl>
+                <FormMessage />
               </FormItem>
             )}
           />
-        )}
+
+          <FormField
+            control={form.control}
+            name="hoursSpent"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Hours Spent</FormLabel>
+                <FormControl>
+                  <Input 
+                    type="number" 
+                    min="0" 
+                    step="0.5" 
+                    placeholder="1.5" 
+                    {...field} 
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
       </form>
     </Form>
   );
