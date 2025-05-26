@@ -1,7 +1,15 @@
-import React from "react";
-import { z } from "zod";
+import React from 'react';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Form,
   FormControl,
@@ -13,55 +21,62 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Attendance } from "@/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-
-interface AttendanceFormProps {
-  onSubmit: (data: Omit<Attendance, "id">) => void;
-}
+import { Textarea } from "@/components/ui/textarea";
+import { Attendance, Mechanic } from '@/types';
 
 const attendanceSchema = z.object({
-  mechanicId: z.string().min(1, { message: "Mechanic ID is required" }),
+  mechanicId: z.string().min(1, { message: "Mechanic is required" }),
   date: z.string().min(1, { message: "Date is required" }),
   checkIn: z.string().min(1, { message: "Check-in time is required" }),
   checkOut: z.string().optional(),
-  status: z.enum(["present", "late", "absent", "half-day"], {
-    required_error: "Please select an attendance status.",
-  }),
+  status: z.enum(['pending', 'approved', 'rejected']).default('pending'),
   notes: z.string().optional(),
+  created_at: z.string().optional(),
+  approved_by: z.string().optional()
 });
 
 export type AttendanceFormValues = z.infer<typeof attendanceSchema>;
 
-const AttendanceForm = ({ onSubmit }: AttendanceFormProps) => {
+interface AttendanceFormProps {
+  onSubmit: (data: Omit<Attendance, 'id'>) => Promise<void>;
+  initialData?: Attendance;
+  mechanics: Mechanic[];
+}
+
+const AttendanceForm: React.FC<AttendanceFormProps> = ({ onSubmit, initialData, mechanics }) => {
   const form = useForm<AttendanceFormValues>({
     resolver: zodResolver(attendanceSchema),
     defaultValues: {
-      mechanicId: "",
-      date: "",
-      checkIn: "",
-      checkOut: "",
-      status: "present",
-      notes: "",
-    },
+      mechanicId: initialData?.mechanic_id || "",
+      date: initialData?.date || new Date().toISOString().slice(0, 10),
+      checkIn: initialData?.check_in || "",
+      checkOut: initialData?.check_out || "",
+      status: initialData?.status || "pending",
+      notes: initialData?.notes || "",
+      created_at: initialData?.created_at || new Date().toISOString(),
+      approved_by: initialData?.approved_by || ""
+    }
   });
 
-  const handleSubmit = async (values: AttendanceFormValues) => {
+  const handleSubmit = async (data: AttendanceFormValues) => {
     try {
-      onSubmit({
-        mechanicId: values.mechanicId,
-        date: values.date,
-        checkIn: values.checkIn,
-        checkOut: values.checkOut,
-        status: values.status,
-        notes: values.notes,
-        created_at: new Date().toISOString(),
-        approved_by: "",
-      });
-      toast.success("Attendance recorded successfully!");
+      const attendanceData: Omit<Attendance, 'id'> = {
+        mechanic_id: data.mechanicId,
+        date: data.date,
+        check_in: data.checkIn,
+        check_out: data.checkOut,
+        status: data.status as 'pending' | 'approved' | 'rejected',
+        notes: data.notes,
+        created_at: data.created_at,
+        approved_by: data.approved_by
+      };
+      
+      await onSubmit(attendanceData);
       form.reset();
+      toast.success("Attendance recorded successfully!");
     } catch (error) {
-      console.error("Error recording attendance:", error);
+      console.error("Error submitting attendance:", error);
       toast.error("Failed to record attendance. Please try again.");
     }
   };
@@ -74,49 +89,65 @@ const AttendanceForm = ({ onSubmit }: AttendanceFormProps) => {
           name="mechanicId"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Mechanic ID</FormLabel>
-              <FormControl>
-                <Input placeholder="Enter mechanic ID" {...field} />
-              </FormControl>
+              <FormLabel>Mechanic</FormLabel>
+              <Select
+                onValueChange={field.onChange}
+                defaultValue={field.value}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a mechanic" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {mechanics.map((mechanic) => (
+                    <SelectItem key={mechanic.id} value={mechanic.id}>
+                      {mechanic.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="date"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Date</FormLabel>
-              <FormControl>
-                <Input type="date" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="date"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Date</FormLabel>
+                <FormControl>
+                  <Input type="date" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <FormField
-          control={form.control}
-          name="checkIn"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Check-in Time</FormLabel>
-              <FormControl>
-                <Input type="time" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+          <FormField
+            control={form.control}
+            name="checkIn"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Check-in Time</FormLabel>
+                <FormControl>
+                  <Input type="time" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         <FormField
           control={form.control}
           name="checkOut"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Check-out Time</FormLabel>
+              <FormLabel>Check-out Time (Optional)</FormLabel>
               <FormControl>
                 <Input type="time" {...field} />
               </FormControl>
@@ -131,17 +162,19 @@ const AttendanceForm = ({ onSubmit }: AttendanceFormProps) => {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Status</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select
+                onValueChange={field.onChange}
+                defaultValue={field.value}
+              >
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select attendance status" />
+                    <SelectValue placeholder="Select status" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="present">Present</SelectItem>
-                  <SelectItem value="late">Late</SelectItem>
-                  <SelectItem value="absent">Absent</SelectItem>
-                  <SelectItem value="half-day">Half Day</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="approved">Approved</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
                 </SelectContent>
               </Select>
               <FormMessage />
@@ -154,16 +187,18 @@ const AttendanceForm = ({ onSubmit }: AttendanceFormProps) => {
           name="notes"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Notes</FormLabel>
+              <FormLabel>Notes (Optional)</FormLabel>
               <FormControl>
-                <Input placeholder="Additional notes" {...field} />
+                <Textarea placeholder="Additional notes" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
 
-        <Button type="submit">Record Attendance</Button>
+        <DialogFooter>
+          <Button type="submit">Submit Attendance</Button>
+        </DialogFooter>
       </form>
     </Form>
   );

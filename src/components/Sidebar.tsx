@@ -1,168 +1,189 @@
 import React from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { 
-  LayoutDashboard, 
-  Users, 
-  Car, 
-  FileText, 
-  CheckSquare, 
-  Wrench, 
-  Package, 
-  Receipt, 
-  BarChart3, 
-  Settings, 
-  UserCog,
-  LogOut,
-  Clock
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { Separator } from "@/components/ui/separator";
+import {
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+  navigationMenuTriggerStyle,
+} from "@/components/ui/navigation-menu";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
+  BarChart,
+  Building2,
+  Calendar,
+  Car,
+  CheckCircle,
+  ChevronDown,
+  FileText,
+  Gauge,
+  LayoutDashboard,
+  ListChecks,
+  LucideIcon,
+  Settings,
+  ShoppingCart,
+  User,
+  Users,
+  Wrench,
 } from "lucide-react";
-import { getCurrentUser, hasPermission, rolePermissions } from "@/services/data-service";
-import { RolePermissionMap } from "@/types";
+import { Link } from "react-router-dom";
+import { useAuthContext } from "@/context/AuthContext";
 
-interface NavItem {
-  label: string;
-  icon: React.ComponentType<any>;
-  to: string;
-  permission?: keyof RolePermissionMap;
+interface SidebarProps {
+  isMobileOpen: boolean;
+  setIsMobileOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-const navigationItems: NavItem[] = [
-  {
-    label: "Dashboard",
-    icon: LayoutDashboard,
-    to: "/",
-    permission: 'dashboard'
-  },
-  {
-    label: "Customers",
-    icon: Users,
-    to: "/customers",
-    permission: 'customers'
-  },
-  {
-    label: "Vehicles",
-    icon: Car,
-    to: "/vehicles",
-    permission: 'vehicles'
-  },
-  {
-    label: "Invoices",
-    icon: FileText,
-    to: "/invoices",
-    permission: 'invoices'
-  },
-  {
-    label: "Tasks",
-    icon: CheckSquare,
-    to: "/tasks",
-    permission: 'tasks'
-  },
-  {
-    label: "Mechanics",
-    icon: Wrench,
-    to: "/mechanics",
-    permission: 'mechanics'
-  },
-  {
-    label: "Parts",
-    icon: Package,
-    to: "/parts",
-    permission: 'parts'
-  },
-  {
-    label: "Expenses",
-    icon: Receipt,
-    to: "/expenses",
-    permission: 'expenses'
-  },
-  {
-    label: "Reports",
-    icon: BarChart3,
-    to: "/reports",
-    permission: 'reports'
-  },
-  {
-    label: "Settings",
-    icon: Settings,
-    to: "/settings",
-    permission: 'settings'
-  },
-  {
-    label: "Users",
-    icon: UserCog,
-    to: "/admin/users",
-    permission: 'users'
-  },
-  {
-    label: "Attendance",
-    icon: Clock,
-    to: "/attendance",
-    permission: 'attendance'
-  }
-];
+const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
+  const { currentUser } = useAuthContext();
+  const isAdmin = currentUser?.role === "superuser";
 
-const Sidebar = () => {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const currentUser = getCurrentUser();
+  const navItems = [
+    {
+      title: "Dashboard",
+      href: "/dashboard",
+      icon: LayoutDashboard,
+    },
+    {
+      title: "Invoices",
+      href: "/invoices",
+      icon: FileText,
+    },
+    {
+      title: "Customers",
+      href: "/customers",
+      icon: Users,
+    },
+    {
+      title: "Vehicles",
+      href: "/vehicles",
+      icon: Car,
+    },
+    {
+      title: "Tasks",
+      href: "/tasks",
+      icon: ListChecks,
+    },
+    {
+      title: "Mechanics",
+      href: "/mechanics",
+      icon: Wrench,
+    },
+    {
+      title: "Attendance",
+      href: "/attendance",
+      icon: Calendar,
+    },
+    {
+      title: "Expenses",
+      href: "/expenses",
+      icon: ShoppingCart,
+    },
+  ];
 
-  const handleLogout = () => {
-    // Handle logout logic here
-    navigate("/auth/login");
-  };
+  const adminNavItems = [
+    {
+      title: "User Management",
+      href: "/users",
+      icon: User,
+    },
+    {
+      title: "Organization",
+      href: "/organization",
+      icon: Building2,
+    },
+    {
+      title: "Analytics",
+      href: BarChart,
+      icon: Gauge,
+    },
+  ];
 
-  // Filter navigation items based on user permissions
-  const getFilteredNavigation = () => {
-    return navigationItems.filter(item => {
-      if (!item.permission) return true;
-      return hasPermission(currentUser, item.permission as keyof RolePermissionMap, 'view');
-    });
-  };
+  const settingsNavItems = [
+    {
+      title: "Account",
+      href: "/settings/account",
+      icon: User,
+    },
+    {
+      title: "Organization",
+      href: "/settings/organization",
+      icon: Building2,
+    },
+  ];
 
   return (
-    <div className="flex flex-col h-full bg-gray-100 border-r py-4">
-      <div className="flex items-center justify-center mb-6">
-        <Link to="/" className="text-2xl font-bold">
-          AutoFlow
-        </Link>
-      </div>
-      <nav className="flex-grow px-2">
-        <ul className="space-y-2">
-          {getFilteredNavigation().map((item) => (
-            <li key={item.label}>
-              <Link
-                to={item.to}
-                className={cn(
-                  "flex items-center px-3 py-2 text-gray-700 rounded-lg hover:bg-gray-200",
-                  location.pathname === item.to ? "bg-gray-200 font-medium" : ""
-                )}
-              >
-                <item.icon className="w-5 h-5 mr-3" />
-                {item.label}
-              </Link>
-            </li>
+    <Sheet open={isMobileOpen} onOpenChange={setIsMobileOpen}>
+      <SheetContent className="w-64 flex flex-col gap-4">
+        <SheetHeader className="text-left">
+          <SheetTitle>Menu</SheetTitle>
+          <SheetDescription>
+            Navigate through the application.
+          </SheetDescription>
+        </SheetHeader>
+
+        <Separator />
+
+        <div className="flex flex-col gap-2">
+          {navItems.map((item) => (
+            <Link key={item.title} to={item.href} className="flex items-center gap-2 p-2 rounded-md hover:bg-secondary">
+              <item.icon className="w-4 h-4" />
+              {item.title}
+            </Link>
           ))}
-        </ul>
-      </nav>
-      <div className="p-4">
-        <div className="space-y-3">
-          <Avatar className="w-10 h-10 mx-auto">
-            <AvatarImage src="https://github.com/shadcn.png" alt="Your Avatar" />
-            <AvatarFallback>CN</AvatarFallback>
-          </Avatar>
-          <div className="text-center space-y-1">
-            <p className="text-sm font-medium">{currentUser?.name}</p>
-            <p className="text-xs text-gray-500">{currentUser?.email}</p>
-          </div>
         </div>
-        <Button variant="outline" className="w-full mt-4" onClick={handleLogout}>
-          <LogOut className="w-4 h-4 mr-2" />
-          Logout
-        </Button>
-      </div>
-    </div>
+
+        {isAdmin && (
+          <>
+            <Separator />
+
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="admin">
+                <AccordionTrigger className="flex items-center justify-between p-2 rounded-md hover:bg-secondary">
+                  <div className="flex items-center gap-2">
+                    <Settings className="w-4 h-4" />
+                    Admin
+                  </div>
+                  <ChevronDown className="w-4 h-4" />
+                </AccordionTrigger>
+                <AccordionContent className="flex flex-col gap-2">
+                  {adminNavItems.map((item) => (
+                    <Link key={item.title} to={item.href} className="flex items-center gap-2 p-2 rounded-md hover:bg-secondary">
+                      <item.icon className="w-4 h-4" />
+                      {item.title}
+                    </Link>
+                  ))}
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </>
+        )}
+
+        <Separator />
+
+        <div className="flex flex-col gap-2">
+          <Link to="/settings" className="flex items-center gap-2 p-2 rounded-md hover:bg-secondary">
+            <Settings className="w-4 h-4" />
+            Settings
+          </Link>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 };
 

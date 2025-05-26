@@ -1,4 +1,3 @@
-
 import React from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -7,7 +6,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -56,14 +54,12 @@ const VendorDialog = ({ open, onOpenChange }: VendorDialogProps) => {
 
   const handleSubmit = async (data: VendorFormValues) => {
     try {
-      // Create a new vendor
       const newVendor: Omit<Vendor, "id"> = {
         name: data.name,
         email: data.email || "",
         phone: data.phone,
         address: data.address || "",
-        contact_name: data.contactPerson, // Changed contactPerson to contact_name to match Vendor interface
-        category: data.paymentTerms || undefined
+        contact_name: data.contactPerson,
       };
       
       await addVendor(newVendor);

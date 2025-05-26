@@ -1,9 +1,8 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, CalendarDays, ChevronDown, BarChart } from "lucide-react";
-import { mechanics as mockMechanics, getMechanics, getCurrentUser, tasks } from "@/services/data-service";
+import { mechanics as mockMechanics, getMechanics, getCurrentUser, tasks, getMechanicById } from "@/services/data-service";
 import MechanicDialog from "@/components/mechanic/MechanicDialog";
 import { Mechanic } from "@/types";
 import { toast } from "sonner";
@@ -86,12 +85,12 @@ const Mechanics = () => {
       
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {mechanics.map((mechanic) => (
-          <Card key={mechanic.id} className={mechanic.isActive ? "" : "opacity-60"}>
+          <Card key={mechanic.id} className={mechanic.is_active ? "" : "opacity-60"}>
             <CardHeader className="pb-2">
               <div className="flex justify-between items-start">
                 <CardTitle>{mechanic.name}</CardTitle>
-                <Badge variant={mechanic.isActive ? "default" : "outline"}>
-                  {mechanic.isActive ? "Active" : "Inactive"}
+                <Badge variant={mechanic.is_active ? "default" : "outline"}>
+                  {mechanic.is_active ? "Active" : "Inactive"}
                 </Badge>
               </div>
               <CardDescription className="flex items-center">
@@ -102,7 +101,7 @@ const Mechanics = () => {
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Employment:</span>
-                  <span className="font-medium">{mechanic.employmentType === 'fulltime' ? 'Full-time' : 'Contractor'}</span>
+                  <span className="font-medium">{mechanic.employment_type === 'fulltime' ? 'Full-time' : 'Contractor'}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Contact:</span>

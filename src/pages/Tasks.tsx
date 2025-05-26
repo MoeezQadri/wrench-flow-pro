@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,7 +32,7 @@ const Tasks = () => {
 
   // Check permissions
   const canViewTasks = hasPermission(currentUser, 'tasks', 'view');
-  const canManageTasks = hasPermission(currentUser, 'tasks', 'manage');
+  const canManageTasks = currentUser.role === 'manager' || currentUser.role === 'owner';
   const isForeman = currentUser.role === 'foreman';
   
   // Load tasks

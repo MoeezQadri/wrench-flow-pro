@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { Invoice, Customer } from '@/types';
 import { resolvePromiseAndSetState } from '@/utils/async-helpers';
 import { useAsyncCache } from '@/hooks/useAsyncData';
@@ -8,7 +7,7 @@ import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 
 // Function to get invoices from Supabase
-const getInvoices = async (): Promise<Invoice[]> => {
+const getInvoices = async (): Promise<any[]> => {
   const { data, error } = await supabase
     .from('invoices')
     .select('*, invoice_items(*)');
@@ -47,7 +46,13 @@ const Invoices: React.FC = () => {
       setLoading(true);
       try {
         const fetchedInvoices = await getInvoices();
-        setInvoices(fetchedInvoices);
+        // Map the Supabase data to our Invoice interface
+        const mappedInvoices: Invoice[] = fetchedInvoices.map((invoice: any) => ({
+          ...invoice,
+          items: invoice.invoice_items || [],
+          payments: []
+        }));
+        setInvoices(mappedInvoices);
       } catch (error) {
         console.error('Error loading invoices:', error);
         toast.error('Failed to load invoices');
@@ -59,7 +64,6 @@ const Invoices: React.FC = () => {
     loadInvoices();
   }, []);
 
-  // Calculate invoice totals and handle customer data
   const calculateInvoiceTotal = (invoice: Invoice): number => {
     if (!invoice.items) return 0;
     
@@ -67,7 +71,7 @@ const Invoices: React.FC = () => {
     const subtotal = invoice.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     
     // Calculate tax amount
-    const taxAmount = subtotal * (invoice.taxRate / 100);
+    const taxAmount = subtotal * (invoice.tax_rate / 100);
     
     // Calculate discount if applicable
     let discountAmount = 0;
@@ -129,8 +133,8 @@ const Invoices: React.FC = () => {
                       </Link>
                     </td>
                     <td className="py-2 px-4 border-b">
-                      {invoice.customerId && customerCache[invoice.customerId] ? (
-                        customerCache[invoice.customerId].name
+                      {invoice.customer_id && customerCache[invoice.customer_id] ? (
+                        customerCache[invoice.customer_id].name
                       ) : (
                         <span className="text-gray-400">Loading...</span>
                       )}

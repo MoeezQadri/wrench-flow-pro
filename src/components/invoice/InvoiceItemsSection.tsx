@@ -1,236 +1,119 @@
 
-import { useState } from "react";
-import { Plus, X } from "lucide-react";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { FormLabel } from "@/components/ui/form";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { InvoiceItem } from "@/types";
-import { toast } from "sonner";
+import React, { Dispatch, SetStateAction } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Trash2, Plus } from 'lucide-react';
+import { InvoiceItem } from '@/types';
 
-interface InvoiceItemsSectionProps {
+export interface InvoiceItemsSectionProps {
   items: InvoiceItem[];
-  setItems: React.Dispatch<React.SetStateAction<InvoiceItem[]>>;
-  subtotal: number;
-  discountType: "none" | "percentage" | "fixed";
-  discountValue: number;
-  taxRate: number;
+  onItemsChange: Dispatch<SetStateAction<InvoiceItem[]>>;
 }
 
-const InvoiceItemsSection = ({
+const InvoiceItemsSection: React.FC<InvoiceItemsSectionProps> = ({
   items,
-  setItems,
-  subtotal,
-  discountType,
-  discountValue,
-  taxRate,
-}: InvoiceItemsSectionProps) => {
-  const [newItemType, setNewItemType] = useState<"part" | "labor" | "service">("part");
-  const [newItemDescription, setNewItemDescription] = useState("");
-  const [newItemQuantity, setNewItemQuantity] = useState<number | "">("");
-  const [newItemPrice, setNewItemPrice] = useState<number | "">("");
-
-  // Create a new invoice item
-  const handleAddItem = () => {
-    if (!newItemType || !newItemDescription || typeof newItemQuantity !== "number" || typeof newItemPrice !== "number") {
-      toast.error("Please fill all item fields");
-      return;
-    }
-    
+  onItemsChange
+}) => {
+  const addItem = () => {
     const newItem: InvoiceItem = {
-      id: Date.now().toString(), // Temporary ID
-      invoice_id: "", // Will be set when the invoice is created
-      type: newItemType,
-      description: newItemDescription,
-      quantity: newItemQuantity,
-      price: newItemPrice,
+      id: `item-${Date.now()}`,
+      description: '',
+      type: 'labor',
+      quantity: 1,
+      price: 0
     };
-    
-    setItems([...items, newItem]);
-    
-    // Reset form
-    setNewItemType("part");
-    setNewItemDescription("");
-    setNewItemQuantity("");
-    setNewItemPrice("");
+    onItemsChange([...items, newItem]);
   };
 
-  // Remove invoice item
-  const handleRemoveItem = (itemId: string) => {
-    setItems(items.filter(item => item.id !== itemId));
+  const updateItem = (index: number, field: keyof InvoiceItem, value: any) => {
+    const updatedItems = [...items];
+    updatedItems[index] = { ...updatedItems[index], [field]: value };
+    onItemsChange(updatedItems);
   };
 
-  // Calculate discount
-  let discountAmount = 0;
-  if (discountType === "percentage" && discountValue > 0) {
-    discountAmount = subtotal * (discountValue / 100);
-  } else if (discountType === "fixed" && discountValue > 0) {
-    discountAmount = discountValue;
-  }
-
-  // Calculate subtotal after discount
-  const subtotalAfterDiscount = subtotal - discountAmount;
-
-  // Calculate tax
-  const tax = subtotalAfterDiscount * (taxRate / 100);
-
-  // Calculate total
-  const total = subtotalAfterDiscount + tax;
+  const removeItem = (index: number) => {
+    onItemsChange(items.filter((_, i) => i !== index));
+  };
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-medium">Invoice Items</h3>
-      
-      {/* Add New Item Form */}
-      <Card className="p-4">
-        <div className="grid gap-4 md:grid-cols-4">
+      <div className="flex justify-between items-center">
+        <Label className="text-lg font-medium">Invoice Items</Label>
+        <Button type="button" variant="outline" onClick={addItem}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add Item
+        </Button>
+      </div>
+
+      {items.map((item, index) => (
+        <div key={item.id} className="grid grid-cols-1 md:grid-cols-6 gap-2 p-4 border rounded-lg">
+          <div className="md:col-span-2">
+            <Label htmlFor={`description-${index}`}>Description</Label>
+            <Input
+              id={`description-${index}`}
+              value={item.description}
+              onChange={(e) => updateItem(index, 'description', e.target.value)}
+              placeholder="Service description"
+            />
+          </div>
+
           <div>
-            <FormLabel htmlFor="itemType">Type</FormLabel>
+            <Label htmlFor={`type-${index}`}>Type</Label>
             <Select
-              value={newItemType}
-              onValueChange={(value: "part" | "labor" | "service") => 
-                setNewItemType(value)
-              }
+              value={item.type}
+              onValueChange={(value) => updateItem(index, 'type', value)}
             >
-              <SelectTrigger id="itemType">
-                <SelectValue placeholder="Type" />
+              <SelectTrigger id={`type-${index}`}>
+                <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="part">Part</SelectItem>
                 <SelectItem value="labor">Labor</SelectItem>
-                <SelectItem value="service">Service</SelectItem>
+                <SelectItem value="parts">Parts</SelectItem>
               </SelectContent>
             </Select>
           </div>
-          
+
           <div>
-            <FormLabel htmlFor="itemDescription">Description</FormLabel>
+            <Label htmlFor={`quantity-${index}`}>Quantity</Label>
             <Input
-              id="itemDescription"
-              value={newItemDescription}
-              onChange={(e) => setNewItemDescription(e.target.value)}
-              placeholder="Description"
-            />
-          </div>
-          
-          <div>
-            <FormLabel htmlFor="itemQuantity">Quantity</FormLabel>
-            <Input
-              id="itemQuantity"
+              id={`quantity-${index}`}
               type="number"
-              step="1"
               min="1"
-              value={newItemQuantity}
-              onChange={(e) => setNewItemQuantity(parseFloat(e.target.value) || "")}
-              placeholder="Quantity"
+              value={item.quantity}
+              onChange={(e) => updateItem(index, 'quantity', parseInt(e.target.value) || 1)}
             />
           </div>
-          
+
           <div>
-            <FormLabel htmlFor="itemPrice">Price ($)</FormLabel>
+            <Label htmlFor={`price-${index}`}>Price</Label>
             <Input
-              id="itemPrice"
+              id={`price-${index}`}
               type="number"
               step="0.01"
-              min="0.01"
-              value={newItemPrice}
-              onChange={(e) => setNewItemPrice(parseFloat(e.target.value) || "")}
-              placeholder="Price"
+              min="0"
+              value={item.price}
+              onChange={(e) => updateItem(index, 'price', parseFloat(e.target.value) || 0)}
             />
           </div>
+
+          <div className="flex items-end">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={() => removeItem(index)}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
-        
-        <div className="mt-4 flex justify-end">
-          <Button 
-            type="button" 
-            onClick={handleAddItem}
-            className="flex items-center"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Add Item
-          </Button>
-        </div>
-      </Card>
-      
-      {/* Items Table */}
-      {items.length > 0 ? (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Type</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead>Quantity</TableHead>
-              <TableHead>Price</TableHead>
-              <TableHead className="w-[80px]"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {items.map((item) => (
-              <TableRow key={item.id}>
-                <TableCell>{item.type}</TableCell>
-                <TableCell>{item.description}</TableCell>
-                <TableCell>{item.quantity}</TableCell>
-                <TableCell>${item.price.toFixed(2)}</TableCell>
-                <TableCell>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleRemoveItem(item.id)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-            
-            <TableRow>
-              <TableCell colSpan={3} className="text-right font-medium">
-                Subtotal:
-              </TableCell>
-              <TableCell className="font-medium">${subtotal.toFixed(2)}</TableCell>
-              <TableCell></TableCell>
-            </TableRow>
-            
-            {discountType !== "none" && discountValue > 0 && (
-              <TableRow>
-                <TableCell colSpan={3} className="text-right font-medium">
-                  Discount ({discountType === "percentage" ? `${discountValue}%` : "$"+discountValue}):
-                </TableCell>
-                <TableCell className="font-medium">-${discountAmount.toFixed(2)}</TableCell>
-                <TableCell></TableCell>
-              </TableRow>
-            )}
-            
-            <TableRow>
-              <TableCell colSpan={3} className="text-right font-medium">
-                Subtotal After Discount:
-              </TableCell>
-              <TableCell className="font-medium">${subtotalAfterDiscount.toFixed(2)}</TableCell>
-              <TableCell></TableCell>
-            </TableRow>
-            
-            <TableRow>
-              <TableCell colSpan={3} className="text-right font-medium">
-                Tax ({taxRate}%):
-              </TableCell>
-              <TableCell className="font-medium">${tax.toFixed(2)}</TableCell>
-              <TableCell></TableCell>
-            </TableRow>
-            
-            <TableRow>
-              <TableCell colSpan={3} className="text-right font-bold text-lg">
-                Total:
-              </TableCell>
-              <TableCell className="font-bold text-lg">${total.toFixed(2)}</TableCell>
-              <TableCell></TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
-      ) : (
-        <div className="rounded-md border border-dashed p-8 text-center">
-          <p className="text-muted-foreground">No items added yet. Add items to calculate the invoice total.</p>
+      ))}
+
+      {items.length === 0 && (
+        <div className="text-center py-8 text-gray-500">
+          No items added yet. Click "Add Item" to get started.
         </div>
       )}
     </div>

@@ -1,116 +1,125 @@
-import React, { useState, useEffect, createContext, useContext } from 'react';
-import { Session } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
-import { User } from '@/types';
-import { fetchUserProfile, updateLastLogin, createUserFromSession } from '@/utils/auth-utils';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { supabase } from '@/lib/supabase';
+import { User as SupabaseUser } from '@supabase/supabase-js';
+import { User, UserRole } from '@/types';
 
-interface AuthContextValue {
+interface AuthContextType {
   currentUser: User | null;
   setCurrentUser: React.Dispatch<React.SetStateAction<User | null>>;
-  session: Session | null;
-  setSession: React.Dispatch<React.SetStateAction<Session | null>>;
-  isAuthenticated: boolean;
-  isSuperAdmin: boolean;
-  logout: () => Promise<void>;
-  signIn?: (email: string, password: string) => Promise<{data: any, error: Error | null}>;
-  signUp?: (email: string, password: string, name: string) => Promise<{data: any, error: Error | null}>;
-  signOut?: () => Promise<{error: Error | null}>;
-  verifySuperAdminToken?: (token: string) => Promise<boolean>;
   loading: boolean;
+  login: () => Promise<void>;
+  logout: () => Promise<void>;
 }
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 interface AuthProviderProps {
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
-const AuthContext = createContext<AuthContextValue>({
-  currentUser: null,
-  setCurrentUser: () => {},
-  session: null,
-  setSession: () => {},
-  isAuthenticated: false,
-  isSuperAdmin: false,
-  logout: async () => {},
-  loading: true,
-});
-
-export const useAuthContext = () => useContext(AuthContext);
-
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const isAuthenticated = !!session && !!currentUser;
-  const isSuperAdmin = currentUser?.role === 'superuser' || !!currentUser?.isSuperAdmin;
-
   useEffect(() => {
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth state changed:', event, session?.user?.email);
-        setSession(session);
-        
-        if (session?.user) {
-          // Fetch or create user profile
-          const { profileData } = await fetchUserProfile(session.user.id);
-          const user = createUserFromSession(session, profileData);
-          
-          // Check if user is superadmin
-          if (user.role === 'superuser') {
-            user.isSuperAdmin = true;
-          }
-          
-          setCurrentUser(user);
-          
-          // Update last login
-          setTimeout(() => {
-            updateLastLogin(session.user.id);
-          }, 0);
-        } else {
-          setCurrentUser(null);
-        }
-        setLoading(false);
-      }
-    );
+    const getSession = async () => {
+      setLoading(true);
+      const { data: { session } } = await supabase.auth.getSession();
 
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        // Will be handled by the auth state change listener above
+        await fetchUser(session.user);
       } else {
-        setLoading(false);
+        setCurrentUser(null);
+      }
+      setLoading(false);
+    };
+
+    getSession();
+
+    supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session) {
+        await fetchUser(session.user);
+      } else {
+        setCurrentUser(null);
       }
     });
-
-    return () => subscription.unsubscribe();
   }, []);
 
-  const logout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      console.error('Logout error:', error);
+  const fetchUser = async (user: SupabaseUser) => {
+    try {
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      const userRole = (profile?.role || 'viewer') as UserRole;
+
+      const userDetails: User = {
+        id: user.id,
+        email: user.email || '',
+        name: profile?.name || user.email?.split('@')[0] || 'User',
+        role: userRole,
+        organization_id: profile?.organization_id || null,
+        is_active: profile?.is_active || true,
+        lastLogin: profile?.last_login || null,
+        created_at: profile?.created_at || null,
+        updated_at: profile?.updated_at || null,
+      };
+
+      setCurrentUser(userDetails);
+    } catch (error: any) {
+      console.error("Error fetching user details:", error.message);
+    } finally {
+      setLoading(false);
     }
-    setCurrentUser(null);
-    setSession(null);
   };
 
-  const value: AuthContextValue = {
+  const login = async () => {
+    try {
+      await supabase.auth.signInWithOAuth({
+        provider: 'google',
+      });
+    } catch (error: any) {
+      console.error("Login error:", error.message);
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await supabase.auth.signOut();
+      setCurrentUser(null);
+    } catch (error: any) {
+      console.error("Logout error:", error.message);
+    }
+  };
+
+  const value: AuthContextType = {
     currentUser,
     setCurrentUser,
-    session,
-    setSession,
-    isAuthenticated,
-    isSuperAdmin,
+    loading,
+    login,
     logout,
-    loading
   };
 
   return (
     <AuthContext.Provider value={value}>
-      {children}
+      {!loading && children}
     </AuthContext.Provider>
   );
 };
 
-export { AuthContext, AuthContextValue };
+const useAuthContext = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error("useAuthContext must be used within an AuthProvider");
+  }
+  return context;
+};
+
+export type { AuthContextType };
+export { AuthProvider, useAuthContext };
