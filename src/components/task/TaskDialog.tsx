@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import {
   Dialog,
@@ -12,10 +13,13 @@ import { toast } from "sonner";
 import { Task, Invoice, Vehicle } from "@/types";
 import TaskForm, { TaskFormValues } from "./TaskForm";
 import { 
-  generateId,
   getInvoiceById,
   getVehicleById
 } from "@/services/data-service";
+
+const generateId = (prefix: string = 'id'): string => {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+};
 
 interface TaskDialogProps {
   open: boolean;
@@ -65,11 +69,11 @@ const TaskDialog = ({ open, onOpenChange, onSave, task, invoiceId }: TaskDialogP
         title: data.title,
         description: data.description || "",
         status: data.status,
-        mechanic_id: data.mechanicId,
-        vehicle_id: data.vehicleId || (invoice ? invoice.vehicle_id : undefined),
-        invoice_id: data.invoiceId || invoiceId,
-        hours_estimated: data.hoursEstimated,
-        hours_spent: data.hoursSpent,
+        mechanicId: data.mechanicId,
+        vehicleId: data.vehicleId || (invoice ? invoice.vehicle_id : undefined),
+        invoiceId: data.invoiceId || invoiceId,
+        hoursEstimated: data.hoursEstimated,
+        hoursSpent: data.hoursSpent,
         price: data.price,
         location: data.location,
         created_at: task?.created_at || new Date().toISOString(),
@@ -120,11 +124,11 @@ const TaskDialog = ({ open, onOpenChange, onSave, task, invoiceId }: TaskDialogP
                   status: task.status,
                   price: task.price || 0,
                   location: task.location,
-                  mechanicId: task.mechanic_id,
-                  vehicleId: task.vehicle_id,
-                  invoiceId: task.invoice_id,
-                  hoursEstimated: task.hours_estimated,
-                  hoursSpent: task.hours_spent || 0,
+                  mechanicId: task.mechanicId,
+                  vehicleId: task.vehicleId,
+                  invoiceId: task.invoiceId,
+                  hoursEstimated: task.hoursEstimated,
+                  hoursSpent: task.hoursSpent || 0,
                 }
               : {
                   invoiceId: invoiceId,

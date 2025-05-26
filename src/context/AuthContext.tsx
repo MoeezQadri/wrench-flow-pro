@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/lib/supabase';
 import { User as SupabaseUser } from '@supabase/supabase-js';
@@ -9,6 +10,9 @@ interface AuthContextType {
   loading: boolean;
   login: () => Promise<void>;
   logout: () => Promise<void>;
+  isAuthenticated: boolean;
+  isSuperAdmin: boolean;
+  session: any;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -20,11 +24,16 @@ interface AuthProviderProps {
 const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [session, setSession] = useState<any>(null);
+
+  const isAuthenticated = !!currentUser;
+  const isSuperAdmin = currentUser?.role === 'superuser';
 
   useEffect(() => {
     const getSession = async () => {
       setLoading(true);
       const { data: { session } } = await supabase.auth.getSession();
+      setSession(session);
 
       if (session) {
         await fetchUser(session.user);
@@ -37,6 +46,7 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     getSession();
 
     supabase.auth.onAuthStateChange(async (_event, session) => {
+      setSession(session);
       if (session) {
         await fetchUser(session.user);
       } else {
@@ -93,6 +103,7 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       await supabase.auth.signOut();
       setCurrentUser(null);
+      setSession(null);
     } catch (error: any) {
       console.error("Logout error:", error.message);
     }
@@ -104,6 +115,9 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     loading,
     login,
     logout,
+    isAuthenticated,
+    isSuperAdmin,
+    session,
   };
 
   return (

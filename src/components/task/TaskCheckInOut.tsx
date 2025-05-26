@@ -20,7 +20,7 @@ const TaskCheckInOut = ({ task, onTaskUpdate }: TaskCheckInOutProps) => {
     const updatedTask: Task = {
       ...task,
       status: 'in-progress',
-      start_time: new Date().toISOString(),
+      startTime: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
     
@@ -33,9 +33,9 @@ const TaskCheckInOut = ({ task, onTaskUpdate }: TaskCheckInOutProps) => {
     const updatedTask: Task = {
       ...task,
       status: 'completed',
-      end_time: new Date().toISOString(),
-      completed_by: currentUser?.id,
-      completed_at: new Date().toISOString(),
+      endTime: new Date().toISOString(),
+      completedBy: currentUser?.id,
+      completedAt: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
     
@@ -44,8 +44,8 @@ const TaskCheckInOut = ({ task, onTaskUpdate }: TaskCheckInOutProps) => {
     toast.success("Checked out of task");
   };
 
-  const canCheckIn = task.status === 'pending' && currentUser?.id === task.mechanic_id;
-  const canCheckOut = task.status === 'in-progress' && currentUser?.id === task.mechanic_id;
+  const canCheckIn = task.status === 'pending' && currentUser?.id === task.mechanicId;
+  const canCheckOut = task.status === 'in-progress' && currentUser?.id === task.mechanicId;
 
   return (
     <Card>
@@ -81,15 +81,15 @@ const TaskCheckInOut = ({ task, onTaskUpdate }: TaskCheckInOutProps) => {
           )}
         </div>
         
-        {task.start_time && (
+        {task.startTime && (
           <div className="mt-2 text-sm text-muted-foreground">
-            Started: {new Date(task.start_time).toLocaleString()}
+            Started: {new Date(task.startTime).toLocaleString()}
           </div>
         )}
         
-        {task.end_time && (
+        {task.endTime && (
           <div className="text-sm text-muted-foreground">
-            Completed: {new Date(task.end_time).toLocaleString()}
+            Completed: {new Date(task.endTime).toLocaleString()}
           </div>
         )}
       </CardContent>

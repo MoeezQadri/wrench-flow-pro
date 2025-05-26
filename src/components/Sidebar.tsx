@@ -1,3 +1,4 @@
+
 import React from "react";
 import {
   Sheet,
@@ -109,8 +110,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
     },
     {
       title: "Analytics",
-      href: BarChart,
-      icon: Gauge,
+      href: "/analytics",
+      icon: BarChart,
     },
   ];
 

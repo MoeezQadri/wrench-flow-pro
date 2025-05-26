@@ -1,3 +1,4 @@
+
 import React from "react";
 import {
   Dialog,
@@ -11,7 +12,11 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Vehicle } from "@/types";
 import VehicleFormSection, { VehicleFormValues } from "./vehicle/VehicleFormSection";
-import { generateId, getCurrentUser, hasPermission } from "@/services/data-service";
+import { getCurrentUser, hasPermission } from "@/services/data-service";
+
+const generateId = (prefix: string = 'id'): string => {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+};
 
 interface VehicleDialogProps {
   open: boolean;
@@ -45,6 +50,7 @@ const VehicleDialog = ({ open, onOpenChange, onSave, vehicle, customerId }: Vehi
         vin: data.vin || "",
         color: data.color || "",
         created_at: vehicle?.created_at || new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       };
       
       onSave(newVehicle);

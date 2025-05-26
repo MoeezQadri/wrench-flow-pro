@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
@@ -24,7 +25,7 @@ const MechanicPerformance: React.FC<MechanicPerformanceProps> = ({ mechanic, tas
   // Calculate performance metrics
   const calculatePerformanceMetrics = (): PerformanceMetrics => {
     // Filter tasks for this mechanic
-    const mechanicTasks = tasks.filter(task => task.mechanic_id === mechanic.id);
+    const mechanicTasks = tasks.filter(task => task.mechanicId === mechanic.id);
     const completedTasks = mechanicTasks.filter(task => task.status === 'completed');
     
     // Task completion rate
@@ -33,8 +34,8 @@ const MechanicPerformance: React.FC<MechanicPerformanceProps> = ({ mechanic, tas
       : 0;
     
     // Hours metrics for completed tasks
-    const totalHoursEstimated = completedTasks.reduce((sum, task) => sum + task.hours_estimated, 0);
-    const totalHoursSpent = completedTasks.reduce((sum, task) => sum + (task.hours_spent || 0), 0);
+    const totalHoursEstimated = completedTasks.reduce((sum, task) => sum + task.hoursEstimated, 0);
+    const totalHoursSpent = completedTasks.reduce((sum, task) => sum + (task.hoursSpent || 0), 0);
     
     // Average efficiency (estimated / actual * 100)
     const averageEfficiency = totalHoursSpent > 0 
@@ -47,8 +48,8 @@ const MechanicPerformance: React.FC<MechanicPerformanceProps> = ({ mechanic, tas
       const key = task.title;
       const current = taskTypeMap.get(key) || { estimated: 0, actual: 0, count: 0 };
       taskTypeMap.set(key, {
-        estimated: current.estimated + task.hours_estimated,
-        actual: current.actual + (task.hours_spent || task.hours_estimated),
+        estimated: current.estimated + task.hoursEstimated,
+        actual: current.actual + (task.hoursSpent || task.hoursEstimated),
         count: current.count + 1
       });
     });
@@ -68,8 +69,8 @@ const MechanicPerformance: React.FC<MechanicPerformanceProps> = ({ mechanic, tas
     // Recent tasks (last 5)
     const recentTasks = [...mechanicTasks]
       .sort((a, b) => {
-        const dateA = a.completed_at ? new Date(a.completed_at).getTime() : 0;
-        const dateB = b.completed_at ? new Date(b.completed_at).getTime() : 0;
+        const dateA = a.completedAt ? new Date(a.completedAt).getTime() : 0;
+        const dateB = b.completedAt ? new Date(b.completedAt).getTime() : 0;
         return dateB - dateA; // Sort in descending order (newest first)
       })
       .slice(0, 5);
@@ -163,18 +164,18 @@ const MechanicPerformance: React.FC<MechanicPerformanceProps> = ({ mechanic, tas
         <CardContent>
           <div className="space-y-4">
             {metrics.recentTasks.length > 0 ? metrics.recentTasks.map(task => {
-              const efficiency = task.hours_spent
-                ? Math.round((task.hours_estimated / task.hours_spent) * 100)
+              const efficiency = task.hoursSpent
+                ? Math.round((task.hoursEstimated / task.hoursSpent) * 100)
                 : null;
                 
               return (
                 <div key={task.id} className="flex items-start justify-between border-b pb-3">
                   <div>
                     <h4 className="font-medium">{task.title}</h4>
-                    <p className="text-sm text-muted-foreground">{task.description.substring(0, 60)}{task.description.length > 60 ? '...' : ''}</p>
+                    <p className="text-sm text-muted-foreground">{task.description?.substring(0, 60)}{task.description && task.description.length > 60 ? '...' : ''}</p>
                     <div className="flex items-center gap-2 mt-1">
                       <Clock className="h-3 w-3 text-muted-foreground" />
-                      <span className="text-xs">{task.hours_spent || 0} / {task.hours_estimated} hours</span>
+                      <span className="text-xs">{task.hoursSpent || 0} / {task.hoursEstimated} hours</span>
                       <span
                         className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
                           task.status === 'completed' ? 'bg-green-100 text-green-800' :
@@ -200,9 +201,9 @@ const MechanicPerformance: React.FC<MechanicPerformanceProps> = ({ mechanic, tas
                         {efficiency}% efficient
                       </span>
                     )}
-                    {task.completed_at && (
+                    {task.completedAt && (
                       <span className="text-xs text-muted-foreground mt-1">
-                        {new Date(task.completed_at).toLocaleDateString()}
+                        {new Date(task.completedAt).toLocaleDateString()}
                       </span>
                     )}
                   </div>

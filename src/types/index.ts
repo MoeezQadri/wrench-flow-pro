@@ -1,3 +1,4 @@
+
 export type InvoiceStatus = 'open' | 'paid' | 'partial' | 'overdue' | 'in-progress' | 'completed' | 'draft';
 export type UserRole = 'owner' | 'manager' | 'mechanic' | 'foreman' | 'superuser';
 export type TaskStatus = 'pending' | 'in-progress' | 'completed';
@@ -102,6 +103,21 @@ export interface Mechanic {
   created_at?: string;
   updated_at?: string;
   id_card_image?: string;
+}
+
+export interface Part {
+  id: string;
+  name: string;
+  description?: string;
+  part_number?: string;
+  price: number;
+  quantity: number;
+  reorder_level?: number;
+  vendor_id?: string;
+  vendor_name?: string;
+  invoice_ids?: string[];
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface Expense {

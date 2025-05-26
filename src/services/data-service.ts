@@ -1,6 +1,11 @@
 import { supabase } from '@/lib/supabase';
 import { Attendance, Customer, DashboardMetrics, Expense, Invoice, Mechanic, Task, Vehicle } from '@/types';
 
+// Generate unique IDs
+export const generateId = (prefix: string = 'id'): string => {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+};
+
 // Mock data for mechanics
 export const mockMechanics: Mechanic[] = [
   {
@@ -44,6 +49,54 @@ export const mockMechanics: Mechanic[] = [
     user_id: 'user4'
   }
 ];
+
+// Mock vendors data
+export const vendors = [
+  {
+    id: '1',
+    name: 'AutoParts Plus',
+    email: 'contact@autoparts.com',
+    phone: '555-0001',
+    address: '123 Parts Street',
+    contact_name: 'John Parts',
+    category: 'Parts'
+  },
+  {
+    id: '2',
+    name: 'Tool Depot',
+    email: 'info@tooldepot.com',
+    phone: '555-0002',
+    address: '456 Tool Avenue',
+    contact_name: 'Jane Tools',
+    category: 'Tools'
+  }
+];
+
+// Add missing mechanic functions
+export const addMechanic = async (mechanicData: Omit<Mechanic, 'id'>): Promise<Mechanic> => {
+  const newMechanic: Mechanic = {
+    id: generateId('mechanic'),
+    ...mechanicData,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+  
+  // In a real app, this would save to database
+  console.log('Adding mechanic:', newMechanic);
+  return newMechanic;
+};
+
+export const updateMechanic = async (id: string, mechanicData: Omit<Mechanic, 'id'>): Promise<Mechanic> => {
+  const updatedMechanic: Mechanic = {
+    id,
+    ...mechanicData,
+    updated_at: new Date().toISOString()
+  };
+  
+  // In a real app, this would update in database
+  console.log('Updating mechanic:', updatedMechanic);
+  return updatedMechanic;
+};
 
 // Mock function to simulate fetching customers
 export const getCustomers = async (): Promise<Customer[]> => {
@@ -141,6 +194,25 @@ export const getVehicleById = async (id: string): Promise<Vehicle | null> => {
   ];
 
   return vehicles.find(vehicle => vehicle.id === id) || null;
+};
+
+// Mock function to simulate getting invoices
+export const getInvoices = async (): Promise<Invoice[]> => {
+  return [
+    {
+      id: '1',
+      customer_id: '1',
+      vehicle_id: '1',
+      date: '2024-01-15',
+      tax_rate: 7.5,
+      status: 'open',
+      notes: 'Oil change and tire rotation',
+      items: [],
+      payments: [],
+      created_at: '2024-01-15T00:00:00Z',
+      updated_at: '2024-01-15T00:00:00Z'
+    }
+  ];
 };
 
 // Mock function to simulate adding a new invoice
@@ -427,10 +499,10 @@ export const getCurrentUser = () => {
 // Mock function to simulate checking permissions
 export const hasPermission = (user: any, resource: string, permission: string): boolean => {
   // Replace this with actual permission checking logic
-  if (user.role === 'owner') return true; // Owner has all permissions
+  if (user?.role === 'owner') return true; // Owner has all permissions
 
   // Example: Only managers can manage tasks
-  if (resource === 'tasks' && permission === 'manage' && user.role === 'manager') {
+  if (resource === 'tasks' && permission === 'manage' && user?.role === 'manager') {
     return true;
   }
 
@@ -506,3 +578,8 @@ export const tasks: Task[] = [
 
 // Add missing mechanics export for compatibility
 export const mechanics = mockMechanics;
+
+// Add alias for getMechanics
+export const getMechanics = async (): Promise<Mechanic[]> => {
+  return mockMechanics;
+};

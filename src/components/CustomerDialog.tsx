@@ -1,3 +1,4 @@
+
 import React from "react";
 import {
   Dialog,
@@ -11,7 +12,11 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Customer } from "@/types";
 import CustomerForm, { CustomerFormValues } from "./customer/CustomerForm";
-import { generateId, getCurrentUser, hasPermission } from "@/services/data-service";
+import { getCurrentUser, hasPermission } from "@/services/data-service";
+
+const generateId = (prefix: string = 'id'): string => {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+};
 
 interface CustomerDialogProps {
   open: boolean;
@@ -40,13 +45,8 @@ const CustomerDialog = ({ open, onOpenChange, onSave, customer }: CustomerDialog
         email: data.email,
         phone: data.phone,
         address: data.address,
-        totalVisits: customer?.totalVisits || 0,
-        lifetimeValue: customer?.lifetimeValue || 0,
-        lastVisit: customer?.lastVisit || null,
         created_at: customer?.created_at || new Date().toISOString(),
-        total_visits: customer?.total_visits || 0,
-        lifetime_value: customer?.lifetime_value || 0,
-        last_visit: customer?.last_visit || null,
+        updated_at: new Date().toISOString(),
       };
       
       onSave(newCustomer);
