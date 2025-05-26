@@ -5,7 +5,7 @@ import {
   Users,
   Car,
   CheckSquare,
-  FileInvoice,
+  Receipt,
   Wrench,
   Coins,
   Settings,
@@ -19,10 +19,12 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuthContext } from "@/context/AuthContext";
-import { hasPermission, RolePermissionMap } from "@/services/data-service";
+import { hasPermission, type RolePermissionMap } from "@/services/data-service";
 
 interface SidebarProps {
   className?: string;
+  isMobileOpen?: boolean;
+  setIsMobileOpen?: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 interface MenuItem {
@@ -38,7 +40,7 @@ interface MenuGroup {
   items: MenuItem[];
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ className }) => {
+const Sidebar: React.FC<SidebarProps> = ({ className, isMobileOpen, setIsMobileOpen }) => {
   const { currentUser } = useAuthContext();
   const { collapsed, setCollapsed } = useSidebar();
   const location = useLocation();
@@ -63,7 +65,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
       'attendance': 'attendance'
     };
     
-    const mappedResource = resourceMap[resource];
+    const mappedResource = resourceMap[resource] as keyof RolePermissionMap;
     if (!mappedResource) return false;
     
     return hasPermission(currentUser, mappedResource, action);
@@ -109,7 +111,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
         {
           title: "Invoices",
           href: "/invoices",
-          icon: FileInvoice,
+          icon: Receipt,
           description: "Billing and payments",
           show: checkPermission('invoices', 'view'),
         },

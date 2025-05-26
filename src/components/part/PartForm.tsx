@@ -92,10 +92,10 @@ const PartForm = ({ defaultValues, onSubmit, formId, invoice, invoiceId, part }:
 
   // Initialize form with any existing invoice associations
   useEffect(() => {
-    if (part?.invoiceIds && part.invoiceIds.length > 0) {
+    if (part?.invoice_ids && part.invoice_ids.length > 0) {
       setShowInvoiceSelection(true);
-      setSelectedInvoiceIds(part.invoiceIds);
-      form.setValue('invoiceIds', part.invoiceIds);
+      setSelectedInvoiceIds(part.invoice_ids);
+      form.setValue('invoiceIds', part.invoice_ids);
     }
     // If form is being opened with a specific invoice already selected
     if (invoiceId) {

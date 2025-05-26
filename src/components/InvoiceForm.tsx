@@ -131,7 +131,7 @@ const InvoiceForm = ({ isEditing = false, invoiceData }: InvoiceFormProps) => {
   const total = subtotalAfterDiscount + tax;
 
   // Handle new customer added
-  const handleCustomerAdded = (newCustomer: Customer) => {
+  const handleCustomerSave = (newCustomer: Customer) => {
     setCustomers(prev => [...prev, newCustomer]);
     form.setValue("customerId", newCustomer.id);
     
@@ -141,7 +141,7 @@ const InvoiceForm = ({ isEditing = false, invoiceData }: InvoiceFormProps) => {
   };
 
   // Handle new vehicle added
-  const handleVehicleAdded = (newVehicle: Vehicle) => {
+  const handleVehicleSave = (newVehicle: Vehicle) => {
     setVehicles(prev => [...prev, newVehicle]);
     form.setValue("vehicleId", newVehicle.id);
   };
@@ -256,7 +256,7 @@ const InvoiceForm = ({ isEditing = false, invoiceData }: InvoiceFormProps) => {
       <CustomerDialog 
         open={customerDialogOpen}
         onOpenChange={setCustomerDialogOpen}
-        onCustomerAdded={handleCustomerAdded}
+        onSave={handleCustomerSave}
       />
 
       {/* Vehicle Dialog */}
@@ -264,7 +264,7 @@ const InvoiceForm = ({ isEditing = false, invoiceData }: InvoiceFormProps) => {
         open={vehicleDialogOpen}
         onOpenChange={setVehicleDialogOpen}
         customerId={form.watch("customerId")}
-        onVehicleAdded={handleVehicleAdded}
+        onSave={handleVehicleSave}
       />
     </div>
   );

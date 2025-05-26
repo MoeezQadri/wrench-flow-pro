@@ -1,729 +1,786 @@
-import { faker } from '@faker-js/faker';
-import {
-  User,
-  UserRole,
-  Customer,
-  Vehicle,
-  Mechanic,
-  Task,
-  Invoice,
-  Part,
-  Expense,
-  Attendance,
-  Permission,
-  RolePermissionMap,
-  Organization,
-} from '@/types';
+import { faker } from "@faker-js/faker";
+import { User, UserRole, Customer, Vehicle, Mechanic, Task, Invoice, InvoiceItem, Payment, Expense, Vendor, Part, Attendance, Organization, RolePermissionMap } from "@/types";
 
 // Function to generate a unique ID
 export const generateId = (prefix: string): string => {
-  return `${prefix}-${faker.string.uuid()}`;
+  return `${prefix}_${faker.string.uuid()}`;
 };
 
-// Function to generate a random date within a specified range
-const getRandomDate = (start: Date, end: Date): string => {
-  return faker.date.between({ from: start, to: end }).toISOString().split('T')[0];
+// Mock function to simulate user authentication
+export const authenticateUser = (email: string, password?: string): Promise<User | null> => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const user = mockUsers.find((u) => u.email === email);
+      if (user && (!password || password === "password")) {
+        resolve(user);
+      } else {
+        resolve(null);
+      }
+    }, 500);
+  });
 };
 
-// Function to generate a random amount within a specified range
-const getRandomAmount = (min: number, max: number): number => {
-  return faker.number.float({ min, max });
+// Mock function to simulate fetching the current user
+export const getCurrentUser = (): User => {
+  // Replace this with your actual authentication logic
+  return mockUsers[0];
 };
 
-// Function to generate a random phone number
-const getRandomPhoneNumber = (): string => {
-  return faker.phone.number();
-};
+// Mock function to simulate checking user permissions
+export const hasPermission = (user: User | undefined, resource: keyof RolePermissionMap, action: string): boolean => {
+  if (!user) return false;
 
-// Function to generate a random boolean value
-const getRandomBoolean = (): boolean => {
-  return faker.datatype.boolean();
-};
+  const rolePermissions = mockRolePermissions[user.role];
 
-// Function to generate a random integer within a specified range
-const getRandomInteger = (min: number, max: number): number => {
-  return faker.number.int({ min, max });
-};
+  if (!rolePermissions) return false;
 
-// Function to generate a random item from an array
-const getRandomItem = <T>(array: T[]): T => {
-  return array[Math.floor(Math.random() * array.length)];
-};
+  const resourcePermissions = rolePermissions[resource];
 
-// Function to generate a random name
-const getRandomName = (): string => {
-  return faker.person.fullName();
-};
+  if (typeof resourcePermissions === 'boolean') {
+    return resourcePermissions;
+  }
 
-// Function to generate a random email
-const getRandomEmail = (): string => {
-  return faker.internet.email();
-};
+  if (typeof resourcePermissions === 'object' && resourcePermissions !== null) {
+    return !!resourcePermissions[action];
+  }
 
-// Function to generate a random address
-const getRandomAddress = (): string => {
-  return faker.location.streetAddress();
-};
-
-// Function to generate a random vehicle make
-const getRandomVehicleMake = (): string => {
-  return faker.vehicle.manufacturer();
-};
-
-// Function to generate a random vehicle model
-const getRandomVehicleModel = (): string => {
-  return faker.vehicle.model();
-};
-
-// Function to generate a random vehicle year
-const getRandomVehicleYear = (): number => {
-  return faker.number.int({ min: 2000, max: new Date().getFullYear() });
-};
-
-// Function to generate a random vehicle license plate
-const getRandomVehicleLicensePlate = (): string => {
-  return faker.string.alphanumeric({ length: 8 }).toUpperCase();
-};
-
-// Function to generate a random vehicle VIN
-const getRandomVehicleVIN = (): string => {
-  return faker.vehicle.vin();
-};
-
-// Function to generate a random vehicle color
-const getRandomVehicleColor = (): string => {
-  return faker.vehicle.color();
-};
-
-// Function to generate a random mechanic specialization
-const getRandomMechanicSpecialization = (): string => {
-  const specializations = ['Engine', 'Brakes', 'Transmission', 'Electrical', 'Suspension'];
-  return getRandomItem(specializations);
-};
-
-// Function to generate a random task status
-const getRandomTaskStatus = (): Task['status'] => {
-  const statuses: Task['status'][] = ['pending', 'in-progress', 'completed'];
-  return getRandomItem(statuses);
-};
-
-// Function to generate a random task location
-const getRandomTaskLocation = (): Task['location'] => {
-  const locations: Task['location'][] = ['workshop', 'onsite', 'remote'];
-  return getRandomItem(locations);
-};
-
-// Function to generate a random invoice status
-const getRandomInvoiceStatus = (): Invoice['status'] => {
-  const statuses: Invoice['status'][] = ['open', 'in-progress', 'pending', 'paid', 'canceled'];
-  return getRandomItem(statuses);
-};
-
-// Function to generate a random part type
-const getRandomPartType = (): Part['type'] => {
-  const types: Part['type'][] = ['mechanical', 'electrical', 'body', 'other'];
-  return getRandomItem(types);
-};
-
-// Function to generate a random expense category
-const getRandomExpenseCategory = (): Expense['category'] => {
-  const categories: Expense['category'][] = ['fuel', 'parts', 'supplies', 'rent', 'utilities', 'other'];
-  return getRandomItem(categories);
-};
-
-// Function to generate a random payment method
-const getRandomPaymentMethod = (): Expense['payment_method'] => {
-  const methods: Expense['payment_method'][] = ['cash', 'card', 'bank-transfer'];
-  return getRandomItem(methods);
-};
-
-// Function to generate a random attendance status
-const getRandomAttendanceStatus = (): Attendance['status'] => {
-  const statuses: Attendance['status'][] = ['pending', 'approved', 'rejected'];
-  return getRandomItem(statuses);
-};
-
-// Function to generate a random user role
-const getRandomUserRole = (): UserRole => {
-  const roles: UserRole[] = ['owner', 'manager', 'foreman', 'mechanic', 'customer', 'superuser'];
-  return getRandomItem(roles);
-};
-
-// Function to generate a random permission action
-const getRandomPermissionAction = (): string => {
-  const actions = ['view', 'create', 'edit', 'delete', 'manage'];
-  return getRandomItem(actions);
-};
-
-// Function to generate a random organization type
-const getRandomOrganizationType = (): Organization['type'] => {
-  const types: Organization['type'][] = ['sole-proprietorship', 'partnership', 'corporation', 'limited-liability-company', 'nonprofit'];
-  return getRandomItem(types);
+  return false;
 };
 
 // Mock data for users
-const users: User[] = [
+export const mockUsers: User[] = [
   {
-    id: generateId('user'),
-    name: 'John Doe',
-    email: 'john.doe@example.com',
-    role: 'owner',
-    isActive: true,
+    id: generateId("user"),
+    name: "John Doe",
+    email: "john.doe@example.com",
+    role: "superuser",
+    is_active: true,
     lastLogin: new Date().toISOString(),
+    organization_id: "org_1",
+    isSuperAdmin: true,
+    user_metadata: {
+      role: 'owner',
+      organizationId: 'org_1'
+    }
   },
   {
-    id: generateId('user'),
-    name: 'Jane Smith',
-    email: 'jane.smith@example.com',
-    role: 'manager',
-    isActive: true,
+    id: generateId("user"),
+    name: "Jane Smith",
+    email: "jane.smith@example.com",
+    role: "owner",
+    is_active: true,
     lastLogin: new Date().toISOString(),
+    organization_id: "org_1",
+    user_metadata: {
+      role: 'owner',
+      organizationId: 'org_1'
+    }
   },
   {
-    id: generateId('user'),
-    name: 'Mike Johnson',
-    email: 'mike.johnson@example.com',
-    role: 'foreman',
-    isActive: true,
+    id: generateId("user"),
+    name: "Alice Johnson",
+    email: "alice.johnson@example.com",
+    role: "manager",
+    is_active: true,
     lastLogin: new Date().toISOString(),
+    organization_id: "org_1",
+    user_metadata: {
+      role: 'manager',
+      organizationId: 'org_1'
+    }
   },
   {
-    id: generateId('user'),
-    name: 'Emily Brown',
-    email: 'emily.brown@example.com',
-    role: 'mechanic',
-    isActive: true,
+    id: generateId("user"),
+    name: "Bob Williams",
+    email: "bob.williams@example.com",
+    role: "foreman",
+    is_active: true,
     lastLogin: new Date().toISOString(),
+    organization_id: "org_1",
+    user_metadata: {
+      role: 'foreman',
+      organizationId: 'org_1'
+    }
   },
   {
-    id: generateId('user'),
-    name: 'Chris Williams',
-    email: 'chris.williams@example.com',
-    role: 'customer',
-    isActive: true,
+    id: generateId("user"),
+    name: "Charlie Brown",
+    email: "charlie.brown@example.com",
+    role: "mechanic",
+    is_active: true,
     lastLogin: new Date().toISOString(),
-  },
-  {
-    id: generateId('user'),
-    name: 'Super User',
-    email: 'super.user@example.com',
-    role: 'superuser',
-    isActive: true,
-    lastLogin: new Date().toISOString(),
+    organization_id: "org_1",
+    mechanicId: "mechanic_1",
+    user_metadata: {
+      role: 'mechanic',
+      organizationId: 'org_1'
+    }
   },
 ];
+
+// Mock data for roles and permissions
+export const mockRolePermissions: { [key in UserRole]: RolePermissionMap } = {
+  superuser: {
+    dashboard: true,
+    customers: { view: true, manage: true },
+    invoices: { view: true, manage: true },
+    mechanics: { view: true, manage: true },
+    tasks: { view: true, manage: true },
+    parts: { view: true, manage: true },
+    finance: { view: true, manage: true },
+    expenses: { view: true, manage: true },
+    reports: true,
+    attendance: { view: true, manage: true, approve: true },
+    settings: { view: true, manage: true },
+    organization: { view: true, manage: true },
+    users: { view: true, manage: true },
+    subscription: { view: true, manage: true },
+    vehicles: { view: true, manage: true },
+    roles: { view: true, manage: true },
+  },
+  owner: {
+    dashboard: true,
+    customers: { view: true, manage: true },
+    invoices: { view: true, manage: true },
+    mechanics: { view: true, manage: true },
+    tasks: { view: true, manage: true },
+    parts: { view: true, manage: true },
+    finance: { view: true, manage: true },
+    expenses: { view: true, manage: true },
+    reports: true,
+    attendance: { view: true, manage: true, approve: true },
+    settings: { view: true, manage: true },
+    organization: { view: true, manage: true },
+    users: { view: true, manage: true },
+    subscription: { view: true, manage: true },
+    vehicles: { view: true, manage: true },
+    roles: { view: true, manage: true },
+  },
+  manager: {
+    dashboard: true,
+    customers: { view: true, manage: true },
+    invoices: { view: true, manage: true },
+    mechanics: { view: true, manage: true },
+    tasks: { view: true, manage: true },
+    parts: { view: true, manage: true },
+    finance: { view: true, manage: true },
+    expenses: { view: true, manage: true },
+    reports: true,
+    attendance: { view: true, manage: true },
+    settings: { view: true, manage: false },
+    organization: { view: true, manage: false },
+    users: { view: true, manage: false },
+    subscription: { view: false, manage: false },
+    vehicles: { view: true, manage: true },
+    roles: { view: false, manage: false },
+  },
+  foreman: {
+    dashboard: true,
+    customers: { view: true, manage: false },
+    invoices: { view: true, manage: false },
+    mechanics: { view: true, manage: false },
+    tasks: { view: true, manage: { view: true, assign: true, create: true, update: true, complete: true } },
+    parts: { view: true, manage: false },
+    finance: { view: true, manage: false },
+    expenses: { view: true, manage: false },
+    reports: { view: true, manage: false },
+    attendance: { view: true, manage: { update: 'own' } },
+    settings: { view: false, manage: false },
+    organization: { view: false, manage: false },
+    users: { view: false, manage: false },
+    subscription: { view: false, manage: false },
+    vehicles: { view: true, manage: false },
+    roles: { view: false, manage: false },
+  },
+  mechanic: {
+    dashboard: true,
+    customers: { view: true, manage: false },
+    invoices: { view: true, manage: false },
+    mechanics: { view: false, manage: false },
+    tasks: { view: true, manage: { view: true, assign: 'own', create: 'own', update: 'own', complete: 'own' } },
+    parts: { view: true, manage: false },
+    finance: { view: false, manage: false },
+    expenses: { view: false, manage: false },
+    reports: { view: false, manage: false },
+    attendance: { view: true, manage: { update: 'own' } },
+    settings: { view: false, manage: false },
+    organization: { view: false, manage: false },
+    users: { view: false, manage: false },
+    subscription: { view: false, manage: false },
+    vehicles: { view: true, manage: false },
+    roles: { view: false, manage: false },
+  },
+};
 
 // Mock data for customers
-const customers: Customer[] = Array.from({ length: 10 }, () => ({
-  id: generateId('customer'),
-  name: getRandomName(),
-  email: getRandomEmail(),
-  phone: getRandomPhoneNumber(),
-  address: getRandomAddress(),
-  total_visits: getRandomInteger(1, 10),
-  lifetime_value: getRandomAmount(100, 1000),
-  last_visit: getRandomDate(new Date(2023, 0, 1), new Date()),
-  created_at: new Date().toISOString(),
-  updated_at: new Date().toISOString(),
-}));
-
-// Mock data for vehicles
-const vehicles: Vehicle[] = customers.flatMap(customer =>
-  Array.from({ length: getRandomInteger(1, 3) }, () => ({
-    id: generateId('vehicle'),
-    customer_id: customer.id,
-    make: getRandomVehicleMake(),
-    model: getRandomVehicleModel(),
-    year: getRandomVehicleYear(),
-    license_plate: getRandomVehicleLicensePlate(),
-    vin: getRandomVehicleVIN(),
-    color: getRandomVehicleColor(),
+export const mockCustomers: Customer[] = [
+  {
+    id: generateId("customer"),
+    name: "Alice Brown",
+    email: "alice.brown@example.com",
+    phone: "555-123-4567",
+    address: "123 Main St, Anytown, USA",
+    total_visits: 3,
+    lifetime_value: 350.00,
+    last_visit: new Date(2023, 0, 20).toISOString(),
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
-  }))
-);
-
-// Mock data for mechanics
-const mechanics: Mechanic[] = Array.from({ length: 5 }, () => ({
-  id: generateId('mechanic'),
-  name: getRandomName(),
-  specialization: getRandomMechanicSpecialization(),
-  address: getRandomAddress(),
-  phone: getRandomPhoneNumber(),
-  id_card_image: faker.image.url(),
-  employment_type: getRandomItem(['fulltime', 'contractor']),
-  is_active: getRandomBoolean(),
-}));
-
-// Mock data for tasks
-const tasks: Task[] = Array.from({ length: 20 }, () => {
-  const mechanic = getRandomItem(mechanics);
-  const vehicle = getRandomItem(vehicles);
-  return {
-    id: generateId('task'),
-    title: faker.lorem.sentence(),
-    description: faker.lorem.paragraph(),
-    mechanic_id: mechanic.id,
-    status: getRandomTaskStatus(),
-    hours_estimated: getRandomAmount(1, 8),
-    hours_spent: getRandomAmount(0, 8),
-    invoice_id: generateId('invoice'),
-	vehicle_id: vehicle.id,
-    location: getRandomTaskLocation(),
-    price: getRandomAmount(50, 500),
+  },
+  {
+    id: generateId("customer"),
+    name: "Bob White",
+    email: "bob.white@example.com",
+    phone: "555-987-6543",
+    address: "456 Elm St, Anytown, USA",
+    total_visits: 5,
+    lifetime_value: 675.50,
+    last_visit: new Date(2023, 1, 15).toISOString(),
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
-    start_time: new Date().toISOString(),
-    end_time: new Date().toISOString(),
-    completed_by: generateId('user'),
-    completed_at: new Date().toISOString(),
-  };
-});
-
-// Mock data for invoices
-const invoices: Invoice[] = Array.from({ length: 10 }, () => {
-  const vehicle = getRandomItem(vehicles);
-  const customer = customers.find(c => c.id === vehicle.customer_id);
-  return {
-    id: generateId('invoice'),
-    customer_id: vehicle.customer_id,
-    vehicle_id: vehicle.id,
-    date: getRandomDate(new Date(2023, 0, 1), new Date()),
-    status: getRandomInvoiceStatus(),
-    total_amount: getRandomAmount(100, 1000),
-    discount: getRandomAmount(0, 50),
-    tax: getRandomAmount(0, 50),
-    notes: faker.lorem.paragraph(),
+  },
+  {
+    id: generateId("customer"),
+    name: "Charlie Green",
+    email: "charlie.green@example.com",
+    phone: "555-555-5555",
+    address: "789 Oak St, Anytown, USA",
+    total_visits: 1,
+    lifetime_value: 75.00,
+    last_visit: new Date(2023, 2, 10).toISOString(),
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
-    vehicleInfo: {
-      make: vehicle.make,
-      model: vehicle.model,
-      year: vehicle.year,
-      licensePlate: vehicle.license_plate,
-    },
-    customerInfo: {
-      name: customer?.name || 'Unknown Customer',
-      email: customer?.email || 'unknown@example.com',
-      phone: customer?.phone || 'N/A',
-    },
-    items: [],
-  };
-});
-
-// Mock data for parts
-const parts: Part[] = Array.from({ length: 30 }, () => ({
-  id: generateId('part'),
-  name: faker.commerce.productName(),
-  description: faker.commerce.productDescription(),
-  type: getRandomPartType(),
-  price: getRandomAmount(10, 200),
-  quantity: getRandomInteger(1, 10),
-  created_at: new Date().toISOString(),
-  updated_at: new Date().toISOString(),
-  invoice_ids: [generateId('invoice')],
-}));
-
-// Mock data for expenses
-const expenses: Expense[] = Array.from({ length: 15 }, () => ({
-  id: generateId('expense'),
-  date: getRandomDate(new Date(2023, 0, 1), new Date()),
-  category: getRandomExpenseCategory(),
-  amount: getRandomAmount(10, 100),
-  description: faker.lorem.sentence(),
-  payment_method: getRandomPaymentMethod(),
-  payment_status: getRandomItem(['pending', 'paid']),
-  vendor_id: generateId('vendor'),
-  vendor_name: faker.company.name(),
-}));
-
-// Mock data for attendance
-const attendance: Attendance[] = Array.from({ length: 10 }, () => ({
-  id: generateId('attendance'),
-  mechanic_id: getRandomItem(mechanics).id,
-  date: getRandomDate(new Date(2023, 0, 1), new Date()),
-  check_in: faker.date.recent().toISOString(),
-  check_out: faker.date.recent().toISOString(),
-  status: getRandomAttendanceStatus(),
-  notes: faker.lorem.sentence(),
-  approved_by: generateId('user'),
-  created_at: new Date().toISOString(),
-}));
-
-// Mock data for permissions
-const permissions: Permission[] = [
-  { id: generateId('permission'), name: 'view_dashboard', description: 'View dashboard' },
-  { id: generateId('permission'), name: 'manage_users', description: 'Manage users' },
-  { id: generateId('permission'), name: 'manage_customers', description: 'Manage customers' },
-  { id: generateId('permission'), name: 'manage_vehicles', description: 'Manage vehicles' },
-  { id: generateId('permission'), name: 'manage_invoices', description: 'Manage invoices' },
-  { id: generateId('permission'), name: 'manage_tasks', description: 'Manage tasks' },
-  { id: generateId('permission'), name: 'manage_mechanics', description: 'Manage mechanics' },
-  { id: generateId('permission'), name: 'manage_parts', description: 'Manage parts' },
-  { id: generateId('permission'), name: 'manage_expenses', description: 'Manage expenses' },
-  { id: generateId('permission'), name: 'view_reports', description: 'View reports' },
+  },
 ];
 
-// Mock data for organizations
-const organizations: Organization[] = Array.from({ length: 5 }, () => ({
-  id: generateId('organization'),
-  name: faker.company.name(),
-  type: getRandomOrganizationType(),
-  address: faker.location.streetAddress(),
-  phone: getRandomPhoneNumber(),
-  email: faker.internet.email(),
-  created_at: new Date().toISOString(),
-  updated_at: new Date().toISOString(),
-}));
+// Mock data for vehicles
+export const mockVehicles: Vehicle[] = [
+  {
+    id: generateId("vehicle"),
+    make: "Toyota",
+    model: "Camry",
+    year: "2018",
+    license_plate: "ABC-123",
+    customer_id: mockCustomers[0].id,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: generateId("vehicle"),
+    make: "Honda",
+    model: "Civic",
+    year: "2020",
+    license_plate: "DEF-456",
+    customer_id: mockCustomers[1].id,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: generateId("vehicle"),
+    make: "Ford",
+    model: "F-150",
+    year: "2022",
+    license_plate: "GHI-789",
+    customer_id: mockCustomers[2].id,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+];
 
-// In-memory data store
-let currentUsers = [...users];
-let currentCustomers = [...customers];
-let currentVehicles = [...vehicles];
-let currentMechanics = [...mechanics];
-let currentTasks = [...tasks];
-let currentInvoices = [...invoices];
-let currentParts = [...parts];
-let currentExpenses = [...expenses];
-let currentAttendance = [...attendance];
-let currentPermissions = [...permissions];
-let currentOrganizations = [...organizations];
+// Mock data for mechanics
+export const mockMechanics: Mechanic[] = [
+  {
+    id: generateId("mechanic"),
+    name: "Mike Davis",
+    specialization: "Engine Repair",
+    phone: "555-111-2222",
+    address: "111 Mechanic St, Anytown, USA",
+    is_active: true,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: generateId("mechanic"),
+    name: "Sarah Johnson",
+    specialization: "Brakes & Suspension",
+    phone: "555-333-4444",
+    address: "222 Auto Ave, Anytown, USA",
+    is_active: true,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+];
 
-// Function to get all users
-export const getUsers = async (): Promise<User[]> => {
-  return currentUsers;
-};
+// Mock data for tasks
+export const mockTasks: Task[] = [
+  {
+    id: generateId("task"),
+    title: "Oil Change",
+    description: "Perform oil change service",
+    status: "completed",
+    vehicle_id: mockVehicles[0].id,
+    mechanic_id: mockMechanics[0].id,
+    hours_estimated: 1,
+    hours_spent: 1,
+    price: 75.00,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: generateId("task"),
+    title: "Brake Replacement",
+    description: "Replace front brake pads",
+    status: "in-progress",
+    vehicle_id: mockVehicles[1].id,
+    mechanic_id: mockMechanics[1].id,
+    hours_estimated: 3,
+    hours_spent: 2,
+    price: 300.00,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+];
 
-// Function to get a user by ID
-export const getUserById = async (id: string): Promise<User | undefined> => {
-  return currentUsers.find(user => user.id === id);
-};
+// Mock data for invoices
+export const mockInvoices: Invoice[] = [
+  {
+    id: generateId("invoice"),
+    customer_id: mockCustomers[0].id,
+    vehicle_id: mockVehicles[0].id,
+    date: new Date(2023, 0, 20).toISOString(),
+    status: "paid",
+    tax_rate: 0.075,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    items: [
+      {
+        id: generateId("invoice_item"),
+        invoice_id: "invoice_1",
+        type: "labor",
+        description: "Oil change service",
+        quantity: 1,
+        price: 75.00,
+        created_at: new Date().toISOString(),
+      },
+    ],
+    payments: [
+      {
+        id: generateId("payment"),
+        invoice_id: "invoice_1",
+        amount: 75.00,
+        date: new Date(2023, 0, 20).toISOString(),
+        method: "card",
+        created_at: new Date().toISOString(),
+      },
+    ],
+    customerInfo: {
+      name: mockCustomers[0].name,
+    },
+    vehicleInfo: {
+      make: mockVehicles[0].make,
+      model: mockVehicles[0].model,
+      licensePlate: mockVehicles[0].license_plate,
+    },
+  },
+  {
+    id: generateId("invoice"),
+    customer_id: mockCustomers[1].id,
+    vehicle_id: mockVehicles[1].id,
+    date: new Date(2023, 1, 15).toISOString(),
+    status: "pending",
+    tax_rate: 0.075,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    items: [
+      {
+        id: generateId("invoice_item"),
+        invoice_id: "invoice_2",
+        type: "labor",
+        description: "Brake replacement service",
+        quantity: 1,
+        price: 300.00,
+        created_at: new Date().toISOString(),
+      },
+    ],
+    payments: [],
+    customerInfo: {
+      name: mockCustomers[1].name,
+    },
+    vehicleInfo: {
+      make: mockVehicles[1].make,
+      model: mockVehicles[1].model,
+      licensePlate: mockVehicles[1].license_plate,
+    },
+  },
+];
 
-// Function to create a new user
-export const createUser = async (user: User): Promise<User> => {
-  currentUsers = [...currentUsers, user];
-  return user;
-};
+// Mock data for expenses
+export const mockExpenses: Expense[] = [
+  {
+    id: generateId("expense"),
+    date: new Date(2023, 0, 15).toISOString(),
+    category: "Parts",
+    amount: 150.00,
+    description: "Purchased brake pads",
+    payment_method: "card",
+    payment_status: "paid",
+    vendor_id: "vendor_1",
+    vendor_name: "AutoParts Plus",
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: generateId("expense"),
+    date: new Date(2023, 0, 10).toISOString(),
+    category: "Rent",
+    amount: 1200.00,
+    description: "Monthly rent payment",
+    payment_method: "bank-transfer",
+    payment_status: "paid",
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+];
 
-// Function to update an existing user
-export const updateUser = async (user: User): Promise<void> => {
-  currentUsers = currentUsers.map(u => u.id === user.id ? user : u);
-};
+// Mock data for parts
+export const mockParts: Part[] = [
+  {
+    id: generateId("part"),
+    name: "Brake Pads",
+    description: "High-quality brake pads",
+    part_number: "BP1234",
+    price: 45.00,
+    quantity: 50,
+    reorder_level: 10,
+    vendor_id: "vendor_1",
+    vendor_name: "AutoParts Plus",
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: generateId("part"),
+    name: "Oil Filter",
+    description: "Standard oil filter",
+    part_number: "OF5678",
+    price: 8.50,
+    quantity: 100,
+    reorder_level: 20,
+    vendor_id: "vendor_2",
+    vendor_name: "Quality Parts Co",
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+];
 
-// Function to delete a user
-export const deleteUser = async (id: string): Promise<void> => {
-  currentUsers = currentUsers.filter(user => user.id !== id);
-};
+// Mock data for attendance
+export const mockAttendance: Attendance[] = [
+  {
+    mechanic_id: mockMechanics[0].id,
+    date: new Date().toISOString().slice(0, 10),
+    check_in: "08:00",
+    check_out: "17:00",
+    status: "present",
+    approved_by: "manager_1",
+    notes: "Arrived on time, full day",
+    created_at: new Date().toISOString(),
+  },
+  {
+    mechanic_id: mockMechanics[1].id,
+    date: new Date().toISOString().slice(0, 10),
+    check_in: "08:30",
+    check_out: "12:00",
+    status: "half-day",
+    approved_by: "manager_1",
+    notes: "Late arrival, half day",
+    created_at: new Date().toISOString(),
+  },
+];
 
-// Function to get all customers
+// Mock function to simulate fetching customers
 export const getCustomers = async (): Promise<Customer[]> => {
-  return currentCustomers;
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve(mockCustomers);
+    }, 250);
+  });
 };
 
-// Function to get a customer by ID
-export const getCustomerById = async (id: string): Promise<Customer | undefined> => {
-  return currentCustomers.find(customer => customer.id === id);
+// Mock function to simulate adding a customer
+export const addCustomer = async (customerData: Omit<Customer, "id">): Promise<Customer> => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const newCustomer: Customer = {
+        id: generateId("customer"),
+        ...customerData,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      mockCustomers.push(newCustomer);
+      resolve(newCustomer);
+    }, 250);
+  });
 };
 
-// Function to create a new customer
-export const createCustomer = async (customer: Customer): Promise<Customer> => {
-  currentCustomers = [...currentCustomers, customer];
-  return customer;
-};
-
-// Function to update an existing customer
-export const updateCustomer = async (customer: Customer): Promise<void> => {
-  currentCustomers = currentCustomers.map(c => c.id === customer.id ? customer : c);
-};
-
-// Function to delete a customer
-export const deleteCustomer = async (id: string): Promise<void> => {
-  currentCustomers = currentCustomers.filter(customer => customer.id !== id);
-};
-
-// Function to get all vehicles
+// Mock function to simulate fetching vehicles
 export const getVehicles = async (): Promise<Vehicle[]> => {
-  return currentVehicles;
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve(mockVehicles);
+    }, 250);
+  });
 };
 
-// Function to get vehicles by customer ID
-export const getVehiclesByCustomerId = async (customerId: string): Promise<Vehicle[]> => {
-  return currentVehicles.filter(vehicle => vehicle.customer_id === customerId);
+// Mock function to simulate adding a vehicle
+export const addVehicle = async (vehicleData: Omit<Vehicle, "id">): Promise<Vehicle> => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const newVehicle: Vehicle = {
+        id: generateId("vehicle"),
+        ...vehicleData,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      mockVehicles.push(newVehicle);
+      resolve(newVehicle);
+    }, 250);
+  });
 };
 
-// Function to create a new vehicle
-export const createVehicle = async (vehicle: Vehicle): Promise<Vehicle> => {
-  currentVehicles = [...currentVehicles, vehicle];
-  return vehicle;
-};
-
-// Function to update an existing vehicle
-export const updateVehicle = async (vehicle: Vehicle): Promise<void> => {
-  currentVehicles = currentVehicles.map(v => v.id === vehicle.id ? vehicle : v);
-};
-
-// Function to delete a vehicle
-export const deleteVehicle = async (id: string): Promise<void> => {
-  currentVehicles = currentVehicles.filter(vehicle => vehicle.id !== id);
-};
-
-// Function to get all mechanics
+// Mock function to simulate fetching mechanics
 export const getMechanics = async (): Promise<Mechanic[]> => {
-  return currentMechanics;
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve(mockMechanics);
+    }, 250);
+  });
 };
 
-// Function to get a mechanic by ID
-export const getMechanicById = async (id: string): Promise<Mechanic | null> => {
-  return mechanics.find(m => m.id === id) || null;
+// Mock function to simulate adding a mechanic
+export const addMechanic = async (mechanicData: Omit<Mechanic, "id">): Promise<Mechanic> => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const newMechanic: Mechanic = {
+        id: generateId("mechanic"),
+        ...mechanicData,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      mockMechanics.push(newMechanic);
+      resolve(newMechanic);
+    }, 250);
+  });
 };
 
-// Function to create a new mechanic
-export const createMechanic = async (mechanic: Mechanic): Promise<Mechanic> => {
-  currentMechanics = [...currentMechanics, mechanic];
-  return mechanic;
-};
-
-// Function to update an existing mechanic
-export const updateMechanic = async (mechanic: Mechanic): Promise<void> => {
-  currentMechanics = currentMechanics.map(m => m.id === mechanic.id ? mechanic : m);
-};
-
-// Function to delete a mechanic
-export const deleteMechanic = async (id: string): Promise<void> => {
-  currentMechanics = currentMechanics.filter(mechanic => mechanic.id !== id);
-};
-
-// Function to get all tasks
+// Mock function to simulate fetching tasks
 export const getTasks = async (): Promise<Task[]> => {
-  return currentTasks;
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve(mockTasks);
+    }, 250);
+  });
 };
 
-// Function to get a task by ID
-export const getTaskById = async (id: string): Promise<Task | undefined> => {
-  return currentTasks.find(task => task.id === id);
+// Mock function to simulate adding a task
+export const addTask = async (taskData: Omit<Task, "id">): Promise<Task> => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const newTask: Task = {
+        id: generateId("task"),
+        ...taskData,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      mockTasks.push(newTask);
+      resolve(newTask);
+    }, 250);
+  });
 };
 
-// Function to create a new task
-export const createTask = async (task: Task): Promise<Task> => {
-  currentTasks = [...currentTasks, task];
-  return task;
-};
-
-// Function to update an existing task
-export const updateTask = async (task: Task): Promise<void> => {
-  currentTasks = currentTasks.map(t => t.id === task.id ? task : t);
-};
-
-// Function to delete a task
-export const deleteTask = async (id: string): Promise<void> => {
-  currentTasks = currentTasks.filter(task => task.id !== id);
-};
-
-// Function to get all invoices
+// Mock function to simulate fetching invoices
 export const getInvoices = async (): Promise<Invoice[]> => {
-  return currentInvoices;
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve(mockInvoices);
+    }, 250);
+  });
 };
 
-// Function to get an invoice by ID
-export const getInvoiceById = async (id: string): Promise<Invoice | null> => {
-  return invoices.find(i => i.id === id) || null;
+// Mock function to simulate adding an invoice
+export const addInvoice = async (invoiceData: Omit<Invoice, "id">): Promise<Invoice> => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const newInvoice: Invoice = {
+        id: generateId("invoice"),
+        ...invoiceData,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      mockInvoices.push(newInvoice);
+      resolve(newInvoice);
+    }, 250);
+  });
 };
 
-// Function to create a new invoice
-export const createInvoice = async (invoice: Invoice): Promise<Invoice> => {
-  currentInvoices = [...currentInvoices, invoice];
-  return invoice;
-};
-
-// Function to update an existing invoice
-export const updateInvoice = async (invoice: Invoice): Promise<void> => {
-  currentInvoices = currentInvoices.map(i => i.id === invoice.id ? invoice : i);
-};
-
-// Function to delete an invoice
-export const deleteInvoice = async (id: string): Promise<void> => {
-  currentInvoices = currentInvoices.filter(invoice => invoice.id !== id);
-};
-
-// Function to get all parts
-export const getParts = async (): Promise<Part[]> => {
-  return currentParts;
-};
-
-// Function to get a part by ID
-export const getPartById = async (id: string): Promise<Part | undefined> => {
-  return currentParts.find(part => part.id === id);
-};
-
-// Function to create a new part
-export const createPart = async (part: Part): Promise<Part> => {
-  currentParts = [...currentParts, part];
-  return part;
-};
-
-// Function to update an existing part
-export const updatePart = async (part: Part): Promise<void> => {
-  currentParts = currentParts.map(p => p.id === part.id ? part : p);
-};
-
-// Function to delete a part
-export const deletePart = async (id: string): Promise<void> => {
-  currentParts = currentParts.filter(part => part.id !== id);
-};
-
-// Function to get all expenses
+// Mock function to simulate fetching expenses
 export const getExpenses = async (): Promise<Expense[]> => {
-  return currentExpenses;
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve(mockExpenses);
+    }, 250);
+  });
 };
 
-// Function to get an expense by ID
-export const getExpenseById = async (id: string): Promise<Expense | undefined> => {
-  return currentExpenses.find(expense => expense.id === id);
+// Mock function to simulate adding an expense
+export const addExpense = async (expenseData: Omit<Expense, "id">): Promise<Expense> => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const newExpense: Expense = {
+        id: generateId("expense"),
+        ...expenseData,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      mockExpenses.push(newExpense);
+      resolve(newExpense);
+    }, 250);
+  });
 };
 
-// Function to create a new expense
-export const createExpense = async (expense: Expense): Promise<Expense> => {
-  currentExpenses = [...currentExpenses, expense];
-  return expense;
+// Mock function to simulate fetching parts
+export const getParts = async (): Promise<Part[]> => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve(mockParts);
+    }, 250);
+  });
 };
 
-// Function to update an existing expense
-export const updateExpense = async (expense: Expense): Promise<void> => {
-  currentExpenses = currentExpenses.map(e => e.id === expense.id ? expense : e);
+// Mock function to simulate adding a part
+export const addPart = async (partData: Omit<Part, "id">): Promise<Part> => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const newPart: Part = {
+        id: generateId("part"),
+        ...partData,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      mockParts.push(newPart);
+      resolve(newPart);
+    }, 250);
+  });
 };
 
-// Function to delete an expense
-export const deleteExpense = async (id: string): Promise<void> => {
-  currentExpenses = currentExpenses.filter(expense => expense.id !== id);
-};
-
-// Function to get all attendance records
+// Mock function to simulate fetching attendance records
 export const getAttendanceRecords = async (): Promise<Attendance[]> => {
-  return currentAttendance;
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve(mockAttendance);
+    }, 250);
+  });
 };
 
-// Function to get an attendance record by ID
-export const getAttendanceRecordById = async (id: string): Promise<Attendance | undefined> => {
-  return currentAttendance.find(attendance => attendance.id === id);
+// Mock function to simulate adding an attendance record
+export const addAttendanceRecord = async (attendanceData: Omit<Attendance, "id">): Promise<Attendance> => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const newAttendance: Attendance = {
+        id: generateId("attendance"),
+        ...attendanceData,
+        created_at: new Date().toISOString(),
+      };
+      mockAttendance.push(newAttendance);
+      resolve(newAttendance);
+    }, 250);
+  });
 };
 
-// Function to create a new attendance record
-export const createAttendanceRecord = async (attendance: Attendance): Promise<Attendance> => {
-  currentAttendance = [...currentAttendance, attendance];
-  return attendance;
-};
+// Mock data for organizations
+export const mockOrganizations: Organization[] = [
+  {
+    id: "org_1",
+    name: "Acme Corp",
+    subscription_level: "premium",
+    subscription_status: "active",
+    country: "USA",
+    currency: "USD",
+    trial_ends_at: new Date(2024, 0, 1).toISOString(),
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+];
 
-// Function to update an existing attendance record
-export const updateAttendanceRecord = async (attendance: Attendance): Promise<void> => {
-  currentAttendance = currentAttendance.map(a => a.id === attendance.id ? attendance : a);
-};
-
-// Function to delete an attendance record
-export const deleteAttendanceRecord = async (id: string): Promise<void> => {
-  currentAttendance = currentAttendance.filter(attendance => attendance.id !== id);
-};
-
-// Function to get all permissions
-export const getPermissions = async (): Promise<Permission[]> => {
-  return currentPermissions;
-};
-
-// Function to get a permission by ID
-export const getPermissionById = async (id: string): Promise<Permission | undefined> => {
-  return currentPermissions.find(permission => permission.id === id);
-};
-
-// Function to create a new permission
-export const createPermission = async (permission: Permission): Promise<Permission> => {
-  currentPermissions = [...currentPermissions, permission];
-  return permission;
-};
-
-// Function to update an existing permission
-export const updatePermission = async (permission: Permission): Promise<void> => {
-  currentPermissions = currentPermissions.map(p => p.id === permission.id ? permission : p);
-};
-
-// Function to delete a permission
-export const deletePermission = async (id: string): Promise<void> => {
-  currentPermissions = currentPermissions.filter(permission => permission.id !== id);
-};
-
-// Function to get all organizations
+// Mock function to simulate fetching organizations
 export const getOrganizations = async (): Promise<Organization[]> => {
-  return currentOrganizations;
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve(mockOrganizations);
+    }, 250);
+  });
 };
 
-// Function to get an organization by ID
+// Mock function to simulate fetching an organization by ID
 export const getOrganizationById = async (id: string): Promise<Organization | undefined> => {
-  return currentOrganizations.find(organization => organization.id === id);
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const organization = mockOrganizations.find((org) => org.id === id);
+      resolve(organization);
+    }, 250);
+  });
 };
 
-// Function to create a new organization
-export const createOrganization = async (organization: Organization): Promise<Organization> => {
-  currentOrganizations = [...currentOrganizations, organization];
-  return organization;
+// Mock function to simulate updating an organization
+export const updateOrganization = async (id: string, updates: Partial<Organization>): Promise<Organization | null> => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const index = mockOrganizations.findIndex((org) => org.id === id);
+      if (index !== -1) {
+        mockOrganizations[index] = { ...mockOrganizations[index], ...updates, updated_at: new Date().toISOString() };
+        resolve(mockOrganizations[index]);
+      } else {
+        resolve(null);
+      }
+    }, 250);
+  });
 };
 
-// Function to update an existing organization
-export const updateOrganization = async (organization: Organization): Promise<void> => {
-  currentOrganizations = currentOrganizations.map(o => o.id === organization.id ? organization : o);
-};
-
-// Function to delete an organization
-export const deleteOrganization = async (id: string): Promise<void> => {
-  currentOrganizations = currentOrganizations.filter(organization => organization.id !== id);
-};
-
-// Function to get the current user (mocked)
-export const getCurrentUser = (): User => {
-  // For now, return a default user
-  return {
-    id: 'user-1',
-    name: 'John Doe',
-    email: 'john.doe@example.com',
-    role: 'owner',
-    isActive: true,
-    lastLogin: new Date().toISOString(),
-  };
-};
-
-// Function to check if a user has a specific permission
-export const hasPermission = (user: User | null, resource: keyof RolePermissionMap, action: string): boolean => {
-  if (!user) {
-    return false;
+// Add missing exports for vendors functionality
+export const vendors: Vendor[] = [
+  {
+    id: "vendor_1",
+    name: "AutoParts Plus",
+    contact_name: "John Smith",
+    email: "john@autoparts.com",
+    phone: "555-123-4567",
+    address: "123 Parts Ave, City, State 12345",
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: "vendor_2", 
+    name: "Quality Parts Co",
+    contact_name: "Jane Doe",
+    email: "jane@qualityparts.com",
+    phone: "555-987-6543",
+    address: "456 Supply St, City, State 12345",
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   }
+];
 
-  const rolePermissions: RolePermissionMap = {
-    'dashboard': { 'view': true },
-    'customers': { 'view': true, 'create': true, 'edit': true, 'delete': true, 'manage': user.role === 'owner' || user.role === 'manager' },
-    'vehicles': { 'view': true, 'create': true, 'edit': true, 'delete': true, 'manage': user.role === 'owner' || user.role === 'manager' },
-    'invoices': { 'view': true, 'create': true, 'edit': true, 'delete': true, 'manage': user.role === 'owner' || user.role === 'manager' },
-    'tasks': { 'view': true, 'create': true, 'edit': true, 'delete': true, 'manage': user.role === 'owner' || user.role === 'manager' },
-    'mechanics': { 'view': true, 'create': true, 'edit': true, 'delete': true, 'manage': user.role === 'owner' || user.role === 'manager' },
-    'parts': { 'view': true, 'create': true, 'edit': true, 'delete': true, 'manage': user.role === 'owner' || user.role === 'manager' },
-    'expenses': { 'view': true, 'create': true, 'edit': true, 'delete': true, 'manage': user.role === 'owner' || user.role === 'manager' },
-    'reports': { 'view': true, 'create': true, 'edit': true, 'delete': true, 'manage': user.role === 'owner' || user.role === 'manager' },
-    'settings': { 'view': true, 'create': true, 'edit': true, 'delete': true, 'manage': user.role === 'owner' || user.role === 'manager' },
-    'users': { 'view': true, 'create': true, 'edit': true, 'delete': true, 'manage': user.role === 'owner' },
-	'attendance': { 'view': true, 'create': true, 'edit': true, 'delete': true, 'manage': user.role === 'owner' || user.role === 'manager' },
+export const getVendorById = async (vendorId: string): Promise<Vendor | null> => {
+  return vendors.find(vendor => vendor.id === vendorId) || null;
+};
+
+export const addVendor = async (vendorData: Omit<Vendor, "id">): Promise<Vendor> => {
+  const newVendor: Vendor = {
+    id: generateId("vendor"),
+    ...vendorData,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   };
-
-  return rolePermissions[resource]?.[action] || false;
+  vendors.push(newVendor);
+  return newVendor;
 };
 
-// Add missing vehicle function
-export const getVehicleById = async (vehicleId: string): Promise<Vehicle | null> => {
-  return vehicles.find(v => v.id === vehicleId) || null;
-};
-
-// Export tasks and invoices arrays that were missing
-export { tasks, invoices };
-
-// Update part form to handle invoice_ids property correctly
-export const updatePart = (updatedPart: Part) => {
-  const index = parts.findIndex(p => p.id === updatedPart.id);
-  if (index >= 0) {
-    parts[index] = updatedPart;
-  }
-};
+// Export RolePermissionMap type
+export type { RolePermissionMap } from '@/types';

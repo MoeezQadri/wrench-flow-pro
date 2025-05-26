@@ -36,7 +36,7 @@ const InvoiceSettingsTab = () => {
   const [invoices, setInvoices] = useState(mockInvoiceHistory);
   
   useEffect(() => {
-    if (currentUser?.organizationId) {
+    if (currentUser?.organization_id) {
       // In a real implementation, you would fetch actual invoice history from your API
       // For now, we're using mock data
       setLoading(false);

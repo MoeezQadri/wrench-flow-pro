@@ -68,7 +68,9 @@ export const AttendanceForm = ({
           date: new Date(defaultValues.date),
           checkIn: defaultValues.check_in,
           checkOut: defaultValues.check_out || "",
-          status: defaultValues.status,
+          status: defaultValues.status === "present" || defaultValues.status === "late" || defaultValues.status === "absent" || defaultValues.status === "half-day" 
+            ? "pending" 
+            : defaultValues.status,
           notes: defaultValues.notes || "",
         }
       : {

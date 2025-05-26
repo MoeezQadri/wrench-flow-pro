@@ -24,8 +24,8 @@ const OrganizationSettingsTab = () => {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (currentUser?.organizationId) {
-      const org = getOrganizationById(currentUser.organizationId);
+    if (currentUser?.organization_id) {
+      const org = getOrganizationById(currentUser.organization_id);
       if (org) {
         setOrganization(org);
         setName(org.name || '');
@@ -42,7 +42,7 @@ const OrganizationSettingsTab = () => {
   const handleSaveGeneral = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!currentUser?.organizationId) {
+    if (!currentUser?.organization_id) {
       toast.error('No organization found');
       return;
     }
@@ -50,7 +50,7 @@ const OrganizationSettingsTab = () => {
     setSaving(true);
     
     try {
-      const updatedOrg = updateOrganization(currentUser.organizationId, {
+      const updatedOrg = updateOrganization(currentUser.organization_id, {
         name,
         country,
         currency,

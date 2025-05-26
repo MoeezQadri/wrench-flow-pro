@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useAuthContext } from '@/context/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -76,12 +75,12 @@ const AccountSettingsTab = () => {
 
     try {
       // First delete organization if user is an owner
-      if (currentUser.organizationId && currentUser.role === 'owner') {
+      if (currentUser.organization_id && currentUser.role === 'owner') {
         // Delete the organization using the edge function
         const { error: orgError } = await supabase.functions.invoke('admin-utils', {
           body: {
             action: 'delete_organization',
-            params: { org_id: currentUser.organizationId }
+            params: { org_id: currentUser.organization_id }
           }
         });
 
