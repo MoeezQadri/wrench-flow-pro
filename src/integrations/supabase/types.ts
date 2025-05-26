@@ -19,7 +19,7 @@ export type Database = {
           id: string
           mechanic_id: string
           notes: string | null
-          status: string
+          status: Database["public"]["Enums"]["attendance_status_enum"] | null
         }
         Insert: {
           approved_by?: string | null
@@ -30,7 +30,7 @@ export type Database = {
           id?: string
           mechanic_id: string
           notes?: string | null
-          status: string
+          status?: Database["public"]["Enums"]["attendance_status_enum"] | null
         }
         Update: {
           approved_by?: string | null
@@ -41,7 +41,7 @@ export type Database = {
           id?: string
           mechanic_id?: string
           notes?: string | null
-          status?: string
+          status?: Database["public"]["Enums"]["attendance_status_enum"] | null
         }
         Relationships: [
           {
@@ -176,7 +176,9 @@ export type Database = {
           date: string | null
           description: string | null
           id: string
-          payment_method: string | null
+          payment_method:
+            | Database["public"]["Enums"]["payment_method_enum"]
+            | null
           payment_status: string | null
           updated_at: string | null
           vendor_id: string | null
@@ -189,7 +191,9 @@ export type Database = {
           date?: string | null
           description?: string | null
           id?: string
-          payment_method?: string | null
+          payment_method?:
+            | Database["public"]["Enums"]["payment_method_enum"]
+            | null
           payment_status?: string | null
           updated_at?: string | null
           vendor_id?: string | null
@@ -202,7 +206,9 @@ export type Database = {
           date?: string | null
           description?: string | null
           id?: string
-          payment_method?: string | null
+          payment_method?:
+            | Database["public"]["Enums"]["payment_method_enum"]
+            | null
           payment_status?: string | null
           updated_at?: string | null
           vendor_id?: string | null
@@ -306,7 +312,9 @@ export type Database = {
         Row: {
           address: string | null
           created_at: string | null
-          employment_type: string | null
+          employment_type:
+            | Database["public"]["Enums"]["employment_type_enum"]
+            | null
           id: string
           id_card_image: string | null
           is_active: boolean | null
@@ -319,7 +327,9 @@ export type Database = {
         Insert: {
           address?: string | null
           created_at?: string | null
-          employment_type?: string | null
+          employment_type?:
+            | Database["public"]["Enums"]["employment_type_enum"]
+            | null
           id?: string
           id_card_image?: string | null
           is_active?: boolean | null
@@ -332,7 +342,9 @@ export type Database = {
         Update: {
           address?: string | null
           created_at?: string | null
-          employment_type?: string | null
+          employment_type?:
+            | Database["public"]["Enums"]["employment_type_enum"]
+            | null
           id?: string
           id_card_image?: string | null
           is_active?: boolean | null
@@ -405,6 +417,7 @@ export type Database = {
           created_at: string | null
           description: string | null
           id: string
+          invoice_ids: string[] | null
           name: string
           part_number: string | null
           price: number
@@ -418,6 +431,7 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           id?: string
+          invoice_ids?: string[] | null
           name: string
           part_number?: string | null
           price: number
@@ -431,6 +445,7 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           id?: string
+          invoice_ids?: string[] | null
           name?: string
           part_number?: string | null
           price?: number
@@ -829,7 +844,16 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      attendance_status_enum:
+        | "present"
+        | "late"
+        | "absent"
+        | "half-day"
+        | "pending"
+        | "approved"
+        | "rejected"
+      employment_type_enum: "fulltime" | "contractor"
+      payment_method_enum: "cash" | "card" | "bank-transfer" | "check" | "other"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -944,6 +968,18 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      attendance_status_enum: [
+        "present",
+        "late",
+        "absent",
+        "half-day",
+        "pending",
+        "approved",
+        "rejected",
+      ],
+      employment_type_enum: ["fulltime", "contractor"],
+      payment_method_enum: ["cash", "card", "bank-transfer", "check", "other"],
+    },
   },
 } as const

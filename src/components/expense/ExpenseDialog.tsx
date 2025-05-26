@@ -81,7 +81,7 @@ const ExpenseDialog = ({ open, onOpenChange, onSave, expense }: ExpenseDialogPro
                   category: expense.category,
                   amount: expense.amount,
                   description: expense.description,
-                  paymentMethod: expense.payment_method,
+                  paymentMethod: expense.payment_method as "cash" | "card" | "bank-transfer",
                   vendorId: expense.vendor_id || "none",
                 }
               : undefined

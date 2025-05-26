@@ -79,7 +79,7 @@ const MechanicDialog = ({ open, onOpenChange, onSave, mechanic }: MechanicDialog
                     address: mechanic.address,
                     phone: mechanic.phone,
                     idCardImage: mechanic.id_card_image,
-                    employmentType: mechanic.employment_type,
+                    employmentType: mechanic.employment_type as "fulltime" | "contractor",
                     isActive: mechanic.is_active,
                   }
                 : undefined
