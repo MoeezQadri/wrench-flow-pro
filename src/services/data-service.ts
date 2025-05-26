@@ -1,3 +1,4 @@
+import { nanoid } from 'nanoid';
 import { Customer, CustomerAnalytics, Expense, Invoice, Mechanic, Part, RolePermissionMap, Task, User, Vehicle, Attendance } from "@/types";
 import { v4 as uuidv4 } from 'uuid';
 
@@ -463,7 +464,7 @@ export const vendors = [
 ];
 
 export const generateId = (prefix: string): string => {
-  return `${prefix}_${uuidv4()}`;
+  return `${prefix}_${nanoid()}`;
 };
 
 export const getCurrentUser = (): User => {

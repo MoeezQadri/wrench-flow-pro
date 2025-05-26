@@ -1,16 +1,17 @@
+
 export interface User {
   id: string;
   name: string;
   email: string;
   role: UserRole;
-  is_active: boolean;
+  is_active?: boolean;
   last_login?: string;
   created_at?: string;
   organization_id?: string;
   mechanicId?: string;
 }
 
-export type UserRole = 'owner' | 'manager' | 'mechanic' | 'customer';
+export type UserRole = 'owner' | 'manager' | 'mechanic' | 'accountant';
 
 export interface Organization {
   id: string;
@@ -30,9 +31,10 @@ export interface Customer {
   email: string;
   phone: string;
   address: string;
-  lastVisit?: string;
+  lastVisit?: string | null;
   totalVisits?: number;
   lifetimeValue?: number;
+  created_at?: string;
 }
 
 export interface Vehicle {
@@ -44,6 +46,7 @@ export interface Vehicle {
   licensePlate: string;
   vin?: string;
   color?: string;
+  created_at?: string;
 }
 
 export interface Invoice {
@@ -52,19 +55,20 @@ export interface Invoice {
   vehicle_id: string;
   date: string;
   status: InvoiceStatus;
-  total_amount: number;
+  total_amount?: number;
   tax_rate?: number;
   notes?: string;
   items: InvoiceItem[];
   payments: Payment[];
-  vehicleInfo: Vehicle;
+  vehicleInfo?: Vehicle;
+  created_at?: string;
 }
 
 export type InvoiceStatus = 'open' | 'in-progress' | 'completed' | 'paid' | 'partial' | 'overdue' | 'canceled';
 
 export interface InvoiceItem {
   id: string;
-  invoice_id: string;
+  invoice_id?: string;
   type: 'labor' | 'part';
   description: string;
   quantity: number;
@@ -73,7 +77,7 @@ export interface InvoiceItem {
 
 export interface Payment {
   id: string;
-  invoice_id: string;
+  invoice_id?: string;
   date: string;
   amount: number;
   method: 'cash' | 'card' | 'bank-transfer';
@@ -83,10 +87,14 @@ export interface Payment {
 export interface Mechanic {
   id: string;
   name: string;
-  email: string;
-  phone: string;
-  address: string;
-  is_active: boolean;
+  email?: string;
+  phone?: string;
+  address?: string;
+  is_active?: boolean;
+  specialty?: string;
+  years_of_experience?: number;
+  certifications?: string[];
+  created_at?: string;
 }
 
 export interface Part {
@@ -99,6 +107,7 @@ export interface Part {
   vendor_name?: string;
   part_number?: string;
   invoice_ids?: string[];
+  created_at?: string;
 }
 
 export interface Expense {
@@ -147,15 +156,15 @@ export interface Attendance {
 }
 
 export interface RolePermissionMap {
-  dashboard: { view: boolean };
+  dashboard: { view: boolean; manage?: boolean };
   customers: { view: boolean; manage: boolean };
   vehicles: { view: boolean; manage: boolean };
-  invoices: { view: boolean; manage: boolean; approve: boolean };
+  invoices: { view: boolean; manage: boolean; approve?: boolean };
   tasks: { view: boolean; manage: boolean };
   mechanics: { view: boolean; manage: boolean };
   parts: { view: boolean; manage: boolean };
   expenses: { view: boolean; manage: boolean };
-  reports: { view: boolean };
+  reports: { view: boolean; manage?: boolean };
   settings: { view: boolean; manage: boolean };
   users: { view: boolean; manage: boolean };
   attendance: { view: boolean; manage: boolean; approve: boolean };
