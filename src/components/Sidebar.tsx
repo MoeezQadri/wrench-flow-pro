@@ -57,7 +57,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
   const navItems = [
     {
       title: "Dashboard",
-      href: "/dashboard",
+      href: "/",
       icon: LayoutDashboard,
     },
     {

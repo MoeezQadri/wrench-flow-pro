@@ -44,11 +44,11 @@ export const registerOrganization = (
   const newOrganization: Organization = {
     id: organizationId,
     name: organizationName,
-    subscriptionLevel: 'trial',
-    subscriptionStatus: 'trial',
+    subscription_level: 'trial',
+    subscription_status: 'trial',
     country,
     currency,
-    trialEndsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days trial
+    trial_ends_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days trial
   };
 
   // Create owner user
@@ -58,8 +58,8 @@ export const registerOrganization = (
     name: ownerName,
     email: ownerEmail,
     role: 'owner',
-    isActive: true,
-    organizationId: organizationId,
+    is_active: true,
+    organization_id: organizationId,
     passwordHash: ownerPassword, // In a real app, this would be hashed
     lastLogin: new Date().toISOString()
   };
@@ -114,10 +114,10 @@ export const addUserToOrganization = (
     name,
     email,
     role,
-    isActive: true,
-    organizationId,
-    passwordHash: tempPassword, // In a real app, this would be hashed
-    mustChangePassword: true
+    is_active: true,
+    organization_id: organizationId,
+    // passwordHash: tempPassword, // In a real app, this would be hashed
+    // mustChangePassword: true
   };
 
   // Store in our mock database
@@ -143,7 +143,7 @@ export const loginUser = (email: string, password: string): { user: User; token:
   }
 
   // Check if user is active
-  if (!user.isActive) {
+  if (!user.is_active) {
     throw new Error('Account is inactive');
   }
 
@@ -227,7 +227,7 @@ export const getUserFromToken = (token: string): User | null => {
       name: 'System Administrator',
       email: 'admin@system.com',
       role: 'superuser',
-      isActive: true,
+      is_active: true,
       lastLogin: new Date().toISOString()
     };
   }
@@ -253,7 +253,7 @@ export const logout = (token: string): boolean => {
 
 // Get users for an organization
 export const getOrganizationUsers = (organizationId: string): User[] => {
-  return registeredUsers.filter(user => user.organizationId === organizationId);
+  return registeredUsers.filter(user => user.organization_id === organizationId);
 };
 
 // Get organization by ID

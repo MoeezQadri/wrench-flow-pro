@@ -13,15 +13,15 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
-import { getMechanics, getCustomers, getVehiclesByCustomerId, getInvoices } from "@/services/data-service";
 import { Task, TaskLocation } from "@/types";
+import { useDataContext } from "@/context/data/DataContext";
 
 const taskSchema = z.object({
   title: z.string().min(1, { message: "Title is required" }),
@@ -50,6 +50,10 @@ const TaskForm = ({ defaultValues, onSubmit, formId, task }: TaskFormProps) => {
   const [customers, setCustomers] = useState<any[]>([]);
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [invoices, setInvoices] = useState<any[]>([]);
+  const {
+    mechanics: mechanics_, customers: customers_, invoices: invoices_,
+    getVehiclesByCustomerId,
+  } = useDataContext();
   const [selectedCustomer, setSelectedCustomer] = useState<string>("");
 
   const form = useForm<TaskFormValues>({
@@ -70,17 +74,11 @@ const TaskForm = ({ defaultValues, onSubmit, formId, task }: TaskFormProps) => {
 
   useEffect(() => {
     const loadData = async () => {
-      const [mechanicsData, customersData, invoicesData] = await Promise.all([
-        getMechanics(),
-        getCustomers(),
-        getInvoices()
-      ]);
-      
-      setMechanics(mechanicsData);
-      setCustomers(customersData);
-      setInvoices(invoicesData);
+      setMechanics(mechanics_);
+      setCustomers(customers_);
+      setInvoices(invoices_);
     };
-    
+
     loadData();
   }, []);
 
@@ -93,7 +91,7 @@ const TaskForm = ({ defaultValues, onSubmit, formId, task }: TaskFormProps) => {
         setVehicles([]);
       }
     };
-    
+
     loadVehicles();
   }, [selectedCustomer]);
 
@@ -184,12 +182,12 @@ const TaskForm = ({ defaultValues, onSubmit, formId, task }: TaskFormProps) => {
               <FormItem>
                 <FormLabel>Price ($)</FormLabel>
                 <FormControl>
-                  <Input 
-                    type="number" 
-                    min="0" 
-                    step="0.01" 
-                    placeholder="50.00" 
-                    {...field} 
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="50.00"
+                    {...field}
                   />
                 </FormControl>
                 <FormMessage />
@@ -232,12 +230,12 @@ const TaskForm = ({ defaultValues, onSubmit, formId, task }: TaskFormProps) => {
               <FormItem>
                 <FormLabel>Estimated Hours</FormLabel>
                 <FormControl>
-                  <Input 
-                    type="number" 
-                    min="0" 
-                    step="0.5" 
-                    placeholder="2.0" 
-                    {...field} 
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    placeholder="2.0"
+                    {...field}
                   />
                 </FormControl>
                 <FormMessage />
@@ -252,12 +250,12 @@ const TaskForm = ({ defaultValues, onSubmit, formId, task }: TaskFormProps) => {
               <FormItem>
                 <FormLabel>Hours Spent</FormLabel>
                 <FormControl>
-                  <Input 
-                    type="number" 
-                    min="0" 
-                    step="0.5" 
-                    placeholder="1.5" 
-                    {...field} 
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    placeholder="1.5"
+                    {...field}
                   />
                 </FormControl>
                 <FormMessage />

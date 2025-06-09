@@ -1,22 +1,22 @@
-import { 
-  BarChart, 
-  Calendar, 
-  DollarSign, 
-  FileText, 
+import {
+  BarChart,
+  Calendar,
+  DollarSign,
+  FileText,
   Wrench,
-  TrendingUp, 
+  TrendingUp,
   Users
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { 
+import {
   BarChart as RechartsBarChart,
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
   ResponsiveContainer,
   Legend
 } from 'recharts';
@@ -48,23 +48,23 @@ const Dashboard = () => {
     monthlyExpenses: 0,
     monthlyProfit: 0,
     activeCustomers: 0, // Using activeCustomers instead of customerCount
-    vehicleCount: 0,
+    // vehicleCount: 0,
     averageJobValue: 0,
     inventoryValue: 0,
     pendingTasks: 0,
     activeVehicles: 0,
     lowStockItems: 0
   });
-  
+
   const [loading, setLoading] = useState<boolean>(true);
-  
+
   useEffect(() => {
     const loadMetrics = async () => {
       setLoading(true);
       await resolvePromiseAndSetState(calculateDashboardMetrics(), setMetrics);
       setLoading(false);
     };
-    
+
     loadMetrics();
   }, []);
 
@@ -76,7 +76,7 @@ const Dashboard = () => {
           <span className="text-sm text-muted-foreground">Last updated: Today, 2:30 PM</span>
         </div>
       </div>
-      
+
       {/* Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>

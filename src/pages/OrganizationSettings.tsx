@@ -25,8 +25,8 @@ const OrganizationSettings = () => {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (currentUser?.organizationId) {
-      const org = getOrganizationById(currentUser.organizationId);
+    if (currentUser?.organization_id) {
+      const org = getOrganizationById(currentUser.organization_id);
       if (org) {
         setOrganization(org);
         setName(org.name || '');
@@ -42,16 +42,16 @@ const OrganizationSettings = () => {
 
   const handleSaveGeneral = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!currentUser?.organizationId) {
+
+    if (!currentUser?.organization_id) {
       toast.error('No organization found');
       return;
     }
-    
+
     setSaving(true);
-    
+
     try {
-      const updatedOrg = updateOrganization(currentUser.organizationId, {
+      const updatedOrg = updateOrganization(currentUser.organization_id, {
         name,
         country,
         currency,
@@ -59,7 +59,7 @@ const OrganizationSettings = () => {
         phone,
         email
       });
-      
+
       if (updatedOrg) {
         setOrganization(updatedOrg);
         toast.success('Organization settings saved');
@@ -101,7 +101,7 @@ const OrganizationSettings = () => {
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="subscription">Subscription</TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="general" className="space-y-6">
           <Card>
             <CardHeader>
@@ -118,46 +118,46 @@ const OrganizationSettings = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="name">Organization Name</Label>
-                    <Input 
-                      id="name" 
-                      value={name} 
+                    <Input
+                      id="name"
+                      value={name}
                       onChange={(e) => setName(e.target.value)}
                       required
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
-                    <Input 
-                      id="email" 
-                      type="email" 
-                      value={email} 
+                    <Input
+                      id="email"
+                      type="email"
+                      value={email}
                       onChange={(e) => setEmail(e.target.value)}
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="phone">Phone</Label>
-                    <Input 
-                      id="phone" 
-                      value={phone} 
+                    <Input
+                      id="phone"
+                      value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="address">Address</Label>
-                    <Input 
-                      id="address" 
-                      value={address} 
+                    <Input
+                      id="address"
+                      value={address}
                       onChange={(e) => setAddress(e.target.value)}
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="country">Country</Label>
-                    <Select 
-                      value={country} 
+                    <Select
+                      value={country}
                       onValueChange={setCountry}
                     >
                       <SelectTrigger id="country">
@@ -172,11 +172,11 @@ const OrganizationSettings = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="currency">Currency</Label>
-                    <Select 
-                      value={currency} 
+                    <Select
+                      value={currency}
                       onValueChange={setCurrency}
                     >
                       <SelectTrigger id="currency">
@@ -192,7 +192,7 @@ const OrganizationSettings = () => {
                     </Select>
                   </div>
                 </div>
-                
+
                 <div className="flex justify-end">
                   <Button type="submit" disabled={saving}>
                     {saving ? 'Saving...' : 'Save Changes'}
@@ -202,7 +202,7 @@ const OrganizationSettings = () => {
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         <TabsContent value="users" className="space-y-6">
           <Card>
             <CardHeader>
@@ -224,7 +224,7 @@ const OrganizationSettings = () => {
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         <TabsContent value="subscription" className="space-y-6">
           <Card>
             <CardHeader>
@@ -242,18 +242,18 @@ const OrganizationSettings = () => {
                   <div className="font-medium">Current Plan</div>
                   <div className="flex items-center justify-between mt-2">
                     <div>
-                      <div className="font-semibold capitalize">{organization.subscriptionLevel}</div>
-                      <div className="text-sm text-muted-foreground capitalize">{organization.subscriptionStatus}</div>
+                      <div className="font-semibold capitalize">{organization.subscription_level}</div>
+                      <div className="text-sm text-muted-foreground capitalize">{organization.subscription_status}</div>
                     </div>
-                    {organization.subscriptionStatus === 'trial' && (
+                    {organization.subscription_status === 'trial' && (
                       <div className="text-sm">
                         <span className="font-medium">Trial ends: </span>
-                        {organization.trialEndsAt ? new Date(organization.trialEndsAt).toLocaleDateString() : 'N/A'}
+                        {organization.trial_ends_at ? new Date(organization.trial_ends_at).toLocaleDateString() : 'N/A'}
                       </div>
                     )}
                   </div>
                 </div>
-                
+
                 <div className="space-y-2">
                   <h3 className="font-medium">Available Plans</h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -272,7 +272,7 @@ const OrganizationSettings = () => {
                         <Button className="w-full">Select Plan</Button>
                       </CardContent>
                     </Card>
-                    
+
                     <Card className="border-2 border-primary relative">
                       <div className="absolute top-0 right-0 bg-primary text-primary-foreground px-2 py-1 text-xs rounded-bl-lg">Popular</div>
                       <CardHeader className="pb-2">
@@ -289,7 +289,7 @@ const OrganizationSettings = () => {
                         <Button className="w-full">Select Plan</Button>
                       </CardContent>
                     </Card>
-                    
+
                     <Card className="border border-primary">
                       <CardHeader className="pb-2">
                         <CardTitle className="text-lg">Enterprise</CardTitle>

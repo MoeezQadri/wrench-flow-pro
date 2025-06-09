@@ -4,33 +4,35 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import InvoiceForm from "@/components/InvoiceForm";
-import { getInvoiceById } from "@/services/data-service";
 import { toast } from "sonner";
 import { Invoice, InvoiceStatus } from "@/types";
+import { useDataContext } from "@/context/data/DataContext";
 
 const EditInvoice = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
-
+  const {
+    getInvoiceById,
+  } = useDataContext()
   useEffect(() => {
     const fetchInvoice = async () => {
       if (id) {
         try {
           // Fetch the invoice by ID from Supabase
           const foundInvoice = await getInvoiceById(id);
-          
+
           if (foundInvoice) {
             // Check if invoice status allows editing
             const canEdit = ['open', 'in-progress', 'completed', 'partial'].includes(foundInvoice.status);
-            
+
             if (!canEdit) {
               toast.error("This invoice cannot be edited in its current status.");
               navigate("/invoices");
               return;
             }
-            
+
             // Ensure the found invoice matches the expected type by making required fields explicit
             const typedInvoice: Invoice = {
               ...foundInvoice,
@@ -40,7 +42,7 @@ const EditInvoice = () => {
                 notes: payment.notes || '' // Ensure payment notes is never undefined
               })) || []
             };
-            
+
             setInvoice(typedInvoice);
           } else {
             toast.error("Invoice not found.");
@@ -52,7 +54,7 @@ const EditInvoice = () => {
           navigate("/invoices");
         }
       }
-      
+
       setLoading(false);
     };
 

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { fetchCustomers, fetchVehiclesByCustomerId } from "@/services/data-service";
 import { Customer, Vehicle } from "@/types";
+import { useDataContext } from '@/context/data/DataContext';
 
 interface CustomerVehicleSelectionProps {
   selectedCustomerId: string;
@@ -19,11 +19,13 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
 }) => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-
+  const {
+    customers: customers_,
+    getVehiclesByCustomerId: fetchVehiclesByCustomerId
+  } = useDataContext();
   useEffect(() => {
     const loadCustomers = async () => {
-      const fetchedCustomers = await fetchCustomers();
-      setCustomers(fetchedCustomers);
+      setCustomers(customers_);
     };
 
     loadCustomers();
@@ -72,7 +74,7 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
           <SelectContent>
             {vehicles.map((vehicle) => (
               <SelectItem key={vehicle.id} value={vehicle.id}>
-                {vehicle.year} {vehicle.make} {vehicle.model} ({vehicle.licensePlate})
+                {vehicle.year} {vehicle.make} {vehicle.model} ({vehicle.license_plate})
               </SelectItem>
             ))}
           </SelectContent>

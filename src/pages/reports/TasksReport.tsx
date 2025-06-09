@@ -3,16 +3,15 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { getTasks, getMechanics, getMechanicById, getCurrentUser } from "@/services/data-service";
 import { ChevronLeft, Download, Filter } from "lucide-react";
 import { Link } from "react-router-dom";
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
   ResponsiveContainer,
   Legend,
   PieChart,
@@ -23,6 +22,8 @@ import DateRangeDropdown from "@/components/DateRangeDropdown";
 import { Task, Mechanic } from "@/types";
 import { isWithinInterval, parseISO, subDays } from "date-fns";
 import { resolvePromiseAndSetState } from "@/utils/async-helpers";
+import { useAuthContext } from "@/context/AuthContext";
+import { useDataContext } from "@/context/data/DataContext";
 
 const TasksReport = () => {
   const thirtyDaysAgo = subDays(new Date(), 30);
@@ -32,23 +33,21 @@ const TasksReport = () => {
   const [mechanics, setMechanics] = useState<Mechanic[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [mechanicCache, setMechanicCache] = useState<Record<string, Mechanic>>({});
-  
-  const currentUser = getCurrentUser();
+
+  const {
+    tasks: tasks_, mechanics: mechanics_, getMechanicById,
+  } = useDataContext()
+  const { currentUser } = useAuthContext();
   const isForeman = currentUser.role === 'foreman';
-  
+
   // Load task and mechanic data
   useEffect(() => {
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        const tasksPromise = getTasks();
-        const mechanicsPromise = getMechanics();
-        
-        await Promise.all([
-          resolvePromiseAndSetState(tasksPromise, setTasks),
-          resolvePromiseAndSetState(mechanicsPromise, setMechanics)
-        ]);
-        
+        setTasks(tasks_);
+        setMechanics(mechanics_);
+
         // Setup mechanic cache
         const cache: Record<string, Mechanic> = {};
         for (const mechanic of mechanics) {
@@ -61,10 +60,10 @@ const TasksReport = () => {
         setIsLoading(false);
       }
     };
-    
+
     fetchData();
   }, []);
-  
+
   // Filter tasks - since tasks don't have date property directly, 
   // we'll assume all tasks are within the date range for this example
   // In a real app, you'd filter based on task creation date or deadline
@@ -76,7 +75,7 @@ const TasksReport = () => {
     const totalEstimated = mechanicTasks.reduce((sum, task) => sum + task.hoursEstimated, 0);
     const totalActual = mechanicTasks.reduce((sum, task) => sum + (task.hoursSpent || 0), 0);
     const efficiency = totalEstimated > 0 ? Math.round((totalEstimated / (totalActual || 1)) * 100) : 100;
-    
+
     return {
       name: mechanic.name,
       efficiency: efficiency,
@@ -87,20 +86,20 @@ const TasksReport = () => {
 
   // Mechanic utilization data (tasks assigned per mechanic)
   const mechanicUtilizationData = mechanics.map(mechanic => {
-    const pendingTasks = filteredTasks.filter(task => 
+    const pendingTasks = filteredTasks.filter(task =>
       task.mechanicId === mechanic.id && task.status === 'pending'
     ).length;
-    
-    const inProgressTasks = filteredTasks.filter(task => 
+
+    const inProgressTasks = filteredTasks.filter(task =>
       task.mechanicId === mechanic.id && task.status === 'in-progress'
     ).length;
-    
-    const completedTasks = filteredTasks.filter(task => 
+
+    const completedTasks = filteredTasks.filter(task =>
       task.mechanicId === mechanic.id && task.status === 'completed'
     ).length;
-    
+
     const totalTasks = pendingTasks + inProgressTasks + completedTasks;
-    
+
     return {
       name: mechanic.name,
       totalTasks,
@@ -141,14 +140,14 @@ const TasksReport = () => {
           <h1 className="text-3xl font-bold tracking-tight">Tasks Report</h1>
         </div>
         <div className="mt-4 sm:mt-0">
-          <DateRangeDropdown 
+          <DateRangeDropdown
             startDate={startDate}
             endDate={endDate}
             onRangeChange={handleDateRangeChange}
           />
         </div>
       </div>
-      
+
       {/* Statistics */}
       <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
         <Card>
@@ -217,7 +216,7 @@ const TasksReport = () => {
           )}
         </CardContent>
       </Card>
-      
+
       {/* Mechanic Workload Distribution - Especially useful for foremen */}
       {(isForeman || currentUser.role === 'manager' || currentUser.role === 'owner') && (
         <Card>
@@ -244,7 +243,7 @@ const TasksReport = () => {
                         fill="#8884d8"
                         dataKey="value"
                         nameKey="name"
-                        label={({name, percent}) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
                       >
                         {mechanicUtilizationData.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -283,7 +282,7 @@ const TasksReport = () => {
           </CardContent>
         </Card>
       )}
-      
+
       {/* Tasks Table */}
       <Card>
         <CardHeader>
@@ -326,16 +325,16 @@ const TasksReport = () => {
                   const efficiency = task.hoursEstimated && task.hoursSpent
                     ? Math.round((task.hoursEstimated / task.hoursSpent) * 100)
                     : null;
-                    
+
                   return (
                     <TableRow key={task.id}>
                       <TableCell className="font-medium">{task.title}</TableCell>
                       <TableCell>{mechanic?.name || "Unknown"}</TableCell>
                       <TableCell>
                         <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                          ${task.status === 'completed' ? 'bg-green-100 text-green-800' : 
-                            task.status === 'in-progress' ? 'bg-blue-100 text-blue-800' : 
-                            'bg-yellow-100 text-yellow-800'}`}>
+                          ${task.status === 'completed' ? 'bg-green-100 text-green-800' :
+                            task.status === 'in-progress' ? 'bg-blue-100 text-blue-800' :
+                              'bg-yellow-100 text-yellow-800'}`}>
                           {task.status.charAt(0).toUpperCase() + task.status.slice(1)}
                         </div>
                       </TableCell>
@@ -344,9 +343,9 @@ const TasksReport = () => {
                       <TableCell>
                         {efficiency ? (
                           <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                            ${efficiency >= 100 ? 'bg-green-100 text-green-800' : 
-                              efficiency >= 70 ? 'bg-yellow-100 text-yellow-800' : 
-                              'bg-red-100 text-red-800'}`}>
+                            ${efficiency >= 100 ? 'bg-green-100 text-green-800' :
+                              efficiency >= 70 ? 'bg-yellow-100 text-yellow-800' :
+                                'bg-red-100 text-red-800'}`}>
                             {efficiency}%
                           </div>
                         ) : "N/A"}

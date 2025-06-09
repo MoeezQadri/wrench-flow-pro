@@ -6,20 +6,14 @@ import { Plus, Pencil, Calendar, CalendarCheck, Tag, Car, MapPin, Filter } from 
 import { toast } from "sonner";
 import TaskDialog from "@/components/task/TaskDialog";
 import TaskCheckInOut from "@/components/task/TaskCheckInOut";
-import { 
-  tasks, 
-  mechanics, 
-  getMechanicById, 
-  getCurrentUser, 
+import {
   hasPermission,
-  getInvoiceById,
-  getVehicleById,
-  getCustomerById,
-  getTasks
 } from "@/services/data-service";
 import { Task, TaskLocation, Invoice, Vehicle, Mechanic, Customer } from "@/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { resolvePromiseAndSetState } from "@/utils/async-helpers";
+import { useDataContext } from "@/context/data/DataContext";
+import { useAuthContext } from "@/context/AuthContext";
 
 const Tasks = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -28,20 +22,27 @@ const Tasks = () => {
   const [selectedTaskForTimeTracking, setSelectedTaskForTimeTracking] = useState<Task | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [locationFilter, setLocationFilter] = useState<TaskLocation | 'all'>('all');
-  const currentUser = getCurrentUser();
-
+  const {
+    tasks,
+    mechanics,
+    getMechanicById,
+    getInvoiceById,
+    getVehicleById,
+    getCustomerById,
+  } = useDataContext()
+  const { currentUser: user } = useAuthContext()
+  const currentUser: any = user;
   // Check permissions
   const canViewTasks = hasPermission(currentUser, 'tasks', 'view');
-  const canManageTasks = currentUser.role === 'manager' || currentUser.role === 'owner';
-  const isForeman = currentUser.role === 'foreman';
-  
+  const canManageTasks = currentUser?.role === 'manager' || currentUser?.role === 'owner';
+  const isForeman = currentUser?.role === 'foreman';
+
   // Load tasks
   useEffect(() => {
     const loadTasks = async () => {
       try {
         setIsLoading(true);
-        const tasksPromise = getTasks();
-        await resolvePromiseAndSetState(tasksPromise, setTasksList);
+        setTasksList(tasks);
       } catch (error) {
         console.error("Error loading tasks:", error);
         toast.error("Failed to load tasks");
@@ -49,26 +50,26 @@ const Tasks = () => {
         setIsLoading(false);
       }
     };
-    
+
     loadTasks();
   }, []);
-  
+
   // Apply filters to tasks
   const filteredTasks = React.useMemo(() => {
     let filtered = tasksList;
-    
+
     // Filter by mechanic for mechanic users
-    if (currentUser.role === 'mechanic' && currentUser.mechanicId) {
-      filtered = filtered.filter(task => task.mechanicId === currentUser.mechanicId);
+    if (currentUser?.role === 'mechanic' && currentUser?.mechanicId) {
+      filtered = filtered.filter(task => task.mechanicId === currentUser?.mechanicId);
     }
-    
+
     // Apply location filter if not set to 'all'
     if (locationFilter !== 'all') {
       filtered = filtered.filter(task => task.location === locationFilter);
     }
-    
+
     return filtered;
-  }, [tasksList, currentUser.role, currentUser.mechanicId, locationFilter]);
+  }, [tasksList, currentUser?.role, currentUser?.mechanicId, locationFilter]);
 
   if (!canViewTasks) {
     return (
@@ -79,28 +80,28 @@ const Tasks = () => {
   }
 
   const handleAddTask = () => {
-    if (!canManageTasks && currentUser.role !== 'mechanic') {
+    if (!canManageTasks && currentUser?.role !== 'mechanic') {
       toast.error("You don't have permission to add tasks");
       return;
     }
-    
+
     setSelectedTask(undefined);
     setIsDialogOpen(true);
   };
 
   const handleEditTask = (task: Task) => {
     // Mechanics can only edit their own tasks
-    if (currentUser.role === 'mechanic' && task.mechanicId !== currentUser.mechanicId) {
+    if (currentUser?.role === 'mechanic' && task.mechanicId !== currentUser?.mechanicId) {
       toast.error("You can only edit your own tasks");
       return;
     }
-    
+
     // Managers, owners, and foremen can edit any task
-    if (currentUser.role !== 'mechanic' && currentUser.role !== 'foreman' && !canManageTasks) {
+    if (currentUser?.role !== 'mechanic' && currentUser?.role !== 'foreman' && !canManageTasks) {
       toast.error("You don't have permission to edit tasks");
       return;
     }
-    
+
     setSelectedTask(task);
     setIsDialogOpen(true);
   };
@@ -119,7 +120,7 @@ const Tasks = () => {
   };
 
   const handleTimeTrackingUpdate = (updatedTask: Task) => {
-    setTasksList(prev => 
+    setTasksList(prev =>
       prev.map(task => task.id === updatedTask.id ? updatedTask : task)
     );
     setSelectedTaskForTimeTracking(null);
@@ -137,7 +138,7 @@ const Tasks = () => {
         return 'bg-gray-100 text-gray-800';
     }
   };
-  
+
   const getLocationBadgeClass = (location?: TaskLocation) => {
     switch (location) {
       case 'workshop':
@@ -150,59 +151,50 @@ const Tasks = () => {
         return 'bg-gray-100 text-gray-800';
     }
   };
-  
+
   const getInvoiceInfo = async (task: Task) => {
     if (!task.invoiceId) return null;
-    
+
     let invoice: Invoice | null = null;
-    const invoicePromise = getInvoiceById(task.invoiceId);
-    
-    await resolvePromiseAndSetState(invoicePromise, (data) => {
-      invoice = data;
-    });
-    
+    const resp = getInvoiceById(task.invoiceId);
+    invoice = resp;
+
     if (!invoice) return null;
-    
+
     return {
       id: invoice.id,
       status: invoice.status,
       vehicle: `${invoice.vehicleInfo.make} ${invoice.vehicleInfo.model}`,
-      vehicleId: invoice.vehicleId,
-      customerId: invoice.customerId
+      vehicleId: invoice.vehicle_id,
+      customerId: invoice.customer_id
     };
   };
 
   const getVehicleInfo = async (vehicleId?: string) => {
     if (!vehicleId) return null;
-    
+
     let vehicle: Vehicle | null = null;
-    const vehiclePromise = getVehicleById(vehicleId);
-    
-    await resolvePromiseAndSetState(vehiclePromise, (data) => {
-      vehicle = data;
-    });
-    
+    const resp = getVehicleById(vehicleId);
+
+    vehicle = resp;
+
     if (!vehicle) return null;
-    
+
     return {
       make: vehicle.make,
       model: vehicle.model,
       year: vehicle.year,
-      licensePlate: vehicle.licensePlate,
-      customerId: vehicle.customerId
+      license_plate: vehicle.license_plate,
+      customerId: vehicle.customer_id
     };
   };
 
   const getCustomerInfo = async (customerId: string) => {
     let customerName = "Unknown Customer";
-    const customerPromise = getCustomerById(customerId);
-    
-    await resolvePromiseAndSetState(customerPromise, (customer) => {
-      if (customer) {
-        customerName = customer.name;
-      }
-    });
-    
+    const resp = getCustomerById(customerId);
+    customerName = resp?.name;
+
+
     return customerName;
   };
 
@@ -217,15 +209,13 @@ const Tasks = () => {
       // Prefetch mechanic data
       for (const task of tasksList) {
         if (task.mechanicId && !mechanicInfoCache[task.mechanicId]) {
-          const mechanicPromise = getMechanicById(task.mechanicId);
-          await resolvePromiseAndSetState(mechanicPromise, (mechanic) => {
-            setMechanicInfoCache(prev => ({
-              ...prev,
-              [task.mechanicId]: mechanic
-            }));
-          });
+          const resp = getMechanicById(task.mechanicId);
+          setMechanicInfoCache(prev => ({
+            ...prev,
+            [task.mechanicId]: resp
+          }));
         }
-        
+
         // Prefetch vehicle data
         if (task.vehicleId && !vehicleInfoCache[task.vehicleId]) {
           const vehicleInfo = await getVehicleInfo(task.vehicleId);
@@ -234,7 +224,7 @@ const Tasks = () => {
               ...prev,
               [task.vehicleId!]: vehicleInfo
             }));
-            
+
             // Prefetch customer data
             if (!customerInfoCache[vehicleInfo.customerId]) {
               const customerName = await getCustomerInfo(vehicleInfo.customerId);
@@ -245,7 +235,7 @@ const Tasks = () => {
             }
           }
         }
-        
+
         // Prefetch invoice data
         if (task.invoiceId && !invoiceInfoCache[task.invoiceId]) {
           const invoiceInfo = await getInvoiceInfo(task);
@@ -254,7 +244,7 @@ const Tasks = () => {
               ...prev,
               [task.invoiceId!]: invoiceInfo
             }));
-            
+
             // Prefetch customer data
             if (!customerInfoCache[invoiceInfo.customerId]) {
               const customerName = await getCustomerInfo(invoiceInfo.customerId);
@@ -267,13 +257,13 @@ const Tasks = () => {
         }
       }
     };
-    
+
     if (tasksList.length > 0 && !isLoading) {
       prefetchData();
     }
   }, [tasksList, isLoading]);
 
-  const shouldShowVehicleColumn = isForeman || currentUser.role === 'manager' || currentUser.role === 'owner';
+  const shouldShowVehicleColumn = isForeman || currentUser?.role === 'manager' || currentUser?.role === 'owner';
 
   if (isLoading) {
     return (
@@ -287,7 +277,7 @@ const Tasks = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold tracking-tight">Tasks</h1>
-        {(canManageTasks || currentUser.role === 'mechanic' || isForeman) && (
+        {(canManageTasks || currentUser?.role === 'mechanic' || isForeman) && (
           <Button onClick={handleAddTask}>
             <Plus className="mr-1 h-4 w-4" />
             Add Task
@@ -296,9 +286,9 @@ const Tasks = () => {
       </div>
 
       {selectedTaskForTimeTracking && (
-        <TaskCheckInOut 
+        <TaskCheckInOut
           task={selectedTaskForTimeTracking}
-          onUpdate={handleTimeTrackingUpdate}
+          onTaskUpdate={handleTimeTrackingUpdate}
         />
       )}
 
@@ -347,7 +337,7 @@ const Tasks = () => {
                 const mechanic = mechanicInfoCache[task.mechanicId || ""] || null;
                 const vehicleInfo = task.vehicleId ? vehicleInfoCache[task.vehicleId] : null;
                 const invoiceInfo = task.invoiceId ? invoiceInfoCache[task.invoiceId] : null;
-                
+
                 return (
                   <TableRow key={task.id}>
                     <TableCell className="font-medium">
@@ -377,7 +367,7 @@ const Tasks = () => {
                           <div className="flex flex-col">
                             <span className="text-xs flex items-center">
                               <Car className="h-3 w-3 mr-1 text-blue-500" />
-                              {vehicleInfo.make} {vehicleInfo.model} ({vehicleInfo.licensePlate})
+                              {vehicleInfo.make} {vehicleInfo.model} ({vehicleInfo.license_plate})
                             </span>
                             <span className="text-xs text-muted-foreground">
                               {customerInfoCache[vehicleInfo.customerId] || "Unknown Customer"}
@@ -416,7 +406,7 @@ const Tasks = () => {
                     <TableCell className="text-right">
                       <div className="flex justify-end space-x-1">
                         {/* Time tracking button for mechanics */}
-                        {currentUser.role === 'mechanic' && currentUser.mechanicId === task.mechanicId && task.status !== 'completed' && (
+                        {currentUser?.role === 'mechanic' && currentUser?.mechanicId === task.mechanicId && task.status !== 'completed' && (
                           <Button
                             variant="outline"
                             size="sm"
@@ -425,9 +415,9 @@ const Tasks = () => {
                             <Calendar className="h-4 w-4" />
                           </Button>
                         )}
-                        
+
                         {/* Edit button */}
-                        {((canManageTasks) || (currentUser.role === 'mechanic' && currentUser.mechanicId === task.mechanicId) || isForeman) && (
+                        {((canManageTasks) || (currentUser?.role === 'mechanic' && currentUser?.mechanicId === task.mechanicId) || isForeman) && (
                           <Button
                             variant="ghost"
                             size="sm"
@@ -447,10 +437,10 @@ const Tasks = () => {
                     <div className="flex flex-col items-center justify-center text-muted-foreground">
                       <CalendarCheck className="w-12 h-12 mb-2 text-muted-foreground/60" />
                       <p>No tasks found</p>
-                      {(canManageTasks || currentUser.role === 'mechanic' || isForeman) && (
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
+                      {(canManageTasks || currentUser?.role === 'mechanic' || isForeman) && (
+                        <Button
+                          variant="outline"
+                          size="sm"
                           className="mt-2"
                           onClick={handleAddTask}
                         >

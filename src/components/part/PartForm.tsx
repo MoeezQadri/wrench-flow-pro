@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -23,9 +23,9 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { vendors, getInvoices } from "@/services/data-service";
 import { Invoice, Part } from "@/types";
 import { X } from "lucide-react";
+import { useDataContext } from "@/context/data/DataContext";
 
 const partSchema = z.object({
   name: z.string().min(1, { message: "Name is required" }),
@@ -55,6 +55,10 @@ const PartForm = ({ defaultValues, onSubmit, formId, invoice, invoiceId, part }:
   const [showInvoiceSelection, setShowInvoiceSelection] = useState(false);
   const [selectedInvoiceIds, setSelectedInvoiceIds] = useState<string[]>([]);
 
+  const {
+    vendors, invoices: invoices_
+  } = useDataContext();
+
   const form = useForm<PartFormValues>({
     resolver: zodResolver(partSchema),
     defaultValues: defaultValues || {
@@ -74,9 +78,9 @@ const PartForm = ({ defaultValues, onSubmit, formId, invoice, invoiceId, part }:
     const fetchInvoices = async () => {
       try {
         setIsLoading(true);
-        const invoices = await getInvoices();
+        const invoices = invoices_;
         // Only show active invoices for selection
-        const activeInvoices = invoices.filter(inv => 
+        const activeInvoices = invoices.filter(inv =>
           ["open", "in-progress", "completed", "partial"].includes(inv.status)
         );
         setAvailableInvoices(activeInvoices);
@@ -135,13 +139,13 @@ const PartForm = ({ defaultValues, onSubmit, formId, invoice, invoiceId, part }:
   // Before submitting, ensure invoiceIds is properly set
   const handleFormSubmit = (data: PartFormValues) => {
     const formData = { ...data };
-    
+
     if (showInvoiceSelection) {
       formData.invoiceIds = selectedInvoiceIds;
     } else {
       formData.invoiceIds = [];
     }
-    
+
     onSubmit(formData);
   };
 
@@ -149,9 +153,9 @@ const PartForm = ({ defaultValues, onSubmit, formId, invoice, invoiceId, part }:
   const getInvoiceDetails = (invoiceId: string) => {
     const invoice = availableInvoices.find(inv => inv.id === invoiceId);
     if (!invoice) return 'Unknown Invoice';
-    
+
     const vehicleInfo = invoice.vehicleInfo;
-    return `${vehicleInfo.make} ${vehicleInfo.model} (${vehicleInfo.licensePlate})`;
+    return `${vehicleInfo.make} ${vehicleInfo.model} (${vehicleInfo.license_plate})`;
   };
 
   return (
@@ -163,10 +167,10 @@ const PartForm = ({ defaultValues, onSubmit, formId, invoice, invoiceId, part }:
             <p className="text-sm">
               Vehicle: {invoice.vehicleInfo.make} {invoice.vehicleInfo.model} ({invoice.vehicleInfo.year})
             </p>
-            <p className="text-sm">License Plate: {invoice.vehicleInfo.licensePlate}</p>
+            <p className="text-sm">License Plate: {invoice.vehicleInfo.license_plate}</p>
           </div>
         )}
-        
+
         <FormField
           control={form.control}
           name="name"
@@ -189,12 +193,12 @@ const PartForm = ({ defaultValues, onSubmit, formId, invoice, invoiceId, part }:
               <FormItem>
                 <FormLabel>Price ($)</FormLabel>
                 <FormControl>
-                  <Input 
-                    type="number" 
-                    min="0.01" 
-                    step="0.01" 
-                    placeholder="10.99" 
-                    {...field} 
+                  <Input
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    placeholder="10.99"
+                    {...field}
                   />
                 </FormControl>
                 <FormMessage />
@@ -209,12 +213,12 @@ const PartForm = ({ defaultValues, onSubmit, formId, invoice, invoiceId, part }:
               <FormItem>
                 <FormLabel>Quantity in Stock</FormLabel>
                 <FormControl>
-                  <Input 
-                    type="number" 
-                    min="0" 
-                    step="1" 
-                    placeholder="100" 
-                    {...field} 
+                  <Input
+                    type="number"
+                    min="0"
+                    step="1"
+                    placeholder="100"
+                    {...field}
                   />
                 </FormControl>
                 <FormMessage />
@@ -243,9 +247,9 @@ const PartForm = ({ defaultValues, onSubmit, formId, invoice, invoiceId, part }:
           render={({ field }) => (
             <FormItem>
               <FormLabel>Vendor</FormLabel>
-              <Select 
-                onValueChange={field.onChange} 
-                defaultValue={field.value} 
+              <Select
+                onValueChange={field.onChange}
+                defaultValue={field.value}
                 value={field.value || "none"}
               >
                 <FormControl>
@@ -298,13 +302,13 @@ const PartForm = ({ defaultValues, onSubmit, formId, invoice, invoiceId, part }:
         {/* Invoice Association Section */}
         <div className="border rounded-md p-4 mt-6">
           <div className="flex items-center space-x-2 mb-4">
-            <Checkbox 
-              id="invoice-tagging" 
+            <Checkbox
+              id="invoice-tagging"
               checked={showInvoiceSelection}
               onCheckedChange={(checked) => setShowInvoiceSelection(!!checked)}
             />
-            <label 
-              htmlFor="invoice-tagging" 
+            <label
+              htmlFor="invoice-tagging"
               className="text-sm font-medium leading-none cursor-pointer"
             >
               Tag this part to invoices (optional)
@@ -315,7 +319,7 @@ const PartForm = ({ defaultValues, onSubmit, formId, invoice, invoiceId, part }:
             <>
               <div className="mb-4">
                 <FormLabel>Select Invoices</FormLabel>
-                <Select 
+                <Select
                   onValueChange={handleInvoiceSelect}
                 >
                   <FormControl>
@@ -341,9 +345,9 @@ const PartForm = ({ defaultValues, onSubmit, formId, invoice, invoiceId, part }:
                 <div className="flex flex-wrap gap-2 mt-2">
                   {selectedInvoiceIds.length > 0 ? (
                     selectedInvoiceIds.map(id => (
-                      <Badge 
-                        key={id} 
-                        variant="outline" 
+                      <Badge
+                        key={id}
+                        variant="outline"
                         className="flex items-center gap-1 pr-1"
                       >
                         <span className="truncate max-w-[150px]">

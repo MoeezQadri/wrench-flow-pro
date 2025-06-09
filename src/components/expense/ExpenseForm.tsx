@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -20,7 +20,6 @@ import {
   SelectValue
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { vendors } from "@/services/data-service";
 import { CalendarIcon, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
@@ -28,6 +27,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { Vendor } from "@/types";
 import VendorDialog from "./VendorDialog";
+import { useDataContext } from "@/context/data/DataContext";
 
 const expenseSchema = z.object({
   date: z.date(),
@@ -47,6 +47,7 @@ interface ExpenseFormProps {
 }
 
 const ExpenseForm = ({ defaultValues, onSubmit, formId }: ExpenseFormProps) => {
+  const { vendors } = useDataContext();
   const [isVendorDialogOpen, setIsVendorDialogOpen] = useState(false);
   const [vendorsList, setVendorsList] = useState<Vendor[]>(vendors as Vendor[]);
 
@@ -137,8 +138,8 @@ const ExpenseForm = ({ defaultValues, onSubmit, formId }: ExpenseFormProps) => {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Category</FormLabel>
-                <Select 
-                  onValueChange={field.onChange} 
+                <Select
+                  onValueChange={field.onChange}
                   defaultValue={field.value}
                   value={field.value}
                 >
@@ -167,12 +168,12 @@ const ExpenseForm = ({ defaultValues, onSubmit, formId }: ExpenseFormProps) => {
               <FormItem>
                 <FormLabel>Amount ($)</FormLabel>
                 <FormControl>
-                  <Input 
-                    type="number" 
-                    min="0.01" 
-                    step="0.01" 
-                    placeholder="100.00" 
-                    {...field} 
+                  <Input
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    placeholder="100.00"
+                    {...field}
                   />
                 </FormControl>
                 <FormMessage />
@@ -202,8 +203,8 @@ const ExpenseForm = ({ defaultValues, onSubmit, formId }: ExpenseFormProps) => {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Payment Method</FormLabel>
-                <Select 
-                  onValueChange={field.onChange} 
+                <Select
+                  onValueChange={field.onChange}
                   defaultValue={field.value}
                   value={field.value}
                 >
@@ -231,9 +232,9 @@ const ExpenseForm = ({ defaultValues, onSubmit, formId }: ExpenseFormProps) => {
                 <FormItem>
                   <FormLabel>Vendor</FormLabel>
                   <div className="flex space-x-2">
-                    <Select 
-                      onValueChange={field.onChange} 
-                      defaultValue={field.value} 
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
                       value={field.value || "none"}
                     >
                       <FormControl>
@@ -250,8 +251,8 @@ const ExpenseForm = ({ defaultValues, onSubmit, formId }: ExpenseFormProps) => {
                         ))}
                       </SelectContent>
                     </Select>
-                    <Button 
-                      type="button" 
+                    <Button
+                      type="button"
                       size="icon"
                       onClick={() => setIsVendorDialogOpen(true)}
                     >
@@ -265,8 +266,8 @@ const ExpenseForm = ({ defaultValues, onSubmit, formId }: ExpenseFormProps) => {
           </div>
         </div>
 
-        <VendorDialog 
-          open={isVendorDialogOpen} 
+        <VendorDialog
+          open={isVendorDialogOpen}
           onOpenChange={setIsVendorDialogOpen}
           onVendorAdded={handleVendorAdded}
         />

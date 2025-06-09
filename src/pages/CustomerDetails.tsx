@@ -1,36 +1,40 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { getCustomerById } from '@/services/data-service';
 import { Customer } from '@/types';
 import { resolvePromiseAndSetState } from '@/utils/async-helpers';
 import { useAsyncData } from '@/hooks/useAsyncData';
+import { useDataContext } from '@/context/data/DataContext';
 
 const CustomerDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
-  
+  const {
+    getCustomerById
+  } = useDataContext();
+
   useEffect(() => {
     const loadCustomer = async () => {
       setLoading(true);
       if (id) {
-        await resolvePromiseAndSetState(getCustomerById(id), setCustomer);
+        const resp = await getCustomerById(id);
+        setCustomer(resp);
       }
       setLoading(false);
     };
-    
+
     loadCustomer();
   }, [id]);
-  
+
   if (loading) {
     return <div>Loading customer details...</div>;
   }
-  
+
   if (!customer) {
     return <div>Customer not found</div>;
   }
-  
+
   return (
     <div className="p-4">
       <h1 className="text-2xl font-bold mb-4">Customer Details</h1>
@@ -44,7 +48,7 @@ const CustomerDetails: React.FC = () => {
           <p><span className="font-medium">Lifetime Value:</span> ${customer.lifetimeValue?.toFixed(2)}</p>
           <p><span className="font-medium">Last Visit:</span> {customer.lastVisit ? new Date(customer.lastVisit).toLocaleDateString() : 'N/A'}</p>
         </div>
-        
+
         {/* Additional sections for vehicles, invoices, etc. can be added here */}
       </div>
     </div>

@@ -5,7 +5,7 @@ import { Vehicle, Customer } from '@/types';
 
 const Vehicles: React.FC = () => {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [customers, setCustomers] = useState<{[id: string]: Customer}>({});
+  const [customers, setCustomers] = useState<{ [id: string]: Customer }>({});
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
@@ -15,17 +15,17 @@ const Vehicles: React.FC = () => {
         const response = await fetch('/api/vehicles');
         const vehicleData = await response.json();
         setVehicles(vehicleData);
-        
+
         // Fetch all customers to map to vehicles
         const customerResponse = await fetch('/api/customers');
         const customerData = await customerResponse.json();
-        
+
         // Create a mapping of customer IDs to customer objects for quick lookup
         const customerMap = customerData.reduce((map: any, customer: Customer) => {
           map[customer.id] = customer;
           return map;
         }, {});
-        
+
         setCustomers(customerMap);
         setLoading(false);
       } catch (error) {
@@ -69,7 +69,7 @@ const Vehicles: React.FC = () => {
                   {vehicle.make} {vehicle.model}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">{vehicle.year}</td>
-                <td className="px-6 py-4 whitespace-nowrap">{vehicle.licensePlate}</td>
+                <td className="px-6 py-4 whitespace-nowrap">{vehicle.license_plate}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <Link to={`/customers/${vehicle.customerId}`} className="text-blue-600 hover:underline">
                     {customers[vehicle.customerId]?.name || 'Unknown'}

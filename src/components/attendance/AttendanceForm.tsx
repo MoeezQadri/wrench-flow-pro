@@ -24,13 +24,14 @@ import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Attendance, Mechanic } from '@/types';
+import { useDataContext } from '@/context/data/DataContext';
 
 const attendanceSchema = z.object({
   mechanicId: z.string().min(1, { message: "Mechanic is required" }),
   date: z.string().min(1, { message: "Date is required" }),
   checkIn: z.string().min(1, { message: "Check-in time is required" }),
   checkOut: z.string().optional(),
-  status: z.enum(['pending', 'approved', 'rejected']).default('pending'),
+  status: z.enum(["pending", "approved", "rejected", "present", "late", "absent", "half-day"]).default('pending'),
   notes: z.string().optional(),
   created_at: z.string().optional(),
   approved_by: z.string().optional()
@@ -41,10 +42,13 @@ export type AttendanceFormValues = z.infer<typeof attendanceSchema>;
 interface AttendanceFormProps {
   onSubmit: (data: Omit<Attendance, 'id'>) => Promise<void>;
   initialData?: Attendance;
-  mechanics: Mechanic[];
 }
 
-const AttendanceForm: React.FC<AttendanceFormProps> = ({ onSubmit, initialData, mechanics }) => {
+const AttendanceForm: React.FC<AttendanceFormProps> = ({ onSubmit, initialData }) => {
+  const {
+    mechanics
+  } = useDataContext();
+
   const form = useForm<AttendanceFormValues>({
     resolver: zodResolver(attendanceSchema),
     defaultValues: {
@@ -71,7 +75,7 @@ const AttendanceForm: React.FC<AttendanceFormProps> = ({ onSubmit, initialData, 
         created_at: data.created_at,
         approved_by: data.approved_by
       };
-      
+
       await onSubmit(attendanceData);
       form.reset();
       toast.success("Attendance recorded successfully!");

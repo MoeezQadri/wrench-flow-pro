@@ -6,6 +6,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -20,8 +21,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { addVendor } from "@/services/data-service";
 import { Vendor } from "@/types";
+import { useDataContext } from "@/context/data/DataContext";
 
 interface VendorDialogProps {
   open: boolean;
@@ -40,6 +41,10 @@ const vendorSchema = z.object({
 type VendorFormValues = z.infer<typeof vendorSchema>;
 
 const VendorDialog = ({ open, onOpenChange }: VendorDialogProps) => {
+  const {
+    addVendor
+  } = useDataContext();
+
   const form = useForm<VendorFormValues>({
     resolver: zodResolver(vendorSchema),
     defaultValues: {
@@ -61,7 +66,7 @@ const VendorDialog = ({ open, onOpenChange }: VendorDialogProps) => {
         address: data.address || "",
         contact_name: data.contactPerson,
       };
-      
+
       await addVendor(newVendor);
       toast.success("Vendor added successfully!");
       form.reset();
