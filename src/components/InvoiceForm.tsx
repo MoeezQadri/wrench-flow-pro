@@ -91,7 +91,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
       console.log("Initializing form with invoice data:", invoiceData);
       setSelectedCustomerId(invoiceData.customer_id);
       setSelectedVehicleId(invoiceData.vehicle_id);
-      setDate(invoiceData.date);
+      setDate(invoiceData.date.split('T')[0]); // Extract date part only
       setStatus(invoiceData.status);
       setTaxRate(invoiceData.tax_rate || 7.5);
       setDiscountType(invoiceData.discount_type || 'none');
@@ -285,7 +285,8 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
         };
 
         console.log("Calling updateInvoice with:", updatedInvoiceData);
-        await updateInvoice(updatedInvoiceData);
+        const result = await updateInvoice(updatedInvoiceData);
+        console.log("Update invoice result:", result);
         
         // Also update in context
         if (updateInvoiceInContext) {
@@ -298,6 +299,8 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
         }
         
         toast.success("Invoice updated successfully!");
+        console.log("Invoice updated successfully, navigating to invoices page");
+        navigate("/invoices");
       } else {
         console.log("Creating new invoice");
         const invoiceCreationData = {
@@ -331,9 +334,6 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
         
         toast.success(successMessage);
       }
-
-      console.log("Invoice saved successfully, navigating to invoices page");
-      navigate("/invoices");
     } catch (error) {
       console.error("Error saving invoice:", error);
       toast.error("Failed to save invoice. Please try again.");
