@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -369,7 +368,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
             </SelectTrigger>
             <SelectContent>
               {customers.length === 0 ? (
-                <SelectItem value="" disabled>No customers available</SelectItem>
+                <SelectItem value="no-customers" disabled>No customers available</SelectItem>
               ) : (
                 customers.map((customer: any) => (
                   <SelectItem key={customer.id} value={customer.id}>
@@ -391,7 +390,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
               </SelectTrigger>
               <SelectContent>
                 {vehicles.length === 0 ? (
-                  <SelectItem value="" disabled>
+                  <SelectItem value="no-vehicles" disabled>
                     {selectedCustomerId ? "No vehicles found for this customer" : "Please select a customer first"}
                   </SelectItem>
                 ) : (
