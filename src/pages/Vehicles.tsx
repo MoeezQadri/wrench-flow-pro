@@ -5,11 +5,16 @@ import { Vehicle } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useDataContext } from '@/context/data/DataContext';
+import { Button } from '@/components/ui/button';
+import { Plus, Edit, Trash2 } from 'lucide-react';
+import VehicleDialog from '@/components/VehicleDialog';
 
 const Vehicles: React.FC = () => {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [customerNames, setCustomerNames] = useState<{ [id: string]: string }>({});
   const [loading, setLoading] = useState<boolean>(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingVehicle, setEditingVehicle] = useState<Vehicle | undefined>(undefined);
   const { getCustomerById } = useDataContext();
 
   useEffect(() => {
@@ -56,6 +61,85 @@ const Vehicles: React.FC = () => {
     fetchData();
   }, [getCustomerById]);
 
+  const handleSaveVehicle = async (vehicle: Vehicle) => {
+    try {
+      if (editingVehicle) {
+        // Update existing vehicle
+        const { error } = await supabase
+          .from('vehicles')
+          .update({
+            make: vehicle.make,
+            model: vehicle.model,
+            year: vehicle.year,
+            license_plate: vehicle.license_plate,
+            vin: vehicle.vin,
+            color: vehicle.color,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', vehicle.id);
+
+        if (error) throw error;
+
+        setVehicles(prev => prev.map(v => v.id === vehicle.id ? vehicle : v));
+        toast.success("Vehicle updated successfully!");
+      } else {
+        // Add new vehicle
+        const { data, error } = await supabase
+          .from('vehicles')
+          .insert([{
+            customer_id: vehicle.customer_id,
+            make: vehicle.make,
+            model: vehicle.model,
+            year: vehicle.year,
+            license_plate: vehicle.license_plate,
+            vin: vehicle.vin,
+            color: vehicle.color
+          }])
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        setVehicles(prev => [...prev, data]);
+        toast.success("Vehicle added successfully!");
+      }
+    } catch (error) {
+      console.error('Error saving vehicle:', error);
+      toast.error("Failed to save vehicle");
+    }
+  };
+
+  const handleEditVehicle = (vehicle: Vehicle) => {
+    setEditingVehicle(vehicle);
+    setDialogOpen(true);
+  };
+
+  const handleDeleteVehicle = async (vehicleId: string) => {
+    if (!confirm('Are you sure you want to delete this vehicle?')) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('vehicles')
+        .delete()
+        .eq('id', vehicleId);
+
+      if (error) throw error;
+
+      setVehicles(prev => prev.filter(v => v.id !== vehicleId));
+      toast.success("Vehicle deleted successfully!");
+    } catch (error) {
+      console.error('Error deleting vehicle:', error);
+      toast.error("Failed to delete vehicle");
+    }
+  };
+
+  const handleAddNewVehicle = () => {
+    setEditingVehicle(undefined);
+    setDialogOpen(true);
+  };
+
   if (loading) {
     return <div className="p-8 text-center">Loading vehicles...</div>;
   }
@@ -64,9 +148,10 @@ const Vehicles: React.FC = () => {
     <div className="p-4">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Vehicles</h1>
-        <button className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+        <Button onClick={handleAddNewVehicle} className="flex items-center gap-2">
+          <Plus className="h-4 w-4" />
           Add New Vehicle
-        </button>
+        </Button>
       </div>
 
       {vehicles.length === 0 ? (
@@ -105,8 +190,20 @@ const Vehicles: React.FC = () => {
                       <Link to={`/vehicles/${vehicle.id}`} className="text-blue-600 hover:underline">
                         View
                       </Link>
-                      <button className="text-green-600 hover:underline">Edit</button>
-                      <button className="text-red-600 hover:underline">Delete</button>
+                      <button 
+                        onClick={() => handleEditVehicle(vehicle)}
+                        className="text-green-600 hover:underline flex items-center gap-1"
+                      >
+                        <Edit className="h-3 w-3" />
+                        Edit
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteVehicle(vehicle.id)}
+                        className="text-red-600 hover:underline flex items-center gap-1"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                        Delete
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -115,6 +212,13 @@ const Vehicles: React.FC = () => {
           </table>
         </div>
       )}
+
+      <VehicleDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        onSave={handleSaveVehicle}
+        vehicle={editingVehicle}
+      />
     </div>
   );
 };
