@@ -1,8 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -20,20 +17,6 @@ import InvoiceItemsSection from "./invoice/InvoiceItemsSection";
 import { toast } from "sonner";
 import { useDataContext } from "@/context/data/DataContext";
 import { createInvoiceWithAutoAssignment, getAssignedPartsForInvoice, getAssignedTasksForInvoice } from "@/services/supabase-service";
-
-// Define the form schema using Zod
-const formSchema = z.object({
-  customerId: z.string().min(1, { message: "Please select a customer." }),
-  vehicleId: z.string().min(1, { message: "Please select a vehicle." }),
-  date: z.string().min(1, { message: "Please select a date." }),
-  taxRate: z.number().min(0, { message: "Tax rate must be at least 0." }).max(100, { message: "Tax rate cannot exceed 100." }),
-  discountType: z.enum(['none', 'percentage', 'fixed']).default('none'),
-  discountValue: z.number().min(0).default(0),
-  notes: z.string().optional(),
-});
-
-// Define the form values type based on the schema
-export type InvoiceFormValues = z.infer<typeof formSchema>;
 
 interface InvoiceFormProps {
   isEditing?: boolean;
@@ -229,21 +212,6 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
 
   const totals = calculateTotals();
 
-  const form = useForm<InvoiceFormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      customerId: invoiceData?.customer_id || "",
-      vehicleId: invoiceData?.vehicle_id || "",
-      date: invoiceData?.date || new Date().toISOString().slice(0, 10),
-      taxRate: invoiceData?.tax_rate || 7.5,
-      discountType: invoiceData?.discount_type || 'none',
-      discountValue: invoiceData?.discount_value || 0,
-      notes: invoiceData?.notes || "",
-    },
-  });
-
-  const { handleSubmit } = form;
-
   // Validate form before submission
   const validateForm = () => {
     const errors: string[] = [];
@@ -265,7 +233,8 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
     return errors.length === 0;
   };
 
-  const onSubmit = async () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     console.log("Form submission started");
     console.log("Form data:", {
       customerId: selectedCustomerId,
@@ -358,7 +327,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
         </div>
       )}
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4">
         {/* Customer Selection */}
         <div>
           <Label htmlFor="customer">Customer *</Label>
