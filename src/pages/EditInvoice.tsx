@@ -5,7 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import InvoiceForm from "@/components/InvoiceForm";
 import { toast } from "sonner";
-import { Invoice, InvoiceStatus } from "@/types";
+import { Invoice } from "@/types";
 import { useDataContext } from "@/context/data/DataContext";
 
 const EditInvoice = () => {
@@ -13,19 +13,21 @@ const EditInvoice = () => {
   const navigate = useNavigate();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
-  const {
-    getInvoiceById,
-  } = useDataContext()
+  const { getInvoiceById } = useDataContext();
+
   useEffect(() => {
     const fetchInvoice = async () => {
       if (id) {
         try {
+          console.log("Fetching invoice with ID:", id);
+          
           // Fetch the invoice by ID from Supabase
           const foundInvoice = await getInvoiceById(id);
+          console.log("Found invoice:", foundInvoice);
 
           if (foundInvoice) {
             // Check if invoice status allows editing
-            const canEdit = ['open', 'in-progress', 'completed', 'partial'].includes(foundInvoice.status);
+            const canEdit = ['open', 'in-progress', 'completed', 'partial', 'draft'].includes(foundInvoice.status);
 
             if (!canEdit) {
               toast.error("This invoice cannot be edited in its current status.");
@@ -59,14 +61,24 @@ const EditInvoice = () => {
     };
 
     fetchInvoice();
-  }, [id, navigate]);
+  }, [id, navigate, getInvoiceById]);
 
   if (loading) {
     return <div className="p-6">Loading invoice...</div>;
   }
 
   if (!invoice) {
-    return null;
+    return (
+      <div className="p-6">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold mb-2">Invoice not found</h2>
+          <p className="text-gray-600 mb-4">The invoice you're trying to edit doesn't exist.</p>
+          <Button asChild>
+            <Link to="/invoices">Back to Invoices</Link>
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -77,7 +89,7 @@ const EditInvoice = () => {
             <ArrowLeft className="h-4 w-4" />
           </Link>
         </Button>
-        <h1 className="text-3xl font-bold tracking-tight">Edit Invoice #{invoice.id}</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Edit Invoice #{invoice.id.substring(0, 8)}</h1>
       </div>
 
       <InvoiceForm isEditing={true} invoiceData={invoice} />

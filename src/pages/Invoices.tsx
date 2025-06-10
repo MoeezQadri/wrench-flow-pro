@@ -1,59 +1,26 @@
 
 import React, { useState, useEffect } from 'react';
 import { Invoice, Customer } from '@/types';
-import { resolvePromiseAndSetState } from '@/utils/async-helpers';
-import { useAsyncCache } from '@/hooks/useAsyncData';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-
-// Function to get invoices from Supabase
-const getInvoices = async (): Promise<any[]> => {
-  const { data, error } = await supabase
-    .from('invoices')
-    .select('*, invoice_items(*)');
-
-  if (error) {
-    console.error('Error fetching invoices:', error);
-    throw error;
-  }
-
-  return data || [];
-};
-
-// Function to get customer by ID from Supabase
-const getCustomerById = async (id: string): Promise<Customer> => {
-  const { data, error } = await supabase
-    .from('customers')
-    .select('*')
-    .eq('id', id)
-    .single();
-
-  if (error) {
-    console.error('Error fetching customer:', error);
-    throw error;
-  }
-
-  return data as Customer;
-};
+import { useDataContext } from '@/context/data/DataContext';
 
 const Invoices: React.FC = () => {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [getCustomer, customerCache] = useAsyncCache<Customer>(getCustomerById);
+  const { 
+    invoices: contextInvoices, 
+    customers: contextCustomers,
+    refreshInvoices 
+  } = useDataContext();
 
   useEffect(() => {
     const loadInvoices = async () => {
       setLoading(true);
       try {
-        const fetchedInvoices = await getInvoices();
-        // Map the Supabase data to our Invoice interface
-        const mappedInvoices: Invoice[] = fetchedInvoices.map((invoice: any) => ({
-          ...invoice,
-          items: invoice.invoice_items || [],
-          payments: []
-        }));
-        setInvoices(mappedInvoices);
+        // Refresh invoices from context
+        await refreshInvoices();
+        setInvoices(contextInvoices);
       } catch (error) {
         console.error('Error loading invoices:', error);
         toast.error('Failed to load invoices');
@@ -64,6 +31,11 @@ const Invoices: React.FC = () => {
 
     loadInvoices();
   }, []);
+
+  // Update invoices when context changes
+  useEffect(() => {
+    setInvoices(contextInvoices);
+  }, [contextInvoices]);
 
   const calculateInvoiceTotal = (invoice: Invoice): number => {
     if (!invoice.items) return 0;
@@ -86,6 +58,11 @@ const Invoices: React.FC = () => {
 
     // Calculate final total
     return subtotal + taxAmount - discountAmount;
+  };
+
+  const getCustomerName = (customerId: string): string => {
+    const customer = contextCustomers.find(c => c.id === customerId);
+    return customer ? customer.name : 'Unknown Customer';
   };
 
   if (loading) {
@@ -113,41 +90,39 @@ const Invoices: React.FC = () => {
           <table className="min-w-full bg-white">
             <thead>
               <tr>
-                <th className="py-2 px-4 border-b">ID</th>
-                <th className="py-2 px-4 border-b">Customer</th>
-                <th className="py-2 px-4 border-b">Date</th>
-                <th className="py-2 px-4 border-b">Status</th>
-                <th className="py-2 px-4 border-b">Amount</th>
-                <th className="py-2 px-4 border-b">Actions</th>
+                <th className="py-2 px-4 border-b text-left">Invoice #</th>
+                <th className="py-2 px-4 border-b text-left">Customer</th>
+                <th className="py-2 px-4 border-b text-left">Date</th>
+                <th className="py-2 px-4 border-b text-left">Status</th>
+                <th className="py-2 px-4 border-b text-left">Amount</th>
+                <th className="py-2 px-4 border-b text-left">Actions</th>
               </tr>
             </thead>
             <tbody>
               {invoices.map(invoice => {
                 // Calculate final total for display
                 const finalTotal = calculateInvoiceTotal(invoice);
+                const customerName = getCustomerName(invoice.customer_id);
 
                 return (
                   <tr key={invoice.id} className="hover:bg-gray-50">
                     <td className="py-2 px-4 border-b">
                       <Link to={`/invoices/${invoice.id}`} className="text-blue-600 hover:underline">
-                        {invoice.id.substring(0, 8)}
+                        #{invoice.id.substring(0, 8)}
                       </Link>
                     </td>
                     <td className="py-2 px-4 border-b">
-                      {invoice.customer_id && customerCache[invoice.customer_id] ? (
-                        customerCache[invoice.customer_id].name
-                      ) : (
-                        <span className="text-gray-400">Loading...</span>
-                      )}
+                      {customerName}
                     </td>
                     <td className="py-2 px-4 border-b">
                       {invoice.date ? new Date(invoice.date).toLocaleDateString() : 'N/A'}
                     </td>
                     <td className="py-2 px-4 border-b">
-                      <span className={`px-2 py-1 rounded text-xs ${invoice.status === 'paid' ? 'bg-green-100 text-green-800' :
-                          invoice.status === 'partial' ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-red-100 text-red-800'
-                        }`}>
+                      <span className={`px-2 py-1 rounded text-xs ${
+                        invoice.status === 'paid' ? 'bg-green-100 text-green-800' :
+                        invoice.status === 'partial' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-red-100 text-red-800'
+                      }`}>
                         {invoice.status}
                       </span>
                     </td>
@@ -158,13 +133,13 @@ const Invoices: React.FC = () => {
                       <div className="flex space-x-2">
                         <Link
                           to={`/invoices/${invoice.id}`}
-                          className="text-blue-600 hover:text-blue-800"
+                          className="text-blue-600 hover:text-blue-800 underline"
                         >
                           View
                         </Link>
                         <Link
                           to={`/invoices/${invoice.id}/edit`}
-                          className="text-green-600 hover:text-green-800"
+                          className="text-green-600 hover:text-green-800 underline"
                         >
                           Edit
                         </Link>
