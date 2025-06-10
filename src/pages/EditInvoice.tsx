@@ -13,7 +13,7 @@ const EditInvoice = () => {
   const navigate = useNavigate();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
-  const { invoices } = useDataContext();
+  const { getInvoiceById, loadInvoices } = useDataContext();
 
   useEffect(() => {
     const fetchInvoice = async () => {
@@ -21,8 +21,11 @@ const EditInvoice = () => {
         try {
           console.log("Fetching invoice with ID:", id);
           
+          // Ensure invoices are loaded first
+          await loadInvoices();
+          
           // Find the invoice in the context invoices array
-          const foundInvoice = invoices.find(inv => inv.id === id);
+          const foundInvoice = getInvoiceById(id);
           console.log("Found invoice:", foundInvoice);
 
           if (foundInvoice) {
@@ -39,6 +42,7 @@ const EditInvoice = () => {
             const typedInvoice: Invoice = {
               ...foundInvoice,
               notes: foundInvoice.notes || '', // Ensure notes is never undefined
+              items: foundInvoice.items || [], // Ensure items is never undefined
               payments: foundInvoice.payments?.map(payment => ({
                 ...payment,
                 notes: payment.notes || '' // Ensure payment notes is never undefined
@@ -61,7 +65,7 @@ const EditInvoice = () => {
     };
 
     fetchInvoice();
-  }, [id, navigate, invoices]);
+  }, [id, navigate, getInvoiceById, loadInvoices]);
 
   if (loading) {
     return <div className="p-6">Loading invoice...</div>;

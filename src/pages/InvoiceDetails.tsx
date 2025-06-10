@@ -15,7 +15,8 @@ const InvoiceDetails: React.FC = () => {
   const {
     getInvoiceById,
     customers,
-    getVehiclesByCustomerId
+    getVehiclesByCustomerId,
+    loadInvoices
   } = useDataContext();
   const [customerName, setCustomerName] = useState<string>('');
   const [vehicleInfo, setVehicleInfo] = useState<any>(null);
@@ -25,7 +26,11 @@ const InvoiceDetails: React.FC = () => {
       setLoading(true);
       if (id) {
         try {
-          const resp = await getInvoiceById(id);
+          // Ensure invoices are loaded first
+          await loadInvoices();
+          
+          const resp = getInvoiceById(id);
+          console.log("Invoice details:", resp);
           setInvoice(resp);
           
           if (resp) {
@@ -49,7 +54,7 @@ const InvoiceDetails: React.FC = () => {
     };
 
     loadInvoice();
-  }, [id, getInvoiceById, customers, getVehiclesByCustomerId]);
+  }, [id, getInvoiceById, customers, getVehiclesByCustomerId, loadInvoices]);
 
   if (loading) {
     return <div className="p-6">Loading invoice details...</div>;
@@ -116,6 +121,11 @@ const InvoiceDetails: React.FC = () => {
                 <p className="text-sm text-gray-600">License Plate: {vehicleInfo.license_plate}</p>
                 {vehicleInfo.vin && <p className="text-sm text-gray-600">VIN: {vehicleInfo.vin}</p>}
               </>
+            ) : invoice.vehicleInfo ? (
+              <>
+                <p className="font-semibold">{invoice.vehicleInfo.year} {invoice.vehicleInfo.make} {invoice.vehicleInfo.model}</p>
+                <p className="text-sm text-gray-600">License Plate: {invoice.vehicleInfo.license_plate}</p>
+              </>
             ) : (
               <p className="text-gray-600">Vehicle information not available</p>
             )}
@@ -137,28 +147,35 @@ const InvoiceDetails: React.FC = () => {
         {invoice.items && invoice.items.length > 0 && (
           <div className="mb-6">
             <h3 className="font-medium text-gray-700 mb-2">Invoice Items</h3>
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
-                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
-                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {invoice.items.map((item, index) => (
-                  <tr key={index}>
-                    <td className="px-4 py-2 whitespace-nowrap text-sm">{item.description}</td>
-                    <td className="px-4 py-2 whitespace-nowrap text-sm capitalize">{item.type}</td>
-                    <td className="px-4 py-2 whitespace-nowrap text-sm text-right">{item.quantity}</td>
-                    <td className="px-4 py-2 whitespace-nowrap text-sm text-right">${item.price.toFixed(2)}</td>
-                    <td className="px-4 py-2 whitespace-nowrap text-sm text-right">${(item.quantity * item.price).toFixed(2)}</td>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {invoice.items.map((item, index) => (
+                    <tr key={item.id || index}>
+                      <td className="px-4 py-2 whitespace-nowrap text-sm">
+                        {item.description}
+                        {item.is_auto_added && (
+                          <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">Auto</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-2 whitespace-nowrap text-sm capitalize">{item.type}</td>
+                      <td className="px-4 py-2 whitespace-nowrap text-sm text-right">{item.quantity}</td>
+                      <td className="px-4 py-2 whitespace-nowrap text-sm text-right">${item.price.toFixed(2)}</td>
+                      <td className="px-4 py-2 whitespace-nowrap text-sm text-right">${(item.quantity * item.price).toFixed(2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
@@ -169,6 +186,12 @@ const InvoiceDetails: React.FC = () => {
                 <span>Subtotal:</span>
                 <span>${subtotal.toFixed(2)}</span>
               </div>
+              {invoice.discount_value && invoice.discount_value > 0 && (
+                <div className="flex justify-between py-2 border-b text-red-600">
+                  <span>Discount:</span>
+                  <span>-${invoice.discount_value.toFixed(2)}</span>
+                </div>
+              )}
               <div className="flex justify-between py-2 border-b">
                 <span>Tax ({(invoice.tax_rate).toFixed(1)}%):</span>
                 <span>${tax.toFixed(2)}</span>
