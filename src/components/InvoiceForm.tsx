@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -50,7 +49,8 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
     updateInvoice: updateInvoiceInContext,
     customers: customersData,
     parts,
-    tasks
+    tasks,
+    loadInvoices
   } = useDataContext();
 
   // Fetch customers on component mount
@@ -301,6 +301,11 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
 
         console.log("Calling createInvoiceWithAutoAssignment with:", invoiceCreationData);
         await createInvoiceWithAutoAssignment(invoiceCreationData);
+        
+        // Refresh invoices in context to include the newly created invoice
+        if (loadInvoices) {
+          await loadInvoices();
+        }
         
         // Show success message with sync info
         const manualItems = items.filter(item => !item.is_auto_added);
