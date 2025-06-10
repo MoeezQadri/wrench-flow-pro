@@ -22,7 +22,7 @@ const generateId = (prefix: string = 'id'): string => {
 interface CustomerDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (customer: Customer) => void;
+  onSave: (customer: Customer) => Promise<void>;
   customer?: Customer;
 }
 
@@ -52,7 +52,7 @@ const CustomerDialog = ({ open, onOpenChange, onSave, customer }: CustomerDialog
         updated_at: new Date().toISOString(),
       };
 
-      onSave(newCustomer);
+      await onSave(newCustomer);
       toast.success(`Customer ${isEditing ? "updated" : "added"} successfully!`);
       onOpenChange(false);
     } catch (error) {

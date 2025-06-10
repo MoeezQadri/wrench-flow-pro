@@ -1,5 +1,4 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -54,7 +53,6 @@ import {
 } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { objectsToCSV, downloadCSV } from '@/utils/csv-export';
-import { useEffect } from 'react';
 import { Vehicle } from '@/types';
 import { useDataContext } from '@/context/data/DataContext';
 
@@ -105,18 +103,9 @@ const Customers = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
-  const [customerList, setCustomerList] = useState<any[]>([]);
   const {
-    customers: customers_, getCustomerAnalytics, getVehiclesByCustomerId, addCustomer, addVehicle
+    customers, getCustomerAnalytics, getVehiclesByCustomerId, addCustomer, addVehicle
   } = useDataContext();
-  useEffect(() => {
-    const loadCustomers = async () => {
-      const customers = customers_;
-      setCustomerList(customers);
-    };
-
-    loadCustomers();
-  }, []);
 
   // Initialize the form
   const form = useForm<CustomerFormValues>({
@@ -156,7 +145,7 @@ const Customers = () => {
       const vehicleData: Vehicle = {
         ...values.vehicle,
         customer_id: newCustomer.id,
-        id
+        id: vehicleId
       };
 
       const newVehicle = await addVehicle(vehicleData);
@@ -174,17 +163,13 @@ const Customers = () => {
       });
     }
 
-    // Refresh customer list
-    const updatedCustomers = customers_;
-    setCustomerList(updatedCustomers);
-
     // Reset form and close dialog
     form.reset();
     setIsDialogOpen(false);
   };
 
-  // Filter customers based on search query
-  const filteredCustomers = customerList.filter(customer => {
+  // Filter customers based on search query - use customers from context directly
+  const filteredCustomers = customers.filter(customer => {
     const searchLower = searchQuery.toLowerCase();
     return (
       customer.name.toLowerCase().includes(searchLower) ||
@@ -197,7 +182,7 @@ const Customers = () => {
   // Handle CSV export
   const handleExportCSV = async () => {
     // Create a simplified version of customer data for export
-    const exportData = await Promise.all(customerList.map(async customer => {
+    const exportData = await Promise.all(customers.map(async customer => {
       const analytics = await getCustomerAnalytics(customer.id);
       const vehicles = await getVehiclesByCustomerId(customer.id);
       return {

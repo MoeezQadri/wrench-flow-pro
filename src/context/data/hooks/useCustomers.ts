@@ -22,6 +22,8 @@ export const useCustomers = () => {
                 toast.success('Customer added successfully');
                 return result;
             }
+            // Fallback: add to local state if database operation succeeded but no data returned
+            setCustomers((prev) => [...prev, customer]);
             return customer;
         } catch (error) {
             console.error('Error adding customer:', error);
