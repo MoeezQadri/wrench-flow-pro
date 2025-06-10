@@ -10,11 +10,13 @@ import {
   ShoppingCart,
   Users,
   Wrench,
+  UserRound,
 } from 'lucide-react';
 import { useAuthContext } from '@/context/AuthContext';
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -69,6 +71,7 @@ const navItems = [
 
 export function AppSidebar() {
   const location = useLocation();
+  const { currentUser } = useAuthContext();
 
   const isActive = (path: string) => {
     if (path === '/') {
@@ -114,6 +117,22 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+
+      <SidebarFooter>
+        {currentUser && (
+          <div className="flex items-center gap-3 p-2 rounded-lg bg-sidebar-accent/50">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-sidebar-accent">
+              <UserRound className="h-4 w-4" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate">{currentUser.name}</p>
+              <p className="text-xs text-muted-foreground capitalize truncate">
+                {currentUser.role === 'owner' ? 'Admin' : currentUser.role}
+              </p>
+            </div>
+          </div>
+        )}
+      </SidebarFooter>
     </Sidebar>
   );
 }
