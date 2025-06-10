@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -42,6 +43,9 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
   const [showAutoItems, setShowAutoItems] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formErrors, setFormErrors] = useState<string[]>([]);
+  
+  // Add a ref to track if initial data has been loaded to prevent conflicts
+  const initialDataLoaded = useRef(false);
 
   const {
     getVehiclesByCustomerId,
@@ -98,9 +102,10 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
     loadVehicles();
   }, [selectedCustomerId, getVehiclesByCustomerId]);
 
-  // Initialize form values when editing
+  // Initialize form values when editing - only run once
   useEffect(() => {
-    if (invoiceData) {
+    if (invoiceData && !initialDataLoaded.current) {
+      console.log("Initializing form with invoice data:", invoiceData);
       setSelectedCustomerId(invoiceData.customer_id);
       setSelectedVehicleId(invoiceData.vehicle_id);
       setDate(invoiceData.date);
@@ -109,13 +114,14 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
       setDiscountValue(invoiceData.discount_value || 0);
       setNotes(invoiceData.notes || "");
       setItems(invoiceData.items || []);
+      initialDataLoaded.current = true;
     }
   }, [invoiceData]);
 
-  // Load assigned parts and tasks when vehicle is selected
+  // Load assigned parts and tasks when vehicle is selected - but not when editing
   useEffect(() => {
     const loadAssignedItems = async () => {
-      if (selectedVehicleId && selectedCustomerId && !isEditing) {
+      if (selectedVehicleId && selectedCustomerId && !isEditing && !initialDataLoaded.current) {
         try {
           const [assignedPartsData, assignedTasksData] = await Promise.all([
             getAssignedPartsForInvoice(selectedVehicleId, selectedCustomerId),
@@ -187,7 +193,12 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
       });
     });
     
-    setItems(prev => [...prev, ...autoItems]);
+    setItems(prev => {
+      console.log('Adding auto-assigned items:', autoItems);
+      const updated = [...prev, ...autoItems];
+      console.log('Items after adding auto items:', updated);
+      return updated;
+    });
     setShowAutoItems(false);
     toast.success('Auto-assigned items added to invoice');
   };
@@ -332,6 +343,16 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
     }
   };
 
+  // Enhanced items change handler to prevent conflicts
+  const handleItemsChange = (newItems: InvoiceItem[] | ((prev: InvoiceItem[]) => InvoiceItem[])) => {
+    console.log('handleItemsChange called with:', typeof newItems === 'function' ? 'function' : newItems);
+    setItems(prevItems => {
+      const result = typeof newItems === 'function' ? newItems(prevItems) : newItems;
+      console.log('Items state updated from:', prevItems, 'to:', result);
+      return result;
+    });
+  };
+
   return (
     <div>
       {/* Show form errors if any */}
@@ -436,7 +457,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
         {/* Invoice Items */}
         <InvoiceItemsSection
           items={items}
-          onItemsChange={setItems}
+          onItemsChange={handleItemsChange}
           availableParts={availableParts}
           availableTasks={availableTasks}
           vehicleId={selectedVehicleId}
