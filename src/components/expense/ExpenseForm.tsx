@@ -37,7 +37,7 @@ const expenseSchema = z.object({
   category: z.string().min(1, { message: "Category is required" }),
   amount: z.coerce.number().min(0.01, { message: "Amount must be at least 0.01" }),
   description: z.string().min(1, { message: "Description is required" }),
-  paymentMethod: z.enum(["cash", "card", "bank-transfer"]),
+  paymentMethod: z.enum(["cash", "card", "bank-transfer", "check", "other"]),
   expenseType: z.enum(["invoice", "workshop"]),
   vendorId: z.string().optional(),
   invoiceId: z.string().optional(),
@@ -312,6 +312,8 @@ const ExpenseForm = ({ defaultValues, onSubmit, formId }: ExpenseFormProps) => {
                     <SelectItem value="cash">Cash</SelectItem>
                     <SelectItem value="card">Card</SelectItem>
                     <SelectItem value="bank-transfer">Bank Transfer</SelectItem>
+                    <SelectItem value="check">Check</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />
