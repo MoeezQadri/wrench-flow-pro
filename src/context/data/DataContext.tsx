@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import type { Mechanic, Customer, Vehicle, Vendor, Invoice, Expense, Task, Part, Payment } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
@@ -80,6 +79,61 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     // Helper to generate UUID
     const generateUUID = () => crypto.randomUUID();
 
+    // Helper function to transform database task to interface task
+    const transformTask = (dbTask: any): Task => {
+        return {
+            id: dbTask.id,
+            title: dbTask.title,
+            description: dbTask.description,
+            mechanicId: dbTask.mechanic_id,
+            mechanic_id: dbTask.mechanic_id,
+            vehicleId: dbTask.vehicle_id,
+            vehicle_id: dbTask.vehicle_id,
+            status: dbTask.status,
+            location: dbTask.location,
+            hoursEstimated: dbTask.hours_estimated || 0,
+            hours_estimated: dbTask.hours_estimated,
+            hoursSpent: dbTask.hours_spent,
+            hours_spent: dbTask.hours_spent,
+            price: dbTask.price,
+            startTime: dbTask.start_time,
+            start_time: dbTask.start_time,
+            endTime: dbTask.end_time,
+            end_time: dbTask.end_time,
+            completedBy: dbTask.completed_by,
+            completed_by: dbTask.completed_by,
+            completedAt: dbTask.completed_at,
+            completed_at: dbTask.completed_at,
+            invoiceId: dbTask.invoice_id,
+            invoice_id: dbTask.invoice_id,
+            created_at: dbTask.created_at,
+            updated_at: dbTask.updated_at
+        };
+    };
+
+    // Helper function to transform interface task to database task
+    const transformTaskForDB = (task: Task): any => {
+        return {
+            id: task.id,
+            title: task.title,
+            description: task.description,
+            mechanic_id: task.mechanicId || task.mechanic_id,
+            vehicle_id: task.vehicleId || task.vehicle_id,
+            status: task.status,
+            location: task.location,
+            hours_estimated: task.hoursEstimated || task.hours_estimated || 0,
+            hours_spent: task.hoursSpent || task.hours_spent,
+            price: task.price,
+            start_time: task.startTime || task.start_time,
+            end_time: task.endTime || task.end_time,
+            completed_by: task.completedBy || task.completed_by,
+            completed_at: task.completedAt || task.completed_at,
+            invoice_id: task.invoiceId || task.invoice_id,
+            created_at: task.created_at,
+            updated_at: task.updated_at
+        };
+    };
+
     useEffect(() => {
         const fetchAllData = async () => {
             try {
@@ -119,13 +173,17 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
                     setVehicles(vehiclesData || []);
                 }
 
-                // Fetch invoices
+                // Fetch invoices and transform them to include items array
                 const { data: invoicesData, error: invoicesError } = await supabase.from('invoices').select('*');
                 if (invoicesError) {
                     console.error('Error fetching invoices:', invoicesError);
                     toast.error('Failed to load invoices');
                 } else {
-                    setInvoices(invoicesData || []);
+                    const transformedInvoices = (invoicesData || []).map((invoice: any) => ({
+                        ...invoice,
+                        items: [] // Initialize with empty items array
+                    }));
+                    setInvoices(transformedInvoices);
                 }
 
                 // Fetch expenses
@@ -137,13 +195,14 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
                     setExpenses(expensesData || []);
                 }
 
-                // Fetch tasks
+                // Fetch tasks and transform them
                 const { data: tasksData, error: tasksError } = await supabase.from('tasks').select('*');
                 if (tasksError) {
                     console.error('Error fetching tasks:', tasksError);
                     toast.error('Failed to load tasks');
                 } else {
-                    setTasks(tasksData || []);
+                    const transformedTasks = (tasksData || []).map(transformTask);
+                    setTasks(transformedTasks);
                 }
 
                 // Fetch parts
@@ -481,7 +540,7 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
             tax_rate: invoiceData.taxRate,
             status: 'open',
             notes: invoiceData.notes,
-            items: invoiceData.items,
+            items: invoiceData.items || [],
             payments: [],
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
@@ -503,7 +562,7 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
                 throw error;
             }
             if (data && data.length > 0) {
-                const result = data[0] as Invoice;
+                const result = { ...data[0], items: newInvoice.items } as Invoice;
                 setInvoices((prev) => [...prev, result]);
                 toast.success('Invoice created successfully');
                 return result;
@@ -561,7 +620,7 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
 
     const getInvoiceById = (id: string) => invoices.find(invoice => invoice.id === id) || null;
 
-    // Other operations with similar pattern
+    // Expense operations
     const addExpense = async (expense: Expense) => {
         try {
             const { data, error } = await supabase.from('expenses').insert(expense).select();
@@ -625,16 +684,18 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
         }
     };
 
+    // Task operations with proper transformation
     const addTask = async (task: Task) => {
         try {
-            const { data, error } = await supabase.from('tasks').insert(task).select();
+            const dbTask = transformTaskForDB(task);
+            const { data, error } = await supabase.from('tasks').insert(dbTask).select();
             if (error) {
                 console.error('Error adding task:', error);
                 toast.error('Failed to add task');
                 throw error;
             }
             if (data && data.length > 0) {
-                const result = data[0] as Task;
+                const result = transformTask(data[0]);
                 setTasks((prev) => [...prev, result]);
                 toast.success('Task added successfully');
             }
@@ -664,9 +725,10 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
 
     const updateTask = async (id: string, updates: Partial<Task>) => {
         try {
+            const dbUpdates = transformTaskForDB(updates as Task);
             const { data, error } = await supabase
                 .from('tasks')
-                .update(updates)
+                .update(dbUpdates)
                 .eq('id', id)
                 .select();
 
@@ -677,7 +739,7 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
             }
 
             if (data && data.length > 0) {
-                const result = data[0] as Task;
+                const result = transformTask(data[0]);
                 setTasks((prev) => prev.map((item) => item.id === id ? result : item));
                 toast.success('Task updated successfully');
             }
@@ -688,6 +750,7 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
         }
     };
 
+    // Part operations
     const addPart = async (part: Part) => {
         try {
             const { data, error } = await supabase.from('parts').insert(part).select();
@@ -751,6 +814,7 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
         }
     };
 
+    // Payment operations
     const addPayment = async (payment: Payment) => {
         try {
             const { data, error } = await supabase.from('payments').insert(payment).select();

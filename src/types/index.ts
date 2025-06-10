@@ -58,17 +58,26 @@ export interface Task {
   title: string;
   description: string;
   mechanicId?: string;
+  mechanic_id?: string;
   vehicleId?: string;
+  vehicle_id?: string;
   status: TaskStatus;
   location?: TaskLocation;
   hoursEstimated: number;
+  hours_estimated?: number;
   hoursSpent?: number;
+  hours_spent?: number;
   price?: number;
   startTime?: string;
+  start_time?: string;
   endTime?: string;
+  end_time?: string;
   completedBy?: string;
+  completed_by?: string;
   completedAt?: string;
+  completed_at?: string;
   invoiceId?: string;
+  invoice_id?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -81,7 +90,7 @@ export interface Invoice {
   tax_rate: number;
   status: InvoiceStatus;
   notes?: string;
-  items: InvoiceItem[];
+  items?: InvoiceItem[];
   payments?: Payment[];
   created_at?: string;
   updated_at?: string;
@@ -131,7 +140,7 @@ export interface Expense {
   amount: number;
   category: string;
   description?: string;
-  payment_method: 'cash' | 'card' | 'bank-transfer';
+  payment_method: 'cash' | 'card' | 'bank-transfer' | 'check' | 'other';
   vendor_name?: string;
   vendor_id?: string;
   invoice_id?: string; // Added to support invoice assignment
