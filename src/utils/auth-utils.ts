@@ -32,7 +32,7 @@ export const createUserFromSession = (
       session.user.email?.split('@')[0] || '',
     role: profileData?.role || 
       session.user.user_metadata?.role || 'owner',
-    isActive: profileData?.is_active ?? true,
+    is_active: profileData?.is_active ?? true,
     organizationId: profileData?.organization_id || 
       session.user.user_metadata?.organization_id || undefined,
     lastLogin: new Date().toISOString()

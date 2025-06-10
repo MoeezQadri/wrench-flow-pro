@@ -18,7 +18,7 @@ interface AttendanceDialogProps {
   title?: string;
   description?: string;
   attendance?: Attendance;
-  onSave: (attendance: Omit<Attendance, "id">) => void;
+  onSave: (attendance: Omit<Attendance, "id">) => Promise<void>;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }
@@ -34,8 +34,8 @@ export function AttendanceDialog({
 }: AttendanceDialogProps) {
   const formId = "attendance-form";
 
-  const handleSave = (data: Omit<Attendance, "id">) => {
-    onSave(data);
+  const handleSave = async (data: Omit<Attendance, "id">) => {
+    await onSave(data);
   };
 
   return (
