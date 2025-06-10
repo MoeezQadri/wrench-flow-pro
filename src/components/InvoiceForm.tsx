@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -57,6 +58,8 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
   const [assignedParts, setAssignedParts] = useState<Part[]>([]);
   const [assignedTasks, setAssignedTasks] = useState<Task[]>([]);
   const [showAutoItems, setShowAutoItems] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formErrors, setFormErrors] = useState<string[]>([]);
 
   const {
     getVehiclesByCustomerId,
@@ -68,6 +71,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
 
   // Fetch customers on component mount
   useEffect(() => {
+    console.log("Customers data loaded:", customersData);
     setCustomers(customersData);
   }, [customersData]);
 
@@ -95,8 +99,15 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
   useEffect(() => {
     const loadVehicles = async () => {
       if (selectedCustomerId) {
-        const fetchedVehicles = await getVehiclesByCustomerId(selectedCustomerId);
-        setVehicles(fetchedVehicles);
+        console.log("Loading vehicles for customer:", selectedCustomerId);
+        try {
+          const fetchedVehicles = await getVehiclesByCustomerId(selectedCustomerId);
+          console.log("Vehicles loaded:", fetchedVehicles);
+          setVehicles(fetchedVehicles);
+        } catch (error) {
+          console.error("Error loading vehicles:", error);
+          toast.error("Failed to load vehicles for selected customer");
+        }
       }
     };
 
@@ -111,7 +122,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
       setDate(invoiceData.date);
       setTaxRate(invoiceData.tax_rate || 7.5);
       setNotes(invoiceData.notes || "");
-      setItems(invoiceData.items);
+      setItems(invoiceData.items || []);
     }
   }, [invoiceData]);
 
@@ -234,9 +245,50 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
 
   const { handleSubmit } = form;
 
+  // Validate form before submission
+  const validateForm = () => {
+    const errors: string[] = [];
+
+    if (!selectedCustomerId) {
+      errors.push("Please select a customer");
+    }
+    if (!selectedVehicleId) {
+      errors.push("Please select a vehicle");
+    }
+    if (!date) {
+      errors.push("Please select a date");
+    }
+    if (items.length === 0) {
+      errors.push("Please add at least one item to the invoice");
+    }
+
+    setFormErrors(errors);
+    return errors.length === 0;
+  };
+
   const onSubmit = async () => {
+    console.log("Form submission started");
+    console.log("Form data:", {
+      customerId: selectedCustomerId,
+      vehicleId: selectedVehicleId,
+      date,
+      taxRate,
+      items: items.length,
+      totals
+    });
+
+    // Validate form
+    if (!validateForm()) {
+      console.log("Form validation failed:", formErrors);
+      toast.error("Please fix the form errors before submitting");
+      return;
+    }
+
+    setIsSubmitting(true);
+    
     try {
       if (isEditing) {
+        console.log("Updating existing invoice");
         // Handle editing logic (existing functionality)
         const invoiceUpdateData = {
           customerId: selectedCustomerId,
@@ -252,6 +304,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
         await addInvoice(invoiceUpdateData);
         toast.success("Invoice updated successfully!");
       } else {
+        console.log("Creating new invoice");
         // Handle new invoice creation with bidirectional sync
         const invoiceCreationData = {
           customerId: selectedCustomerId,
@@ -264,6 +317,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
           items: items.filter(item => !item.is_auto_added) // Only manual items, auto items handled by service
         };
 
+        console.log("Calling createInvoiceWithAutoAssignment with:", invoiceCreationData);
         await createInvoiceWithAutoAssignment(invoiceCreationData);
         
         // Show success message with sync info
@@ -281,29 +335,48 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
         toast.success(successMessage);
       }
 
+      console.log("Invoice saved successfully, navigating to invoices page");
       navigate("/invoices");
     } catch (error) {
       console.error("Error saving invoice:", error);
       toast.error("Failed to save invoice. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
     <div>
+      {/* Show form errors if any */}
+      {formErrors.length > 0 && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <h4 className="font-medium text-red-800 mb-2">Please fix the following errors:</h4>
+          <ul className="list-disc list-inside text-red-700 text-sm">
+            {formErrors.map((error, index) => (
+              <li key={index}>{error}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         {/* Customer Selection */}
         <div>
-          <Label htmlFor="customer">Customer</Label>
+          <Label htmlFor="customer">Customer *</Label>
           <Select value={selectedCustomerId} onValueChange={(value) => setSelectedCustomerId(value)} required>
             <SelectTrigger id="customer">
               <SelectValue placeholder="Select a customer" />
             </SelectTrigger>
             <SelectContent>
-              {customers.map((customer: any) => (
-                <SelectItem key={customer.id} value={customer.id}>
-                  {customer.name}
-                </SelectItem>
-              ))}
+              {customers.length === 0 ? (
+                <SelectItem value="" disabled>No customers available</SelectItem>
+              ) : (
+                customers.map((customer: any) => (
+                  <SelectItem key={customer.id} value={customer.id}>
+                    {customer.name}
+                  </SelectItem>
+                ))
+              )}
             </SelectContent>
           </Select>
         </div>
@@ -311,23 +384,29 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
         {/* Vehicle Selection */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <Label htmlFor="vehicle">Vehicle</Label>
+            <Label htmlFor="vehicle">Vehicle *</Label>
             <Select value={selectedVehicleId} onValueChange={setSelectedVehicleId} required>
               <SelectTrigger id="vehicle">
                 <SelectValue placeholder="Select a vehicle" />
               </SelectTrigger>
               <SelectContent>
-                {vehicles.map((vehicle) => (
-                  <SelectItem key={vehicle.id} value={vehicle.id}>
-                    {vehicle.year} {vehicle.make} {vehicle.model}
+                {vehicles.length === 0 ? (
+                  <SelectItem value="" disabled>
+                    {selectedCustomerId ? "No vehicles found for this customer" : "Please select a customer first"}
                   </SelectItem>
-                ))}
+                ) : (
+                  vehicles.map((vehicle) => (
+                    <SelectItem key={vehicle.id} value={vehicle.id}>
+                      {vehicle.year} {vehicle.make} {vehicle.model}
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
           </div>
 
           <div>
-            <Label htmlFor="date">Date</Label>
+            <Label htmlFor="date">Date *</Label>
             <Input
               id="date"
               type="date"
@@ -459,8 +538,12 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
         </div>
 
         {/* Submit Button */}
-        <Button type="submit" className="w-full">
-          {isEditing ? "Update Invoice" : "Create Invoice"}
+        <Button 
+          type="submit" 
+          className="w-full" 
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? "Saving..." : (isEditing ? "Update Invoice" : "Create Invoice")}
         </Button>
       </form>
     </div>
