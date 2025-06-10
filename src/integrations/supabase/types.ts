@@ -455,7 +455,15 @@ export type Database = {
           vendor_id?: string | null
           vendor_name?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "parts_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       payments: {
         Row: {
@@ -769,6 +777,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      vendors: {
+        Row: {
+          address: string | null
+          category: string | null
+          contact_name: string
+          created_at: string | null
+          email: string | null
+          id: string
+          name: string
+          phone: string
+        }
+        Insert: {
+          address?: string | null
+          category?: string | null
+          contact_name: string
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          name: string
+          phone: string
+        }
+        Update: {
+          address?: string | null
+          category?: string | null
+          contact_name?: string
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          name?: string
+          phone?: string
+        }
+        Relationships: []
       }
     }
     Views: {

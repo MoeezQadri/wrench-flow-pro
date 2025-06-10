@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, ReactNode, useEffect } from
 import type { Mechanic, Customer, Vehicle, Vendor, Invoice, Expense, Task } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { calculateInvoiceTotal, generateId } from '@/services/data-service';
+import { fetchCustomerById } from '@/services/supabase-service';
 
 interface DataContextType {
     mechanics: Mechanic[];
@@ -19,7 +20,7 @@ interface DataContextType {
     addCustomer: (customer: Customer) => Promise<Customer>;
     removeCustomer: (id: string) => Promise<void>;
     updateCustomer: (id: string, updates: Partial<Customer>) => Promise<void>;
-    getCustomerById: (id: string) => Customer;
+    getCustomerById: (id: string) => Promise<Customer | null>;
 
     vehicles: Vehicle[];
     addVehicle: (vehicle: Vehicle) => Promise<void>;
@@ -161,8 +162,22 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     };
     const removeCustomer = async (id: string) => await removeItem('customers', id, setCustomers);
     const updateCustomer = async (id: string, updates: Partial<Customer>) => await updateItem('customers', id, updates, setCustomers);
-    const getCustomerById = (id: string) => customers.filter(item => item.id === id)[0];
-
+    const getCustomerById = async (id: string): Promise<Customer | null> => {
+        try {
+            // First try to find in local state
+            const localCustomer = customers.find(customer => customer.id === id);
+            if (localCustomer) {
+                return localCustomer;
+            }
+            
+            // If not found locally, fetch from Supabase
+            const customerData = await fetchCustomerById(id);
+            return customerData;
+        } catch (error) {
+            console.error('Error fetching customer:', error);
+            return null;
+        }
+    };
 
     const addVehicle = async (vehicle: Vehicle) => await addItem('vehicles', vehicle, setVehicles);
     const removeVehicle = async (id: string) => await removeItem('vehicles', id, setVehicles);
@@ -246,5 +261,3 @@ const useDataContext = () => {
 
 export type { DataContextType };
 export { DataProvider, useDataContext };
-
-
