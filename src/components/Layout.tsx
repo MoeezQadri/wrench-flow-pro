@@ -33,15 +33,6 @@ const Layout = () => {
                 </span>
               )}
             </div>
-            <div className="flex items-center space-x-4">
-              <Button 
-                variant="ghost"
-                size="icon"
-                onClick={() => navigate('/settings')}
-              >
-                <Settings className="w-5 h-5" />
-              </Button>
-            </div>
           </header>
           
           <main className="flex-1 overflow-auto p-6">
