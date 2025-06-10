@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -27,6 +26,8 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [isLoadingVehicles, setIsLoadingVehicles] = useState(false);
   const [isLoadingCustomers, setIsLoadingCustomers] = useState(false);
+  const loadedCustomerRef = useRef<string>("");
+  const hasInitiallyLoaded = useRef(false);
   
   const {
     customers,
@@ -42,16 +43,19 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
     }
   }, [customers.length]);
 
-  // Load vehicles when customer is selected or when editing and customer is already set
+  // Load vehicles when customer is selected - optimized to prevent unnecessary calls
   useEffect(() => {
     const loadVehicles = async () => {
-      if (selectedCustomerId) {
+      // Skip if we already loaded for this customer (prevents unnecessary calls when editing)
+      if (selectedCustomerId && selectedCustomerId !== loadedCustomerRef.current) {
         setIsLoadingVehicles(true);
         try {
           console.log("Loading vehicles for customer:", selectedCustomerId);
           const fetchedVehicles = await getVehiclesByCustomerId(selectedCustomerId);
           console.log("Vehicles loaded:", fetchedVehicles);
           setVehicles(fetchedVehicles);
+          loadedCustomerRef.current = selectedCustomerId;
+          hasInitiallyLoaded.current = true;
         } catch (error) {
           console.error("Error loading vehicles:", error);
           toast.error("Failed to load vehicles for selected customer");
@@ -59,8 +63,9 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
         } finally {
           setIsLoadingVehicles(false);
         }
-      } else {
+      } else if (!selectedCustomerId) {
         setVehicles([]);
+        loadedCustomerRef.current = "";
       }
     };
 
@@ -86,6 +91,8 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
     if (!isEditing) {
       onVehicleIdChange(""); // Reset vehicle selection when customer changes, but not when editing
     }
+    // Reset the loaded customer ref to allow loading vehicles for the new customer
+    loadedCustomerRef.current = "";
   };
 
   // Find the selected vehicle to display its name
