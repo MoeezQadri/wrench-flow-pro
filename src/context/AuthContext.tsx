@@ -13,6 +13,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isSuperAdmin: boolean;
   session: any;
+  setSession: React.Dispatch<React.SetStateAction<any>>;
   signIn: (email: string, password: string) => Promise<{
     error: Error | null;
     data: Session | null;
@@ -36,7 +37,10 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [session, setSession] = useState<any>(null);
 
   const isAuthenticated = !!currentUser;
-  const isSuperAdmin = currentUser?.role === 'superuser';
+  const isSuperAdmin = currentUser?.role === 'superuser'
+    || currentUser?.role === 'superadmin'
+    || currentUser?.role === 'owner';
+
 
   useEffect(() => {
     setLoading(true);
@@ -91,7 +95,6 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (error) {
         throw error;
       }
-
       const userRole = (profile?.role || 'viewer') as UserRole;
 
       const userDetails: User = {
@@ -105,6 +108,7 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         created_at: profile?.created_at || null,
         updated_at: profile?.updated_at || null,
       };
+
 
       setCurrentUser(userDetails);
     } catch (error: any) {
@@ -183,6 +187,7 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isAuthenticated,
     isSuperAdmin,
     session,
+    setSession,
     signIn,
     signUp,
     signOut,
