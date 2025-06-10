@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -15,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Invoice, InvoiceItem, Vehicle, Part, Task } from "@/types";
+import { Invoice, InvoiceItem, Vehicle, Part, Task, TaskLocation } from "@/types";
 
 import InvoiceItemsSection from "./invoice/InvoiceItemsSection";
 import { toast } from "sonner";
@@ -138,7 +137,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
               mechanicId: task.mechanic_id,
               vehicleId: selectedVehicleId,
               status: task.status,
-              location: task.location,
+              location: (task.location as TaskLocation) || 'workshop',
               hoursEstimated: task.hours_estimated,
               hoursSpent: task.hours_spent,
               price: task.price,
