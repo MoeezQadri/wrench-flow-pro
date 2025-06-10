@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -31,8 +30,8 @@ const TasksReport = () => {
   const inProgressTasks = filteredTasks.filter(t => t.status === 'in-progress').length;
   const pendingTasks = filteredTasks.filter(t => t.status === 'pending').length;
 
-  const totalHoursSpent = filteredTasks.reduce((sum, task) => sum + (task.hours_spent || 0), 0);
-  const totalHoursEstimated = filteredTasks.reduce((sum, task) => sum + (task.hours_estimated || 0), 0);
+  const totalHoursSpent = filteredTasks.reduce((sum, task) => sum + (task.hoursSpent || 0), 0);
+  const totalHoursEstimated = filteredTasks.reduce((sum, task) => sum + (task.hoursEstimated || 0), 0);
   const averageTaskTime = totalTasks > 0 ? totalHoursSpent / totalTasks : 0;
 
   const handleDateRangeChange = (newStartDate: Date, newEndDate: Date) => {
@@ -143,9 +142,9 @@ const TasksReport = () => {
                 </TableRow>
               ) : (
                 filteredTasks.map((task) => {
-                  const mechanic = mechanics.find(m => m.id === task.mechanic_id);
-                  const efficiency = task.hours_estimated && task.hours_spent 
-                    ? ((task.hours_estimated / task.hours_spent) * 100).toFixed(1) 
+                  const mechanic = mechanics.find(m => m.id === task.mechanicId);
+                  const efficiency = task.hoursEstimated && task.hoursSpent 
+                    ? ((task.hoursEstimated / task.hoursSpent) * 100).toFixed(1) 
                     : 'N/A';
 
                   return (
@@ -161,8 +160,8 @@ const TasksReport = () => {
                           {task.status}
                         </div>
                       </TableCell>
-                      <TableCell>{task.hours_estimated || 0}h</TableCell>
-                      <TableCell>{task.hours_spent || 0}h</TableCell>
+                      <TableCell>{task.hoursEstimated || 0}h</TableCell>
+                      <TableCell>{task.hoursSpent || 0}h</TableCell>
                       <TableCell>
                         {efficiency !== 'N/A' && (
                           <span className={`font-medium ${

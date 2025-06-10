@@ -28,12 +28,12 @@ const InvoicingReport = () => {
   // Calculate statistics
   const totalInvoices = filteredInvoices.length;
   const paidInvoices = filteredInvoices.filter(inv => inv.status === 'paid').length;
-  const unpaidInvoices = filteredInvoices.filter(inv => inv.status === 'unpaid').length;
+  const openInvoices = filteredInvoices.filter(inv => inv.status === 'open').length;
   const overdueInvoices = filteredInvoices.filter(inv => inv.status === 'overdue').length;
 
   const totalRevenue = filteredInvoices.reduce((sum, invoice) => {
     // Calculate invoice total from invoice items
-    const invoiceTotal = invoice.invoice_items?.reduce((itemSum: number, item: any) => 
+    const invoiceTotal = invoice.items?.reduce((itemSum: number, item: any) => 
       itemSum + (item.quantity * item.price), 0) || 0;
     return sum + invoiceTotal;
   }, 0);
@@ -93,10 +93,10 @@ const InvoicingReport = () => {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Unpaid</CardTitle>
+            <CardTitle className="text-sm">Open</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{unpaidInvoices}</div>
+            <div className="text-2xl font-bold text-yellow-600">{openInvoices}</div>
           </CardContent>
         </Card>
         <Card>
@@ -186,7 +186,7 @@ const InvoicingReport = () => {
               ) : (
                 filteredInvoices.map((invoice) => {
                   const customer = customers.find(c => c.id === invoice.customer_id);
-                  const invoiceTotal = invoice.invoice_items?.reduce((sum: number, item: any) => 
+                  const invoiceTotal = invoice.items?.reduce((sum: number, item: any) => 
                     sum + (item.quantity * item.price), 0) || 0;
 
                   return (
