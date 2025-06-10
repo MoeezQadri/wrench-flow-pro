@@ -1,36 +1,35 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle 
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { TabsContent, Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { 
-  ArrowLeft, 
-  Car, 
-  FileText, 
-  BarChart, 
+import {
+  ArrowLeft,
+  Car,
+  FileText,
+  BarChart,
   Calendar,
   Phone,
   Mail,
   MapPin,
   DollarSign
 } from 'lucide-react';
-import { 
-  getCustomerById, 
-  getCustomerAnalytics, 
-  calculateInvoiceTotal 
+import {
+  calculateInvoiceTotal
 } from '@/services/data-service';
 import StatusBadge from '@/components/StatusBadge';
 import { Customer, CustomerAnalytics } from '@/types';
 import { resolvePromiseAndSetState } from '@/utils/async-helpers';
+import { useDataContext } from '@/context/data/DataContext';
 
 const CustomerDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -38,27 +37,31 @@ const CustomerDetail = () => {
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [analytics, setAnalytics] = useState<CustomerAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
-  
+  const {
+    getCustomerById,
+    getCustomerAnalytics,
+  } = useDataContext();
+
   // Load customer data
   useEffect(() => {
     if (!id) return;
-    
+
     const loadData = async () => {
       setLoading(true);
       // Get customer and analytics data
-      const customerPromise = getCustomerById(id);
-      await resolvePromiseAndSetState(customerPromise, setCustomer);
-      
+      const customer_ = await getCustomerById(id);
+      setCustomer(customer_);
+
       if (customer) {
         const analyticsPromise = getCustomerAnalytics(id);
         await resolvePromiseAndSetState(analyticsPromise, setAnalytics);
       }
       setLoading(false);
     };
-    
+
     loadData();
   }, [id]);
-  
+
   // Fallback if ID is not provided
   if (!id) {
     return (
@@ -77,7 +80,7 @@ const CustomerDetail = () => {
       </div>
     );
   }
-  
+
   // Show loading state
   if (loading) {
     return (
@@ -91,7 +94,7 @@ const CustomerDetail = () => {
       </div>
     );
   }
-  
+
   if (!customer || !analytics) {
     return (
       <div className="flex items-center justify-center h-[80vh]">
@@ -109,7 +112,7 @@ const CustomerDetail = () => {
       </div>
     );
   }
-  
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -128,7 +131,7 @@ const CustomerDetail = () => {
           </Link>
         </Button>
       </div>
-      
+
       {/* Customer Overview */}
       <div className="grid gap-6 md:grid-cols-3">
         <Card className="md:col-span-2">
@@ -161,7 +164,7 @@ const CustomerDetail = () => {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader>
             <CardTitle>Customer Value</CardTitle>
@@ -182,7 +185,7 @@ const CustomerDetail = () => {
           </CardContent>
         </Card>
       </div>
-      
+
       {/* Tabs for Vehicles, Invoices, Service History */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="grid grid-cols-3 md:w-[400px]">
@@ -190,7 +193,7 @@ const CustomerDetail = () => {
           <TabsTrigger value="invoices">Invoices</TabsTrigger>
           <TabsTrigger value="history">Service History</TabsTrigger>
         </TabsList>
-        
+
         {/* Vehicles Tab */}
         <TabsContent value="overview" className="space-y-4">
           <h2 className="text-xl font-semibold">Customer Vehicles</h2>
@@ -208,7 +211,7 @@ const CustomerDetail = () => {
                   <div className="space-y-2">
                     <div className="grid grid-cols-2 text-sm">
                       <span className="font-medium">License:</span>
-                      <span>{vehicle.licensePlate}</span>
+                      <span>{vehicle.license_plate}</span>
                     </div>
                     {vehicle.vin && (
                       <div className="grid grid-cols-2 text-sm">
@@ -218,7 +221,7 @@ const CustomerDetail = () => {
                     )}
                     <div className="grid grid-cols-2 text-sm">
                       <span className="font-medium">Service Count:</span>
-                      <span>{analytics.invoiceHistory.filter(i => i.vehicleId === vehicle.id).length}</span>
+                      <span>{analytics.invoiceHistory.filter(i => i.vehicle_id === vehicle.id).length}</span>
                     </div>
                   </div>
                 </CardContent>
@@ -232,7 +235,7 @@ const CustomerDetail = () => {
             </Card>
           </div>
         </TabsContent>
-        
+
         {/* Invoices Tab */}
         <TabsContent value="invoices" className="space-y-4">
           <div className="flex justify-between items-center">
@@ -265,8 +268,8 @@ const CustomerDetail = () => {
                   ) : (
                     analytics.invoiceHistory.map((invoice) => {
                       const { total } = calculateInvoiceTotal(invoice);
-                      const vehicle = analytics.vehicles.find(v => v.id === invoice.vehicleId);
-                      
+                      const vehicle = analytics.vehicles.find(v => v.id === invoice.vehicle_id);
+
                       return (
                         <TableRow key={invoice.id}>
                           <TableCell>#{invoice.id}</TableCell>
@@ -290,7 +293,7 @@ const CustomerDetail = () => {
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         {/* Service History Tab */}
         <TabsContent value="history" className="space-y-4">
           <h2 className="text-xl font-semibold">Service History</h2>
@@ -305,8 +308,8 @@ const CustomerDetail = () => {
                   analytics.invoiceHistory
                     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                     .map((invoice) => {
-                      const vehicle = analytics.vehicles.find(v => v.id === invoice.vehicleId);
-                      
+                      const vehicle = analytics.vehicles.find(v => v.id === invoice.vehicle_id);
+
                       return (
                         <div key={invoice.id} className="relative pl-6 pb-6 border-l-2 border-muted last:border-0 last:pb-0">
                           <div className="absolute -left-1.5 top-0">
@@ -316,7 +319,7 @@ const CustomerDetail = () => {
                             <div>
                               <p className="font-medium">{invoice.date} - {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}</p>
                               <p className="text-sm text-muted-foreground">
-                                {vehicle?.make} {vehicle?.model} • {vehicle?.licensePlate}
+                                {vehicle?.make} {vehicle?.model} • {vehicle?.license_plate}
                               </p>
                             </div>
                             <Button variant="outline" size="sm">

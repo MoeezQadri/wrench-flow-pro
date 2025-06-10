@@ -12,7 +12,8 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Customer } from "@/types";
 import CustomerForm, { CustomerFormValues } from "./customer/CustomerForm";
-import { getCurrentUser, hasPermission } from "@/services/data-service";
+import { hasPermission } from "@/services/data-service";
+import { useAuthContext } from "@/context/AuthContext";
 
 const generateId = (prefix: string = 'id'): string => {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -28,11 +29,13 @@ interface CustomerDialogProps {
 const CustomerDialog = ({ open, onOpenChange, onSave, customer }: CustomerDialogProps) => {
   const isEditing = !!customer;
   const formId = "customer-form";
-  const currentUser = getCurrentUser();
-  
+  const {
+    currentUser
+  } = useAuthContext()
+
   // Check if user has permission to manage customers
   const canManageCustomers = hasPermission(currentUser, 'customers', 'manage');
-  
+
   if (!canManageCustomers) {
     return null;
   }
@@ -48,7 +51,7 @@ const CustomerDialog = ({ open, onOpenChange, onSave, customer }: CustomerDialog
         created_at: customer?.created_at || new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
-      
+
       onSave(newCustomer);
       toast.success(`Customer ${isEditing ? "updated" : "added"} successfully!`);
       onOpenChange(false);
@@ -74,11 +77,11 @@ const CustomerDialog = ({ open, onOpenChange, onSave, customer }: CustomerDialog
           defaultValues={
             customer
               ? {
-                  name: customer.name,
-                  email: customer.email || "",
-                  phone: customer.phone || "",
-                  address: customer.address || "",
-                }
+                name: customer.name,
+                email: customer.email || "",
+                phone: customer.phone || "",
+                address: customer.address || "",
+              }
               : undefined
           }
           onSubmit={handleSubmit}

@@ -2,16 +2,16 @@
 import React, { useState, useEffect } from "react";
 import { format, isWithinInterval, parseISO, subDays } from "date-fns";
 import { Link } from "react-router-dom";
-import { 
-  PieChart, 
-  Pie, 
-  Cell, 
+import {
+  PieChart,
+  Pie,
+  Cell,
   ResponsiveContainer,
   Tooltip,
   Legend
 } from "recharts";
 import { Invoice, InvoiceStatus } from "@/types";
-import { getInvoices, calculateInvoiceTotal } from "@/services/data-service";
+import { calculateInvoiceTotal } from "@/services/data-service";
 import DateRangeDropdown from "@/components/DateRangeDropdown";
 import StatusBadge from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
@@ -19,13 +19,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ArrowUpDown, ArrowLeft, FileText, Search } from "lucide-react";
+import { useDataContext } from "@/context/data/DataContext";
 
 const COLORS = ['#FFC107', '#3B82F6', '#10B981', '#8B5CF6', '#EF4444'];
 
 const InvoicingReport = () => {
   const today = new Date();
   const thirtyDaysAgo = subDays(today, 30);
-  
+
   const [startDate, setStartDate] = useState<Date>(thirtyDaysAgo);
   const [endDate, setEndDate] = useState<Date>(today);
   const [searchTerm, setSearchTerm] = useState<string>("");
@@ -35,13 +36,15 @@ const InvoicingReport = () => {
   }>({ key: 'date', direction: 'descending' });
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-
+  const {
+    invoices: invoices_
+  } = useDataContext();
   // Load invoice data
   useEffect(() => {
     const fetchInvoiceData = async () => {
       try {
         setIsLoading(true);
-        const invoicesData = await getInvoices();
+        const invoicesData = invoices_;
         setInvoices(invoicesData);
       } catch (error) {
         console.error("Error fetching invoices:", error);
@@ -49,7 +52,7 @@ const InvoicingReport = () => {
         setIsLoading(false);
       }
     };
-    
+
     fetchInvoiceData();
   }, []);
 
@@ -91,13 +94,13 @@ const InvoicingReport = () => {
     const invoiceId = invoice.id.toLowerCase();
     const vehicleMake = (invoice.vehicleInfo?.make || "").toLowerCase();
     const vehicleModel = (invoice.vehicleInfo?.model || "").toLowerCase();
-    const licensePlate = (invoice.vehicleInfo?.licensePlate || "").toLowerCase();
+    const license_plate = (invoice.vehicleInfo?.license_plate || "").toLowerCase();
     const search = searchTerm.toLowerCase();
-    
-    return invoiceId.includes(search) || 
-           vehicleMake.includes(search) || 
-           vehicleModel.includes(search) || 
-           licensePlate.includes(search);
+
+    return invoiceId.includes(search) ||
+      vehicleMake.includes(search) ||
+      vehicleModel.includes(search) ||
+      license_plate.includes(search);
   });
 
   // Apply sorting
@@ -105,36 +108,36 @@ const InvoicingReport = () => {
     if (sortConfig.key === 'total') {
       const totalA = calculateInvoiceTotal(a).total;
       const totalB = calculateInvoiceTotal(b).total;
-      
+
       if (sortConfig.direction === 'ascending') {
         return totalA - totalB;
       } else {
         return totalB - totalA;
       }
     }
-    
+
     if (sortConfig.key === 'date') {
       const dateA = new Date(a.date).getTime();
       const dateB = new Date(b.date).getTime();
-      
+
       if (sortConfig.direction === 'ascending') {
         return dateA - dateB;
       } else {
         return dateB - dateA;
       }
     }
-    
+
     if (sortConfig.key === 'status') {
       const statusA = a.status;
       const statusB = b.status;
-      
+
       if (sortConfig.direction === 'ascending') {
         return statusA.localeCompare(statusB);
       } else {
         return statusB.localeCompare(statusA);
       }
     }
-    
+
     return 0;
   });
 
@@ -169,7 +172,7 @@ const InvoicingReport = () => {
           </Button>
           <h1 className="text-3xl font-bold tracking-tight">Invoicing Summary</h1>
         </div>
-        <DateRangeDropdown 
+        <DateRangeDropdown
           startDate={startDate}
           endDate={endDate}
           onRangeChange={handleDateRangeChange}
@@ -199,8 +202,8 @@ const InvoicingReport = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${filteredInvoices.length > 0 
-                ? (totalInvoiceValue / filteredInvoices.length).toFixed(2) 
+              ${filteredInvoices.length > 0
+                ? (totalInvoiceValue / filteredInvoices.length).toFixed(2)
                 : '0.00'}
             </div>
           </CardContent>
@@ -343,7 +346,7 @@ const InvoicingReport = () => {
                       <TableCell className="font-medium">{invoice.id}</TableCell>
                       <TableCell>{format(new Date(invoice.date), 'MMM dd, yyyy')}</TableCell>
                       <TableCell>
-                        {`${invoice.vehicleInfo?.make || 'N/A'} ${invoice.vehicleInfo?.model || ''} ${invoice.vehicleInfo?.licensePlate ? `(${invoice.vehicleInfo.licensePlate})` : ''}`}
+                        {`${invoice.vehicleInfo?.make || 'N/A'} ${invoice.vehicleInfo?.model || ''} ${invoice.vehicleInfo?.license_plate ? `(${invoice.vehicleInfo.license_plate})` : ''}`}
                       </TableCell>
                       <TableCell>
                         <StatusBadge status={invoice.status} />

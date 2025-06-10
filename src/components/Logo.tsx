@@ -1,4 +1,5 @@
 import { SVGProps } from 'react';
+import { useNavigate } from 'react-router-dom';
 interface LogoProps {
   className?: string;
   showText?: boolean;
@@ -11,6 +12,7 @@ const Logo = ({
   size = "md",
   textColor = "text-foreground"
 }: LogoProps) => {
+  const navigate = useNavigate();
   const sizeClasses = {
     sm: {
       container: "w-6 h-6",
@@ -29,12 +31,12 @@ const Logo = ({
     }
   };
   return <div className={`flex items-center ${className}`}>
-      <div className={`relative ${sizeClasses[size].container} rounded-full flex items-center justify-center`}>
-        <img alt="Garage Pro Road Icon" className="object-fill" src="/lovable-uploads/adb79866-2bf5-4349-83d4-0212f37959ca.png" />
-      </div>
-      {showText && <span className={`ml-2 font-bold ${sizeClasses[size].text} ${textColor}`}>
-          GARAGE PRO
-        </span>}
-    </div>;
+    <div className={`relative ${sizeClasses[size].container} rounded-full flex items-center justify-center`}>
+      <img alt="Garage Pro Road Icon" className="object-fill cursor-pointer" src="/lovable-uploads/adb79866-2bf5-4349-83d4-0212f37959ca.png" onClick={() => navigate('/')} />
+    </div>
+    {showText && <span className={`ml-2 font-bold ${sizeClasses[size].text} ${textColor}`}>
+      GARAGE PRO
+    </span>}
+  </div>;
 };
 export default Logo;

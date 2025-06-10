@@ -12,7 +12,8 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Part } from "@/types";
 import PartForm, { PartFormValues } from "./PartForm";
-import { generateId, getInvoiceById } from "@/services/data-service";
+import { generateId } from "@/services/data-service";
+import { useDataContext } from "@/context/data/DataContext";
 
 interface PartDialogProps {
   open: boolean;
@@ -27,6 +28,10 @@ const PartDialog = ({ open, onOpenChange, onSave, part, invoiceId }: PartDialogP
   const formId = "part-form";
   const [invoice, setInvoice] = useState<any>(null);
   const [loading, setLoading] = useState(invoiceId ? true : false);
+
+  const {
+    getInvoiceById
+  } = useDataContext()
 
   useEffect(() => {
     if (invoiceId) {
@@ -51,7 +56,7 @@ const PartDialog = ({ open, onOpenChange, onSave, part, invoiceId }: PartDialogP
     try {
       // Only look up vendor if vendorId is provided and not "none"
       const vendorId = data.vendorId !== "none" ? data.vendorId : undefined;
-      
+
       const newPart: Part = {
         id: part?.id || generateId("part"),
         name: data.name,
@@ -63,9 +68,9 @@ const PartDialog = ({ open, onOpenChange, onSave, part, invoiceId }: PartDialogP
         part_number: data.partNumber,
         invoice_ids: data.invoiceIds || [],
       };
-      
+
       onSave(newPart);
-      
+
       // If the part is being added to an invoice, show a specialized message
       if (invoiceId && invoice) {
         const vehicleInfo = invoice.vehicleInfo;
@@ -74,7 +79,7 @@ const PartDialog = ({ open, onOpenChange, onSave, part, invoiceId }: PartDialogP
       } else {
         toast.success(`Part ${isEditing ? "updated" : "added"} successfully!`);
       }
-      
+
       onOpenChange(false);
     } catch (error) {
       console.error("Error saving part:", error);
@@ -94,8 +99,8 @@ const PartDialog = ({ open, onOpenChange, onSave, part, invoiceId }: PartDialogP
           <DialogDescription>
             {isEditing
               ? "Update the part information below."
-              : invoice 
-                ? `Add a new part to invoice #${invoiceId?.substring(0, 8)}.` 
+              : invoice
+                ? `Add a new part to invoice #${invoiceId?.substring(0, 8)}.`
                 : "Enter the details for the new part."
             }
           </DialogDescription>
@@ -105,15 +110,15 @@ const PartDialog = ({ open, onOpenChange, onSave, part, invoiceId }: PartDialogP
           defaultValues={
             part
               ? {
-                  name: part.name,
-                  price: part.price,
-                  quantity: part.quantity,
-                  description: part.description,
-                  vendorId: part.vendor_id || "none",
-                  vendorName: part.vendor_name,
-                  partNumber: part.part_number,
-                  invoiceIds: part.invoice_ids || [],
-                }
+                name: part.name,
+                price: part.price,
+                quantity: part.quantity,
+                description: part.description,
+                vendorId: part.vendor_id || "none",
+                vendorName: part.vendor_name,
+                partNumber: part.part_number,
+                invoiceIds: part.invoice_ids || [],
+              }
               : undefined
           }
           onSubmit={handleSubmit}

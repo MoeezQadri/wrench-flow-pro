@@ -1,4 +1,4 @@
-import { User, Customer, Vehicle, Invoice, Part, Mechanic, Vendor, Expense, Attendance, Task, CustomerAnalytics, DashboardMetrics, InvoiceItem, Payment, InvoiceStatus, UserRole, RolePermissionMap } from "@/types";
+import { User, Customer, Vehicle, Invoice, Part, Mechanic, Vendor, Expense, Attendance, Task, CustomerAnalytics, DashboardMetrics, InvoiceItem, Payment, InvoiceStatus, UserRole } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -34,7 +34,7 @@ const mapInvoiceFromDb = (invoice: any): Invoice => {
     vehicle_id: invoice.vehicle_id,
     date: invoice.date,
     status: invoice.status as InvoiceStatus,
-    total_amount: invoice.total_amount,
+    // total_amount: invoice.total_amount,
     tax_rate: invoice.tax_rate,
     notes: invoice.notes || '',
     items,
@@ -43,7 +43,7 @@ const mapInvoiceFromDb = (invoice: any): Invoice => {
       make: vehicle?.make || '',
       model: vehicle?.model || '',
       year: vehicle?.year || '',
-      licensePlate: vehicle?.license_plate || ''
+      license_plate: vehicle?.license_plate || ''
     },
     created_at: invoice.created_at,
     discount: invoice.discount
@@ -116,7 +116,7 @@ export const fetchVehiclesByCustomerId = async (customerId: string) => {
       make: v.make,
       model: v.model,
       year: v.year,
-      licensePlate: v.license_plate,
+      license_plate: v.license_plate,
       vin: v.vin,
       color: v.color
     }));
@@ -143,7 +143,7 @@ export const addVehicle = async (vehicleData: any) => {
       make: data.make,
       model: data.model,
       year: data.year,
-      licensePlate: data.license_plate,
+      license_plate: data.license_plate,
       vin: data.vin,
       color: data.color
     };
@@ -309,12 +309,12 @@ export const fetchTasks = async () => {
 export const recordAttendanceInDb = async (attendanceData: Omit<Attendance, 'id'>): Promise<Attendance> => {
   try {
     const dbAttendance = {
-      mechanic_id: attendanceData.mechanicId,
+      mechanic_id: attendanceData.mechanic_id,
       date: attendanceData.date,
-      check_in: attendanceData.checkIn,
-      check_out: attendanceData.checkOut,
+      check_in: attendanceData.check_in,
+      check_out: attendanceData.check_out,
       status: attendanceData.status,
-      approved_by: attendanceData.approvedBy,
+      approved_by: attendanceData.approved_by,
       notes: attendanceData.notes
     };
     
@@ -387,7 +387,8 @@ export const fetchDashboardMetrics = async (): Promise<DashboardMetrics> => {
       activeCustomers: 28,
       activeVehicles: 42,
       inventoryValue: 15600,
-      lowStockItems: 3
+      lowStockItems: 3,
+      averageJobValue: 0
     };
   } catch (error) {
     handleError(error, 'fetching dashboard metrics');
@@ -405,7 +406,8 @@ export const fetchDashboardMetrics = async (): Promise<DashboardMetrics> => {
       activeCustomers: 0,
       activeVehicles: 0,
       inventoryValue: 0,
-      lowStockItems: 0
+      lowStockItems: 0,
+      averageJobValue: 0
     };
   }
 };
@@ -419,10 +421,11 @@ export const fetchCustomerAnalytics = async (customerId: string): Promise<Custom
       totalInvoices: 5,
       lifetimeValue: 1250,
       averageInvoiceValue: 250,
-      firstVisitDate: '2023-01-15',
-      lastVisitDate: '2023-04-22',
+      // firstVisitDate: '2023-01-15',
+      // lastVisitDate: '2023-04-22',
       vehicles: [],
-      invoiceHistory: []
+      invoiceHistory: [],
+      customerId: "1"
     };
   } catch (error) {
     handleError(error, 'fetching customer analytics');
@@ -430,10 +433,11 @@ export const fetchCustomerAnalytics = async (customerId: string): Promise<Custom
       totalInvoices: 0,
       lifetimeValue: 0,
       averageInvoiceValue: 0,
-      firstVisitDate: '',
-      lastVisitDate: '',
+      // firstVisitDate: '',
+      // lastVisitDate: '',
       vehicles: [],
-      invoiceHistory: []
+      invoiceHistory: [],
+      customerId: "0"
     };
   }
 };

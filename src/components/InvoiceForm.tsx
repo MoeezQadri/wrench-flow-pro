@@ -15,14 +15,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Invoice, InvoiceItem, Vehicle } from "@/types";
-import { 
-  getCustomers, 
-  getVehiclesByCustomerId,
-  addInvoice,
-  fetchVehicleById
-} from "@/services/data-service";
+
 import InvoiceItemsSection from "./invoice/InvoiceItemsSection";
 import { toast } from "sonner";
+import { useDataContext } from "@/context/data/DataContext";
 
 // Define the form schema using Zod
 const formSchema = z.object({
@@ -51,17 +47,22 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
   const [taxRate, setTaxRate] = useState(7.5);
   const [notes, setNotes] = useState("");
   const [items, setItems] = useState<InvoiceItem[]>([]);
-  
+
+  const {
+    getVehiclesByCustomerId,
+    addInvoice,
+    getVehicleById: fetchVehicleById
+  } = useDataContext()
   // Fetch customers on component mount
   useEffect(() => {
     const loadCustomers = async () => {
-      const fetchedCustomers = await getCustomers();
+      const fetchedCustomers = customers;
       setCustomers(fetchedCustomers);
     };
-    
+
     loadCustomers();
   }, []);
-  
+
   // Fetch vehicles when customer is selected
   useEffect(() => {
     const loadVehicles = async () => {
@@ -70,10 +71,10 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
         setVehicles(fetchedVehicles);
       }
     };
-    
+
     loadVehicles();
   }, [selectedCustomerId]);
-  
+
   // Initialize form values when editing
   useEffect(() => {
     if (invoiceData) {
@@ -90,7 +91,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
   const calculateTotals = () => {
     const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     const taxAmount = subtotal * (taxRate / 100);
-    
+
     let discountAmount = 0;
     if (invoiceData?.discount) {
       if (invoiceData.discount.type === 'percentage') {
@@ -99,9 +100,9 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
         discountAmount = invoiceData.discount.value;
       }
     }
-    
+
     const total = subtotal + taxAmount - discountAmount;
-    
+
     return {
       subtotal,
       tax: taxAmount,
@@ -136,10 +137,10 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
         notes: notes,
         items: items
       };
-      
+
       // Call the addInvoice function from data-service
       await addInvoice(invoiceData);
-      
+
       toast.success("Invoice created successfully!");
       navigate("/invoices");
     } catch (error) {
@@ -185,7 +186,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
               </SelectContent>
             </Select>
           </div>
-          
+
           <div>
             <Label htmlFor="date">Date</Label>
             <Input

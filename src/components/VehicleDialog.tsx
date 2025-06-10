@@ -12,7 +12,8 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Vehicle } from "@/types";
 import VehicleFormSection, { VehicleFormValues } from "./vehicle/VehicleFormSection";
-import { getCurrentUser, hasPermission } from "@/services/data-service";
+import { hasPermission } from "@/services/data-service";
+import { useAuthContext } from "@/context/AuthContext";
 
 const generateId = (prefix: string = 'id'): string => {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -29,11 +30,11 @@ interface VehicleDialogProps {
 const VehicleDialog = ({ open, onOpenChange, onSave, vehicle, customerId }: VehicleDialogProps) => {
   const isEditing = !!vehicle;
   const formId = "vehicle-form";
-  const currentUser = getCurrentUser();
-  
+  const { currentUser } = useAuthContext();
+
   // Check if user has permission to manage vehicles
   const canManageVehicles = hasPermission(currentUser, 'vehicles', 'manage');
-  
+
   if (!canManageVehicles) {
     return null;
   }
@@ -46,13 +47,13 @@ const VehicleDialog = ({ open, onOpenChange, onSave, vehicle, customerId }: Vehi
         make: data.make,
         model: data.model,
         year: data.year,
-        licensePlate: data.licensePlate,
+        license_plate: data.license_plate,
         vin: data.vin || "",
         color: data.color || "",
         created_at: vehicle?.created_at || new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
-      
+
       onSave(newVehicle);
       toast.success(`Vehicle ${isEditing ? "updated" : "added"} successfully!`);
       onOpenChange(false);
@@ -78,13 +79,13 @@ const VehicleDialog = ({ open, onOpenChange, onSave, vehicle, customerId }: Vehi
           defaultValues={
             vehicle
               ? {
-                  make: vehicle.make,
-                  model: vehicle.model,
-                  year: vehicle.year,
-                  licensePlate: vehicle.licensePlate,
-                  vin: vehicle.vin || "",
-                  color: vehicle.color || "",
-                }
+                make: vehicle.make,
+                model: vehicle.model,
+                year: vehicle.year,
+                license_plate: vehicle.license_plate,
+                vin: vehicle.vin || "",
+                color: vehicle.color || "",
+              }
               : undefined
           }
           onSubmit={handleSubmit}

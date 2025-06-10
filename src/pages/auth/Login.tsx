@@ -20,27 +20,27 @@ const Login: React.FC = () => {
   const { signIn, currentUser } = useAuthContext();
   const navigate = useNavigate();
   const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>();
-  
+
   // Redirect if already logged in
   useEffect(() => {
     if (currentUser) {
-      navigate('/dashboard');
+      navigate('/');
     }
   }, [currentUser, navigate]);
 
   const onSubmit = async (formData: LoginForm) => {
     setLoading(true);
     setError('');
-    
+
     if (!signIn) {
       setError('Authentication service unavailable');
       setLoading(false);
       return;
     }
-    
+
     try {
       const { data, error } = await signIn(formData.email, formData.password);
-      
+
       if (error) {
         if (error.message.includes('credentials')) {
           setError('Invalid email or password');
@@ -49,7 +49,7 @@ const Login: React.FC = () => {
         }
       } else if (data) {
         toast.success('Login successful');
-        navigate('/dashboard');
+        navigate('/');
       }
     } catch (err: any) {
       console.error('Login error:', err);
@@ -58,16 +58,16 @@ const Login: React.FC = () => {
       setLoading(false);
     }
   };
-  
+
   return (
     <div className="flex min-h-screen bg-gradient-to-b from-slate-100 to-slate-200">
       {/* Branding Side */}
       <div className="hidden lg:flex lg:w-1/2 flex-col items-center justify-center p-12 text-white bg-zinc-100">
         <div className="max-w-md">
-          <img 
-            alt="Garage Pro" 
-            src="/lovable-uploads/ed35fded-80cf-4192-b64b-e97730ee6384.png" 
-            className="w-72 mb-8 text-white object-contain" 
+          <img
+            alt="Garage Pro"
+            src="/lovable-uploads/ed35fded-80cf-4192-b64b-e97730ee6384.png"
+            className="w-72 mb-8 text-white object-contain"
           />
           <p className="text-xl mb-8 text-slate-800 text-left">Garage management software helping you streamline:</p>
           <div className="space-y-4 text-lg">
@@ -86,27 +86,27 @@ const Login: React.FC = () => {
           </div>
         </div>
       </div>
-      
+
       {/* Login Form Side */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
         <div className="w-full max-w-md">
           <div className="bg-white px-8 py-10 shadow-lg rounded-lg">
             <div className="flex justify-center mb-6">
-              <img 
-                alt="Garage Pro" 
-                className="h-16" 
-                src="/lovable-uploads/b52e749c-5ab7-46f8-9727-4269e4dd0240.png" 
+              <img
+                alt="Garage Pro"
+                className="h-16"
+                src="/lovable-uploads/b52e749c-5ab7-46f8-9727-4269e4dd0240.png"
               />
             </div>
-            
+
             <h2 className="text-2xl font-bold text-center mb-6">Welcome Back</h2>
-            
+
             {error && (
               <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
                 <span className="block sm:inline">{error}</span>
               </div>
             )}
-            
+
             <form onSubmit={handleSubmit(onSubmit)}>
               <div className="mb-4">
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
@@ -115,12 +115,12 @@ const Login: React.FC = () => {
                 <Input
                   id="email"
                   type="email"
-                  {...register('email', { 
-                    required: 'Email is required', 
-                    pattern: { 
-                      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i, 
-                      message: 'Invalid email address' 
-                    } 
+                  {...register('email', {
+                    required: 'Email is required',
+                    pattern: {
+                      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                      message: 'Invalid email address'
+                    }
                   })}
                   className="w-full"
                 />
@@ -128,7 +128,7 @@ const Login: React.FC = () => {
                   <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>
                 )}
               </div>
-              
+
               <div className="mb-6">
                 <div className="flex justify-between items-center mb-1">
                   <label htmlFor="password" className="block text-sm font-medium text-gray-700">
@@ -148,7 +148,7 @@ const Login: React.FC = () => {
                   <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>
                 )}
               </div>
-              
+
               <Button
                 type="submit"
                 disabled={loading}
@@ -157,7 +157,7 @@ const Login: React.FC = () => {
                 {loading ? 'Logging in...' : 'Log in'}
               </Button>
             </form>
-            
+
             <div className="mt-6 text-center">
               <p className="text-gray-600">
                 Don't have an account?{' '}

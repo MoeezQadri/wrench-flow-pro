@@ -4,10 +4,10 @@ import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { 
-  PlusCircle, 
-  Search, 
-  SortDesc, 
+import {
+  PlusCircle,
+  Search,
+  SortDesc,
   Users,
   Car,
   FileText,
@@ -18,17 +18,17 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from "@/components/ui/table";
 import { Badge } from '@/components/ui/badge';
 import { useToast } from "@/hooks/use-toast";
-import { 
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -46,16 +46,17 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
-import { 
-  Tabs, 
-  TabsContent, 
-  TabsList, 
-  TabsTrigger 
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger
 } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { getCustomers, getCustomerAnalytics, getVehiclesByCustomerId, addCustomer, addVehicle } from '@/services/data-service';
 import { objectsToCSV, downloadCSV } from '@/utils/csv-export';
 import { useEffect } from 'react';
+import { Vehicle } from '@/types';
+import { useDataContext } from '@/context/data/DataContext';
 
 // Define the form validation schema using Zod
 const customerSchema = z.object({
@@ -69,7 +70,7 @@ const vehicleSchema = z.object({
   make: z.string().min(1, { message: "Make is required" }),
   model: z.string().min(1, { message: "Model is required" }),
   year: z.string().min(4, { message: "Valid year is required" }),
-  licensePlate: z.string().min(1, { message: "License plate is required" }),
+  license_plate: z.string().min(1, { message: "License plate is required" }),
   vin: z.string().optional(),
   color: z.string().optional(),
 });
@@ -94,7 +95,7 @@ type CustomerFormValues = {
     make: string;
     model: string;
     year: string;
-    licensePlate: string;
+    license_plate: string;
     vin?: string;
     color?: string;
   };
@@ -105,16 +106,18 @@ const Customers = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
   const [customerList, setCustomerList] = useState<any[]>([]);
-  
+  const {
+    customers: customers_, getCustomerAnalytics, getVehiclesByCustomerId, addCustomer, addVehicle
+  } = useDataContext();
   useEffect(() => {
     const loadCustomers = async () => {
-      const customers = await getCustomers();
+      const customers = customers_;
       setCustomerList(customers);
     };
-    
+
     loadCustomers();
   }, []);
-  
+
   // Initialize the form
   const form = useForm<CustomerFormValues>({
     resolver: zodResolver(formSchema),
@@ -130,7 +133,7 @@ const Customers = () => {
         make: "",
         model: "",
         year: "",
-        licensePlate: "",
+        license_plate: "",
         vin: "",
         color: "",
       },
@@ -143,17 +146,21 @@ const Customers = () => {
   // Form submission handler
   const onSubmit = async (values: CustomerFormValues) => {
     // Add the new customer to the data service
-    const newCustomer = await addCustomer(values.customer);
-    
+    const id = crypto.randomUUID();
+    const newCustomer = await addCustomer({ ...values.customer, id });
+
     // Add vehicle if the checkbox is checked and vehicle data is provided
+    const vehicleId = crypto.randomUUID();
+
     if (values.addVehicle && values.vehicle) {
-      const vehicleData = {
+      const vehicleData: Vehicle = {
         ...values.vehicle,
-        customerId: newCustomer.id
+        customer_id: newCustomer.id,
+        id
       };
-      
-      const newVehicle = await addVehicle(newCustomer.id, vehicleData);
-      
+
+      const newVehicle = await addVehicle(vehicleData);
+
       // Display success message including vehicle
       toast({
         title: "Customer and Vehicle Added",
@@ -166,16 +173,16 @@ const Customers = () => {
         description: `${newCustomer.name} has been added successfully.`,
       });
     }
-    
+
     // Refresh customer list
-    const updatedCustomers = await getCustomers();
+    const updatedCustomers = customers_;
     setCustomerList(updatedCustomers);
-    
+
     // Reset form and close dialog
     form.reset();
     setIsDialogOpen(false);
   };
-  
+
   // Filter customers based on search query
   const filteredCustomers = customerList.filter(customer => {
     const searchLower = searchQuery.toLowerCase();
@@ -186,7 +193,7 @@ const Customers = () => {
       customer.address.toLowerCase().includes(searchLower)
     );
   });
-  
+
   // Handle CSV export
   const handleExportCSV = async () => {
     // Create a simplified version of customer data for export
@@ -204,17 +211,17 @@ const Customers = () => {
         Vehicles: vehicles.length
       };
     }));
-    
+
     // Convert to CSV and download
     const csv = objectsToCSV(exportData);
     downloadCSV(csv, 'customers.csv');
-    
+
     toast({
       title: "Export Successful",
       description: `${exportData.length} customers exported to CSV`,
     });
   };
-  
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex justify-between items-center">
@@ -233,7 +240,7 @@ const Customers = () => {
           </Button>
         </div>
       </div>
-      
+
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -244,13 +251,13 @@ const Customers = () => {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        
+
         <Button variant="outline">
           <SortDesc className="mr-2 h-4 w-4" />
           Sort
         </Button>
       </div>
-      
+
       {filteredCustomers.length === 0 ? (
         <Card className="p-12 text-center">
           <Users className="mx-auto h-12 w-12 text-muted-foreground/60" />
@@ -276,7 +283,7 @@ const Customers = () => {
               Enter the customer details below to add them to your workshop.
             </DialogDescription>
           </DialogHeader>
-          
+
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <Tabs defaultValue="customer" className="w-full">
@@ -284,7 +291,7 @@ const Customers = () => {
                   <TabsTrigger value="customer">Customer Info</TabsTrigger>
                   <TabsTrigger value="vehicle">Vehicle Info</TabsTrigger>
                 </TabsList>
-                
+
                 <TabsContent value="customer" className="space-y-4 mt-4">
                   <FormField
                     control={form.control}
@@ -299,7 +306,7 @@ const Customers = () => {
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={form.control}
                     name="customer.email"
@@ -313,7 +320,7 @@ const Customers = () => {
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={form.control}
                     name="customer.phone"
@@ -327,7 +334,7 @@ const Customers = () => {
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={form.control}
                     name="customer.address"
@@ -342,7 +349,7 @@ const Customers = () => {
                     )}
                   />
                 </TabsContent>
-                
+
                 <TabsContent value="vehicle" className="space-y-4 mt-4">
                   <FormField
                     control={form.control}
@@ -366,7 +373,7 @@ const Customers = () => {
                       </FormItem>
                     )}
                   />
-                  
+
                   {showVehicleFields && (
                     <>
                       <div className="grid grid-cols-2 gap-4">
@@ -383,7 +390,7 @@ const Customers = () => {
                             </FormItem>
                           )}
                         />
-                        
+
                         <FormField
                           control={form.control}
                           name="vehicle.model"
@@ -398,7 +405,7 @@ const Customers = () => {
                           )}
                         />
                       </div>
-                      
+
                       <div className="grid grid-cols-2 gap-4">
                         <FormField
                           control={form.control}
@@ -413,10 +420,10 @@ const Customers = () => {
                             </FormItem>
                           )}
                         />
-                        
+
                         <FormField
                           control={form.control}
-                          name="vehicle.licensePlate"
+                          name="vehicle.license_plate"
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>License Plate</FormLabel>
@@ -428,7 +435,7 @@ const Customers = () => {
                           )}
                         />
                       </div>
-                      
+
                       <div className="grid grid-cols-2 gap-4">
                         <FormField
                           control={form.control}
@@ -443,7 +450,7 @@ const Customers = () => {
                             </FormItem>
                           )}
                         />
-                        
+
                         <FormField
                           control={form.control}
                           name="vehicle.color"
@@ -462,7 +469,7 @@ const Customers = () => {
                   )}
                 </TabsContent>
               </Tabs>
-              
+
               <DialogFooter className="mt-6">
                 <DialogClose asChild>
                   <Button type="button" variant="outline">Cancel</Button>
@@ -484,16 +491,19 @@ const CustomerCard = ({ customer }: { customer: any }) => {
     lifetimeValue: 0
   });
   const [vehicles, setVehicles] = useState<any[]>([]);
-
+  const {
+    getCustomerAnalytics,
+    getVehiclesByCustomerId
+  } = useDataContext();
   useEffect(() => {
     const loadData = async () => {
       const analyticsData = await getCustomerAnalytics(customer.id);
       const vehiclesData = await getVehiclesByCustomerId(customer.id);
-      
+
       setAnalytics(analyticsData);
       setVehicles(vehiclesData);
     };
-    
+
     loadData();
   }, [customer.id]);
 
@@ -510,7 +520,7 @@ const CustomerCard = ({ customer }: { customer: any }) => {
               {analytics.totalInvoices} {analytics.totalInvoices === 1 ? 'visit' : 'visits'}
             </Badge>
           </div>
-          
+
           <div className="mt-4 grid grid-cols-3 gap-2 text-center">
             <div className="flex flex-col items-center">
               <Car className="h-4 w-4 mb-1 text-muted-foreground" />
@@ -528,7 +538,7 @@ const CustomerCard = ({ customer }: { customer: any }) => {
               <p className="text-xs text-muted-foreground">Value</p>
             </div>
           </div>
-          
+
           <div className="mt-4 flex items-center">
             <p className="text-xs text-muted-foreground">
               Last Visit: {customer.lastVisit || 'N/A'}

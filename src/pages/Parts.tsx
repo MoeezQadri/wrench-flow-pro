@@ -3,53 +3,56 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useAsyncCache } from '@/hooks/useAsyncData';
 import { supabase } from '@/integrations/supabase/client';
-import { getCustomerById } from '@/services/data-service';
 import { Customer } from '@/types';
+import { useDataContext } from '@/context/data/DataContext';
 
 // CustomerCell component to handle async loading of customer data
-const CustomerCell = ({ 
-  customerId, 
-  getCustomer, 
-  customerCache 
-}: { 
-  customerId: string; 
-  getCustomer: (id: string) => Promise<Customer>; 
-  customerCache: Record<string, Customer> 
+const CustomerCell = ({
+  customerId,
+  getCustomer,
+  // customerCache
+}: {
+  customerId: string;
+  getCustomer: (id: string) => Customer;
+  // customerCache: Record<string, Customer>
 }) => {
   const [name, setName] = useState('Loading...');
-  
+
   useEffect(() => {
     const loadCustomer = async () => {
       try {
         // Use the cache if available
-        if (customerCache[customerId]) {
-          setName(customerCache[customerId].name);
-        } else {
-          const customer = await getCustomer(customerId);
-          setName(customer.name);
-        }
+        // if (customerCache[customerId]) {
+        //   setName(customerCache[customerId].name);
+        // } else {
+        const customer = getCustomer(customerId);
+        setName(customer.name);
+        // }
       } catch (error) {
         console.error('Error loading customer:', error);
         setName('Unknown');
       }
     };
-    
+
     if (customerId) {
       loadCustomer();
     } else {
       setName('N/A');
     }
-  }, [customerId, getCustomer, customerCache]);
-  
+  }, [customerId, getCustomer]);
+
   return <span>{name}</span>;
 };
 
 const Parts: React.FC = () => {
   // Use the async cache hook for customer data
-  const [getCustomer, customerCache] = useAsyncCache<Customer>(getCustomerById);
+  const {
+    getCustomerById
+  } = useDataContext();
+  // const [getCustomer, customerCache] = useAsyncCache<Customer>(getCustomerById);
   const [parts, setParts] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  
+
   useEffect(() => {
     const fetchParts = async () => {
       setLoading(true);
@@ -57,11 +60,11 @@ const Parts: React.FC = () => {
         const { data, error } = await supabase
           .from('parts')
           .select('*');
-        
+
         if (error) {
           throw error;
         }
-        
+
         setParts(data || []);
       } catch (error) {
         console.error('Error fetching parts:', error);
@@ -70,14 +73,14 @@ const Parts: React.FC = () => {
         setLoading(false);
       }
     };
-    
+
     fetchParts();
   }, []);
-  
+
   return (
     <div className="container p-4">
       <h1 className="text-2xl font-bold mb-4">Parts Inventory</h1>
-      
+
       {loading ? (
         <div className="text-center py-8">Loading parts inventory...</div>
       ) : parts.length === 0 ? (
@@ -116,10 +119,10 @@ const Parts: React.FC = () => {
                   <td className="py-2 px-4 text-right">${part.price.toFixed(2)}</td>
                   <td className="py-2 px-4">
                     {part.vendor_id ? (
-                      <CustomerCell 
-                        customerId={part.vendor_id} 
-                        getCustomer={getCustomer} 
-                        customerCache={customerCache}
+                      <CustomerCell
+                        customerId={part.vendor_id}
+                        getCustomer={getCustomerById}
+                      // customerCache={customerCache}
                       />
                     ) : part.vendor_name || 'N/A'}
                   </td>

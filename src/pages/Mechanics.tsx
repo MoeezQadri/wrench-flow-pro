@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, CalendarDays, ChevronDown, BarChart } from "lucide-react";
-import { mechanics as mockMechanics, getMechanics, getCurrentUser, tasks, getMechanicById } from "@/services/data-service";
 import MechanicDialog from "@/components/mechanic/MechanicDialog";
 import { Mechanic } from "@/types";
 import { toast } from "sonner";
@@ -10,48 +9,54 @@ import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import MechanicPerformance from "@/components/mechanic/MechanicPerformance";
+import { useDataContext } from "@/context/data/DataContext";
+import { useAuthContext } from "@/context/AuthContext";
 
 const Mechanics = () => {
   const [mechanics, setMechanics] = useState<Mechanic[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedMechanic, setSelectedMechanic] = useState<Mechanic | null>(null);
   const [loading, setLoading] = useState(true);
-  const currentUser = getCurrentUser();
+  const {
+    mechanics: mechanics_,
+    tasks
+  } = useDataContext()
+  const { currentUser } = useAuthContext();
   const canManageMechanics = currentUser.role === 'manager' || currentUser.role === 'owner' || currentUser.role === 'foreman';
-  
+
   // Load mechanics
   useEffect(() => {
     const loadMechanics = async () => {
       try {
-        const data = await getMechanics();
+        const data = mechanics_;
         setMechanics(data);
       } catch (error) {
         console.error("Failed to load mechanics:", error);
         toast.error("Failed to load mechanics");
         // Fallback to mock data
-        setMechanics(mockMechanics);
+        setMechanics([]);
       } finally {
         setLoading(false);
       }
     };
-    
+
     loadMechanics();
   }, []);
-  
+
   const handleAddMechanic = () => {
     setSelectedMechanic(null);
     setIsDialogOpen(true);
   };
-  
+
   const handleEditMechanic = (mechanic: Mechanic) => {
     setSelectedMechanic(mechanic);
     setIsDialogOpen(true);
   };
-  
+
   const handleSaveMechanic = (mechanic: Mechanic) => {
     if (selectedMechanic) {
       // Update existing mechanic
-      setMechanics(prev => 
+      setMechanics(prev =>
         prev.map(m => m.id === mechanic.id ? mechanic : m)
       );
       toast.success("Mechanic updated successfully");
@@ -60,10 +65,10 @@ const Mechanics = () => {
       setMechanics(prev => [...prev, mechanic]);
       toast.success("Mechanic added successfully");
     }
-    
+
     setIsDialogOpen(false);
   };
-  
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-96">
@@ -71,7 +76,7 @@ const Mechanics = () => {
       </div>
     );
   }
-  
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -82,7 +87,7 @@ const Mechanics = () => {
           </Button>
         )}
       </div>
-      
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {mechanics.map((mechanic) => (
           <Card key={mechanic.id} className={mechanic.is_active ? "" : "opacity-60"}>
@@ -109,15 +114,15 @@ const Mechanics = () => {
                 </div>
                 <div className="mt-4 flex justify-between">
                   {canManageMechanics && (
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={() => handleEditMechanic(mechanic)}
                     >
                       Details
                     </Button>
                   )}
-                  
+
                   <Sheet>
                     <SheetTrigger asChild>
                       <Button variant="outline" size="sm">
@@ -132,21 +137,21 @@ const Mechanics = () => {
                           Detailed performance analysis and task history
                         </SheetDescription>
                       </SheetHeader>
-                      
+
                       <div className="py-4">
                         <Tabs defaultValue="metrics">
                           <TabsList>
                             <TabsTrigger value="metrics">Performance Metrics</TabsTrigger>
                             <TabsTrigger value="attendance">Attendance</TabsTrigger>
                           </TabsList>
-                          
+
                           <TabsContent value="metrics" className="py-4">
-                            <MechanicPerformance 
+                            <MechanicPerformance
                               mechanic={mechanic}
                               tasks={tasks.filter(task => task.mechanicId === mechanic.id)}
                             />
                           </TabsContent>
-                          
+
                           <TabsContent value="attendance">
                             <div className="flex items-center justify-center h-64">
                               <div className="text-center">
@@ -166,15 +171,15 @@ const Mechanics = () => {
             </CardContent>
           </Card>
         ))}
-        
+
         {mechanics.length === 0 && (
           <div className="col-span-full flex items-center justify-center h-64 border rounded-lg">
             <div className="text-center">
               <p className="text-muted-foreground">No mechanics found</p>
               {canManageMechanics && (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   className="mt-2"
                   onClick={handleAddMechanic}
                 >
@@ -185,8 +190,8 @@ const Mechanics = () => {
           </div>
         )}
       </div>
-      
-      <MechanicDialog 
+
+      <MechanicDialog
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
         mechanic={selectedMechanic}

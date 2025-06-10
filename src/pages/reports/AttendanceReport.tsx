@@ -3,12 +3,13 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { getAttendance, getMechanics } from "@/services/data-service";
+import { fetchAttendance as getAttendance } from "@/services/data-service";
 import { ChevronLeft, Download, Filter } from "lucide-react";
 import { Link } from "react-router-dom";
 import DateRangeDropdown from "@/components/DateRangeDropdown";
 import { Attendance } from "@/types";
 import { isWithinInterval, parseISO, format } from "date-fns";
+import { useDataContext } from "@/context/data/DataContext";
 
 const AttendanceReport = () => {
   const [startDate, setStartDate] = useState<Date>(new Date());
@@ -16,15 +17,17 @@ const AttendanceReport = () => {
   const [attendanceData, setAttendanceData] = useState<Attendance[]>([]);
   const [mechanics, setMechanics] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  
+  const {
+    mechanics: mechanics_
+  } = useDataContext();
   // Load attendance data
   useEffect(() => {
     const fetchData = async () => {
       try {
         setIsLoading(true);
         const attendance = await getAttendance();
-        const mechanicsData = await getMechanics();
-        
+        const mechanicsData = mechanics_;
+
         setAttendanceData(attendance);
         setMechanics(mechanicsData);
       } catch (error) {
@@ -33,10 +36,10 @@ const AttendanceReport = () => {
         setIsLoading(false);
       }
     };
-    
+
     fetchData();
   }, []);
-  
+
   // Filter attendance for the selected date range
   const filteredAttendance = attendanceData.filter(record => {
     try {
@@ -47,35 +50,35 @@ const AttendanceReport = () => {
       return false;
     }
   });
-  
+
   // Calculate statistics
-  const totalPresent = filteredAttendance.filter(a => a.status === "approved" && a.checkIn && a.checkOut).length;
+  const totalPresent = filteredAttendance.filter(a => a.status === "approved" && a.check_in && a.check_out).length;
   const totalLate = filteredAttendance.filter(a => a.status === "approved" && a.notes?.toLowerCase().includes("late")).length;
-  const totalAbsent = filteredAttendance.filter(a => a.status === "rejected" || (!a.checkIn && !a.checkOut)).length;
-  const totalHalfDay = filteredAttendance.filter(a => 
+  const totalAbsent = filteredAttendance.filter(a => a.status === "rejected" || (!a.check_in && !a.check_out)).length;
+  const totalHalfDay = filteredAttendance.filter(a =>
     a.status === "approved" && a.notes?.toLowerCase().includes("half-day")).length;
-  
+
   // Calculate hours worked
-  const calculateHoursWorked = (checkIn: string, checkOut: string): number => {
-    if (!checkIn || !checkOut) return 0;
-    
-    const [inHours, inMinutes] = checkIn.split(':').map(Number);
-    const [outHours, outMinutes] = checkOut.split(':').map(Number);
-    
+  const calculateHoursWorked = (check_in: string, check_out: string): number => {
+    if (!check_in || !check_out) return 0;
+
+    const [inHours, inMinutes] = check_in.split(':').map(Number);
+    const [outHours, outMinutes] = check_out.split(':').map(Number);
+
     const inTime = inHours * 60 + inMinutes;
     const outTime = outHours * 60 + outMinutes;
-    
+
     return Math.max(0, (outTime - inTime) / 60);
   };
-  
+
   const totalHours = filteredAttendance
-    .filter(a => a.checkIn && a.checkOut)
-    .reduce((sum, record) => sum + calculateHoursWorked(record.checkIn, record.checkOut || ""), 0);
-    
-  const averageHours = filteredAttendance.length > 0 
-    ? totalHours / filteredAttendance.length 
+    .filter(a => a.check_in && a.check_out)
+    .reduce((sum, record) => sum + calculateHoursWorked(record.check_in, record.check_out || ""), 0);
+
+  const averageHours = filteredAttendance.length > 0
+    ? totalHours / filteredAttendance.length
     : 0;
-  
+
   const handleDateRangeChange = (start: Date, end: Date) => {
     setStartDate(start);
     setEndDate(end);
@@ -98,14 +101,14 @@ const AttendanceReport = () => {
           <h1 className="text-3xl font-bold tracking-tight">Attendance Report</h1>
         </div>
         <div className="mt-4 sm:mt-0">
-          <DateRangeDropdown 
+          <DateRangeDropdown
             startDate={startDate}
             endDate={endDate}
             onRangeChange={handleDateRangeChange}
           />
         </div>
       </div>
-      
+
       {/* Statistics */}
       <div className="grid gap-4 grid-cols-2 md:grid-cols-5">
         <Card>
@@ -149,7 +152,7 @@ const AttendanceReport = () => {
           </CardContent>
         </Card>
       </div>
-      
+
       {/* Attendance Table */}
       <Card>
         <CardHeader>
@@ -188,14 +191,14 @@ const AttendanceReport = () => {
                 </TableRow>
               ) : (
                 filteredAttendance.map((record) => {
-                  const mechanic = mechanics.find(m => m.id === record.mechanicId);
-                  const hoursWorked = calculateHoursWorked(record.checkIn, record.checkOut || "");
-                  
+                  const mechanic = mechanics.find(m => m.id === record.mechanic_id);
+                  const hoursWorked = calculateHoursWorked(record.check_in, record.check_out || "");
+
                   // Derive status display from record
                   let statusDisplay = "Present";
                   let statusClass = "bg-green-100 text-green-800";
-                  
-                  if (record.status === "rejected" || (!record.checkIn && !record.checkOut)) {
+
+                  if (record.status === "rejected" || (!record.check_in && !record.check_out)) {
                     statusDisplay = "Absent";
                     statusClass = "bg-red-100 text-red-800";
                   } else if (record.notes?.toLowerCase().includes("late")) {
@@ -205,13 +208,13 @@ const AttendanceReport = () => {
                     statusDisplay = "Half-day";
                     statusClass = "bg-blue-100 text-blue-800";
                   }
-                  
+
                   return (
                     <TableRow key={record.id}>
                       <TableCell className="font-medium">{mechanic?.name || "Unknown"}</TableCell>
                       <TableCell>{record.date}</TableCell>
-                      <TableCell>{record.checkIn || "N/A"}</TableCell>
-                      <TableCell>{record.checkOut || "N/A"}</TableCell>
+                      <TableCell>{record.check_in || "N/A"}</TableCell>
+                      <TableCell>{record.check_out || "N/A"}</TableCell>
                       <TableCell>{hoursWorked.toFixed(1)}</TableCell>
                       <TableCell>
                         <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusClass}`}>

@@ -17,7 +17,7 @@ const vehicleFormSchema = z.object({
   make: z.string().min(1, "Make is required"),
   model: z.string().min(1, "Model is required"),
   year: z.string().min(4, "Year must be at least 4 characters"),
-  licensePlate: z.string().min(1, "License plate is required"),
+  license_plate: z.string().min(1, "License plate is required"),
   vin: z.string().optional(),
   color: z.string().optional(),
 });
@@ -37,7 +37,7 @@ const VehicleFormSection = ({ onSubmit, formId, defaultValues }: VehicleFormSect
       make: "",
       model: "",
       year: "",
-      licensePlate: "",
+      license_plate: "",
       vin: "",
       color: "",
     },
@@ -93,7 +93,7 @@ const VehicleFormSection = ({ onSubmit, formId, defaultValues }: VehicleFormSect
 
           <FormField
             control={form.control}
-            name="licensePlate"
+            name="license_plate"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>License Plate</FormLabel>

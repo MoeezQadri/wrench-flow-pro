@@ -22,8 +22,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { addMechanic, updateMechanic } from "@/services/data-service";
 import { Mechanic } from "@/types";
+import { useDataContext } from "@/context/data/DataContext";
 
 interface MechanicDialogProps {
   open: boolean;
@@ -53,6 +53,10 @@ const mechanicSchema = z.object({
 });
 
 const MechanicDialog: React.FC<MechanicDialogProps> = ({ open, onOpenChange, mechanic, onSave }) => {
+  const {
+    addMechanic, updateMechanic
+  } = useDataContext();
+
   const form = useForm<MechanicFormValues>({
     resolver: zodResolver(mechanicSchema),
     defaultValues: {
@@ -88,7 +92,7 @@ const MechanicDialog: React.FC<MechanicDialogProps> = ({ open, onOpenChange, mec
         employment_type: data.employment_type,
         is_active: data.is_active,
       };
-      
+
       if (mechanic) {
         // Update existing mechanic
         await updateMechanic(mechanic.id, mechanicData);
@@ -98,7 +102,7 @@ const MechanicDialog: React.FC<MechanicDialogProps> = ({ open, onOpenChange, mec
         const newMechanic = await addMechanic(mechanicData);
         onSave(newMechanic);
       }
-      
+
       toast.success(mechanic ? "Mechanic updated successfully!" : "Mechanic added successfully!");
       form.reset();
       onOpenChange(false);
@@ -197,7 +201,7 @@ const MechanicDialog: React.FC<MechanicDialogProps> = ({ open, onOpenChange, mec
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="is_active"
@@ -240,3 +244,4 @@ import { Switch } from "@/components/ui/switch"
 import {
   FormDescription,
 } from "@/components/ui/form"
+

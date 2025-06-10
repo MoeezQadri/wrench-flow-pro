@@ -12,6 +12,10 @@ export interface Customer {
   address?: string;
   created_at?: string;
   updated_at?: string;
+  totalVisits?: number;
+  lifetimeValue?: number;
+  lastVisit?: string;
+
 }
 
 export interface Vehicle {
@@ -20,7 +24,7 @@ export interface Vehicle {
   make: string;
   model: string;
   year: string;
-  licensePlate: string;
+  license_plate: string;
   vin?: string;
   color?: string;
   created_at?: string;
@@ -87,7 +91,7 @@ export interface Invoice {
     make: string;
     model: string;
     year: string;
-    licensePlate: string;
+    license_plate: string;
   };
 }
 
@@ -140,7 +144,7 @@ export interface Attendance {
   date: string;
   check_in: string;
   check_out?: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: "present" | "late" | "absent" | "half-day" | "pending" | "approved" | "rejected";
   notes?: string;
   approved_by?: string;
   created_at?: string;
@@ -165,12 +169,20 @@ export interface User {
   id: string;
   name?: string;
   email?: string;
-  role: UserRole;
+  role?: UserRole | string;
   organization_id?: string;
   is_active?: boolean;
   lastLogin?: string;
   created_at?: string;
   updated_at?: string;
+
+  //reseting old values
+  passwordHash?: string; // For auth system
+  resetToken?: string; // For password resetAdd commentMore actions
+  resetTokenExpires?: string; // Expiration for reset token
+  mustChangePassword?: boolean; // For forcing password change
+
+
 }
 
 export interface DashboardMetrics {
