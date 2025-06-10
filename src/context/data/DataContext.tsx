@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import type { Mechanic, Customer, Vehicle, Vendor, Invoice, Expense, Task } from '@/types';
+import type { Mechanic, Customer, Vehicle, Vendor, Invoice, Expense, Task, Part } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { calculateInvoiceTotal, generateId } from '@/services/data-service';
 import { fetchCustomerById } from '@/services/supabase-service';
@@ -45,6 +45,11 @@ interface DataContextType {
     removeTask: (id: string) => Promise<void>;
     updateTask: (id: string, updates: Partial<Task>) => Promise<void>;
 
+    parts: Part[];
+    addPart: (part: Part) => Promise<void>;
+    removePart: (id: string) => Promise<void>;
+    updatePart: (id: string, updates: Partial<Part>) => Promise<void>;
+
     getCustomerAnalytics: (customerId: string) => Promise<{ lifetimeValue: number; totalInvoices: number; averageInvoiceValue: number; vehicles: Vehicle[]; invoiceHistory: Invoice[] }>;
 }
 
@@ -62,6 +67,7 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     const [invoices, setInvoices] = useState<Invoice[]>([]);
     const [expenses, setExpenses] = useState<Expense[]>([]);
     const [tasks, setTasks] = useState<Task[]>([]);
+    const [parts, setParts] = useState<Part[]>([]);
 
     // Fetch helpers
     const fetchData = async <T,>(table: any, setter: React.Dispatch<React.SetStateAction<T[]>>) => {
@@ -78,6 +84,7 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
         fetchData<Invoice>('invoices', setInvoices);
         fetchData<Expense>('expenses', setExpenses);
         fetchData<Task>('tasks', setTasks);
+        fetchData<Part>('parts', setParts);
     }, []);
 
     // CRUD helpers 
@@ -220,6 +227,10 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     const removeTask = async (id: string) => await removeItem('tasks', id, setTasks);
     const updateTask = async (id: string, updates: Partial<Task>) => await updateItem('tasks', id, updates, setTasks);
 
+    const addPart = async (part: Part) => await addItem('parts', part, setParts);
+    const removePart = async (id: string) => await removeItem('parts', id, setParts);
+    const updatePart = async (id: string, updates: Partial<Part>) => await updateItem('parts', id, updates, setParts);
+
     const getCustomerAnalytics = async (customerId: string): Promise<{ lifetimeValue: number; totalInvoices: number; averageInvoiceValue: number; vehicles: Vehicle[]; invoiceHistory: Invoice[] }> => {
         // Replace this with actual data fetching logic from your database
         const vehicles: Vehicle[] = await getVehiclesByCustomerId(customerId);
@@ -244,6 +255,7 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
             invoices, addInvoice, removeInvoice, updateInvoice, getInvoiceById,
             expenses, addExpense, removeExpense, updateExpense,
             tasks, addTask, removeTask, updateTask,
+            parts, addPart, removePart, updatePart,
             getCustomerAnalytics
         }}>
             {children}
