@@ -67,7 +67,6 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
 
   // Fetch parts and tasks - only show completed items
   useEffect(() => {
-    // Get available parts (those not assigned to any invoice or assigned to current invoice if editing)
     const availableParts = parts.filter(part => 
       !part.invoice_ids || 
       part.invoice_ids.length === 0 || 
@@ -75,7 +74,6 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
     );
     setAvailableParts(availableParts);
 
-    // Get available tasks - only completed tasks (those not assigned to any invoice or assigned to current invoice if editing)
     const availableTasks = tasks.filter(task => 
       task.status === 'completed' && (
         !task.invoiceId || 
@@ -89,9 +87,29 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
   useEffect(() => {
     if (invoiceData && !initialDataLoaded.current) {
       console.log("Initializing form with invoice data:", invoiceData);
+      console.log("Raw invoice date:", invoiceData.date);
+      console.log("Invoice date type:", typeof invoiceData.date);
+      
       setSelectedCustomerId(invoiceData.customer_id);
       setSelectedVehicleId(invoiceData.vehicle_id);
-      setDate(invoiceData.date.split('T')[0]); // Extract date part only
+      
+      // Handle date more safely
+      let formattedDate;
+      if (invoiceData.date) {
+        // If it's already a date string in YYYY-MM-DD format, use it directly
+        if (typeof invoiceData.date === 'string' && invoiceData.date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          formattedDate = invoiceData.date;
+        } else {
+          // Otherwise, extract date part
+          formattedDate = invoiceData.date.toString().split('T')[0];
+        }
+      } else {
+        formattedDate = new Date().toISOString().slice(0, 10);
+      }
+      
+      console.log("Formatted date for form:", formattedDate);
+      setDate(formattedDate);
+      
       setStatus(invoiceData.status);
       setTaxRate(invoiceData.tax_rate || 7.5);
       setDiscountType(invoiceData.discount_type || 'none');
@@ -106,7 +124,6 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
   // Load assigned parts and tasks when vehicle is selected - but ONLY for new invoices
   useEffect(() => {
     const loadAssignedItems = async () => {
-      // Only load assigned items for new invoices, not when editing
       if (selectedVehicleId && selectedCustomerId && !isEditing && initialDataLoaded.current === false) {
         try {
           const [assignedPartsData, assignedTasksData] = await Promise.all([
@@ -116,7 +133,6 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
           
           setAssignedParts(assignedPartsData);
           
-          // Map the data to match the Task interface and filter for completed tasks only
           const mappedTasks: Task[] = assignedTasksData
             .filter(task => task.status === 'completed')
             .map(task => ({
@@ -135,7 +151,6 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
           
           setAssignedTasks(mappedTasks);
           
-          // Show notification if there are auto-assignable items
           if (assignedPartsData.length > 0 || mappedTasks.length > 0) {
             setShowAutoItems(true);
             toast.success(`Found ${assignedPartsData.length} assigned parts and ${mappedTasks.length} completed tasks that will be automatically added to this invoice.`);
@@ -153,7 +168,6 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
   const addAutoAssignedItems = () => {
     const autoItems: InvoiceItem[] = [];
     
-    // Add assigned parts
     assignedParts.forEach(part => {
       autoItems.push({
         id: `auto-part-${part.id}`,
@@ -166,7 +180,6 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
       });
     });
     
-    // Add assigned completed tasks
     assignedTasks.forEach(task => {
       autoItems.push({
         id: `auto-task-${task.id}`,
@@ -230,6 +243,12 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
     }
     if (!date) {
       errors.push("Please select a date");
+    } else {
+      // Validate date format
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      if (!dateRegex.test(date)) {
+        errors.push("Date must be in YYYY-MM-DD format");
+      }
     }
     if (items.length === 0) {
       errors.push("Please add at least one item to the invoice");
@@ -246,6 +265,8 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     console.log("Form submission started");
+    console.log("Current date value:", date);
+    console.log("Date type:", typeof date);
     console.log("Form data:", {
       customerId: selectedCustomerId,
       vehicleId: selectedVehicleId,
@@ -270,11 +291,15 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
       if (isEditing && invoiceData) {
         console.log("Updating existing invoice:", invoiceData.id);
         
+        // Ensure date is in proper format for backend
+        const formattedDate = date; // Should already be in YYYY-MM-DD format
+        console.log("Date being sent to backend:", formattedDate);
+        
         const updatedInvoiceData = {
           id: invoiceData.id,
           customer_id: selectedCustomerId,
           vehicle_id: selectedVehicleId,
-          date: date,
+          date: formattedDate,
           status: status,
           tax_rate: taxRate,
           discount_type: discountType,
@@ -336,7 +361,8 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
       }
     } catch (error) {
       console.error("Error saving invoice:", error);
-      toast.error("Failed to save invoice. Please try again.");
+      console.error("Error details:", error.message);
+      toast.error(`Failed to save invoice: ${error.message}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -406,9 +432,14 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
               id="date"
               type="date"
               value={date}
-              onChange={(e) => setDate(e.target.value)}
+              onChange={(e) => {
+                console.log("Date input changed to:", e.target.value);
+                setDate(e.target.value);
+              }}
               required
             />
+            {/* Debug info for date */}
+            <p className="text-xs text-gray-500 mt-1">Current date value: {date}</p>
           </div>
 
           {/* Status Selection - Only show when editing */}
