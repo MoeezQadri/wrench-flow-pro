@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -191,9 +192,8 @@ const Tasks = () => {
 
   const getCustomerInfo = async (customerId: string) => {
     let customerName = "Unknown Customer";
-    const resp = getCustomerById(customerId);
-    customerName = resp?.name;
-
+    const resp = await getCustomerById(customerId);
+    customerName = resp?.name || "Unknown Customer";
 
     return customerName;
   };

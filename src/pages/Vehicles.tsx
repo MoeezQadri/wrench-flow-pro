@@ -71,8 +71,8 @@ const Vehicles: React.FC = () => {
                 <td className="px-6 py-4 whitespace-nowrap">{vehicle.year}</td>
                 <td className="px-6 py-4 whitespace-nowrap">{vehicle.license_plate}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <Link to={`/customers/${vehicle.customerId}`} className="text-blue-600 hover:underline">
-                    {customers[vehicle.customerId]?.name || 'Unknown'}
+                  <Link to={`/customers/${vehicle.customer_id}`} className="text-blue-600 hover:underline">
+                    {customers[vehicle.customer_id]?.name || 'Unknown'}
                   </Link>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">{vehicle.vin || 'N/A'}</td>

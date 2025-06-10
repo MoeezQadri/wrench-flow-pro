@@ -23,14 +23,13 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import ExpenseDialog from "@/components/expense/ExpenseDialog";
-import { expenses } from "@/services/data-service";
 import { Expense } from "@/types";
 import { format, isThisMonth, isToday, parseISO } from "date-fns";
 
 const Expenses = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState<Expense | undefined>(undefined);
-  const [expensesList, setExpensesList] = useState<Expense[]>(expenses);
+  const [expensesList, setExpensesList] = useState<Expense[]>([]);
 
   const handleAddExpense = () => {
     setSelectedExpense(undefined);
@@ -152,13 +151,13 @@ const Expenses = () => {
                   <TableCell>{expense.description}</TableCell>
                   <TableCell>
                     <div className="flex items-center">
-                      {getPaymentMethodIcon(expense.paymentMethod)}
+                      {getPaymentMethodIcon(expense.payment_method)}
                       <span className="ml-2 capitalize">
-                        {expense.paymentMethod.replace('-', ' ')}
+                        {expense.payment_method.replace('-', ' ')}
                       </span>
                     </div>
                   </TableCell>
-                  <TableCell>{expense.vendorName || "—"}</TableCell>
+                  <TableCell>{expense.vendor_name || "—"}</TableCell>
                   <TableCell className="font-medium">${expense.amount.toFixed(2)}</TableCell>
                   <TableCell className="text-right">
                     <Button

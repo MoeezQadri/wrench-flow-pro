@@ -10,7 +10,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { AttendanceForm } from "./AttendanceForm";
+import AttendanceForm from "./AttendanceForm";
 import { Attendance } from "@/types";
 
 interface AttendanceDialogProps {

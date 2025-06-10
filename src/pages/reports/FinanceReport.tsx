@@ -5,10 +5,24 @@ import { resolvePromiseAndSetState } from '@/utils/async-helpers';
 import { useAsyncData } from '@/hooks/useAsyncData';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Expense } from '@/types';
+
+// Interface for expenses matching Supabase schema
+interface DatabaseExpense {
+  id: string;
+  date: string;
+  amount: number;
+  category: string;
+  description?: string;
+  payment_method: 'cash' | 'card' | 'bank-transfer' | 'check' | 'other';
+  vendor_name?: string;
+  vendor_id?: string;
+  created_at?: string;
+  updated_at?: string;
+  payment_status?: string;
+}
 
 // Functions to fetch data from Supabase
-const getExpenses = async (): Promise<Expense[]> => {
+const getExpenses = async (): Promise<DatabaseExpense[]> => {
   const { data, error } = await supabase
     .from('expenses')
     .select('*')
@@ -61,7 +75,7 @@ const getRevenueData = async (): Promise<any[]> => {
 };
 
 const FinanceReport = () => {
-  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [expenses, setExpenses] = useState<DatabaseExpense[]>([]);
   const [revenue, setRevenue] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
