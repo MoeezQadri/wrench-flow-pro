@@ -1,8 +1,9 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import type { Mechanic, Customer, Vehicle, Vendor, Invoice, Expense, Task, Part, Payment } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
-import { calculateInvoiceTotal, generateId } from '@/services/data-service';
+import { calculateInvoiceTotal } from '@/services/data-service';
 import { fetchCustomerById } from '@/services/supabase-service';
+import { toast } from 'sonner';
 
 interface DataContextType {
     mechanics: Mechanic[];
@@ -75,11 +76,23 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     const [parts, setParts] = useState<Part[]>([]);
     const [payments, setPayments] = useState<Payment[]>([]);
 
-    // Fetch helpers
-    const fetchData = async <T,>(table: any, setter: React.Dispatch<React.SetStateAction<T[]>>) => {
-        const { data, error } = await supabase.from(table).select('*');
-        if (error) console.error(`Error fetching ${table}:`, error);
-        else setter(data as T[]);
+    // Helper to generate UUID
+    const generateUUID = () => crypto.randomUUID();
+
+    // Fetch helpers with improved error handling
+    const fetchData = async <T,>(table: string, setter: React.Dispatch<React.SetStateAction<T[]>>) => {
+        try {
+            const { data, error } = await supabase.from(table).select('*');
+            if (error) {
+                console.error(`Error fetching ${table}:`, error);
+                toast.error(`Failed to load ${table}`);
+                return;
+            }
+            setter(data as T[]);
+        } catch (error) {
+            console.error(`Error fetching ${table}:`, error);
+            toast.error(`Failed to load ${table}`);
+        }
     };
 
     useEffect(() => {
@@ -93,88 +106,153 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
         fetchData<Part>('parts', setParts);
     }, []);
 
-    // CRUD helpers 
-    const addItem = async <T,>(table: any, item: T, setter: React.Dispatch<React.SetStateAction<T[]>>) => {
-        const { data, error } = await supabase.from(table).insert(item).select();
-        if (error) console.error(`Error adding to ${table}:`, error);
-        else if (data) setter((prev) => [...prev, ...data as T[]]);
-    };
-
-    const removeItem = async <T,>(table: any, id: string, setter: React.Dispatch<React.SetStateAction<T[]>>) => {
-        const { error } = await supabase.from(table).delete().eq('id', id);
-        if (error) console.error(`Error removing from ${table}:`, error);
-        else setter((prev) => prev.filter((item: any) => item.id !== id));
-    };
-
-    const updateItem = async <T extends { id: string }>(
-        table: any,
-        id: string,
-        updates: Partial<T>,
+    // CRUD helpers with improved error handling
+    const addItem = async <T,>(
+        table: string, 
+        item: T, 
         setter: React.Dispatch<React.SetStateAction<T[]>>
-    ) => {
-        const { data, error } = await supabase
-            .from(table)
-            .update(updates)
-            .eq('id', id)
-            .select();
-
-        if (error) {
-            console.error(`Error updating ${table}:`, error);
-        } else if (data && data.length > 0) {
-            const updatedItem = data[0] as any;
-            setter((prev) => prev.map((item) => item.id === id ? updatedItem : item));
+    ): Promise<T | null> => {
+        try {
+            const { data, error } = await supabase.from(table).insert(item).select();
+            if (error) {
+                console.error(`Error adding to ${table}:`, error);
+                toast.error(`Failed to add ${table.slice(0, -1)}`);
+                throw error;
+            }
+            if (data && data.length > 0) {
+                const newItem = data[0] as T;
+                setter((prev) => [...prev, newItem]);
+                return newItem;
+            }
+            return null;
+        } catch (error) {
+            console.error(`Error adding to ${table}:`, error);
+            toast.error(`Failed to add ${table.slice(0, -1)}`);
+            throw error;
         }
     };
 
-    // Exposed handlers
+    const removeItem = async <T,>(
+        table: string, 
+        id: string, 
+        setter: React.Dispatch<React.SetStateAction<T[]>>
+    ) => {
+        try {
+            const { error } = await supabase.from(table).delete().eq('id', id);
+            if (error) {
+                console.error(`Error removing from ${table}:`, error);
+                toast.error(`Failed to delete ${table.slice(0, -1)}`);
+                throw error;
+            }
+            setter((prev) => prev.filter((item: any) => item.id !== id));
+            toast.success(`${table.slice(0, -1)} deleted successfully`);
+        } catch (error) {
+            console.error(`Error removing from ${table}:`, error);
+            toast.error(`Failed to delete ${table.slice(0, -1)}`);
+            throw error;
+        }
+    };
+
+    const updateItem = async <T extends { id: string }>(
+        table: string,
+        id: string,
+        updates: Partial<T>,
+        setter: React.Dispatch<React.SetStateAction<T[]>>
+    ): Promise<T | null> => {
+        try {
+            const { data, error } = await supabase
+                .from(table)
+                .update(updates)
+                .eq('id', id)
+                .select();
+
+            if (error) {
+                console.error(`Error updating ${table}:`, error);
+                toast.error(`Failed to update ${table.slice(0, -1)}`);
+                throw error;
+            }
+
+            if (data && data.length > 0) {
+                const updatedItem = data[0] as T;
+                setter((prev) => prev.map((item) => item.id === id ? updatedItem : item));
+                toast.success(`${table.slice(0, -1)} updated successfully`);
+                return updatedItem;
+            }
+            return null;
+        } catch (error) {
+            console.error(`Error updating ${table}:`, error);
+            toast.error(`Failed to update ${table.slice(0, -1)}`);
+            throw error;
+        }
+    };
+
+    // Mechanic operations with UUID support
     const addMechanic = async (mechanicData: Omit<Mechanic, 'id'>) => {
         const newMechanic: Mechanic = {
-            id: generateId('mechanic'),
+            id: generateUUID(),
             ...mechanicData,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
         };
 
         console.log('Adding mechanic:', newMechanic);
-        await addItem('mechanics', newMechanic, setMechanics);
-        return newMechanic;
+        const result = await addItem('mechanics', newMechanic, setMechanics);
+        if (!result) {
+            throw new Error('Failed to add mechanic');
+        }
+        toast.success('Mechanic added successfully');
+        return result;
     };
+
     const removeMechanic = async (id: string) => await removeItem('mechanics', id, setMechanics);
+
     const updateMechanic = async (id: string, mechanicData: Omit<Mechanic, 'id'>) => {
-        const updatedMechanic: Mechanic = {
-            id,
+        const updatedData = {
             ...mechanicData,
             updated_at: new Date().toISOString()
         };
 
-
-        // In a real app, this would update in database
-        console.log('Updating mechanic:', updatedMechanic);
-        await updateItem('mechanics', id, updatedMechanic, setMechanics);
-        return updatedMechanic;
+        console.log('Updating mechanic:', updatedData);
+        const result = await updateItem('mechanics', id, updatedData, setMechanics);
+        if (!result) {
+            throw new Error('Failed to update mechanic');
+        }
+        return result;
     };
+
     const getMechanicById = (id: string) => mechanics.find(mechanic => mechanic.id === id) || null;
 
+    // Vendor operations
     const addVendor = async (vendorData: any) => {
         console.log('Vendor data to be saved:', vendorData);
         const newVendor = {
-            id: `vendor-${Date.now()}`,
+            id: generateUUID(),
             ...vendorData,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
         };
-        const resp = await addItem('vendors', newVendor, setVendors)
-        return newVendor;
+        const result = await addItem('vendors', newVendor, setVendors);
+        if (result) {
+            toast.success('Vendor added successfully');
+        }
+        return result;
     };
+
     const removeVendor = async (id: string) => await removeItem('vendors', id, setVendors);
     const updateVendor = async (id: string, updates: Partial<Vendor>) => await updateItem('vendors', id, updates, setVendors);
 
+    // Customer operations
     const addCustomer = async (customer: Customer) => {
-        const resp = await addItem('customers', customer, setCustomers)
-        return customer;
+        const result = await addItem('customers', customer, setCustomers);
+        if (result) {
+            toast.success('Customer added successfully');
+        }
+        return result || customer;
     };
+
     const removeCustomer = async (id: string) => await removeItem('customers', id, setCustomers);
     const updateCustomer = async (id: string, updates: Partial<Customer>) => await updateItem('customers', id, updates, setCustomers);
+
     const getCustomerById = async (id: string): Promise<Customer | null> => {
         try {
             // First try to find in local state
@@ -192,23 +270,31 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
         }
     };
 
-    const addVehicle = async (vehicle: Vehicle) => await addItem('vehicles', vehicle, setVehicles);
+    // Vehicle operations
+    const addVehicle = async (vehicle: Vehicle) => {
+        const result = await addItem('vehicles', vehicle, setVehicles);
+        if (result) {
+            toast.success('Vehicle added successfully');
+        }
+    };
+
     const removeVehicle = async (id: string) => await removeItem('vehicles', id, setVehicles);
     const updateVehicle = async (id: string, updates: Partial<Vehicle>) => await updateItem('vehicles', id, updates, setVehicles);
     const getVehiclesByCustomerId = (customerId: string) => vehicles.filter(item => item.customer_id === customerId);
     const getVehicleById = (id: string) => vehicles.find(vehicle => vehicle.id === id) || null;
 
+    // Invoice operations
     const addInvoice = async (invoiceData: any) => {
         const newInvoice: Invoice = {
-            id: `invoice-${Date.now()}`, // Generate a unique ID
+            id: generateUUID(),
             customer_id: invoiceData.customerId,
             vehicle_id: invoiceData.vehicleId,
             date: invoiceData.date,
             tax_rate: invoiceData.taxRate,
-            status: 'open', // Default status
+            status: 'open',
             notes: invoiceData.notes,
             items: invoiceData.items,
-            payments: [], // Initially no payments
+            payments: [],
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
             discount_type: invoiceData.discountType || 'none',
@@ -220,33 +306,61 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
                 license_plate: 'ABC-123'
             }
         };
-        await addItem('invoices', newInvoice, setInvoices)
-        return newInvoice;
+        const result = await addItem('invoices', newInvoice, setInvoices);
+        if (result) {
+            toast.success('Invoice created successfully');
+        }
+        return result || newInvoice;
     };
+
     const removeInvoice = async (id: string) => await removeItem('invoices', id, setInvoices);
     const updateInvoice = async (id: string, updates: Partial<Invoice>) => await updateItem('invoices', id, updates, setInvoices);
-    const getInvoiceById = (id: string) => invoices.find(invoice => invoice.id === id) || null;;
+    const getInvoiceById = (id: string) => invoices.find(invoice => invoice.id === id) || null;
 
-    const addExpense = async (expense: Expense) => await addItem('expenses', expense, setExpenses);
+    // Other operations with similar pattern
+    const addExpense = async (expense: Expense) => {
+        const result = await addItem('expenses', expense, setExpenses);
+        if (result) {
+            toast.success('Expense added successfully');
+        }
+    };
+
     const removeExpense = async (id: string) => await removeItem('expenses', id, setExpenses);
     const updateExpense = async (id: string, updates: Partial<Expense>) => await updateItem('expenses', id, updates, setExpenses);
 
-    const addTask = async (task: Task) => await addItem('tasks', task, setTasks);
+    const addTask = async (task: Task) => {
+        const result = await addItem('tasks', task, setTasks);
+        if (result) {
+            toast.success('Task added successfully');
+        }
+    };
+
     const removeTask = async (id: string) => await removeItem('tasks', id, setTasks);
     const updateTask = async (id: string, updates: Partial<Task>) => await updateItem('tasks', id, updates, setTasks);
 
-    const addPart = async (part: Part) => await addItem('parts', part, setParts);
+    const addPart = async (part: Part) => {
+        const result = await addItem('parts', part, setParts);
+        if (result) {
+            toast.success('Part added successfully');
+        }
+    };
+
     const removePart = async (id: string) => await removeItem('parts', id, setParts);
     const updatePart = async (id: string, updates: Partial<Part>) => await updateItem('parts', id, updates, setParts);
 
-    const addPayment = async (payment: Payment) => await addItem('payments', payment, setPayments);
+    const addPayment = async (payment: Payment) => {
+        const result = await addItem('payments', payment, setPayments);
+        if (result) {
+            toast.success('Payment added successfully');
+        }
+    };
+
     const removePayment = async (id: string) => await removeItem('payments', id, setPayments);
     const updatePayment = async (id: string, updates: Partial<Payment>) => await updateItem('payments', id, updates, setPayments);
 
     const getCustomerAnalytics = async (customerId: string): Promise<{ lifetimeValue: number; totalInvoices: number; averageInvoiceValue: number; vehicles: Vehicle[]; invoiceHistory: Invoice[] }> => {
-        // Replace this with actual data fetching logic from your database
         const vehicles: Vehicle[] = await getVehiclesByCustomerId(customerId);
-        const invoiceHistory: Invoice[] = invoices;
+        const invoiceHistory: Invoice[] = invoices.filter(inv => inv.customer_id === customerId);
 
         const lifetimeValue = invoiceHistory.reduce((sum, invoice) => {
             const { total } = calculateInvoiceTotal(invoice);

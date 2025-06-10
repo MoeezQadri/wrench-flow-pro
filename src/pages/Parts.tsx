@@ -15,6 +15,9 @@ const Parts: React.FC = () => {
   const [showPartDialog, setShowPartDialog] = useState(false);
   const { getCustomerById } = useDataContext();
 
+  // Helper to generate UUID
+  const generateUUID = () => crypto.randomUUID();
+
   // Load customer names for all vendors at once
   const loadCustomerNames = async (vendorIds: string[]) => {
     const uniqueVendorIds = [...new Set(vendorIds.filter(Boolean))];
@@ -66,19 +69,23 @@ const Parts: React.FC = () => {
 
   const handleSavePart = async (part: Part) => {
     try {
+      const partWithId = {
+        id: part.id || generateUUID(),
+        name: part.name,
+        description: part.description,
+        part_number: part.part_number,
+        price: part.price,
+        quantity: part.quantity,
+        vendor_id: part.vendor_id,
+        vendor_name: part.vendor_name,
+        invoice_ids: part.invoice_ids || [],
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
       const { data, error } = await supabase
         .from('parts')
-        .insert([{
-          id: part.id,
-          name: part.name,
-          description: part.description,
-          part_number: part.part_number,
-          price: part.price,
-          quantity: part.quantity,
-          vendor_id: part.vendor_id,
-          vendor_name: part.vendor_name,
-          invoice_ids: part.invoice_ids || []
-        }])
+        .insert([partWithId])
         .select()
         .single();
 
@@ -100,6 +107,7 @@ const Parts: React.FC = () => {
         }
       }
 
+      toast.success('Part added successfully');
       console.log('Part saved successfully:', data);
     } catch (error) {
       console.error('Error saving part:', error);
@@ -167,10 +175,10 @@ const Parts: React.FC = () => {
                   <td className="py-2 px-4">{part.description || 'N/A'}</td>
                   <td className="py-2 px-4">{part.part_number || 'N/A'}</td>
                   <td className="py-2 px-4 text-right">
-                    <span className={`${part.quantity <= part.reorder_level ? 'text-red-600 font-medium' : ''}`}>
+                    <span className={`${part.quantity <= (part.reorder_level || 5) ? 'text-red-600 font-medium' : ''}`}>
                       {part.quantity}
                     </span>
-                    {part.quantity <= part.reorder_level && (
+                    {part.quantity <= (part.reorder_level || 5) && (
                       <span className="ml-2 px-2 py-1 text-xs bg-red-100 text-red-800 rounded">
                         Low Stock
                       </span>

@@ -9,9 +9,13 @@ import {
   createPartFromInvoiceItem 
 } from "./inventory-sync-service";
 
+// Helper function to generate UUID
+const generateUUID = () => crypto.randomUUID();
+
 // Helper function to handle errors
 const handleError = (error: any, action: string) => {
   console.error(`Error ${action}:`, error);
+  toast.error(`Failed to ${action}`);
 };
 
 // Helper to map DB data to client model
@@ -92,12 +96,19 @@ export const fetchCustomerById = async (id: string) => {
   }
 };
 
-// Add a customer
+// Add a customer with UUID generation
 export const addCustomer = async (customerData: any) => {
   try {
+    const customerWithId = {
+      id: generateUUID(),
+      ...customerData,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
     const { data, error } = await supabase
       .from('customers')
-      .insert([customerData])
+      .insert([customerWithId])
       .select()
       .single();
       
@@ -105,6 +116,53 @@ export const addCustomer = async (customerData: any) => {
     return data;
   } catch (error) {
     handleError(error, 'adding customer');
+    return null;
+  }
+};
+
+// Add a mechanic with proper UUID generation
+export const addMechanic = async (mechanicData: any) => {
+  try {
+    const mechanicWithId = {
+      id: generateUUID(),
+      ...mechanicData,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    const { data, error } = await supabase
+      .from('mechanics')
+      .insert([mechanicWithId])
+      .select()
+      .single();
+      
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    handleError(error, 'adding mechanic');
+    return null;
+  }
+};
+
+// Update mechanic with proper error handling
+export const updateMechanic = async (id: string, updates: any) => {
+  try {
+    const updatedData = {
+      ...updates,
+      updated_at: new Date().toISOString()
+    };
+
+    const { data, error } = await supabase
+      .from('mechanics')
+      .update(updatedData)
+      .eq('id', id)
+      .select()
+      .single();
+      
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    handleError(error, 'updating mechanic');
     return null;
   }
 };
@@ -168,19 +226,22 @@ export const getAssignedTasksForInvoice = async (vehicleId: string) => {
 // Create invoice with automatic assignment and bidirectional sync
 export const createInvoiceWithAutoAssignment = async (invoiceData: any) => {
   try {
-    // Create the invoice first
+    // Create the invoice first with UUID
+    const invoiceWithId = {
+      id: generateUUID(),
+      customer_id: invoiceData.customerId,
+      vehicle_id: invoiceData.vehicleId,
+      date: invoiceData.date,
+      tax_rate: invoiceData.taxRate,
+      discount_type: invoiceData.discountType,
+      discount_value: invoiceData.discountValue,
+      notes: invoiceData.notes,
+      status: 'open'
+    };
+
     const { data: invoice, error: invoiceError } = await supabase
       .from('invoices')
-      .insert([{
-        customer_id: invoiceData.customerId,
-        vehicle_id: invoiceData.vehicleId,
-        date: invoiceData.date,
-        tax_rate: invoiceData.taxRate,
-        discount_type: invoiceData.discountType,
-        discount_value: invoiceData.discountValue,
-        notes: invoiceData.notes,
-        status: 'open'
-      }])
+      .insert([invoiceWithId])
       .select()
       .single();
       
@@ -198,6 +259,7 @@ export const createInvoiceWithAutoAssignment = async (invoiceData: any) => {
     // Add parts as auto-added items
     assignedParts.forEach(part => {
       autoItems.push({
+        id: generateUUID(),
         invoice_id: invoice.id,
         description: part.name,
         type: 'parts',
@@ -211,6 +273,7 @@ export const createInvoiceWithAutoAssignment = async (invoiceData: any) => {
     // Add tasks as auto-added labor items
     assignedTasks.forEach(task => {
       autoItems.push({
+        id: generateUUID(),
         invoice_id: invoice.id,
         description: task.title,
         type: 'labor',
@@ -224,7 +287,12 @@ export const createInvoiceWithAutoAssignment = async (invoiceData: any) => {
     // Process manually specified items and create missing parts/tasks
     if (invoiceData.items && invoiceData.items.length > 0) {
       for (const item of invoiceData.items) {
-        let processedItem = { ...item, invoice_id: invoice.id, is_auto_added: false };
+        let processedItem = { 
+          ...item, 
+          id: generateUUID(),
+          invoice_id: invoice.id, 
+          is_auto_added: false 
+        };
         
         // Create missing parts or tasks for manual items
         if (item.type === 'parts' && !item.part_id) {
@@ -325,12 +393,19 @@ export const fetchVehiclesByCustomerId = async (customerId: string) => {
   }
 };
 
-// Add a vehicle
+// Add a vehicle with UUID generation
 export const addVehicle = async (vehicleData: any) => {
   try {
+    const vehicleWithId = {
+      id: generateUUID(),
+      ...vehicleData,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
     const { data, error } = await supabase
       .from('vehicles')
-      .insert([vehicleData])
+      .insert([vehicleWithId])
       .select()
       .single();
       
@@ -374,7 +449,6 @@ export const fetchInvoices = async (): Promise<Invoice[]> => {
   }
 };
 
-// Fetch invoice by ID
 export const fetchInvoiceById = async (id: string): Promise<Invoice | null> => {
   try {
     const { data, error } = await supabase
@@ -397,7 +471,6 @@ export const fetchInvoiceById = async (id: string): Promise<Invoice | null> => {
   }
 };
 
-// Fetch mechanics
 export const fetchMechanics = async () => {
   try {
     const { data, error } = await supabase
@@ -415,7 +488,9 @@ export const fetchMechanics = async () => {
       phone: m.phone || '',
       id_card_image: m.id_card_image || '',
       employment_type: (m.employment_type || 'fulltime') as 'fulltime' | 'contractor',
-      is_active: !!m.is_active
+      is_active: !!m.is_active,
+      created_at: m.created_at,
+      updated_at: m.updated_at
     }));
   } catch (error) {
     handleError(error, 'fetching mechanics');
@@ -423,7 +498,6 @@ export const fetchMechanics = async () => {
   }
 };
 
-// Fetch expenses
 export const fetchExpenses = async () => {
   try {
     const { data, error } = await supabase
@@ -449,12 +523,18 @@ export const fetchExpenses = async () => {
   }
 };
 
-// Add an expense
 export const addExpense = async (expenseData: any) => {
   try {
+    const expenseWithId = {
+      id: generateUUID(),
+      ...expenseData,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
     const { data, error } = await supabase
       .from('expenses')
-      .insert([expenseData])
+      .insert([expenseWithId])
       .select()
       .single();
       
@@ -476,7 +556,6 @@ export const addExpense = async (expenseData: any) => {
   }
 };
 
-// Fetch tasks
 export const fetchTasks = async () => {
   try {
     const { data, error } = await supabase
@@ -496,7 +575,9 @@ export const fetchTasks = async () => {
       hours_spent: t.hours_spent,
       invoice_id: t.invoice_id,
       location: t.location || 'workshop',
-      price: t.price || 0
+      price: t.price || 0,
+      created_at: t.created_at,
+      updated_at: t.updated_at
     }));
   } catch (error) {
     handleError(error, 'fetching tasks');
@@ -504,10 +585,10 @@ export const fetchTasks = async () => {
   }
 };
 
-// Record new attendance
 export const recordAttendanceInDb = async (attendanceData: Omit<Attendance, 'id'>): Promise<Attendance> => {
   try {
     const dbAttendance = {
+      id: generateUUID(),
       mechanic_id: attendanceData.mechanic_id,
       date: attendanceData.date,
       check_in: attendanceData.check_in,
@@ -542,7 +623,6 @@ export const recordAttendanceInDb = async (attendanceData: Omit<Attendance, 'id'
   }
 };
 
-// Add the missing functions needed by data-service.ts
 export const fetchAttendance = async () => {
   try {
     const { data, error } = await supabase
@@ -568,7 +648,6 @@ export const fetchAttendance = async () => {
   }
 };
 
-// Fetch dashboard metrics
 export const fetchDashboardMetrics = async (): Promise<DashboardMetrics> => {
   try {
     // Fetch metrics from Supabase or calculate them
@@ -611,7 +690,6 @@ export const fetchDashboardMetrics = async (): Promise<DashboardMetrics> => {
   }
 };
 
-// Add function for customer analytics
 export const fetchCustomerAnalytics = async (customerId: string): Promise<CustomerAnalytics> => {
   try {
     // Perform database operations to calculate analytics
@@ -620,8 +698,6 @@ export const fetchCustomerAnalytics = async (customerId: string): Promise<Custom
       totalInvoices: 5,
       lifetimeValue: 1250,
       averageInvoiceValue: 250,
-      // firstVisitDate: '2023-01-15',
-      // lastVisitDate: '2023-04-22',
       vehicles: [],
       invoiceHistory: [],
       customerId: "1"
@@ -632,8 +708,6 @@ export const fetchCustomerAnalytics = async (customerId: string): Promise<Custom
       totalInvoices: 0,
       lifetimeValue: 0,
       averageInvoiceValue: 0,
-      // firstVisitDate: '',
-      // lastVisitDate: '',
       vehicles: [],
       invoiceHistory: [],
       customerId: "0"

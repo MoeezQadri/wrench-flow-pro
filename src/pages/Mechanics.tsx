@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from "react";
+
+import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, CalendarDays, ChevronDown, BarChart } from "lucide-react";
+import { Plus, CalendarDays, BarChart } from "lucide-react";
 import MechanicDialog from "@/components/mechanic/MechanicDialog";
 import { Mechanic } from "@/types";
 import { toast } from "sonner";
@@ -13,35 +14,16 @@ import { useDataContext } from "@/context/data/DataContext";
 import { useAuthContext } from "@/context/AuthContext";
 
 const Mechanics = () => {
-  const [mechanics, setMechanics] = useState<Mechanic[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedMechanic, setSelectedMechanic] = useState<Mechanic | null>(null);
-  const [loading, setLoading] = useState(true);
   const {
-    mechanics: mechanics_,
+    mechanics,
+    addMechanic,
+    updateMechanic,
     tasks
-  } = useDataContext()
+  } = useDataContext();
   const { currentUser } = useAuthContext();
   const canManageMechanics = currentUser.role === 'manager' || currentUser.role === 'owner' || currentUser.role === 'foreman';
-
-  // Load mechanics
-  useEffect(() => {
-    const loadMechanics = async () => {
-      try {
-        const data = mechanics_;
-        setMechanics(data);
-      } catch (error) {
-        console.error("Failed to load mechanics:", error);
-        toast.error("Failed to load mechanics");
-        // Fallback to mock data
-        setMechanics([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadMechanics();
-  }, []);
 
   const handleAddMechanic = () => {
     setSelectedMechanic(null);
@@ -53,29 +35,21 @@ const Mechanics = () => {
     setIsDialogOpen(true);
   };
 
-  const handleSaveMechanic = (mechanic: Mechanic) => {
-    if (selectedMechanic) {
-      // Update existing mechanic
-      setMechanics(prev =>
-        prev.map(m => m.id === mechanic.id ? mechanic : m)
-      );
-      toast.success("Mechanic updated successfully");
-    } else {
-      // Add new mechanic
-      setMechanics(prev => [...prev, mechanic]);
-      toast.success("Mechanic added successfully");
+  const handleSaveMechanic = async (mechanic: Mechanic) => {
+    try {
+      if (selectedMechanic) {
+        // Update existing mechanic
+        await updateMechanic(selectedMechanic.id, mechanic);
+      } else {
+        // Add new mechanic
+        await addMechanic(mechanic);
+      }
+      setIsDialogOpen(false);
+    } catch (error) {
+      console.error('Error saving mechanic:', error);
+      // Error toast is already shown in DataContext
     }
-
-    setIsDialogOpen(false);
   };
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-96">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
