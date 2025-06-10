@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -14,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Invoice, InvoiceItem, Vehicle } from "@/types";
+import { Invoice, InvoiceItem, Vehicle, Part, Task } from "@/types";
 
 import InvoiceItemsSection from "./invoice/InvoiceItemsSection";
 import { toast } from "sonner";
@@ -47,21 +48,39 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
   const [taxRate, setTaxRate] = useState(7.5);
   const [notes, setNotes] = useState("");
   const [items, setItems] = useState<InvoiceItem[]>([]);
+  const [availableParts, setAvailableParts] = useState<Part[]>([]);
+  const [availableTasks, setAvailableTasks] = useState<Task[]>([]);
 
   const {
     getVehiclesByCustomerId,
     addInvoice,
-    getVehicleById: fetchVehicleById
-  } = useDataContext()
+    customers: customersData,
+    parts,
+    tasks
+  } = useDataContext();
+
   // Fetch customers on component mount
   useEffect(() => {
-    const loadCustomers = async () => {
-      const fetchedCustomers = customers;
-      setCustomers(fetchedCustomers);
-    };
+    setCustomers(customersData);
+  }, [customersData]);
 
-    loadCustomers();
-  }, []);
+  // Fetch parts and tasks
+  useEffect(() => {
+    // Get available parts (those not assigned to any invoice or assigned to current invoice if editing)
+    const availableParts = parts.filter(part => 
+      !part.invoice_ids || 
+      part.invoice_ids.length === 0 || 
+      (isEditing && part.invoice_ids.includes(invoiceData?.id || ''))
+    );
+    setAvailableParts(availableParts);
+
+    // Get available tasks (those not assigned to any invoice or assigned to current invoice if editing)
+    const availableTasks = tasks.filter(task => 
+      !task.invoiceId || 
+      (isEditing && task.invoiceId === invoiceData?.id)
+    );
+    setAvailableTasks(availableTasks);
+  }, [parts, tasks, isEditing, invoiceData]);
 
   // Fetch vehicles when customer is selected
   useEffect(() => {
@@ -73,7 +92,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
     };
 
     loadVehicles();
-  }, [selectedCustomerId]);
+  }, [selectedCustomerId, getVehiclesByCustomerId]);
 
   // Initialize form values when editing
   useEffect(() => {
@@ -203,6 +222,9 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
         <InvoiceItemsSection
           items={items}
           onItemsChange={setItems}
+          availableParts={availableParts}
+          availableTasks={availableTasks}
+          vehicleId={selectedVehicleId}
         />
 
         {/* Tax Rate */}

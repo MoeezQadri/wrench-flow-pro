@@ -1,4 +1,3 @@
-
 export type InvoiceStatus = 'open' | 'paid' | 'partial' | 'overdue' | 'in-progress' | 'completed' | 'draft';
 export type UserRole = 'owner' | 'manager' | 'mechanic' | 'foreman' | 'superuser';
 export type TaskStatus = 'pending' | 'in-progress' | 'completed';
@@ -38,6 +37,8 @@ export interface InvoiceItem {
   type: 'labor' | 'parts';
   quantity: number;
   price: number;
+  part_id?: string; // Reference to parts from inventory
+  task_id?: string; // Reference to tasks used as labor
 }
 
 export interface Payment {

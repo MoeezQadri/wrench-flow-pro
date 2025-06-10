@@ -4,17 +4,23 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Trash2, Plus } from 'lucide-react';
-import { InvoiceItem } from '@/types';
+import { Trash2, Plus, Package, Wrench } from 'lucide-react';
+import { InvoiceItem, Part, Task } from '@/types';
 
 export interface InvoiceItemsSectionProps {
   items: InvoiceItem[];
   onItemsChange: Dispatch<SetStateAction<InvoiceItem[]>>;
+  availableParts?: Part[];
+  availableTasks?: Task[];
+  vehicleId?: string;
 }
 
 const InvoiceItemsSection: React.FC<InvoiceItemsSectionProps> = ({
   items,
-  onItemsChange
+  onItemsChange,
+  availableParts = [],
+  availableTasks = [],
+  vehicleId
 }) => {
   const addItem = () => {
     const newItem: InvoiceItem = {
@@ -23,6 +29,30 @@ const InvoiceItemsSection: React.FC<InvoiceItemsSectionProps> = ({
       type: 'labor',
       quantity: 1,
       price: 0
+    };
+    onItemsChange([...items, newItem]);
+  };
+
+  const addPartFromInventory = (part: Part) => {
+    const newItem: InvoiceItem = {
+      id: `part-${part.id}-${Date.now()}`,
+      description: part.name,
+      type: 'parts',
+      quantity: 1,
+      price: part.price,
+      part_id: part.id
+    };
+    onItemsChange([...items, newItem]);
+  };
+
+  const addTaskAsLabor = (task: Task) => {
+    const newItem: InvoiceItem = {
+      id: `task-${task.id}-${Date.now()}`,
+      description: task.title,
+      type: 'labor',
+      quantity: task.hoursEstimated || 1,
+      price: task.price || 0,
+      task_id: task.id
     };
     onItemsChange([...items, newItem]);
   };
@@ -37,16 +67,92 @@ const InvoiceItemsSection: React.FC<InvoiceItemsSectionProps> = ({
     onItemsChange(items.filter((_, i) => i !== index));
   };
 
+  // Filter tasks by vehicle if vehicleId is provided
+  const filteredTasks = vehicleId 
+    ? availableTasks.filter(task => task.vehicleId === vehicleId || !task.vehicleId)
+    : availableTasks;
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <Label className="text-lg font-medium">Invoice Items</Label>
-        <Button type="button" variant="outline" onClick={addItem}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Item
-        </Button>
+        <div className="flex gap-2">
+          <Button type="button" variant="outline" onClick={addItem}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Custom Item
+          </Button>
+        </div>
       </div>
 
+      {/* Quick Add Sections */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted rounded-lg">
+        {/* Parts Section */}
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <Package className="h-4 w-4" />
+            <Label className="font-medium">Add Parts from Inventory</Label>
+          </div>
+          <div className="space-y-2 max-h-32 overflow-y-auto">
+            {availableParts.length > 0 ? (
+              availableParts.map((part) => (
+                <div key={part.id} className="flex items-center justify-between p-2 bg-background rounded border">
+                  <div className="flex-1">
+                    <div className="font-medium text-sm">{part.name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      ${part.price.toFixed(2)} • Qty: {part.quantity}
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => addPartFromInventory(part)}
+                  >
+                    Add
+                  </Button>
+                </div>
+              ))
+            ) : (
+              <div className="text-sm text-muted-foreground">No parts available</div>
+            )}
+          </div>
+        </div>
+
+        {/* Tasks Section */}
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <Wrench className="h-4 w-4" />
+            <Label className="font-medium">Add Tasks as Labor</Label>
+          </div>
+          <div className="space-y-2 max-h-32 overflow-y-auto">
+            {filteredTasks.length > 0 ? (
+              filteredTasks.map((task) => (
+                <div key={task.id} className="flex items-center justify-between p-2 bg-background rounded border">
+                  <div className="flex-1">
+                    <div className="font-medium text-sm">{task.title}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {task.price ? `$${task.price.toFixed(2)}` : 'No price set'} • 
+                      {task.hoursEstimated}h estimated
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => addTaskAsLabor(task)}
+                  >
+                    Add
+                  </Button>
+                </div>
+              ))
+            ) : (
+              <div className="text-sm text-muted-foreground">No tasks available</div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Invoice Items List */}
       {items.map((item, index) => (
         <div key={item.id} className="grid grid-cols-1 md:grid-cols-6 gap-2 p-4 border rounded-lg">
           <div className="md:col-span-2">
@@ -57,6 +163,12 @@ const InvoiceItemsSection: React.FC<InvoiceItemsSectionProps> = ({
               onChange={(e) => updateItem(index, 'description', e.target.value)}
               placeholder="Service description"
             />
+            {(item.part_id || item.task_id) && (
+              <div className="text-xs text-muted-foreground mt-1">
+                {item.part_id && "From inventory part"}
+                {item.task_id && "From task"}
+              </div>
+            )}
           </div>
 
           <div>
@@ -76,18 +188,23 @@ const InvoiceItemsSection: React.FC<InvoiceItemsSectionProps> = ({
           </div>
 
           <div>
-            <Label htmlFor={`quantity-${index}`}>Quantity</Label>
+            <Label htmlFor={`quantity-${index}`}>
+              {item.type === 'labor' ? 'Hours' : 'Quantity'}
+            </Label>
             <Input
               id={`quantity-${index}`}
               type="number"
-              min="1"
+              min="0.1"
+              step={item.type === 'labor' ? "0.1" : "1"}
               value={item.quantity}
-              onChange={(e) => updateItem(index, 'quantity', parseInt(e.target.value) || 1)}
+              onChange={(e) => updateItem(index, 'quantity', parseFloat(e.target.value) || 1)}
             />
           </div>
 
           <div>
-            <Label htmlFor={`price-${index}`}>Price</Label>
+            <Label htmlFor={`price-${index}`}>
+              {item.type === 'labor' ? 'Rate/Hour' : 'Price'}
+            </Label>
             <Input
               id={`price-${index}`}
               type="number"
@@ -113,7 +230,7 @@ const InvoiceItemsSection: React.FC<InvoiceItemsSectionProps> = ({
 
       {items.length === 0 && (
         <div className="text-center py-8 text-gray-500">
-          No items added yet. Click "Add Item" to get started.
+          No items added yet. Add parts from inventory, tasks as labor, or custom items.
         </div>
       )}
     </div>
