@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm, FormProvider } from "react-hook-form";
@@ -172,7 +173,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
       autoItems.push({
         id: `auto-part-${part.id}`,
         description: part.name,
-        type: 'parts',
+        type: 'part', // Changed from 'parts' to 'part' to match database constraint
         quantity: 1,
         price: part.price,
         part_id: part.id,
@@ -328,6 +329,16 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
         navigate("/invoices");
       } else {
         console.log("Creating new invoice");
+        console.log("Items before sending to backend:", items);
+        
+        // Fix the type field for all items before sending to backend
+        const normalizedItems = items.filter(item => !item.is_auto_added).map(item => ({
+          ...item,
+          type: item.type === 'parts' ? 'part' : item.type // Normalize 'parts' to 'part'
+        }));
+        
+        console.log("Normalized items:", normalizedItems);
+        
         const invoiceCreationData = {
           customerId: selectedCustomerId,
           vehicleId: selectedVehicleId,
@@ -336,7 +347,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
           discountType: discountType,
           discountValue: discountValue,
           notes: notes,
-          items: items.filter(item => !item.is_auto_added)
+          items: normalizedItems
         };
 
         console.log("Calling createInvoiceWithAutoAssignment with:", invoiceCreationData);
@@ -346,7 +357,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
           await loadInvoices();
         }
         
-        const manualItems = items.filter(item => !item.is_auto_added);
+        const manualItems = normalizedItems;
         const autoItems = items.filter(item => item.is_auto_added);
         
         let successMessage = "Invoice created successfully!";
@@ -358,6 +369,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
         }
         
         toast.success(successMessage);
+        navigate("/invoices");
       }
     } catch (error) {
       console.error("Error saving invoice:", error);

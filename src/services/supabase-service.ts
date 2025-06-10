@@ -48,7 +48,7 @@ export const createInvoiceWithAutoAssignment = async (invoiceData: {
         id: crypto.randomUUID(),
         invoice_id: invoiceId,
         description: item.description,
-        type: item.type,
+        type: item.type === 'parts' ? 'part' : item.type, // Normalize 'parts' to 'part'
         quantity: item.quantity,
         price: item.price,
         part_id: item.part_id || null,
@@ -151,7 +151,7 @@ export const createInvoiceWithAutoAssignment = async (invoiceData: {
             id: crypto.randomUUID(),
             invoice_id: invoiceId,
             description: part.name,
-            type: 'parts',
+            type: 'part', // Changed from 'parts' to 'part'
             quantity: 1,
             price: part.price,
             part_id: part.id,
@@ -624,7 +624,7 @@ export const updateInvoice = async (invoiceData: Invoice) => {
                     id: crypto.randomUUID(),
                     invoice_id: id,
                     description: item.description,
-                    type: item.type,
+                    type: item.type === 'parts' ? 'part' : item.type, // Normalize 'parts' to 'part'
                     quantity: item.quantity,
                     price: item.price,
                     part_id: item.part_id || null,

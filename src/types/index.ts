@@ -35,7 +35,7 @@ export interface InvoiceItem {
   id: string;
   invoice_id?: string;
   description: string;
-  type: 'labor' | 'parts' | 'other';
+  type: 'labor' | 'part' | 'other'; // Changed 'parts' to 'part' to match database constraint
   quantity: number;
   price: number;
   part_id?: string; // Reference to parts from inventory
