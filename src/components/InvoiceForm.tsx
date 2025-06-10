@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -20,6 +19,7 @@ import { Invoice, InvoiceItem, Vehicle, Part, Task } from "@/types";
 import InvoiceItemsSection from "./invoice/InvoiceItemsSection";
 import { toast } from "sonner";
 import { useDataContext } from "@/context/data/DataContext";
+import { createInvoiceWithAutoAssignment, getAssignedPartsForInvoice, getAssignedTasksForInvoice } from "@/services/supabase-service";
 
 // Define the form schema using Zod
 const formSchema = z.object({
@@ -54,6 +54,9 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
   const [items, setItems] = useState<InvoiceItem[]>([]);
   const [availableParts, setAvailableParts] = useState<Part[]>([]);
   const [availableTasks, setAvailableTasks] = useState<Task[]>([]);
+  const [assignedParts, setAssignedParts] = useState<Part[]>([]);
+  const [assignedTasks, setAssignedTasks] = useState<Task[]>([]);
+  const [showAutoItems, setShowAutoItems] = useState(false);
 
   const {
     getVehiclesByCustomerId,
@@ -110,6 +113,68 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
     }
   }, [invoiceData]);
 
+  // Load assigned parts and tasks when vehicle is selected
+  useEffect(() => {
+    const loadAssignedItems = async () => {
+      if (selectedVehicleId && selectedCustomerId && !isEditing) {
+        try {
+          const [assignedPartsData, assignedTasksData] = await Promise.all([
+            getAssignedPartsForInvoice(selectedVehicleId, selectedCustomerId),
+            getAssignedTasksForInvoice(selectedVehicleId)
+          ]);
+          
+          setAssignedParts(assignedPartsData);
+          setAssignedTasks(assignedTasksData);
+          
+          // Show notification if there are auto-assignable items
+          if (assignedPartsData.length > 0 || assignedTasksData.length > 0) {
+            setShowAutoItems(true);
+            toast.success(`Found ${assignedPartsData.length} assigned parts and ${assignedTasksData.length} assigned tasks that will be automatically added to this invoice.`);
+          }
+        } catch (error) {
+          console.error('Error loading assigned items:', error);
+        }
+      }
+    };
+
+    loadAssignedItems();
+  }, [selectedVehicleId, selectedCustomerId, isEditing]);
+
+  // Add auto-assigned items to the invoice items list
+  const addAutoAssignedItems = () => {
+    const autoItems: InvoiceItem[] = [];
+    
+    // Add assigned parts
+    assignedParts.forEach(part => {
+      autoItems.push({
+        id: `auto-part-${part.id}`,
+        description: part.name,
+        type: 'parts',
+        quantity: 1,
+        price: part.price,
+        part_id: part.id,
+        is_auto_added: true
+      });
+    });
+    
+    // Add assigned tasks
+    assignedTasks.forEach(task => {
+      autoItems.push({
+        id: `auto-task-${task.id}`,
+        description: task.title,
+        type: 'labor',
+        quantity: task.hours_estimated || 1,
+        price: task.price || 0,
+        task_id: task.id,
+        is_auto_added: true
+      });
+    });
+    
+    setItems(prev => [...prev, ...autoItems]);
+    setShowAutoItems(false);
+    toast.success('Auto-assigned items added to invoice');
+  };
+
   // Calculate totals including discount
   const calculateTotals = () => {
     const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -151,26 +216,42 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
 
   const onSubmit = async () => {
     try {
-      // Prepare invoice data for submission
-      const invoiceData = {
-        customerId: selectedCustomerId,
-        vehicleId: selectedVehicleId,
-        date: date,
-        taxRate: taxRate,
-        discountType: discountType,
-        discountValue: discountValue,
-        notes: notes,
-        items: items
-      };
+      if (isEditing) {
+        // Handle editing logic (existing functionality)
+        const invoiceData = {
+          customerId: selectedCustomerId,
+          vehicleId: selectedVehicleId,
+          date: date,
+          taxRate: taxRate,
+          discountType: discountType,
+          discountValue: discountValue,
+          notes: notes,
+          items: items
+        };
 
-      // Call the addInvoice function from data-service
-      await addInvoice(invoiceData);
+        await addInvoice(invoiceData);
+        toast.success("Invoice updated successfully!");
+      } else {
+        // Handle new invoice creation with auto-assignment
+        const invoiceData = {
+          customerId: selectedCustomerId,
+          vehicleId: selectedVehicleId,
+          date: date,
+          taxRate: taxRate,
+          discountType: discountType,
+          discountValue: discountValue,
+          notes: notes,
+          items: items.filter(item => !item.is_auto_added) // Only manual items, auto items handled by service
+        };
 
-      toast.success("Invoice created successfully!");
+        await createInvoiceWithAutoAssignment(invoiceData);
+        toast.success("Invoice created successfully with automatic assignments!");
+      }
+
       navigate("/invoices");
     } catch (error) {
-      console.error("Error creating invoice:", error);
-      toast.error("Failed to create invoice. Please try again.");
+      console.error("Error saving invoice:", error);
+      toast.error("Failed to save invoice. Please try again.");
     }
   };
 
@@ -223,6 +304,35 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
             />
           </div>
         </div>
+
+        {/* Show auto-assignment notification */}
+        {showAutoItems && !isEditing && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-medium text-blue-900">Automatic Assignment Available</h3>
+                <p className="text-sm text-blue-700">
+                  Found {assignedParts.length} assigned parts and {assignedTasks.length} assigned tasks for this vehicle.
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowAutoItems(false)}
+                >
+                  Skip
+                </Button>
+                <Button
+                  type="button"
+                  onClick={addAutoAssignedItems}
+                >
+                  Add Auto Items
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Invoice Items */}
         <InvoiceItemsSection

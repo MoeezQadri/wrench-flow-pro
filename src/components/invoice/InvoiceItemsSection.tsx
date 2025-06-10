@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Trash2, Plus, Package, Wrench } from 'lucide-react';
+import { Trash2, Plus, Package, Wrench, Bot } from 'lucide-react';
 import { InvoiceItem, Part, Task } from '@/types';
 
 export interface InvoiceItemsSectionProps {
@@ -28,7 +28,8 @@ const InvoiceItemsSection: React.FC<InvoiceItemsSectionProps> = ({
       description: '',
       type: 'labor',
       quantity: 1,
-      price: 0
+      price: 0,
+      is_auto_added: false
     };
     onItemsChange([...items, newItem]);
   };
@@ -40,7 +41,8 @@ const InvoiceItemsSection: React.FC<InvoiceItemsSectionProps> = ({
       type: 'parts',
       quantity: 1,
       price: part.price,
-      part_id: part.id
+      part_id: part.id,
+      is_auto_added: false
     };
     onItemsChange([...items, newItem]);
   };
@@ -52,7 +54,8 @@ const InvoiceItemsSection: React.FC<InvoiceItemsSectionProps> = ({
       type: 'labor',
       quantity: task.hoursEstimated || 1,
       price: task.price || 0,
-      task_id: task.id
+      task_id: task.id,
+      is_auto_added: false
     };
     onItemsChange([...items, newItem]);
   };
@@ -154,7 +157,17 @@ const InvoiceItemsSection: React.FC<InvoiceItemsSectionProps> = ({
 
       {/* Invoice Items List */}
       {items.map((item, index) => (
-        <div key={item.id} className="grid grid-cols-1 md:grid-cols-6 gap-2 p-4 border rounded-lg">
+        <div key={item.id} className="grid grid-cols-1 md:grid-cols-6 gap-2 p-4 border rounded-lg relative">
+          {/* Auto-added indicator */}
+          {item.is_auto_added && (
+            <div className="absolute top-2 right-2">
+              <div className="flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">
+                <Bot className="h-3 w-3" />
+                Auto-added
+              </div>
+            </div>
+          )}
+          
           <div className="md:col-span-2">
             <Label htmlFor={`description-${index}`}>Description</Label>
             <Input
@@ -162,11 +175,14 @@ const InvoiceItemsSection: React.FC<InvoiceItemsSectionProps> = ({
               value={item.description}
               onChange={(e) => updateItem(index, 'description', e.target.value)}
               placeholder="Service description"
+              disabled={item.is_auto_added}
+              className={item.is_auto_added ? 'bg-gray-50' : ''}
             />
             {(item.part_id || item.task_id) && (
               <div className="text-xs text-muted-foreground mt-1">
                 {item.part_id && "From inventory part"}
                 {item.task_id && "From task"}
+                {item.is_auto_added && " (automatically assigned)"}
               </div>
             )}
           </div>
@@ -176,8 +192,9 @@ const InvoiceItemsSection: React.FC<InvoiceItemsSectionProps> = ({
             <Select
               value={item.type}
               onValueChange={(value) => updateItem(index, 'type', value)}
+              disabled={item.is_auto_added}
             >
-              <SelectTrigger id={`type-${index}`}>
+              <SelectTrigger id={`type-${index}`} className={item.is_auto_added ? 'bg-gray-50' : ''}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -198,6 +215,7 @@ const InvoiceItemsSection: React.FC<InvoiceItemsSectionProps> = ({
               step={item.type === 'labor' ? "0.1" : "1"}
               value={item.quantity}
               onChange={(e) => updateItem(index, 'quantity', parseFloat(e.target.value) || 1)}
+              className={item.is_auto_added ? 'bg-gray-50' : ''}
             />
           </div>
 
@@ -212,6 +230,7 @@ const InvoiceItemsSection: React.FC<InvoiceItemsSectionProps> = ({
               min="0"
               value={item.price}
               onChange={(e) => updateItem(index, 'price', parseFloat(e.target.value) || 0)}
+              className={item.is_auto_added ? 'bg-gray-50' : ''}
             />
           </div>
 
@@ -221,6 +240,7 @@ const InvoiceItemsSection: React.FC<InvoiceItemsSectionProps> = ({
               variant="outline"
               size="icon"
               onClick={() => removeItem(index)}
+              disabled={item.is_auto_added}
             >
               <Trash2 className="h-4 w-4" />
             </Button>

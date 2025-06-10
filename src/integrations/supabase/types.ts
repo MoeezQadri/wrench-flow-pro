@@ -222,8 +222,11 @@ export type Database = {
           description: string
           id: string
           invoice_id: string
+          is_auto_added: boolean | null
+          part_id: string | null
           price: number
           quantity: number
+          task_id: string | null
           type: string
         }
         Insert: {
@@ -231,8 +234,11 @@ export type Database = {
           description: string
           id?: string
           invoice_id: string
+          is_auto_added?: boolean | null
+          part_id?: string | null
           price: number
           quantity: number
+          task_id?: string | null
           type: string
         }
         Update: {
@@ -240,11 +246,28 @@ export type Database = {
           description?: string
           id?: string
           invoice_id?: string
+          is_auto_added?: boolean | null
+          part_id?: string | null
           price?: number
           quantity?: number
+          task_id?: string | null
           type?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_invoice_items_part_id"
+            columns: ["part_id"]
+            isOneToOne: false
+            referencedRelation: "parts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_invoice_items_task_id"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "invoice_items_invoice_id_fkey"
             columns: ["invoice_id"]

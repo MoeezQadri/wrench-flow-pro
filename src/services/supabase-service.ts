@@ -1,4 +1,3 @@
-
 import { User, Customer, Vehicle, Invoice, Part, Mechanic, Vendor, Expense, Attendance, Task, CustomerAnalytics, DashboardMetrics, InvoiceItem, Payment, InvoiceStatus, UserRole } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -12,10 +11,13 @@ const handleError = (error: any, action: string) => {
 const mapInvoiceFromDb = (invoice: any): Invoice => {
   const items = invoice.invoice_items?.map((item: any) => ({
     id: item.id,
-    type: item.type as 'labor' | 'part',
+    type: item.type as 'labor' | 'parts',
     description: item.description,
     quantity: item.quantity,
-    price: item.price
+    price: item.price,
+    part_id: item.part_id,
+    task_id: item.task_id,
+    is_auto_added: item.is_auto_added || false
   })) || [];
   
   const payments = invoice.payments?.map((payment: any) => ({
@@ -35,7 +37,6 @@ const mapInvoiceFromDb = (invoice: any): Invoice => {
     vehicle_id: invoice.vehicle_id,
     date: invoice.date,
     status: invoice.status as InvoiceStatus,
-    // total_amount: invoice.total_amount,
     tax_rate: invoice.tax_rate,
     notes: invoice.notes || '',
     items,
@@ -98,6 +99,161 @@ export const addCustomer = async (customerData: any) => {
   } catch (error) {
     handleError(error, 'adding customer');
     return null;
+  }
+};
+
+// Get assigned parts for a specific vehicle or customer
+export const getAssignedPartsForInvoice = async (vehicleId: string, customerId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('parts')
+      .select('*')
+      .or(`invoice_ids.cs.{${vehicleId}},invoice_ids.cs.{${customerId}}`);
+      
+    if (error) throw error;
+    
+    return data.map(p => ({
+      id: p.id,
+      name: p.name,
+      description: p.description,
+      part_number: p.part_number,
+      price: p.price,
+      quantity: p.quantity,
+      vendor_id: p.vendor_id,
+      vendor_name: p.vendor_name,
+      invoice_ids: p.invoice_ids || []
+    }));
+  } catch (error) {
+    handleError(error, 'fetching assigned parts for invoice');
+    return [];
+  }
+};
+
+// Get assigned tasks for a specific vehicle
+export const getAssignedTasksForInvoice = async (vehicleId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('tasks')
+      .select('*')
+      .eq('vehicle_id', vehicleId)
+      .in('status', ['completed', 'in-progress']);
+      
+    if (error) throw error;
+    
+    return data.map(t => ({
+      id: t.id,
+      title: t.title,
+      description: t.description || '',
+      mechanic_id: t.mechanic_id,
+      status: t.status as 'pending' | 'in-progress' | 'completed',
+      hours_estimated: t.hours_estimated,
+      hours_spent: t.hours_spent,
+      invoice_id: t.invoice_id,
+      location: t.location || 'workshop',
+      price: t.price || 0
+    }));
+  } catch (error) {
+    handleError(error, 'fetching assigned tasks for invoice');
+    return [];
+  }
+};
+
+// Create invoice with automatic assignment
+export const createInvoiceWithAutoAssignment = async (invoiceData: any) => {
+  try {
+    // Create the invoice first
+    const { data: invoice, error: invoiceError } = await supabase
+      .from('invoices')
+      .insert([{
+        customer_id: invoiceData.customerId,
+        vehicle_id: invoiceData.vehicleId,
+        date: invoiceData.date,
+        tax_rate: invoiceData.taxRate,
+        discount_type: invoiceData.discountType,
+        discount_value: invoiceData.discountValue,
+        notes: invoiceData.notes,
+        status: 'open'
+      }])
+      .select()
+      .single();
+      
+    if (invoiceError) throw invoiceError;
+    
+    // Get assigned parts and tasks
+    const [assignedParts, assignedTasks] = await Promise.all([
+      getAssignedPartsForInvoice(invoiceData.vehicleId, invoiceData.customerId),
+      getAssignedTasksForInvoice(invoiceData.vehicleId)
+    ]);
+    
+    // Prepare auto-added items
+    const autoItems = [];
+    
+    // Add parts as auto-added items
+    assignedParts.forEach(part => {
+      autoItems.push({
+        invoice_id: invoice.id,
+        description: part.name,
+        type: 'parts',
+        quantity: 1,
+        price: part.price,
+        part_id: part.id,
+        is_auto_added: true
+      });
+    });
+    
+    // Add tasks as auto-added labor items
+    assignedTasks.forEach(task => {
+      autoItems.push({
+        invoice_id: invoice.id,
+        description: task.title,
+        type: 'labor',
+        quantity: task.hours_estimated || 1,
+        price: task.price || 0,
+        task_id: task.id,
+        is_auto_added: true
+      });
+    });
+    
+    // Add manually specified items
+    if (invoiceData.items && invoiceData.items.length > 0) {
+      invoiceData.items.forEach((item: any) => {
+        autoItems.push({
+          invoice_id: invoice.id,
+          description: item.description,
+          type: item.type,
+          quantity: item.quantity,
+          price: item.price,
+          part_id: item.part_id,
+          task_id: item.task_id,
+          is_auto_added: false
+        });
+      });
+    }
+    
+    // Insert all items
+    if (autoItems.length > 0) {
+      const { error: itemsError } = await supabase
+        .from('invoice_items')
+        .insert(autoItems);
+        
+      if (itemsError) throw itemsError;
+    }
+    
+    // Update task assignments
+    if (assignedTasks.length > 0) {
+      const taskIds = assignedTasks.map(task => task.id);
+      const { error: taskUpdateError } = await supabase
+        .from('tasks')
+        .update({ invoice_id: invoice.id })
+        .in('id', taskIds);
+        
+      if (taskUpdateError) throw taskUpdateError;
+    }
+    
+    return invoice;
+  } catch (error) {
+    handleError(error, 'creating invoice with auto assignment');
+    throw error;
   }
 };
 

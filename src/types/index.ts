@@ -1,3 +1,4 @@
+
 export type InvoiceStatus = 'open' | 'paid' | 'partial' | 'overdue' | 'in-progress' | 'completed' | 'draft';
 export type UserRole = 'owner' | 'manager' | 'mechanic' | 'foreman' | 'superuser';
 export type TaskStatus = 'pending' | 'in-progress' | 'completed';
@@ -39,6 +40,7 @@ export interface InvoiceItem {
   price: number;
   part_id?: string; // Reference to parts from inventory
   task_id?: string; // Reference to tasks used as labor
+  is_auto_added?: boolean; // Indicates if item was automatically added
 }
 
 export interface Payment {
