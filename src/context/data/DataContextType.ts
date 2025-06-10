@@ -45,9 +45,9 @@ export interface DataContextType {
     updateTask: (id: string, updates: Partial<Task>) => Promise<void>;
 
     parts: Part[];
-    addPart: (part: Part) => Promise<void>;
+    addPart: (part: Part) => Promise<Part>;
     removePart: (id: string) => Promise<void>;
-    updatePart: (id: string, updates: Partial<Part>) => Promise<void>;
+    updatePart: (id: string, updates: Partial<Part>) => Promise<Part>;
 
     payments: Payment[];
     addPayment: (payment: Payment) => Promise<void>;
