@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -12,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Invoice, InvoiceItem, Vehicle, Part, Task, TaskLocation } from "@/types";
+import { Invoice, InvoiceItem, Vehicle, Part, Task, TaskLocation, InvoiceStatus } from "@/types";
 
 import InvoiceItemsSection from "./invoice/InvoiceItemsSection";
 import { toast } from "sonner";
@@ -31,6 +30,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
   const [selectedVehicleId, setSelectedVehicleId] = useState("");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [status, setStatus] = useState<InvoiceStatus>('open');
   const [taxRate, setTaxRate] = useState(7.5);
   const [discountType, setDiscountType] = useState<'none' | 'percentage' | 'fixed'>('none');
   const [discountValue, setDiscountValue] = useState(0);
@@ -109,6 +109,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
       setSelectedCustomerId(invoiceData.customer_id);
       setSelectedVehicleId(invoiceData.vehicle_id);
       setDate(invoiceData.date);
+      setStatus(invoiceData.status);
       setTaxRate(invoiceData.tax_rate || 7.5);
       setDiscountType(invoiceData.discount_type || 'none');
       setDiscountValue(invoiceData.discount_value || 0);
@@ -255,6 +256,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
       customerId: selectedCustomerId,
       vehicleId: selectedVehicleId,
       date,
+      status,
       taxRate,
       items: items.length,
       isEditing
@@ -278,12 +280,12 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
           customer_id: selectedCustomerId,
           vehicle_id: selectedVehicleId,
           date: date,
+          status: status, // Include the status in the update
           tax_rate: taxRate,
           discount_type: discountType,
           discount_value: discountValue,
           notes: notes,
           items: items,
-          status: invoiceData.status, // Keep existing status
           payments: invoiceData.payments || [] // Keep existing payments
         };
 
@@ -389,7 +391,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
           </Select>
         </div>
 
-        {/* Vehicle Selection */}
+        {/* Vehicle Selection and Date */}
         <div className="grid grid-cols-2 gap-4">
           <div>
             <Label htmlFor="vehicle">Vehicle *</Label>
@@ -424,6 +426,27 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
             />
           </div>
         </div>
+
+        {/* Status Selection - Only show when editing */}
+        {isEditing && (
+          <div>
+            <Label htmlFor="status">Status</Label>
+            <Select value={status} onValueChange={(value: InvoiceStatus) => setStatus(value)}>
+              <SelectTrigger id="status">
+                <SelectValue placeholder="Select status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="open">Open</SelectItem>
+                <SelectItem value="in-progress">In Progress</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value="paid">Paid</SelectItem>
+                <SelectItem value="partial">Partial Payment</SelectItem>
+                <SelectItem value="overdue">Overdue</SelectItem>
+                <SelectItem value="draft">Draft</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         {/* Show auto-assignment notification */}
         {showAutoItems && !isEditing && (
