@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { Expense } from "@/types";
 import { nanoid } from "nanoid";
 import ExpenseForm, { ExpenseFormValues } from "./ExpenseForm";
+import { useDataContext } from "@/context/data/DataContext";
 
 const generateId = (prefix: string = 'expense'): string => {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -23,14 +24,40 @@ interface ExpenseDialogProps {
   onOpenChange: (open: boolean) => void;
   onSave: (expense: Expense) => void;
   expense?: Expense;
+  invoiceId?: string;
 }
 
-const ExpenseDialog: React.FC<ExpenseDialogProps> = ({ open, onOpenChange, onSave, expense }) => {
+const ExpenseDialog: React.FC<ExpenseDialogProps> = ({ 
+  open, 
+  onOpenChange, 
+  onSave, 
+  expense, 
+  invoiceId 
+}) => {
   const isEditing = !!expense;
   const formId = "expense-form";
+  const { vendors } = useDataContext();
 
   const handleSubmit = async (data: ExpenseFormValues) => {
     try {
+      // Determine expense assignment based on type
+      let expenseInvoiceId = undefined;
+      let expenseVendorName = undefined;
+
+      if (data.expenseType === "invoice") {
+        if (!data.invoiceId) {
+          toast.error("Invoice must be selected for invoice expenses");
+          return;
+        }
+        expenseInvoiceId = data.invoiceId;
+      }
+
+      // Get vendor name if vendor is selected
+      if (data.vendorId && data.vendorId !== "none") {
+        const vendor = vendors.find(v => v.id === data.vendorId);
+        expenseVendorName = vendor?.name;
+      }
+
       const expenseData: Expense = {
         id: expense?.id || generateId("expense"),
         date: data.date.toISOString().split('T')[0],
@@ -38,21 +65,37 @@ const ExpenseDialog: React.FC<ExpenseDialogProps> = ({ open, onOpenChange, onSav
         category: data.category,
         description: data.description,
         payment_method: data.paymentMethod,
-        vendor_name: data.vendorId && data.vendorId !== "none" ? 
-          // This would need to be looked up from vendors list
-          "" : undefined,
+        vendor_name: expenseVendorName,
         vendor_id: data.vendorId && data.vendorId !== "none" ? data.vendorId : undefined,
         created_at: expense?.created_at || new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
 
+      // Add invoice_id if this is an invoice expense
+      if (expenseInvoiceId) {
+        (expenseData as any).invoice_id = expenseInvoiceId;
+      }
+
       onSave(expenseData);
-      toast.success(isEditing ? "Expense updated successfully!" : "Expense added successfully!");
+
+      // Show success message based on expense type
+      if (data.expenseType === "invoice") {
+        toast.success(`Invoice expense ${isEditing ? "updated" : "added"} successfully!`);
+      } else {
+        toast.success(`Workshop expense ${isEditing ? "updated" : "added"} successfully!`);
+      }
+
       onOpenChange(false);
     } catch (error) {
       console.error("Error saving expense:", error);
       toast.error("Failed to save expense. Please try again.");
     }
+  };
+
+  // Determine expense type for editing
+  const getExpenseType = (expense?: Expense) => {
+    if (!expense) return invoiceId ? "invoice" : "workshop";
+    return (expense as any).invoice_id ? "invoice" : "workshop";
   };
 
   return (
@@ -61,7 +104,12 @@ const ExpenseDialog: React.FC<ExpenseDialogProps> = ({ open, onOpenChange, onSav
         <DialogHeader>
           <DialogTitle>{isEditing ? "Edit Expense" : "Add Expense"}</DialogTitle>
           <DialogDescription>
-            {isEditing ? "Update the expense details below." : "Enter the details for the new expense."}
+            {isEditing 
+              ? "Update the expense details below." 
+              : invoiceId 
+                ? "Add a new expense for the selected invoice."
+                : "Create either an invoice-related expense or a general workshop expense."
+            }
           </DialogDescription>
         </DialogHeader>
 
@@ -74,9 +122,14 @@ const ExpenseDialog: React.FC<ExpenseDialogProps> = ({ open, onOpenChange, onSav
                 amount: expense.amount,
                 description: expense.description,
                 paymentMethod: expense.payment_method,
+                expenseType: getExpenseType(expense),
                 vendorId: expense.vendor_id || "none",
+                invoiceId: (expense as any).invoice_id || "",
               }
-              : undefined
+              : {
+                expenseType: invoiceId ? "invoice" : "workshop",
+                invoiceId: invoiceId || "",
+              }
           }
           onSubmit={handleSubmit}
           formId={formId}

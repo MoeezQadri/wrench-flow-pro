@@ -19,7 +19,9 @@ import {
   ArrowDownCircle,
   CreditCard,
   Banknote,
-  Building
+  Building,
+  Receipt,
+  Wrench
 } from "lucide-react";
 import { toast } from "sonner";
 import ExpenseDialog from "@/components/expense/ExpenseDialog";
@@ -62,6 +64,12 @@ const Expenses = () => {
   const totalMonth = monthExpenses.reduce((total, expense) => total + expense.amount, 0);
   const totalAll = expensesList.reduce((total, expense) => total + expense.amount, 0);
 
+  // Calculate workshop vs invoice expenses
+  const workshopExpenses = expensesList.filter(expense => !(expense as any).invoice_id);
+  const invoiceExpenses = expensesList.filter(expense => (expense as any).invoice_id);
+  const totalWorkshop = workshopExpenses.reduce((total, expense) => total + expense.amount, 0);
+  const totalInvoice = invoiceExpenses.reduce((total, expense) => total + expense.amount, 0);
+
   // Get payment method icon
   const getPaymentMethodIcon = (method: 'cash' | 'card' | 'bank-transfer') => {
     switch (method) {
@@ -72,6 +80,16 @@ const Expenses = () => {
       case 'bank-transfer':
         return <Building className="h-4 w-4 text-green-500" />;
     }
+  };
+
+  // Get expense type icon and label
+  const getExpenseTypeInfo = (expense: Expense) => {
+    const isInvoiceExpense = !!(expense as any).invoice_id;
+    return {
+      icon: isInvoiceExpense ? <Receipt className="h-4 w-4 text-blue-500" /> : <Wrench className="h-4 w-4 text-gray-500" />,
+      label: isInvoiceExpense ? "Invoice" : "Workshop",
+      color: isInvoiceExpense ? "text-blue-600" : "text-gray-600"
+    };
   };
 
   return (
@@ -85,7 +103,7 @@ const Expenses = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Today's Expenses</CardTitle>
@@ -112,13 +130,25 @@ const Expenses = () => {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
-            <ArrowDownCircle className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Workshop Expenses</CardTitle>
+            <Wrench className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${totalAll.toFixed(2)}</div>
+            <div className="text-2xl font-bold">${totalWorkshop.toFixed(2)}</div>
             <p className="text-xs text-muted-foreground">
-              {expensesList.length} total transactions
+              {workshopExpenses.length} workshop expenses
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Invoice Expenses</CardTitle>
+            <Receipt className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">${totalInvoice.toFixed(2)}</div>
+            <p className="text-xs text-muted-foreground">
+              {invoiceExpenses.length} invoice expenses
             </p>
           </CardContent>
         </Card>
@@ -133,6 +163,7 @@ const Expenses = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Date</TableHead>
+                <TableHead>Type</TableHead>
                 <TableHead>Category</TableHead>
                 <TableHead>Description</TableHead>
                 <TableHead>Payment Method</TableHead>
@@ -142,37 +173,46 @@ const Expenses = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {expensesList.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((expense) => (
-                <TableRow key={expense.id}>
-                  <TableCell>{format(parseISO(expense.date), "MMM dd, yyyy")}</TableCell>
-                  <TableCell>
-                    <div className="font-medium">{expense.category}</div>
-                  </TableCell>
-                  <TableCell>{expense.description}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center">
-                      {getPaymentMethodIcon(expense.payment_method)}
-                      <span className="ml-2 capitalize">
-                        {expense.payment_method.replace('-', ' ')}
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell>{expense.vendor_name || "—"}</TableCell>
-                  <TableCell className="font-medium">${expense.amount.toFixed(2)}</TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleEditExpense(expense)}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {expensesList.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((expense) => {
+                const typeInfo = getExpenseTypeInfo(expense);
+                return (
+                  <TableRow key={expense.id}>
+                    <TableCell>{format(parseISO(expense.date), "MMM dd, yyyy")}</TableCell>
+                    <TableCell>
+                      <div className={`flex items-center ${typeInfo.color}`}>
+                        {typeInfo.icon}
+                        <span className="ml-2 font-medium">{typeInfo.label}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="font-medium">{expense.category}</div>
+                    </TableCell>
+                    <TableCell>{expense.description}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center">
+                        {getPaymentMethodIcon(expense.payment_method)}
+                        <span className="ml-2 capitalize">
+                          {expense.payment_method.replace('-', ' ')}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell>{expense.vendor_name || "—"}</TableCell>
+                    <TableCell className="font-medium">${expense.amount.toFixed(2)}</TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEditExpense(expense)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
               {expensesList.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-6">
+                  <TableCell colSpan={8} className="text-center py-6">
                     <div className="flex flex-col items-center justify-center text-muted-foreground">
                       <DollarSign className="w-12 h-12 mb-2 text-muted-foreground/60" />
                       <p>No expenses found</p>

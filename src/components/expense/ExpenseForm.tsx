@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+
+import React, { useState, useEffect } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -24,6 +25,8 @@ import { CalendarIcon, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { Vendor } from "@/types";
 import VendorDialog from "./VendorDialog";
@@ -35,21 +38,34 @@ const expenseSchema = z.object({
   amount: z.coerce.number().min(0.01, { message: "Amount must be at least 0.01" }),
   description: z.string().min(1, { message: "Description is required" }),
   paymentMethod: z.enum(["cash", "card", "bank-transfer"]),
+  expenseType: z.enum(["invoice", "workshop"]),
   vendorId: z.string().optional(),
+  invoiceId: z.string().optional(),
+}).refine((data) => {
+  // If expense type is invoice, require invoiceId
+  if (data.expenseType === "invoice" && !data.invoiceId) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Invoice must be selected for invoice expenses",
+  path: ["expenseType"]
 });
 
 export type ExpenseFormValues = z.infer<typeof expenseSchema>;
 
 interface ExpenseFormProps {
-  defaultValues?: ExpenseFormValues;
+  defaultValues?: Partial<ExpenseFormValues>;
   onSubmit: (data: ExpenseFormValues) => void;
   formId: string;
 }
 
 const ExpenseForm = ({ defaultValues, onSubmit, formId }: ExpenseFormProps) => {
-  const { vendors } = useDataContext();
+  const { vendors, invoices: invoices_ } = useDataContext();
   const [isVendorDialogOpen, setIsVendorDialogOpen] = useState(false);
   const [vendorsList, setVendorsList] = useState<Vendor[]>(vendors as Vendor[]);
+  const [invoices, setInvoices] = useState<any[]>([]);
+  const [activeInvoices, setActiveInvoices] = useState<any[]>([]);
 
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseSchema),
@@ -59,9 +75,34 @@ const ExpenseForm = ({ defaultValues, onSubmit, formId }: ExpenseFormProps) => {
       amount: 0,
       description: "",
       paymentMethod: "cash",
+      expenseType: "workshop",
       vendorId: "none",
+      invoiceId: "",
     },
   });
+
+  const watchExpenseType = form.watch("expenseType");
+
+  useEffect(() => {
+    const loadData = async () => {
+      setInvoices(invoices_);
+      
+      // Filter for active invoices only (open, in-progress)
+      const activeInvoicesList = invoices_.filter(invoice => 
+        invoice.status === 'open' || invoice.status === 'in-progress'
+      );
+      setActiveInvoices(activeInvoicesList);
+    };
+
+    loadData();
+  }, [invoices_]);
+
+  // When expense type changes, clear invoice selection if switching to workshop
+  useEffect(() => {
+    if (watchExpenseType === "workshop") {
+      form.setValue("invoiceId", "");
+    }
+  }, [watchExpenseType, form]);
 
   // List of common expense categories
   const expenseCategories = [
@@ -130,6 +171,60 @@ const ExpenseForm = ({ defaultValues, onSubmit, formId }: ExpenseFormProps) => {
             </FormItem>
           )}
         />
+
+        <FormField
+          control={form.control}
+          name="expenseType"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Expense Type</FormLabel>
+              <FormControl>
+                <RadioGroup
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  className="flex flex-row space-x-6"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="invoice" id="invoice-expense" />
+                    <Label htmlFor="invoice-expense">Invoice Expense</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="workshop" id="workshop-expense" />
+                    <Label htmlFor="workshop-expense">Workshop Expense</Label>
+                  </div>
+                </RadioGroup>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {watchExpenseType === "invoice" && (
+          <FormField
+            control={form.control}
+            name="invoiceId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Active Invoice *</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select an active invoice" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {activeInvoices.map((invoice) => (
+                      <SelectItem key={invoice.id} value={invoice.id}>
+                        Invoice #{invoice.id.slice(0, 8)}... ({invoice.status})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
@@ -265,6 +360,14 @@ const ExpenseForm = ({ defaultValues, onSubmit, formId }: ExpenseFormProps) => {
             />
           </div>
         </div>
+
+        {watchExpenseType === "workshop" && (
+          <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+            <p className="text-sm text-blue-700">
+              <strong>Workshop Expense:</strong> This expense will be categorized as a general workshop expense for business operations.
+            </p>
+          </div>
+        )}
 
         <VendorDialog
           open={isVendorDialogOpen}

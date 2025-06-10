@@ -133,6 +133,7 @@ export interface Expense {
   payment_method: 'cash' | 'card' | 'bank-transfer';
   vendor_name?: string;
   vendor_id?: string;
+  invoice_id?: string; // Added to support invoice assignment
   created_at?: string;
   updated_at?: string;
   payment_status?: string;
