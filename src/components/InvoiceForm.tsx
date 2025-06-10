@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { useForm, FormProvider } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -11,9 +12,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Invoice, InvoiceItem, Vehicle, Part, Task, TaskLocation, InvoiceStatus } from "@/types";
+import { Invoice, InvoiceItem, Vehicle, Part, Task, TaskLocation, InvoiceStatus, Payment } from "@/types";
 
 import InvoiceItemsSection from "./invoice/InvoiceItemsSection";
+import PaymentsSection from "./invoice/PaymentsSection";
 import { toast } from "sonner";
 import { useDataContext } from "@/context/data/DataContext";
 import { createInvoiceWithAutoAssignment, getAssignedPartsForInvoice, getAssignedTasksForInvoice, updateInvoice } from "@/services/supabase-service";
@@ -36,6 +38,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
   const [discountValue, setDiscountValue] = useState(0);
   const [notes, setNotes] = useState("");
   const [items, setItems] = useState<InvoiceItem[]>([]);
+  const [payments, setPayments] = useState<Payment[]>([]);
   const [availableParts, setAvailableParts] = useState<Part[]>([]);
   const [availableTasks, setAvailableTasks] = useState<Task[]>([]);
   const [assignedParts, setAssignedParts] = useState<Part[]>([]);
@@ -46,6 +49,13 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
   
   // Add a ref to track if initial data has been loaded to prevent conflicts
   const initialDataLoaded = useRef(false);
+
+  // Initialize react-hook-form for PaymentsSection
+  const form = useForm({
+    defaultValues: {
+      status: 'open' as InvoiceStatus
+    }
+  });
 
   const {
     getVehiclesByCustomerId,
@@ -204,6 +214,18 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
     toast.success('Auto-assigned items added to invoice');
   };
 
+  // Update the form status when status state changes
+  useEffect(() => {
+    form.setValue('status', status);
+  }, [status, form]);
+
+  // Initialize payments when editing
+  useEffect(() => {
+    if (invoiceData && invoiceData.payments && !initialDataLoaded.current) {
+      setPayments(invoiceData.payments);
+    }
+  }, [invoiceData]);
+
   // Calculate totals including discount
   const calculateTotals = () => {
     const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -259,6 +281,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
       status,
       taxRate,
       items: items.length,
+      payments: payments.length,
       isEditing
     });
 
@@ -280,13 +303,13 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
           customer_id: selectedCustomerId,
           vehicle_id: selectedVehicleId,
           date: date,
-          status: status, // Include the status in the update
+          status: status,
           tax_rate: taxRate,
           discount_type: discountType,
           discount_value: discountValue,
           notes: notes,
           items: items,
-          payments: invoiceData.payments || [] // Keep existing payments
+          payments: payments
         };
 
         console.log("Calling updateInvoice with:", updatedInvoiceData);
@@ -300,7 +323,6 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
         toast.success("Invoice updated successfully!");
       } else {
         console.log("Creating new invoice");
-        // Handle new invoice creation with bidirectional sync
         const invoiceCreationData = {
           customerId: selectedCustomerId,
           vehicleId: selectedVehicleId,
@@ -309,18 +331,16 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
           discountType: discountType,
           discountValue: discountValue,
           notes: notes,
-          items: items.filter(item => !item.is_auto_added) // Only manual items, auto items handled by service
+          items: items.filter(item => !item.is_auto_added)
         };
 
         console.log("Calling createInvoiceWithAutoAssignment with:", invoiceCreationData);
         await createInvoiceWithAutoAssignment(invoiceCreationData);
         
-        // Refresh invoices in context to include the newly created invoice
         if (loadInvoices) {
           await loadInvoices();
         }
         
-        // Show success message with sync info
         const manualItems = items.filter(item => !item.is_auto_added);
         const autoItems = items.filter(item => item.is_auto_added);
         
@@ -356,58 +376,35 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
   };
 
   return (
-    <div>
-      {/* Show form errors if any */}
-      {formErrors.length > 0 && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-          <h4 className="font-medium text-red-800 mb-2">Please fix the following errors:</h4>
-          <ul className="list-disc list-inside text-red-700 text-sm">
-            {formErrors.map((error, index) => (
-              <li key={index}>{error}</li>
-            ))}
-          </ul>
-        </div>
-      )}
+    <FormProvider {...form}>
+      <div>
+        {/* Show form errors if any */}
+        {formErrors.length > 0 && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <h4 className="font-medium text-red-800 mb-2">Please fix the following errors:</h4>
+            <ul className="list-disc list-inside text-red-700 text-sm">
+              {formErrors.map((error, index) => (
+                <li key={index}>{error}</li>
+              ))}
+            </ul>
+          </div>
+        )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Customer Selection */}
-        <div>
-          <Label htmlFor="customer">Customer *</Label>
-          <Select value={selectedCustomerId} onValueChange={(value) => setSelectedCustomerId(value)} required>
-            <SelectTrigger id="customer">
-              <SelectValue placeholder="Select a customer" />
-            </SelectTrigger>
-            <SelectContent>
-              {customers.length === 0 ? (
-                <SelectItem value="no-customers" disabled>No customers available</SelectItem>
-              ) : (
-                customers.map((customer: any) => (
-                  <SelectItem key={customer.id} value={customer.id}>
-                    {customer.name}
-                  </SelectItem>
-                ))
-              )}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Vehicle Selection and Date */}
-        <div className="grid grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Customer Selection */}
           <div>
-            <Label htmlFor="vehicle">Vehicle *</Label>
-            <Select value={selectedVehicleId} onValueChange={setSelectedVehicleId} required>
-              <SelectTrigger id="vehicle">
-                <SelectValue placeholder="Select a vehicle" />
+            <Label htmlFor="customer">Customer *</Label>
+            <Select value={selectedCustomerId} onValueChange={(value) => setSelectedCustomerId(value)} required>
+              <SelectTrigger id="customer">
+                <SelectValue placeholder="Select a customer" />
               </SelectTrigger>
               <SelectContent>
-                {vehicles.length === 0 ? (
-                  <SelectItem value="no-vehicles" disabled>
-                    {selectedCustomerId ? "No vehicles found for this customer" : "Please select a customer first"}
-                  </SelectItem>
+                {customers.length === 0 ? (
+                  <SelectItem value="no-customers" disabled>No customers available</SelectItem>
                 ) : (
-                  vehicles.map((vehicle) => (
-                    <SelectItem key={vehicle.id} value={vehicle.id}>
-                      {vehicle.year} {vehicle.make} {vehicle.model}
+                  customers.map((customer: any) => (
+                    <SelectItem key={customer.id} value={customer.id}>
+                      {customer.name}
                     </SelectItem>
                   ))
                 )}
@@ -415,169 +412,203 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
             </Select>
           </div>
 
-          <div>
-            <Label htmlFor="date">Date *</Label>
-            <Input
-              id="date"
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              required
-            />
-          </div>
-        </div>
+          {/* Vehicle Selection and Date */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="vehicle">Vehicle *</Label>
+              <Select value={selectedVehicleId} onValueChange={setSelectedVehicleId} required>
+                <SelectTrigger id="vehicle">
+                  <SelectValue placeholder="Select a vehicle" />
+                </SelectTrigger>
+                <SelectContent>
+                  {vehicles.length === 0 ? (
+                    <SelectItem value="no-vehicles" disabled>
+                      {selectedCustomerId ? "No vehicles found for this customer" : "Please select a customer first"}
+                    </SelectItem>
+                  ) : (
+                    vehicles.map((vehicle) => (
+                      <SelectItem key={vehicle.id} value={vehicle.id}>
+                        {vehicle.year} {vehicle.make} {vehicle.model}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
 
-        {/* Status Selection - Only show when editing */}
-        {isEditing && (
-          <div>
-            <Label htmlFor="status">Status</Label>
-            <Select value={status} onValueChange={(value: InvoiceStatus) => setStatus(value)}>
-              <SelectTrigger id="status">
-                <SelectValue placeholder="Select status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="open">Open</SelectItem>
-                <SelectItem value="in-progress">In Progress</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-                <SelectItem value="paid">Paid</SelectItem>
-                <SelectItem value="partial">Partial Payment</SelectItem>
-                <SelectItem value="overdue">Overdue</SelectItem>
-                <SelectItem value="draft">Draft</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-
-        {/* Show auto-assignment notification */}
-        {showAutoItems && !isEditing && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-medium text-blue-900">Automatic Assignment Available</h3>
-                <p className="text-sm text-blue-700">
-                  Found {assignedParts.length} assigned parts and {assignedTasks.length} completed tasks for this vehicle.
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setShowAutoItems(false)}
-                >
-                  Skip
-                </Button>
-                <Button
-                  type="button"
-                  onClick={addAutoAssignedItems}
-                >
-                  Add Auto Items
-                </Button>
-              </div>
+            <div>
+              <Label htmlFor="date">Date *</Label>
+              <Input
+                id="date"
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                required
+              />
             </div>
           </div>
-        )}
 
-        {/* Invoice Items */}
-        <InvoiceItemsSection
-          items={items}
-          onItemsChange={handleItemsChange}
-          availableParts={availableParts}
-          availableTasks={availableTasks}
-          vehicleId={selectedVehicleId}
-        />
-
-        {/* Tax Rate and Discount */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <Label htmlFor="taxRate">Tax Rate (%)</Label>
-            <Input
-              id="taxRate"
-              type="number"
-              step="0.01"
-              min="0"
-              max="100"
-              value={taxRate}
-              onChange={(e) => setTaxRate(parseFloat(e.target.value) || 0)}
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="discountType">Discount Type</Label>
-            <Select value={discountType} onValueChange={(value: 'none' | 'percentage' | 'fixed') => setDiscountType(value)}>
-              <SelectTrigger id="discountType">
-                <SelectValue placeholder="Select discount type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">No Discount</SelectItem>
-                <SelectItem value="percentage">Percentage (%)</SelectItem>
-                <SelectItem value="fixed">Fixed Amount ($)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {discountType !== 'none' && (
+          {/* Status Selection - Only show when editing */}
+          {isEditing && (
             <div>
-              <Label htmlFor="discountValue">
-                {discountType === 'percentage' ? 'Discount Percentage (%)' : 'Discount Amount ($)'}
-              </Label>
+              <Label htmlFor="status">Status</Label>
+              <Select value={status} onValueChange={(value: InvoiceStatus) => setStatus(value)}>
+                <SelectTrigger id="status">
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="open">Open</SelectItem>
+                  <SelectItem value="in-progress">In Progress</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="paid">Paid</SelectItem>
+                  <SelectItem value="partial">Partial Payment</SelectItem>
+                  <SelectItem value="overdue">Overdue</SelectItem>
+                  <SelectItem value="draft">Draft</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Show auto-assignment notification */}
+          {showAutoItems && !isEditing && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-medium text-blue-900">Automatic Assignment Available</h3>
+                  <p className="text-sm text-blue-700">
+                    Found {assignedParts.length} assigned parts and {assignedTasks.length} completed tasks for this vehicle.
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowAutoItems(false)}
+                  >
+                    Skip
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={addAutoAssignedItems}
+                  >
+                    Add Auto Items
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Invoice Items */}
+          <InvoiceItemsSection
+            items={items}
+            onItemsChange={handleItemsChange}
+            availableParts={availableParts}
+            availableTasks={availableTasks}
+            vehicleId={selectedVehicleId}
+          />
+
+          {/* Tax Rate and Discount */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label htmlFor="taxRate">Tax Rate (%)</Label>
               <Input
-                id="discountValue"
+                id="taxRate"
                 type="number"
                 step="0.01"
                 min="0"
-                max={discountType === 'percentage' ? "100" : undefined}
-                value={discountValue}
-                onChange={(e) => setDiscountValue(parseFloat(e.target.value) || 0)}
+                max="100"
+                value={taxRate}
+                onChange={(e) => setTaxRate(parseFloat(e.target.value) || 0)}
               />
             </div>
-          )}
-        </div>
 
-        {/* Notes */}
-        <div>
-          <Label htmlFor="notes">Notes</Label>
-          <Textarea
-            id="notes"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Additional notes for this invoice..."
-          />
-        </div>
-
-        {/* Totals */}
-        <div className="bg-gray-50 p-4 rounded-lg">
-          <div className="space-y-2">
-            <div className="flex justify-between">
-              <span>Subtotal:</span>
-              <span>${totals.subtotal.toFixed(2)}</span>
+            <div>
+              <Label htmlFor="discountType">Discount Type</Label>
+              <Select value={discountType} onValueChange={(value: 'none' | 'percentage' | 'fixed') => setDiscountType(value)}>
+                <SelectTrigger id="discountType">
+                  <SelectValue placeholder="Select discount type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No Discount</SelectItem>
+                  <SelectItem value="percentage">Percentage (%)</SelectItem>
+                  <SelectItem value="fixed">Fixed Amount ($)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            {totals.discount > 0 && (
-              <div className="flex justify-between text-red-600">
-                <span>Discount:</span>
-                <span>-${totals.discount.toFixed(2)}</span>
+
+            {discountType !== 'none' && (
+              <div>
+                <Label htmlFor="discountValue">
+                  {discountType === 'percentage' ? 'Discount Percentage (%)' : 'Discount Amount ($)'}
+                </Label>
+                <Input
+                  id="discountValue"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max={discountType === 'percentage' ? "100" : undefined}
+                  value={discountValue}
+                  onChange={(e) => setDiscountValue(parseFloat(e.target.value) || 0)}
+                />
               </div>
             )}
-            <div className="flex justify-between">
-              <span>Tax ({taxRate}%):</span>
-              <span>${totals.tax.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between font-bold text-lg">
-              <span>Total:</span>
-              <span>${totals.total.toFixed(2)}</span>
+          </div>
+
+          {/* Notes */}
+          <div>
+            <Label htmlFor="notes">Notes</Label>
+            <Textarea
+              id="notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Additional notes for this invoice..."
+            />
+          </div>
+
+          {/* Totals */}
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span>Subtotal:</span>
+                <span>${totals.subtotal.toFixed(2)}</span>
+              </div>
+              {totals.discount > 0 && (
+                <div className="flex justify-between text-red-600">
+                  <span>Discount:</span>
+                  <span>-${totals.discount.toFixed(2)}</span>
+                </div>
+              )}
+              <div className="flex justify-between">
+                <span>Tax ({taxRate}%):</span>
+                <span>${totals.tax.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between font-bold text-lg">
+                <span>Total:</span>
+                <span>${totals.total.toFixed(2)}</span>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Submit Button */}
-        <Button 
-          type="submit" 
-          className="w-full" 
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? "Saving..." : (isEditing ? "Update Invoice" : "Create Invoice")}
-        </Button>
-      </form>
-    </div>
+          {/* Payments Section - Only show when editing */}
+          {isEditing && (
+            <PaymentsSection
+              payments={payments}
+              setPayments={setPayments}
+              total={totals.total}
+            />
+          )}
+
+          {/* Submit Button */}
+          <Button 
+            type="submit" 
+            className="w-full" 
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "Saving..." : (isEditing ? "Update Invoice" : "Create Invoice")}
+          </Button>
+        </form>
+      </div>
+    </FormProvider>
   );
 };
 

@@ -1,9 +1,10 @@
+
 import { useState } from "react";
 import { Plus, X } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { FormLabel } from "@/components/ui/form";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Payment } from "@/types";
@@ -48,7 +49,7 @@ const PaymentsSection = ({
 
     const newPayment: Payment = {
       id: Date.now().toString(), // Temporary ID
-      invoice_id: "", // Will be set when the invoice is created
+      invoice_id: "", // Will be set when the invoice is saved
       amount: newPaymentAmount as number,
       method: newPaymentMethod,
       date: format(new Date(), "yyyy-MM-dd"),
@@ -69,6 +70,8 @@ const PaymentsSection = ({
     setNewPaymentAmount("");
     setNewPaymentMethod("cash");
     setNewPaymentNotes("");
+    
+    toast.success("Payment added successfully");
   };
 
   // Remove payment
@@ -87,6 +90,8 @@ const PaymentsSection = ({
     } else if (remainingTotal < total) {
       form.setValue("status", "partial");
     }
+    
+    toast.success("Payment removed successfully");
   };
 
   // Calculate total payments
@@ -104,19 +109,20 @@ const PaymentsSection = ({
         <Card className="p-4">
           <div className="grid gap-4 md:grid-cols-3">
             <div>
-              <FormLabel htmlFor="paymentAmount">Amount ($)</FormLabel>
+              <Label htmlFor="paymentAmount">Amount ($)</Label>
               <Input
                 id="paymentAmount"
                 type="number"
                 step="0.01"
                 min="0"
+                max={total - totalPayments}
                 value={newPaymentAmount}
                 onChange={(e) => setNewPaymentAmount(parseFloat(e.target.value) || "")}
               />
             </div>
             
             <div>
-              <FormLabel htmlFor="paymentMethod">Method</FormLabel>
+              <Label htmlFor="paymentMethod">Method</Label>
               <Select
                 value={newPaymentMethod}
                 onValueChange={(value: "cash" | "card" | "bank-transfer") => 
@@ -135,7 +141,7 @@ const PaymentsSection = ({
             </div>
             
             <div>
-              <FormLabel htmlFor="paymentNotes">Notes</FormLabel>
+              <Label htmlFor="paymentNotes">Notes</Label>
               <Input
                 id="paymentNotes"
                 value={newPaymentNotes}
@@ -150,6 +156,7 @@ const PaymentsSection = ({
               type="button" 
               onClick={handleAddPayment}
               className="flex items-center"
+              disabled={!newPaymentAmount || newPaymentAmount <= 0}
             >
               <Plus className="mr-2 h-4 w-4" />
               Add Payment
