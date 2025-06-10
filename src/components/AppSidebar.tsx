@@ -1,8 +1,6 @@
 
 import { Link, useLocation } from 'react-router-dom';
 import {
-  BarChart,
-  Building2,
   Calendar,
   Car,
   FileText,
@@ -10,7 +8,6 @@ import {
   ListChecks,
   Settings,
   ShoppingCart,
-  User,
   Users,
   Wrench,
 } from 'lucide-react';
@@ -70,28 +67,8 @@ const navItems = [
   },
 ];
 
-const adminNavItems = [
-  {
-    title: "User Management",
-    href: "/users",
-    icon: User,
-  },
-  {
-    title: "Organization",
-    href: "/organization",
-    icon: Building2,
-  },
-  {
-    title: "Analytics",
-    href: "/analytics",
-    icon: BarChart,
-  },
-];
-
 export function AppSidebar() {
-  const { currentUser } = useAuthContext();
   const location = useLocation();
-  const isAdmin = currentUser?.role === "superuser" || currentUser?.role === "owner";
 
   const isActive = (path: string) => {
     if (path === '/') {
@@ -120,29 +97,6 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-
-        {isAdmin && (
-          <>
-            <SidebarSeparator />
-            <SidebarGroup>
-              <SidebarGroupLabel>Admin</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {adminNavItems.map((item) => (
-                    <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton asChild isActive={isActive(item.href)}>
-                        <Link to={item.href}>
-                          <item.icon className="w-4 h-4" />
-                          <span>{item.title}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          </>
-        )}
 
         <SidebarSeparator />
         <SidebarGroup>
