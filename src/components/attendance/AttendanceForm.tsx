@@ -1,15 +1,8 @@
+
 import React from 'react';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import {
   Form,
   FormControl,
@@ -23,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Attendance, Mechanic } from '@/types';
+import { Attendance } from '@/types';
 import { useDataContext } from '@/context/data/DataContext';
 
 const attendanceSchema = z.object({
@@ -45,9 +38,7 @@ interface AttendanceFormProps {
 }
 
 const AttendanceForm: React.FC<AttendanceFormProps> = ({ onSubmit, initialData }) => {
-  const {
-    mechanics
-  } = useDataContext();
+  const { mechanics } = useDataContext();
 
   const form = useForm<AttendanceFormValues>({
     resolver: zodResolver(attendanceSchema),
@@ -200,9 +191,9 @@ const AttendanceForm: React.FC<AttendanceFormProps> = ({ onSubmit, initialData }
           )}
         />
 
-        <DialogFooter>
+        <div className="flex justify-end">
           <Button type="submit">Submit Attendance</Button>
-        </DialogFooter>
+        </div>
       </form>
     </Form>
   );
