@@ -10,31 +10,48 @@ const Invoices: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const { 
     invoices: contextInvoices, 
-    customers: contextCustomers
+    customers: contextCustomers,
+    loadInvoices,
+    loadCustomers
   } = useDataContext();
 
   useEffect(() => {
-    const loadInvoices = async () => {
+    const loadData = async () => {
       setLoading(true);
       try {
+        // Ensure invoices and customers are loaded
+        await Promise.all([
+          loadInvoices(),
+          // loadCustomers() is not directly called here as it's already called in DataContext
+        ]);
+        
+        console.log("Invoice page data loaded:", {
+          invoicesCount: contextInvoices.length,
+          customersCount: contextCustomers.length
+        });
+        
         // Use invoices from context directly
         setInvoices(contextInvoices);
       } catch (error) {
-        console.error('Error loading invoices:', error);
+        console.error('Error loading data:', error);
         toast.error('Failed to load invoices');
       } finally {
         setLoading(false);
       }
     };
 
-    loadInvoices();
-  }, [contextInvoices]);
+    loadData();
+  }, [loadInvoices]);
 
   // Update invoices when context changes
   useEffect(() => {
     setInvoices(contextInvoices);
-    setLoading(false);
   }, [contextInvoices]);
+  
+  // Log whenever customer data changes
+  useEffect(() => {
+    console.log("Customers in Invoice page:", contextCustomers.length);
+  }, [contextCustomers]);
 
   const calculateInvoiceTotal = (invoice: Invoice): number => {
     if (!invoice.items) return 0;
@@ -79,6 +96,17 @@ const Invoices: React.FC = () => {
           New Invoice
         </Link>
       </div>
+
+      {contextCustomers.length === 0 && (
+        <div className="p-4 mb-4 bg-yellow-50 border border-yellow-200 rounded-md">
+          <p className="text-yellow-700">
+            No customers found. Please add customers before creating invoices.
+          </p>
+          <Link to="/customers" className="text-blue-600 hover:underline mt-2 inline-block">
+            Go to Customers page
+          </Link>
+        </div>
+      )}
 
       {invoices.length === 0 ? (
         <div className="text-center py-8 text-gray-500">

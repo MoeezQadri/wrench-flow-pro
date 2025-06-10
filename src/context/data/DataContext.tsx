@@ -32,6 +32,7 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
 
     useEffect(() => {
         const fetchAllData = async () => {
+            console.log("Starting to load all data...");
             await Promise.all([
                 mechanicsHook.loadMechanics(),
                 vendorsHook.loadVendors(),
@@ -43,6 +44,7 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
                 partsHook.loadParts(),
                 paymentsHook.loadPayments()
             ]);
+            console.log("All data loaded, customers:", customersHook.customers);
         };
 
         fetchAllData();
@@ -84,7 +86,7 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
             vehicles: vehiclesHook.vehicles,
             addVehicle: vehiclesHook.addVehicle,
             removeVehicle: vehiclesHook.removeVehicle,
-            updateVehicle: vehiclesHook.updateVehicle,
+            updateVehicle: vehiclesHook.updateV/ehicle,
             getVehiclesByCustomerId: vehiclesHook.getVehiclesByCustomerId,
             getVehicleById: vehiclesHook.getVehicleById,
 

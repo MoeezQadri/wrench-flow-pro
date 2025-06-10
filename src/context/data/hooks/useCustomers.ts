@@ -90,11 +90,16 @@ export const useCustomers = () => {
 
     const loadCustomers = async () => {
         try {
-            const { data: customersData, error: customersError } = await supabase.from('customers').select('*');
+            console.log("Loading customers from Supabase...");
+            const { data: customersData, error: customersError } = await supabase
+                .from('customers')
+                .select('*');
+            
             if (customersError) {
                 console.error('Error fetching customers:', customersError);
                 toast.error('Failed to load customers');
             } else {
+                console.log("Customers loaded:", customersData ? customersData.length : 0, "customers found");
                 setCustomers(customersData || []);
             }
         } catch (error) {
