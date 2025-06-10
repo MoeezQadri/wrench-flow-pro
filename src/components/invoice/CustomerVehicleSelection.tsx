@@ -109,7 +109,7 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div>
-        <div className="flex justify-between items-end mb-2">
+        <div className="flex justify-between items-center mb-2 min-h-[32px]">
           <Label htmlFor="customer">Customer *</Label>
           <div className="flex gap-2">
             <Button 
@@ -137,7 +137,7 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
           value={selectedCustomerId} 
           onValueChange={handleCustomerChange} 
           required
-          disabled={isEditing} // Disable customer selection when editing
+          disabled={isEditing}
         >
           <SelectTrigger id="customer">
             <SelectValue placeholder={isLoadingCustomers ? "Loading customers..." : "Select a customer"} />
@@ -159,16 +159,18 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
       </div>
 
       <div>
-        <div className="flex justify-between items-end mb-2">
+        <div className="flex justify-between items-center mb-2 min-h-[32px]">
           <Label htmlFor="vehicle">Vehicle *</Label>
-          {selectedCustomerId && !isEditing && (
-            <Link to={`/vehicles/new?customerId=${selectedCustomerId}`}>
-              <Button type="button" variant="ghost" size="sm" className="h-8">
-                <PlusCircle className="h-4 w-4 mr-1" />
-                Add New
-              </Button>
-            </Link>
-          )}
+          <div className="flex gap-2">
+            {selectedCustomerId && !isEditing && (
+              <Link to={`/vehicles/new?customerId=${selectedCustomerId}`}>
+                <Button type="button" variant="ghost" size="sm" className="h-8">
+                  <PlusCircle className="h-4 w-4 mr-1" />
+                  Add New
+                </Button>
+              </Link>
+            )}
+          </div>
         </div>
         <Select 
           value={selectedVehicleId} 
