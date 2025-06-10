@@ -23,7 +23,7 @@ const PaymentsSection = ({
   setPayments,
   total,
 }: PaymentsSectionProps) => {
-  const [newPaymentAmount, setNewPaymentAmount] = useState<number | string>("");
+  const [newPaymentAmount, setNewPaymentAmount] = useState<string>("");
   const [newPaymentMethod, setNewPaymentMethod] = useState<"cash" | "card" | "bank-transfer">("cash");
   const [newPaymentNotes, setNewPaymentNotes] = useState("");
   
@@ -35,9 +35,12 @@ const PaymentsSection = ({
 
   // Add new payment
   const handleAddPayment = () => {
-    const amountAsNumber = typeof newPaymentAmount === 'string' ? parseFloat(newPaymentAmount) : newPaymentAmount;
+    console.log("Add payment clicked - amount:", newPaymentAmount, "method:", newPaymentMethod);
     
-    if (!amountAsNumber || amountAsNumber <= 0) {
+    const amountAsNumber = parseFloat(newPaymentAmount);
+    
+    if (!newPaymentAmount || isNaN(amountAsNumber) || amountAsNumber <= 0) {
+      console.log("Invalid amount:", newPaymentAmount, "parsed:", amountAsNumber);
       toast.error("Please enter a valid payment amount");
       return;
     }
@@ -45,12 +48,13 @@ const PaymentsSection = ({
     // Calculate total payments to check if we're exceeding the invoice total
     const existingPaymentsTotal = payments.reduce((sum, payment) => sum + payment.amount, 0);
     if (existingPaymentsTotal + amountAsNumber > total) {
+      console.log("Payment would exceed total. Existing:", existingPaymentsTotal, "new:", amountAsNumber, "total:", total);
       toast.error("Total payments cannot exceed invoice total");
       return;
     }
 
     const newPayment: Payment = {
-      id: Date.now().toString(), // Temporary ID
+      id: `temp-${Date.now()}`, // Temporary ID for new payments
       invoice_id: "", // Will be set when the invoice is saved
       amount: amountAsNumber,
       method: newPaymentMethod,
@@ -58,6 +62,7 @@ const PaymentsSection = ({
       notes: newPaymentNotes,
     };
 
+    console.log("Adding new payment:", newPayment);
     setPayments([...payments, newPayment]);
     
     // Update invoice status based on payments
@@ -78,6 +83,7 @@ const PaymentsSection = ({
 
   // Remove payment
   const handleRemovePayment = (paymentId: string) => {
+    console.log("Removing payment:", paymentId);
     setPayments(payments.filter(payment => payment.id !== paymentId));
     
     // Update invoice status based on remaining payments
@@ -119,7 +125,8 @@ const PaymentsSection = ({
                 min="0"
                 max={total - totalPayments}
                 value={newPaymentAmount}
-                onChange={(e) => setNewPaymentAmount(parseFloat(e.target.value) || "")}
+                onChange={(e) => setNewPaymentAmount(e.target.value)}
+                placeholder="0.00"
               />
             </div>
             
@@ -158,7 +165,7 @@ const PaymentsSection = ({
               type="button" 
               onClick={handleAddPayment}
               className="flex items-center"
-              disabled={!newPaymentAmount || (typeof newPaymentAmount === 'number' && newPaymentAmount <= 0) || (typeof newPaymentAmount === 'string' && parseFloat(newPaymentAmount) <= 0)}
+              disabled={!newPaymentAmount || parseFloat(newPaymentAmount) <= 0}
             >
               <Plus className="mr-2 h-4 w-4" />
               Add Payment
