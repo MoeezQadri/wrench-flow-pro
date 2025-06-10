@@ -13,7 +13,6 @@ export interface InvoiceItemsSectionProps {
   availableParts?: Part[];
   availableTasks?: Task[];
   vehicleId?: string;
-  isEditing?: boolean;
 }
 
 const InvoiceItemsSection: React.FC<InvoiceItemsSectionProps> = ({
@@ -21,8 +20,7 @@ const InvoiceItemsSection: React.FC<InvoiceItemsSectionProps> = ({
   onItemsChange,
   availableParts = [],
   availableTasks = [],
-  vehicleId,
-  isEditing = false
+  vehicleId
 }) => {
   const addItem = () => {
     const newItem: InvoiceItem = {
@@ -81,85 +79,81 @@ const InvoiceItemsSection: React.FC<InvoiceItemsSectionProps> = ({
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <Label className="text-lg font-medium">Invoice Items</Label>
-        {!isEditing && (
-          <div className="flex gap-2">
-            <Button type="button" variant="outline" onClick={addItem}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Custom Item
-            </Button>
-          </div>
-        )}
+        <div className="flex gap-2">
+          <Button type="button" variant="outline" onClick={addItem}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Custom Item
+          </Button>
+        </div>
       </div>
 
-      {/* Quick Add Sections - only show when not editing */}
-      {!isEditing && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted rounded-lg">
-          {/* Parts Section */}
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <Package className="h-4 w-4" />
-              <Label className="font-medium">Add Parts from Inventory</Label>
-            </div>
-            <div className="space-y-2 max-h-32 overflow-y-auto">
-              {availableParts.length > 0 ? (
-                availableParts.map((part) => (
-                  <div key={part.id} className="flex items-center justify-between p-2 bg-background rounded border">
-                    <div className="flex-1">
-                      <div className="font-medium text-sm">{part.name}</div>
-                      <div className="text-xs text-muted-foreground">
-                        ${part.price.toFixed(2)} • Qty: {part.quantity}
-                      </div>
-                    </div>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      onClick={() => addPartFromInventory(part)}
-                    >
-                      Add
-                    </Button>
-                  </div>
-                ))
-              ) : (
-                <div className="text-sm text-muted-foreground">No parts available</div>
-              )}
-            </div>
+      {/* Quick Add Sections */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted rounded-lg">
+        {/* Parts Section */}
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <Package className="h-4 w-4" />
+            <Label className="font-medium">Add Parts from Inventory</Label>
           </div>
-
-          {/* Tasks Section */}
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <Wrench className="h-4 w-4" />
-              <Label className="font-medium">Add Tasks as Labor</Label>
-            </div>
-            <div className="space-y-2 max-h-32 overflow-y-auto">
-              {filteredTasks.length > 0 ? (
-                filteredTasks.map((task) => (
-                  <div key={task.id} className="flex items-center justify-between p-2 bg-background rounded border">
-                    <div className="flex-1">
-                      <div className="font-medium text-sm">{task.title}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {task.price ? `$${task.price.toFixed(2)}` : 'No price set'} • 
-                        {task.hoursEstimated}h estimated
-                      </div>
+          <div className="space-y-2 max-h-32 overflow-y-auto">
+            {availableParts.length > 0 ? (
+              availableParts.map((part) => (
+                <div key={part.id} className="flex items-center justify-between p-2 bg-background rounded border">
+                  <div className="flex-1">
+                    <div className="font-medium text-sm">{part.name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      ${part.price.toFixed(2)} • Qty: {part.quantity}
                     </div>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      onClick={() => addTaskAsLabor(task)}
-                    >
-                      Add
-                    </Button>
                   </div>
-                ))
-              ) : (
-                <div className="text-sm text-muted-foreground">No tasks available</div>
-              )}
-            </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => addPartFromInventory(part)}
+                  >
+                    Add
+                  </Button>
+                </div>
+              ))
+            ) : (
+              <div className="text-sm text-muted-foreground">No parts available</div>
+            )}
           </div>
         </div>
-      )}
+
+        {/* Tasks Section */}
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <Wrench className="h-4 w-4" />
+            <Label className="font-medium">Add Tasks as Labor</Label>
+          </div>
+          <div className="space-y-2 max-h-32 overflow-y-auto">
+            {filteredTasks.length > 0 ? (
+              filteredTasks.map((task) => (
+                <div key={task.id} className="flex items-center justify-between p-2 bg-background rounded border">
+                  <div className="flex-1">
+                    <div className="font-medium text-sm">{task.title}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {task.price ? `$${task.price.toFixed(2)}` : 'No price set'} • 
+                      {task.hoursEstimated}h estimated
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => addTaskAsLabor(task)}
+                  >
+                    Add
+                  </Button>
+                </div>
+              ))
+            ) : (
+              <div className="text-sm text-muted-foreground">No tasks available</div>
+            )}
+          </div>
+        </div>
+      </div>
 
       {/* Invoice Items List */}
       {items.map((item, index) => (
@@ -256,10 +250,7 @@ const InvoiceItemsSection: React.FC<InvoiceItemsSectionProps> = ({
 
       {items.length === 0 && (
         <div className="text-center py-8 text-gray-500">
-          {isEditing 
-            ? "No items in this invoice." 
-            : "No items added yet. Add parts from inventory, tasks as labor, or custom items."
-          }
+          No items added yet. Add parts from inventory, tasks as labor, or custom items.
         </div>
       )}
     </div>
