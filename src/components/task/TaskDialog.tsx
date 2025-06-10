@@ -71,7 +71,7 @@ const TaskDialog = ({ open, onOpenChange, onSave, task, invoiceId }: TaskDialogP
         title: data.title,
         description: data.description || "",
         status: data.status,
-        mechanicId: data.mechanicId,
+        mechanicId: data.mechanicId === "unassigned" ? undefined : data.mechanicId,
         vehicleId: data.vehicleId || (invoice ? invoice.vehicle_id : undefined),
         invoiceId: data.invoiceId || invoiceId,
         hoursEstimated: data.hoursEstimated,
@@ -126,7 +126,7 @@ const TaskDialog = ({ open, onOpenChange, onSave, task, invoiceId }: TaskDialogP
                 status: task.status,
                 price: task.price || 0,
                 location: task.location,
-                mechanicId: task.mechanicId,
+                mechanicId: task.mechanicId || "unassigned",
                 vehicleId: task.vehicleId,
                 invoiceId: task.invoiceId,
                 hoursEstimated: task.hoursEstimated,
@@ -134,7 +134,8 @@ const TaskDialog = ({ open, onOpenChange, onSave, task, invoiceId }: TaskDialogP
               }
               : {
                 invoiceId: invoiceId,
-                vehicleId: invoice?.vehicle_id
+                vehicleId: invoice?.vehicle_id,
+                mechanicId: "unassigned"
               }
           }
           onSubmit={handleSubmit}

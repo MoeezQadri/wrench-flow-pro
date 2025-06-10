@@ -208,7 +208,7 @@ const TaskForm = ({ defaultValues, onSubmit, formId, task }: TaskFormProps) => {
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
+                    <SelectItem value="unassigned">None</SelectItem>
                     {mechanics.map((mechanic) => (
                       <SelectItem key={mechanic.id} value={mechanic.id}>
                         {mechanic.name}
