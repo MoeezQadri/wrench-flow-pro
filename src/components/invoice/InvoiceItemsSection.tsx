@@ -31,7 +31,12 @@ const InvoiceItemsSection: React.FC<InvoiceItemsSectionProps> = ({
       price: 0,
       is_auto_added: false
     };
-    onItemsChange([...items, newItem]);
+    console.log('Adding new custom item:', newItem);
+    onItemsChange(prevItems => {
+      const updatedItems = [...prevItems, newItem];
+      console.log('Updated items after adding custom item:', updatedItems);
+      return updatedItems;
+    });
   };
 
   const addPartFromInventory = (part: Part) => {
@@ -44,7 +49,8 @@ const InvoiceItemsSection: React.FC<InvoiceItemsSectionProps> = ({
       part_id: part.id,
       is_auto_added: false
     };
-    onItemsChange([...items, newItem]);
+    console.log('Adding part from inventory:', newItem);
+    onItemsChange(prevItems => [...prevItems, newItem]);
   };
 
   const addTaskAsLabor = (task: Task) => {
@@ -57,30 +63,51 @@ const InvoiceItemsSection: React.FC<InvoiceItemsSectionProps> = ({
       task_id: task.id,
       is_auto_added: false
     };
-    onItemsChange([...items, newItem]);
+    console.log('Adding task as labor:', newItem);
+    onItemsChange(prevItems => [...prevItems, newItem]);
   };
 
   const updateItem = (index: number, field: keyof InvoiceItem, value: any) => {
-    const updatedItems = [...items];
-    updatedItems[index] = { ...updatedItems[index], [field]: value };
-    onItemsChange(updatedItems);
+    console.log(`Updating item ${index}, field ${field}, value:`, value);
+    onItemsChange(prevItems => {
+      const updatedItems = [...prevItems];
+      updatedItems[index] = { ...updatedItems[index], [field]: value };
+      return updatedItems;
+    });
   };
 
   const removeItem = (index: number) => {
-    onItemsChange(items.filter((_, i) => i !== index));
+    console.log('Removing item at index:', index);
+    onItemsChange(prevItems => prevItems.filter((_, i) => i !== index));
   };
 
-  // Filter tasks by vehicle if vehicleId is provided
-  const filteredTasks = vehicleId 
-    ? availableTasks.filter(task => task.vehicleId === vehicleId || !task.vehicleId)
-    : availableTasks;
+  // Filter tasks by vehicle if vehicleId is provided - use React.useMemo to prevent unnecessary re-renders
+  const filteredTasks = React.useMemo(() => {
+    const filtered = vehicleId 
+      ? availableTasks.filter(task => task.vehicleId === vehicleId || !task.vehicleId)
+      : availableTasks;
+    console.log('Filtered tasks:', filtered);
+    return filtered;
+  }, [vehicleId, availableTasks]);
+
+  console.log('InvoiceItemsSection render - items count:', items.length);
+  console.log('Available parts:', availableParts.length);
+  console.log('Available tasks:', availableTasks.length);
+  console.log('Filtered tasks:', filteredTasks.length);
 
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <Label className="text-lg font-medium">Invoice Items</Label>
         <div className="flex gap-2">
-          <Button type="button" variant="outline" onClick={addItem}>
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={() => {
+              console.log('Add Custom Item button clicked');
+              addItem();
+            }}
+          >
             <Plus className="h-4 w-4 mr-2" />
             Add Custom Item
           </Button>
