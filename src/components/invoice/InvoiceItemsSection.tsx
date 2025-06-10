@@ -1,285 +1,193 @@
 
-import React, { Dispatch, SetStateAction } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Trash2, Plus, Package, Wrench, Bot } from 'lucide-react';
-import { InvoiceItem, Part, Task } from '@/types';
+import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Plus, Trash2 } from "lucide-react";
+import { InvoiceItem, Part, Task } from "@/types";
+import InvoiceItemForm from "./InvoiceItemForm";
+import WorkshopPartsSelector from "./WorkshopPartsSelector";
 
-export interface InvoiceItemsSectionProps {
+interface InvoiceItemsSectionProps {
   items: InvoiceItem[];
-  onItemsChange: Dispatch<SetStateAction<InvoiceItem[]>>;
-  availableParts?: Part[];
-  availableTasks?: Task[];
-  vehicleId?: string;
+  onItemsChange: (items: InvoiceItem[] | ((prev: InvoiceItem[]) => InvoiceItem[])) => void;
+  availableParts: Part[];
+  availableTasks: Task[];
+  vehicleId: string;
 }
 
 const InvoiceItemsSection: React.FC<InvoiceItemsSectionProps> = ({
   items,
   onItemsChange,
-  availableParts = [],
-  availableTasks = [],
+  availableParts,
+  availableTasks,
   vehicleId
 }) => {
-  const addItem = () => {
-    const newItem: InvoiceItem = {
-      id: `item-${Date.now()}`,
-      description: '',
-      type: 'labor',
-      quantity: 1,
-      price: 0,
-      is_auto_added: false
-    };
-    console.log('Adding new custom item:', newItem);
-    onItemsChange(prevItems => {
-      const updatedItems = [...prevItems, newItem];
-      console.log('Updated items after adding custom item:', updatedItems);
-      return updatedItems;
-    });
+  const [showItemForm, setShowItemForm] = useState(false);
+  const [showPartsSelector, setShowPartsSelector] = useState(false);
+  const [editingItem, setEditingItem] = useState<InvoiceItem | null>(null);
+
+  const handleAddItem = (item: InvoiceItem) => {
+    if (editingItem) {
+      onItemsChange(prev => prev.map(i => i.id === editingItem.id ? item : i));
+      setEditingItem(null);
+    } else {
+      onItemsChange(prev => [...prev, item]);
+    }
+    setShowItemForm(false);
   };
 
-  const addPartFromInventory = (part: Part) => {
-    const newItem: InvoiceItem = {
-      id: `part-${part.id}-${Date.now()}`,
+  const handleAddPartsFromWorkshop = (selectedParts: { part: Part; quantity: number }[]) => {
+    const newItems: InvoiceItem[] = selectedParts.map(({ part, quantity }) => ({
+      id: `workshop-part-${part.id}-${Date.now()}`,
       description: part.name,
-      type: 'parts',
-      quantity: 1,
+      type: 'parts' as const,
+      quantity: quantity,
       price: part.price,
       part_id: part.id,
       is_auto_added: false
-    };
-    console.log('Adding part from inventory:', newItem);
-    onItemsChange(prevItems => [...prevItems, newItem]);
+    }));
+
+    onItemsChange(prev => [...prev, ...newItems]);
+    setShowPartsSelector(false);
   };
 
-  const addTaskAsLabor = (task: Task) => {
-    const newItem: InvoiceItem = {
-      id: `task-${task.id}-${Date.now()}`,
-      description: task.title,
-      type: 'labor',
-      quantity: task.hoursEstimated || 1,
-      price: task.price || 0,
-      task_id: task.id,
-      is_auto_added: false
-    };
-    console.log('Adding task as labor:', newItem);
-    onItemsChange(prevItems => [...prevItems, newItem]);
+  const handleEditItem = (item: InvoiceItem) => {
+    setEditingItem(item);
+    setShowItemForm(true);
   };
 
-  const updateItem = (index: number, field: keyof InvoiceItem, value: any) => {
-    console.log(`Updating item ${index}, field ${field}, value:`, value);
-    onItemsChange(prevItems => {
-      const updatedItems = [...prevItems];
-      updatedItems[index] = { ...updatedItems[index], [field]: value };
-      return updatedItems;
-    });
+  const handleRemoveItem = (itemId: string) => {
+    onItemsChange(prev => prev.filter(item => item.id !== itemId));
   };
 
-  const removeItem = (index: number) => {
-    console.log('Removing item at index:', index);
-    onItemsChange(prevItems => prevItems.filter((_, i) => i !== index));
+  const calculateItemTotal = (item: InvoiceItem) => {
+    return (item.price * item.quantity).toFixed(2);
   };
-
-  // Filter tasks by vehicle if vehicleId is provided - use React.useMemo to prevent unnecessary re-renders
-  const filteredTasks = React.useMemo(() => {
-    const filtered = vehicleId 
-      ? availableTasks.filter(task => task.vehicleId === vehicleId || !task.vehicleId)
-      : availableTasks;
-    console.log('Filtered tasks:', filtered);
-    return filtered;
-  }, [vehicleId, availableTasks]);
-
-  console.log('InvoiceItemsSection render - items count:', items.length);
-  console.log('Available parts:', availableParts.length);
-  console.log('Available tasks:', availableTasks.length);
-  console.log('Filtered tasks:', filteredTasks.length);
 
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <Label className="text-lg font-medium">Invoice Items</Label>
+        <h3 className="text-lg font-medium">Invoice Items</h3>
         <div className="flex gap-2">
-          <Button 
-            type="button" 
-            variant="outline" 
-            onClick={() => {
-              console.log('Add Custom Item button clicked');
-              addItem();
-            }}
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setShowPartsSelector(true)}
+            className="flex items-center gap-2"
           >
-            <Plus className="h-4 w-4 mr-2" />
+            <Plus className="w-4 h-4" />
+            Add Parts from Workshop
+          </Button>
+          <Button
+            type="button"
+            onClick={() => setShowItemForm(true)}
+            className="flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" />
             Add Custom Item
           </Button>
         </div>
       </div>
 
-      {/* Quick Add Sections */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted rounded-lg">
-        {/* Parts Section */}
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-            <Package className="h-4 w-4" />
-            <Label className="font-medium">Add Parts from Inventory</Label>
-          </div>
-          <div className="space-y-2 max-h-32 overflow-y-auto">
-            {availableParts.length > 0 ? (
-              availableParts.map((part) => (
-                <div key={part.id} className="flex items-center justify-between p-2 bg-background rounded border">
-                  <div className="flex-1">
-                    <div className="font-medium text-sm">{part.name}</div>
-                    <div className="text-xs text-muted-foreground">
-                      ${part.price.toFixed(2)} • Qty: {part.quantity}
+      {/* Items List */}
+      {items.length > 0 ? (
+        <div className="border rounded-lg overflow-hidden">
+          <table className="w-full">
+            <thead className="bg-muted">
+              <tr>
+                <th className="text-left p-3">Description</th>
+                <th className="text-left p-3">Type</th>
+                <th className="text-right p-3">Quantity</th>
+                <th className="text-right p-3">Unit Price</th>
+                <th className="text-right p-3">Total</th>
+                <th className="text-center p-3">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((item, index) => (
+                <tr key={item.id} className={index % 2 === 0 ? "bg-background" : "bg-muted/50"}>
+                  <td className="p-3">
+                    <div className="flex items-center gap-2">
+                      {item.description}
+                      {item.is_auto_added && (
+                        <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">
+                          Auto-added
+                        </span>
+                      )}
+                      {item.part_id && (
+                        <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded">
+                          Workshop Part
+                        </span>
+                      )}
                     </div>
-                  </div>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={() => addPartFromInventory(part)}
-                  >
-                    Add
-                  </Button>
-                </div>
-              ))
-            ) : (
-              <div className="text-sm text-muted-foreground">No parts available</div>
-            )}
-          </div>
-        </div>
-
-        {/* Tasks Section */}
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-            <Wrench className="h-4 w-4" />
-            <Label className="font-medium">Add Tasks as Labor</Label>
-          </div>
-          <div className="space-y-2 max-h-32 overflow-y-auto">
-            {filteredTasks.length > 0 ? (
-              filteredTasks.map((task) => (
-                <div key={task.id} className="flex items-center justify-between p-2 bg-background rounded border">
-                  <div className="flex-1">
-                    <div className="font-medium text-sm">{task.title}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {task.price ? `$${task.price.toFixed(2)}` : 'No price set'} • 
-                      {task.hoursEstimated}h estimated
+                  </td>
+                  <td className="p-3 capitalize">{item.type}</td>
+                  <td className="p-3 text-right">{item.quantity}</td>
+                  <td className="p-3 text-right">${item.price.toFixed(2)}</td>
+                  <td className="p-3 text-right font-medium">${calculateItemTotal(item)}</td>
+                  <td className="p-3 text-center">
+                    <div className="flex justify-center gap-1">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEditItem(item)}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRemoveItem(item.id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     </div>
-                  </div>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={() => addTaskAsLabor(task)}
-                  >
-                    Add
-                  </Button>
-                </div>
-              ))
-            ) : (
-              <div className="text-sm text-muted-foreground">No tasks available</div>
-            )}
-          </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      </div>
-
-      {/* Invoice Items List */}
-      {items.map((item, index) => (
-        <div key={item.id} className="grid grid-cols-1 md:grid-cols-6 gap-2 p-4 border rounded-lg relative">
-          {/* Auto-added indicator */}
-          {item.is_auto_added && (
-            <div className="absolute top-2 right-2">
-              <div className="flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">
-                <Bot className="h-3 w-3" />
-                Auto-added
-              </div>
-            </div>
-          )}
-          
-          <div className="md:col-span-2">
-            <Label htmlFor={`description-${index}`}>Description</Label>
-            <Input
-              id={`description-${index}`}
-              value={item.description}
-              onChange={(e) => updateItem(index, 'description', e.target.value)}
-              placeholder="Service description"
-              disabled={item.is_auto_added}
-              className={item.is_auto_added ? 'bg-gray-50' : ''}
-            />
-            {(item.part_id || item.task_id) && (
-              <div className="text-xs text-muted-foreground mt-1">
-                {item.part_id && "From inventory part"}
-                {item.task_id && "From task"}
-                {item.is_auto_added && " (automatically assigned)"}
-              </div>
-            )}
-          </div>
-
-          <div>
-            <Label htmlFor={`type-${index}`}>Type</Label>
-            <Select
-              value={item.type}
-              onValueChange={(value) => updateItem(index, 'type', value)}
-              disabled={item.is_auto_added}
-            >
-              <SelectTrigger id={`type-${index}`} className={item.is_auto_added ? 'bg-gray-50' : ''}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="labor">Labor</SelectItem>
-                <SelectItem value="parts">Parts</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <Label htmlFor={`quantity-${index}`}>
-              {item.type === 'labor' ? 'Hours' : 'Quantity'}
-            </Label>
-            <Input
-              id={`quantity-${index}`}
-              type="number"
-              min="0.1"
-              step={item.type === 'labor' ? "0.1" : "1"}
-              value={item.quantity}
-              onChange={(e) => updateItem(index, 'quantity', parseFloat(e.target.value) || 1)}
-              className={item.is_auto_added ? 'bg-gray-50' : ''}
-            />
-          </div>
-
-          <div>
-            <Label htmlFor={`price-${index}`}>
-              {item.type === 'labor' ? 'Rate/Hour' : 'Price'}
-            </Label>
-            <Input
-              id={`price-${index}`}
-              type="number"
-              step="0.01"
-              min="0"
-              value={item.price}
-              onChange={(e) => updateItem(index, 'price', parseFloat(e.target.value) || 0)}
-              className={item.is_auto_added ? 'bg-gray-50' : ''}
-            />
-          </div>
-
-          <div className="flex items-end">
+      ) : (
+        <div className="border-2 border-dashed border-muted rounded-lg p-8 text-center">
+          <p className="text-muted-foreground mb-4">No items added to this invoice yet.</p>
+          <div className="flex justify-center gap-2">
             <Button
               type="button"
               variant="outline"
-              size="icon"
-              onClick={() => removeItem(index)}
-              disabled={item.is_auto_added}
+              onClick={() => setShowPartsSelector(true)}
             >
-              <Trash2 className="h-4 w-4" />
+              Add Parts from Workshop
+            </Button>
+            <Button
+              type="button"
+              onClick={() => setShowItemForm(true)}
+            >
+              Add Custom Item
             </Button>
           </div>
         </div>
-      ))}
-
-      {items.length === 0 && (
-        <div className="text-center py-8 text-gray-500">
-          No items added yet. Add parts from inventory, tasks as labor, or custom items.
-        </div>
       )}
+
+      {/* Workshop Parts Selector Dialog */}
+      <WorkshopPartsSelector
+        open={showPartsSelector}
+        onOpenChange={setShowPartsSelector}
+        availableParts={availableParts}
+        onAddParts={handleAddPartsFromWorkshop}
+      />
+
+      {/* Item Form Dialog */}
+      <InvoiceItemForm
+        open={showItemForm}
+        onOpenChange={setShowItemForm}
+        onSave={handleAddItem}
+        availableParts={availableParts}
+        availableTasks={availableTasks}
+        vehicleId={vehicleId}
+        editingItem={editingItem}
+      />
     </div>
   );
 };
