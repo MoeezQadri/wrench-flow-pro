@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm, FormProvider } from "react-hook-form";
@@ -267,6 +268,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
     console.log("Form submission started");
     console.log("Current date value:", date);
     console.log("Date type:", typeof date);
+    console.log("Current payments:", payments);
     console.log("Form data:", {
       customerId: selectedCustomerId,
       vehicleId: selectedVehicleId,
@@ -294,6 +296,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
         // Ensure date is in proper format for backend
         const formattedDate = date; // Should already be in YYYY-MM-DD format
         console.log("Date being sent to backend:", formattedDate);
+        console.log("Payments being sent to backend:", payments);
         
         const updatedInvoiceData = {
           id: invoiceData.id,
@@ -306,7 +309,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
           discount_value: discountValue,
           notes: notes,
           items: items,
-          payments: payments
+          payments: payments // Make sure payments are included
         };
 
         console.log("Calling updateInvoice with:", updatedInvoiceData);

@@ -96,7 +96,17 @@ export const useInvoices = () => {
 
     const removeInvoice = async (id: string) => {
         try {
-            // First delete invoice items
+            // First delete payments
+            const { error: paymentsError } = await supabase
+                .from('payments')
+                .delete()
+                .eq('invoice_id', id);
+
+            if (paymentsError) {
+                console.error('Error removing payments:', paymentsError);
+            }
+
+            // Then delete invoice items
             const { error: itemsError } = await supabase
                 .from('invoice_items')
                 .delete()
@@ -106,7 +116,7 @@ export const useInvoices = () => {
                 console.error('Error removing invoice items:', itemsError);
             }
 
-            // Then delete the invoice
+            // Finally delete the invoice
             const { error } = await supabase.from('invoices').delete().eq('id', id);
             if (error) {
                 console.error('Error removing invoice:', error);
@@ -124,6 +134,9 @@ export const useInvoices = () => {
 
     const updateInvoice = async (id: string, updates: Partial<Invoice>) => {
         try {
+            console.log('Updating invoice with ID:', id);
+            console.log('Updates:', updates);
+            
             const { items, payments, ...invoiceFields } = updates;
             
             // Update the main invoice record
@@ -180,8 +193,47 @@ export const useInvoices = () => {
                 }
             }
 
+            // Handle payments if provided
+            if (payments) {
+                console.log('Processing payments:', payments);
+                
+                // Delete existing payments for this invoice
+                const { error: deletePaymentsError } = await supabase
+                    .from('payments')
+                    .delete()
+                    .eq('invoice_id', id);
+
+                if (deletePaymentsError) {
+                    console.error('Error deleting existing payments:', deletePaymentsError);
+                }
+
+                // Insert new payments (only non-temp ones or convert temp IDs)
+                if (payments.length > 0) {
+                    const paymentsToInsert = payments.map(payment => ({
+                        id: payment.id.startsWith('temp-') ? generateUUID() : payment.id,
+                        invoice_id: id,
+                        amount: payment.amount,
+                        method: payment.method,
+                        date: payment.date,
+                        notes: payment.notes || ''
+                    }));
+
+                    console.log('Inserting payments:', paymentsToInsert);
+
+                    const { error: paymentsError } = await supabase
+                        .from('payments')
+                        .insert(paymentsToInsert);
+
+                    if (paymentsError) {
+                        console.error('Error inserting payments:', paymentsError);
+                        toast.error('Failed to save payments');
+                        throw paymentsError;
+                    }
+                }
+            }
+
             if (data && data.length > 0) {
-                const result = { ...data[0], items: items || [] } as Invoice;
+                const result = { ...data[0], items: items || [], payments: payments || [] } as Invoice;
                 setInvoices((prev) => prev.map((item) => item.id === id ? result : item));
                 toast.success('Invoice updated successfully');
             }
@@ -204,6 +256,7 @@ export const useInvoices = () => {
                 .select(`
                     *,
                     invoice_items(*),
+                    payments(*),
                     vehicles(make, model, year, license_plate)
                 `);
 
@@ -222,6 +275,14 @@ export const useInvoices = () => {
                         part_id: item.part_id,
                         task_id: item.task_id,
                         is_auto_added: item.is_auto_added || false
+                    })) || [],
+                    payments: invoice.payments?.map((payment: any) => ({
+                        id: payment.id,
+                        invoice_id: payment.invoice_id,
+                        amount: payment.amount,
+                        method: payment.method,
+                        date: payment.date,
+                        notes: payment.notes || ''
                     })) || [],
                     vehicleInfo: invoice.vehicles ? {
                         make: invoice.vehicles.make,
