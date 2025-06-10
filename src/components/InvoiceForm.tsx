@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm, FormProvider } from "react-hook-form";
@@ -232,7 +231,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
 
   const totals = calculateTotals();
 
-  // Validate form before submission
+  // Validate form before submission - removed item requirement
   const validateForm = () => {
     const errors: string[] = [];
 
@@ -251,9 +250,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
         errors.push("Date must be in YYYY-MM-DD format");
       }
     }
-    if (items.length === 0) {
-      errors.push("Please add at least one item to the invoice");
-    }
+    // Removed the requirement for items - invoices can now be created without items
 
     setFormErrors(errors);
     return errors.length === 0;
