@@ -15,9 +15,6 @@ const Parts: React.FC = () => {
   const [showPartDialog, setShowPartDialog] = useState(false);
   const { getCustomerById } = useDataContext();
 
-  // Helper to generate UUID
-  const generateUUID = () => crypto.randomUUID();
-
   // Load customer names for all vendors at once
   const loadCustomerNames = async (vendorIds: string[]) => {
     const uniqueVendorIds = [...new Set(vendorIds.filter(Boolean))];
@@ -49,6 +46,7 @@ const Parts: React.FC = () => {
         }
 
         const partsData = data || [];
+        console.log('Fetched parts from database:', partsData);
         setParts(partsData);
 
         // Load customer names for all vendor IDs
@@ -69,19 +67,24 @@ const Parts: React.FC = () => {
 
   const handleSavePart = async (part: Part) => {
     try {
+      console.log('Saving part with data:', part);
+      
+      // Use crypto.randomUUID() for proper UUID generation
       const partWithId = {
-        id: part.id || generateUUID(),
+        id: crypto.randomUUID(),
         name: part.name,
         description: part.description,
         part_number: part.part_number,
         price: part.price,
         quantity: part.quantity,
-        vendor_id: part.vendor_id,
+        vendor_id: part.vendor_id || null,
         vendor_name: part.vendor_name,
         invoice_ids: part.invoice_ids || [],
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
+
+      console.log('Inserting part with proper UUID:', partWithId);
 
       const { data, error } = await supabase
         .from('parts')
@@ -90,11 +93,18 @@ const Parts: React.FC = () => {
         .single();
 
       if (error) {
+        console.error('Database error inserting part:', error);
         throw error;
       }
 
-      // Add the new part to the local state
-      setParts(prev => [...prev, data]);
+      console.log('Part successfully inserted:', data);
+
+      // Add the new part to the local state immediately
+      setParts(prev => {
+        const updated = [...prev, data];
+        console.log('Updated parts state:', updated);
+        return updated;
+      });
       
       // If the part has a vendor_id and we don't have the name cached, load it
       if (data.vendor_id && !customerNames[data.vendor_id]) {
@@ -108,7 +118,7 @@ const Parts: React.FC = () => {
       }
 
       toast.success('Part added successfully');
-      console.log('Part saved successfully:', data);
+      setShowPartDialog(false);
     } catch (error) {
       console.error('Error saving part:', error);
       toast.error('Failed to save part');
@@ -137,6 +147,8 @@ const Parts: React.FC = () => {
       </span>
     );
   };
+
+  console.log('Current parts state:', parts);
 
   return (
     <div className="container p-4">

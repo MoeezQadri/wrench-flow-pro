@@ -9,16 +9,33 @@ export const useParts = () => {
 
     const addPart = async (part: Part) => {
         try {
-            const { data, error } = await supabase.from('parts').insert(part).select();
+            // Ensure we use proper UUID generation
+            const partWithId = {
+                ...part,
+                id: crypto.randomUUID(),
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            };
+
+            console.log('Adding part to database:', partWithId);
+
+            const { data, error } = await supabase
+                .from('parts')
+                .insert(partWithId)
+                .select()
+                .single();
+
             if (error) {
                 console.error('Error adding part:', error);
                 toast.error('Failed to add part');
                 throw error;
             }
-            if (data && data.length > 0) {
-                const result = data[0] as Part;
-                setParts((prev) => [...prev, result]);
+
+            if (data) {
+                console.log('Part added successfully:', data);
+                setParts((prev) => [...prev, data as Part]);
                 toast.success('Part added successfully');
+                return data;
             }
         } catch (error) {
             console.error('Error adding part:', error);
@@ -48,9 +65,13 @@ export const useParts = () => {
         try {
             const { data, error } = await supabase
                 .from('parts')
-                .update(updates)
+                .update({
+                    ...updates,
+                    updated_at: new Date().toISOString()
+                })
                 .eq('id', id)
-                .select();
+                .select()
+                .single();
 
             if (error) {
                 console.error('Error updating part:', error);
@@ -58,10 +79,11 @@ export const useParts = () => {
                 throw error;
             }
 
-            if (data && data.length > 0) {
-                const result = data[0] as Part;
+            if (data) {
+                const result = data as Part;
                 setParts((prev) => prev.map((item) => item.id === id ? result : item));
                 toast.success('Part updated successfully');
+                return result;
             }
         } catch (error) {
             console.error('Error updating part:', error);
@@ -72,11 +94,13 @@ export const useParts = () => {
 
     const loadParts = async () => {
         try {
+            console.log('Loading parts from database...');
             const { data: partsData, error: partsError } = await supabase.from('parts').select('*');
             if (partsError) {
                 console.error('Error fetching parts:', partsError);
                 toast.error('Failed to load parts');
             } else {
+                console.log('Parts loaded successfully:', partsData);
                 setParts(partsData || []);
             }
         } catch (error) {
