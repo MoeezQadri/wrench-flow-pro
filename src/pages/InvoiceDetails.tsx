@@ -23,48 +23,51 @@ const InvoiceDetails: React.FC = () => {
 
   useEffect(() => {
     const loadInvoice = async () => {
-      setLoading(true);
-      if (id) {
-        try {
-          console.log("Loading invoice with ID:", id);
-          
-          // Ensure data is loaded first
-          await Promise.all([
-            loadInvoices(),
-            loadCustomers()
-          ]);
-          
-          // Get invoice from context
-          const foundInvoice = getInvoiceById(id);
-          console.log("Found invoice:", foundInvoice);
-          
-          if (foundInvoice) {
-            setInvoice(foundInvoice);
-            
-            // Get customer name
-            const customer = customers.find(c => c.id === foundInvoice.customer_id);
-            setCustomerName(customer ? customer.name : 'Unknown Customer');
-            
-            // Get vehicle info
-            if (foundInvoice.customer_id) {
-              const vehicles = getVehiclesByCustomerId(foundInvoice.customer_id);
-              const vehicle = vehicles.find(v => v.id === foundInvoice.vehicle_id);
-              setVehicleInfo(vehicle);
-            }
-          } else {
-            console.error("Invoice not found with ID:", id);
-            toast.error('Invoice not found');
-          }
-        } catch (error) {
-          console.error('Error loading invoice:', error);
-          toast.error('Failed to load invoice');
-        }
+      if (!id) {
+        setLoading(false);
+        return;
       }
-      setLoading(false);
+
+      try {
+        console.log("Loading invoice with ID:", id);
+        
+        // Ensure data is loaded first
+        await Promise.all([
+          loadInvoices(),
+          loadCustomers()
+        ]);
+        
+        // Get invoice from context
+        const foundInvoice = getInvoiceById(id);
+        console.log("Found invoice:", foundInvoice);
+        
+        if (foundInvoice) {
+          setInvoice(foundInvoice);
+          
+          // Get customer name
+          const customer = customers.find(c => c.id === foundInvoice.customer_id);
+          setCustomerName(customer ? customer.name : 'Unknown Customer');
+          
+          // Get vehicle info
+          if (foundInvoice.customer_id) {
+            const vehicles = getVehiclesByCustomerId(foundInvoice.customer_id);
+            const vehicle = vehicles.find(v => v.id === foundInvoice.vehicle_id);
+            setVehicleInfo(vehicle);
+          }
+        } else {
+          console.error("Invoice not found with ID:", id);
+          toast.error('Invoice not found');
+        }
+      } catch (error) {
+        console.error('Error loading invoice:', error);
+        toast.error('Failed to load invoice');
+      } finally {
+        setLoading(false);
+      }
     };
 
     loadInvoice();
-  }, [id, getInvoiceById, customers, getVehiclesByCustomerId, loadInvoices, loadCustomers]);
+  }, [id]); // Only depend on id to prevent infinite loops
 
   if (loading) {
     return <div className="p-6">Loading invoice details...</div>;
