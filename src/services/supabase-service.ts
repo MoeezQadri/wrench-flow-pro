@@ -1,3 +1,4 @@
+
 import { User, Customer, Vehicle, Invoice, Part, Mechanic, Vendor, Expense, Attendance, Task, CustomerAnalytics, DashboardMetrics, InvoiceItem, Payment, InvoiceStatus, UserRole } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -258,10 +259,23 @@ export const createInvoiceWithAutoAssignment = async (invoiceData: any) => {
       
       // Sync each item back to inventory/tasks
       for (const item of insertedItems || []) {
-        if (item.type === 'parts' && item.part_id) {
-          await syncInvoiceItemToPart(item, invoice.id);
-        } else if (item.type === 'labor' && item.task_id) {
-          await syncInvoiceItemToTask(item, invoice.id, invoiceData.vehicleId);
+        // Type cast the item to ensure proper typing
+        const typedItem: InvoiceItem = {
+          id: item.id,
+          invoice_id: item.invoice_id,
+          description: item.description,
+          type: item.type as 'labor' | 'parts',
+          quantity: item.quantity,
+          price: item.price,
+          part_id: item.part_id,
+          task_id: item.task_id,
+          is_auto_added: item.is_auto_added || false
+        };
+        
+        if (typedItem.type === 'parts' && typedItem.part_id) {
+          await syncInvoiceItemToPart(typedItem, invoice.id);
+        } else if (typedItem.type === 'labor' && typedItem.task_id) {
+          await syncInvoiceItemToTask(typedItem, invoice.id, invoiceData.vehicleId);
         }
       }
     }
