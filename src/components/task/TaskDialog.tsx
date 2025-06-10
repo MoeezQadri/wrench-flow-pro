@@ -66,18 +66,35 @@ const TaskDialog = ({ open, onOpenChange, onSave, task, invoiceId }: TaskDialogP
 
   const handleSubmit = async (data: TaskFormValues) => {
     try {
+      // Determine task assignment based on type
+      let taskInvoiceId = undefined;
+      let taskVehicleId = undefined;
+      let taskLocation = data.location;
+
+      if (data.taskType === "invoice") {
+        if (!data.invoiceId) {
+          toast.error("Invoice must be selected for invoice tasks");
+          return;
+        }
+        taskInvoiceId = data.invoiceId;
+        taskVehicleId = data.vehicleId;
+      } else {
+        // Internal task - force workshop location
+        taskLocation = "workshop";
+      }
+
       const newTask: Task = {
         id: task?.id || generateId("task"),
         title: data.title,
         description: data.description || "",
         status: data.status,
         mechanicId: data.mechanicId === "unassigned" ? undefined : data.mechanicId,
-        vehicleId: data.vehicleId || (invoice ? invoice.vehicle_id : undefined),
-        invoiceId: data.invoiceId || invoiceId,
+        vehicleId: taskVehicleId,
+        invoiceId: taskInvoiceId,
         hoursEstimated: data.hoursEstimated,
         hoursSpent: data.hoursSpent,
         price: data.price,
-        location: data.location,
+        location: taskLocation,
         created_at: task?.created_at || new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
@@ -85,10 +102,10 @@ const TaskDialog = ({ open, onOpenChange, onSave, task, invoiceId }: TaskDialogP
       onSave(newTask);
 
       // Show success message
-      if (invoiceId && vehicle) {
+      if (data.taskType === "invoice" && vehicle) {
         toast.success(`Task ${isEditing ? "updated" : "added"} for ${vehicle.make} ${vehicle.model} (${vehicle.license_plate})!`);
       } else {
-        toast.success(`Task ${isEditing ? "updated" : "added"} successfully!`);
+        toast.success(`Internal workshop task ${isEditing ? "updated" : "added"} successfully!`);
       }
 
       onOpenChange(false);
@@ -102,6 +119,12 @@ const TaskDialog = ({ open, onOpenChange, onSave, task, invoiceId }: TaskDialogP
     return null;
   }
 
+  // Determine task type for editing
+  const getTaskType = (task?: Task) => {
+    if (!task) return invoiceId ? "invoice" : "internal";
+    return task.invoiceId ? "invoice" : "internal";
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto">
@@ -112,7 +135,7 @@ const TaskDialog = ({ open, onOpenChange, onSave, task, invoiceId }: TaskDialogP
               ? "Update the task information below."
               : invoice && vehicle
                 ? `Add a new task for ${vehicle.make} ${vehicle.model} (${vehicle.license_plate}).`
-                : "Enter the details for the new task."
+                : "Create either an invoice-based task or an internal workshop task."
             }
           </DialogDescription>
         </DialogHeader>
@@ -125,7 +148,8 @@ const TaskDialog = ({ open, onOpenChange, onSave, task, invoiceId }: TaskDialogP
                 description: task.description,
                 status: task.status,
                 price: task.price || 0,
-                location: task.location,
+                location: task.location || "workshop",
+                taskType: getTaskType(task),
                 mechanicId: task.mechanicId || "unassigned",
                 vehicleId: task.vehicleId,
                 invoiceId: task.invoiceId,
@@ -133,9 +157,11 @@ const TaskDialog = ({ open, onOpenChange, onSave, task, invoiceId }: TaskDialogP
                 hoursSpent: task.hoursSpent || 0,
               }
               : {
+                taskType: invoiceId ? "invoice" : "internal",
                 invoiceId: invoiceId,
                 vehicleId: invoice?.vehicle_id,
-                mechanicId: "unassigned"
+                mechanicId: "unassigned",
+                location: "workshop"
               }
           }
           onSubmit={handleSubmit}

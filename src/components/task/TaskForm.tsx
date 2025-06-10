@@ -20,6 +20,8 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 import { Task, TaskLocation } from "@/types";
 import { useDataContext } from "@/context/data/DataContext";
 
@@ -29,11 +31,25 @@ const taskSchema = z.object({
   status: z.enum(["pending", "in-progress", "completed"]),
   price: z.coerce.number().min(0, { message: "Price must be 0 or greater" }),
   location: z.enum(["workshop", "onsite", "remote"]),
+  taskType: z.enum(["invoice", "internal"]),
   vehicleId: z.string().optional(),
   mechanicId: z.string().optional(),
   invoiceId: z.string().optional(),
   hoursEstimated: z.coerce.number().min(0, { message: "Hours must be 0 or greater" }),
   hoursSpent: z.coerce.number().min(0, { message: "Hours must be 0 or greater" }),
+}).refine((data) => {
+  // If task type is invoice, require invoiceId
+  if (data.taskType === "invoice" && !data.invoiceId) {
+    return false;
+  }
+  // If task type is internal, ensure location is workshop
+  if (data.taskType === "internal" && data.location !== "workshop") {
+    return false;
+  }
+  return true;
+}, {
+  message: "Invalid task configuration",
+  path: ["taskType"]
 });
 
 export type TaskFormValues = z.infer<typeof taskSchema>;
@@ -50,6 +66,7 @@ const TaskForm = ({ defaultValues, onSubmit, formId, task }: TaskFormProps) => {
   const [customers, setCustomers] = useState<any[]>([]);
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [invoices, setInvoices] = useState<any[]>([]);
+  const [activeInvoices, setActiveInvoices] = useState<any[]>([]);
   const {
     mechanics: mechanics_, customers: customers_, invoices: invoices_,
     getVehiclesByCustomerId,
@@ -64,6 +81,7 @@ const TaskForm = ({ defaultValues, onSubmit, formId, task }: TaskFormProps) => {
       status: "pending",
       price: 0,
       location: "workshop",
+      taskType: "internal",
       vehicleId: "",
       mechanicId: "",
       invoiceId: "",
@@ -72,15 +90,24 @@ const TaskForm = ({ defaultValues, onSubmit, formId, task }: TaskFormProps) => {
     },
   });
 
+  const watchTaskType = form.watch("taskType");
+  const watchInvoiceId = form.watch("invoiceId");
+
   useEffect(() => {
     const loadData = async () => {
       setMechanics(mechanics_);
       setCustomers(customers_);
       setInvoices(invoices_);
+      
+      // Filter for active invoices only (open, in-progress)
+      const activeInvoicesList = invoices_.filter(invoice => 
+        invoice.status === 'open' || invoice.status === 'in-progress'
+      );
+      setActiveInvoices(activeInvoicesList);
     };
 
     loadData();
-  }, []);
+  }, [mechanics_, customers_, invoices_]);
 
   useEffect(() => {
     const loadVehicles = async () => {
@@ -94,6 +121,31 @@ const TaskForm = ({ defaultValues, onSubmit, formId, task }: TaskFormProps) => {
 
     loadVehicles();
   }, [selectedCustomer]);
+
+  // When task type changes, update location and clear invoice selection
+  useEffect(() => {
+    if (watchTaskType === "internal") {
+      form.setValue("location", "workshop");
+      form.setValue("invoiceId", "");
+      form.setValue("vehicleId", "");
+      setSelectedCustomer("");
+    }
+  }, [watchTaskType, form]);
+
+  // When invoice changes, update vehicle selection
+  useEffect(() => {
+    if (watchInvoiceId && watchTaskType === "invoice") {
+      const selectedInvoice = activeInvoices.find(inv => inv.id === watchInvoiceId);
+      if (selectedInvoice) {
+        form.setValue("vehicleId", selectedInvoice.vehicle_id);
+        // Find customer for this invoice to populate customer selector
+        const vehicle = vehicles.find(v => v.id === selectedInvoice.vehicle_id);
+        if (vehicle) {
+          setSelectedCustomer(vehicle.customer_id);
+        }
+      }
+    }
+  }, [watchInvoiceId, watchTaskType, activeInvoices, vehicles, form]);
 
   return (
     <Form {...form}>
@@ -126,6 +178,60 @@ const TaskForm = ({ defaultValues, onSubmit, formId, task }: TaskFormProps) => {
           )}
         />
 
+        <FormField
+          control={form.control}
+          name="taskType"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Task Type</FormLabel>
+              <FormControl>
+                <RadioGroup
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  className="flex flex-row space-x-6"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="invoice" id="invoice" />
+                    <Label htmlFor="invoice">Invoice Task</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="internal" id="internal" />
+                    <Label htmlFor="internal">Internal Workshop Task</Label>
+                  </div>
+                </RadioGroup>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {watchTaskType === "invoice" && (
+          <FormField
+            control={form.control}
+            name="invoiceId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Active Invoice *</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select an active invoice" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {activeInvoices.map((invoice) => (
+                      <SelectItem key={invoice.id} value={invoice.id}>
+                        Invoice #{invoice.id.slice(0, 8)}... ({invoice.status})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
@@ -156,7 +262,11 @@ const TaskForm = ({ defaultValues, onSubmit, formId, task }: TaskFormProps) => {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Location</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
+                <Select 
+                  onValueChange={field.onChange} 
+                  value={field.value}
+                  disabled={watchTaskType === "internal"}
+                >
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select location" />
@@ -164,8 +274,12 @@ const TaskForm = ({ defaultValues, onSubmit, formId, task }: TaskFormProps) => {
                   </FormControl>
                   <SelectContent>
                     <SelectItem value="workshop">Workshop</SelectItem>
-                    <SelectItem value="onsite">On-site</SelectItem>
-                    <SelectItem value="remote">Remote</SelectItem>
+                    {watchTaskType === "invoice" && (
+                      <>
+                        <SelectItem value="onsite">On-site</SelectItem>
+                        <SelectItem value="remote">Remote</SelectItem>
+                      </>
+                    )}
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -263,6 +377,14 @@ const TaskForm = ({ defaultValues, onSubmit, formId, task }: TaskFormProps) => {
             )}
           />
         </div>
+
+        {watchTaskType === "internal" && (
+          <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+            <p className="text-sm text-blue-700">
+              <strong>Internal Workshop Task:</strong> This task will be assigned to the workshop for internal operations and maintenance.
+            </p>
+          </div>
+        )}
       </form>
     </Form>
   );
