@@ -48,9 +48,9 @@ const InvoiceDetails: React.FC = () => {
           const customer = customers.find(c => c.id === foundInvoice.customer_id);
           setCustomerName(customer ? customer.name : 'Unknown Customer');
           
-          // Get vehicle info
+          // Get vehicle info - now properly await the promise
           if (foundInvoice.customer_id) {
-            const vehicles = getVehiclesByCustomerId(foundInvoice.customer_id);
+            const vehicles = await getVehiclesByCustomerId(foundInvoice.customer_id);
             const vehicle = vehicles.find(v => v.id === foundInvoice.vehicle_id);
             setVehicleInfo(vehicle);
           }
