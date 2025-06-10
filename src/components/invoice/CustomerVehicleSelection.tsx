@@ -14,6 +14,7 @@ interface CustomerVehicleSelectionProps {
   onCustomerIdChange: (customerId: string) => void;
   selectedVehicleId: string;
   onVehicleIdChange: (vehicleId: string) => void;
+  isEditing?: boolean;
 }
 
 const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
@@ -21,10 +22,12 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
   onCustomerIdChange,
   selectedVehicleId,
   onVehicleIdChange,
+  isEditing = false,
 }) => {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [isLoadingVehicles, setIsLoadingVehicles] = useState(false);
   const [isLoadingCustomers, setIsLoadingCustomers] = useState(false);
+  const [hasLoadedInitialVehicles, setHasLoadedInitialVehicles] = useState(false);
   
   const {
     customers,
@@ -40,16 +43,26 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
     }
   }, [customers.length]);
 
-  // Load vehicles when customer changes
+  // Load vehicles when customer changes - with special handling for editing
   useEffect(() => {
     const loadVehicles = async () => {
       if (selectedCustomerId) {
+        // When editing, prevent unnecessary reloads if we already have the right vehicles
+        if (isEditing && hasLoadedInitialVehicles && vehicles.length > 0) {
+          const hasSelectedVehicle = vehicles.some(v => v.id === selectedVehicleId);
+          if (hasSelectedVehicle) {
+            console.log("Skipping vehicle reload - already have the selected vehicle");
+            return;
+          }
+        }
+
         setIsLoadingVehicles(true);
         try {
           console.log("Loading vehicles for customer:", selectedCustomerId);
           const fetchedVehicles = await getVehiclesByCustomerId(selectedCustomerId);
           console.log("Vehicles loaded:", fetchedVehicles);
           setVehicles(fetchedVehicles);
+          setHasLoadedInitialVehicles(true);
         } catch (error) {
           console.error("Error loading vehicles:", error);
           toast.error("Failed to load vehicles for selected customer");
@@ -59,11 +72,12 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
         }
       } else {
         setVehicles([]);
+        setHasLoadedInitialVehicles(false);
       }
     };
 
     loadVehicles();
-  }, [selectedCustomerId, getVehiclesByCustomerId]);
+  }, [selectedCustomerId, getVehiclesByCustomerId, isEditing, selectedVehicleId]);
 
   const handleRefreshCustomers = async () => {
     setIsLoadingCustomers(true);
@@ -80,8 +94,16 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
   };
 
   const handleCustomerChange = (value: string) => {
+    // When editing, be more careful about customer changes
+    if (isEditing && value !== selectedCustomerId) {
+      console.log("Customer change detected during editing - this may cause issues");
+    }
+    
     onCustomerIdChange(value);
-    onVehicleIdChange(""); // Reset vehicle selection when customer changes
+    if (!isEditing) {
+      onVehicleIdChange(""); // Reset vehicle selection when customer changes, but not when editing
+    }
+    setHasLoadedInitialVehicles(false);
   };
 
   return (
@@ -101,15 +123,22 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
               <RefreshCw className={`h-4 w-4 mr-1 ${isLoadingCustomers ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
-            <Link to="/customers/new">
-              <Button type="button" variant="ghost" size="sm" className="h-8">
-                <PlusCircle className="h-4 w-4 mr-1" />
-                Add New
-              </Button>
-            </Link>
+            {!isEditing && (
+              <Link to="/customers/new">
+                <Button type="button" variant="ghost" size="sm" className="h-8">
+                  <PlusCircle className="h-4 w-4 mr-1" />
+                  Add New
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
-        <Select value={selectedCustomerId} onValueChange={handleCustomerChange} required>
+        <Select 
+          value={selectedCustomerId} 
+          onValueChange={handleCustomerChange} 
+          required
+          disabled={isEditing} // Disable customer selection when editing
+        >
           <SelectTrigger id="customer">
             <SelectValue placeholder={isLoadingCustomers ? "Loading customers..." : "Select a customer"} />
           </SelectTrigger>
@@ -132,7 +161,7 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
       <div>
         <div className="flex justify-between items-end mb-2">
           <Label htmlFor="vehicle">Vehicle *</Label>
-          {selectedCustomerId && (
+          {selectedCustomerId && !isEditing && (
             <Link to={`/vehicles/new?customerId=${selectedCustomerId}`}>
               <Button type="button" variant="ghost" size="sm" className="h-8">
                 <PlusCircle className="h-4 w-4 mr-1" />

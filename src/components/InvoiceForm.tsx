@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm, FormProvider } from "react-hook-form";
@@ -396,6 +395,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
             onCustomerIdChange={setSelectedCustomerId}
             selectedVehicleId={selectedVehicleId}
             onVehicleIdChange={setSelectedVehicleId}
+            isEditing={isEditing}
           />
 
           {/* Date */}
