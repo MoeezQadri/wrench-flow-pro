@@ -11,6 +11,8 @@ import {
   Users,
   Wrench,
   UserRound,
+  BarChart3,
+  Package,
 } from 'lucide-react';
 import { useAuthContext } from '@/context/AuthContext';
 import {
@@ -63,9 +65,19 @@ const navItems = [
     icon: Calendar,
   },
   {
+    title: "Parts",
+    href: "/parts",
+    icon: Package,
+  },
+  {
     title: "Expenses",
     href: "/expenses",
     icon: ShoppingCart,
+  },
+  {
+    title: "Reports",
+    href: "/reports",
+    icon: BarChart3,
   },
 ];
 
