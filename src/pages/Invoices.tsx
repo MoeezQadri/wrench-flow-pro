@@ -10,16 +10,14 @@ const Invoices: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const { 
     invoices: contextInvoices, 
-    customers: contextCustomers,
-    refreshInvoices 
+    customers: contextCustomers
   } = useDataContext();
 
   useEffect(() => {
     const loadInvoices = async () => {
       setLoading(true);
       try {
-        // Refresh invoices from context
-        await refreshInvoices();
+        // Use invoices from context directly
         setInvoices(contextInvoices);
       } catch (error) {
         console.error('Error loading invoices:', error);
@@ -30,11 +28,12 @@ const Invoices: React.FC = () => {
     };
 
     loadInvoices();
-  }, []);
+  }, [contextInvoices]);
 
   // Update invoices when context changes
   useEffect(() => {
     setInvoices(contextInvoices);
+    setLoading(false);
   }, [contextInvoices]);
 
   const calculateInvoiceTotal = (invoice: Invoice): number => {
