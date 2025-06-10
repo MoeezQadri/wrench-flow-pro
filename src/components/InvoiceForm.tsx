@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -16,7 +17,7 @@ import { Invoice, InvoiceItem, Vehicle, Part, Task, TaskLocation } from "@/types
 import InvoiceItemsSection from "./invoice/InvoiceItemsSection";
 import { toast } from "sonner";
 import { useDataContext } from "@/context/data/DataContext";
-import { createInvoiceWithAutoAssignment, getAssignedPartsForInvoice, getAssignedTasksForInvoice } from "@/services/supabase-service";
+import { createInvoiceWithAutoAssignment, getAssignedPartsForInvoice, getAssignedTasksForInvoice, updateInvoice } from "@/services/supabase-service";
 
 interface InvoiceFormProps {
   isEditing?: boolean;
@@ -46,6 +47,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
   const {
     getVehiclesByCustomerId,
     addInvoice,
+    updateInvoice: updateInvoiceInContext,
     customers: customersData,
     parts,
     tasks
@@ -103,6 +105,8 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
       setSelectedVehicleId(invoiceData.vehicle_id);
       setDate(invoiceData.date);
       setTaxRate(invoiceData.tax_rate || 7.5);
+      setDiscountType(invoiceData.discount_type || 'none');
+      setDiscountValue(invoiceData.discount_value || 0);
       setNotes(invoiceData.notes || "");
       setItems(invoiceData.items || []);
     }
@@ -242,7 +246,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
       date,
       taxRate,
       items: items.length,
-      totals
+      isEditing
     });
 
     // Validate form
@@ -255,21 +259,31 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
     setIsSubmitting(true);
     
     try {
-      if (isEditing) {
-        console.log("Updating existing invoice");
-        // Handle editing logic (existing functionality)
-        const invoiceUpdateData = {
-          customerId: selectedCustomerId,
-          vehicleId: selectedVehicleId,
+      if (isEditing && invoiceData) {
+        console.log("Updating existing invoice:", invoiceData.id);
+        
+        const updatedInvoiceData = {
+          id: invoiceData.id,
+          customer_id: selectedCustomerId,
+          vehicle_id: selectedVehicleId,
           date: date,
-          taxRate: taxRate,
-          discountType: discountType,
-          discountValue: discountValue,
+          tax_rate: taxRate,
+          discount_type: discountType,
+          discount_value: discountValue,
           notes: notes,
-          items: items
+          items: items,
+          status: invoiceData.status, // Keep existing status
+          payments: invoiceData.payments || [] // Keep existing payments
         };
 
-        await addInvoice(invoiceUpdateData);
+        console.log("Calling updateInvoice with:", updatedInvoiceData);
+        await updateInvoice(updatedInvoiceData);
+        
+        // Also update in context
+        if (updateInvoiceInContext) {
+          await updateInvoiceInContext(updatedInvoiceData);
+        }
+        
         toast.success("Invoice updated successfully!");
       } else {
         console.log("Creating new invoice");

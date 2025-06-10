@@ -13,7 +13,7 @@ const EditInvoice = () => {
   const navigate = useNavigate();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
-  const { getInvoiceById } = useDataContext();
+  const { invoices } = useDataContext();
 
   useEffect(() => {
     const fetchInvoice = async () => {
@@ -21,8 +21,8 @@ const EditInvoice = () => {
         try {
           console.log("Fetching invoice with ID:", id);
           
-          // Fetch the invoice by ID from Supabase
-          const foundInvoice = await getInvoiceById(id);
+          // Find the invoice in the context invoices array
+          const foundInvoice = invoices.find(inv => inv.id === id);
           console.log("Found invoice:", foundInvoice);
 
           if (foundInvoice) {
@@ -61,7 +61,7 @@ const EditInvoice = () => {
     };
 
     fetchInvoice();
-  }, [id, navigate, getInvoiceById]);
+  }, [id, navigate, invoices]);
 
   if (loading) {
     return <div className="p-6">Loading invoice...</div>;
