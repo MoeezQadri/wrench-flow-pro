@@ -27,7 +27,7 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [isLoadingVehicles, setIsLoadingVehicles] = useState(false);
   const [isLoadingCustomers, setIsLoadingCustomers] = useState(false);
-  const [hasLoadedInitialVehicles, setHasLoadedInitialVehicles] = useState(false);
+  const [loadedCustomerId, setLoadedCustomerId] = useState<string>("");
   
   const {
     customers,
@@ -43,26 +43,17 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
     }
   }, [customers.length]);
 
-  // Load vehicles when customer changes - with special handling for editing
+  // Load vehicles when customer changes - optimized for editing
   useEffect(() => {
     const loadVehicles = async () => {
-      if (selectedCustomerId) {
-        // When editing, prevent unnecessary reloads if we already have the right vehicles
-        if (isEditing && hasLoadedInitialVehicles && vehicles.length > 0) {
-          const hasSelectedVehicle = vehicles.some(v => v.id === selectedVehicleId);
-          if (hasSelectedVehicle) {
-            console.log("Skipping vehicle reload - already have the selected vehicle");
-            return;
-          }
-        }
-
+      if (selectedCustomerId && selectedCustomerId !== loadedCustomerId) {
         setIsLoadingVehicles(true);
         try {
           console.log("Loading vehicles for customer:", selectedCustomerId);
           const fetchedVehicles = await getVehiclesByCustomerId(selectedCustomerId);
           console.log("Vehicles loaded:", fetchedVehicles);
           setVehicles(fetchedVehicles);
-          setHasLoadedInitialVehicles(true);
+          setLoadedCustomerId(selectedCustomerId);
         } catch (error) {
           console.error("Error loading vehicles:", error);
           toast.error("Failed to load vehicles for selected customer");
@@ -70,14 +61,14 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
         } finally {
           setIsLoadingVehicles(false);
         }
-      } else {
+      } else if (!selectedCustomerId) {
         setVehicles([]);
-        setHasLoadedInitialVehicles(false);
+        setLoadedCustomerId("");
       }
     };
 
     loadVehicles();
-  }, [selectedCustomerId, getVehiclesByCustomerId, isEditing, selectedVehicleId]);
+  }, [selectedCustomerId, getVehiclesByCustomerId]);
 
   const handleRefreshCustomers = async () => {
     setIsLoadingCustomers(true);
@@ -94,16 +85,10 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
   };
 
   const handleCustomerChange = (value: string) => {
-    // When editing, be more careful about customer changes
-    if (isEditing && value !== selectedCustomerId) {
-      console.log("Customer change detected during editing - this may cause issues");
-    }
-    
     onCustomerIdChange(value);
     if (!isEditing) {
       onVehicleIdChange(""); // Reset vehicle selection when customer changes, but not when editing
     }
-    setHasLoadedInitialVehicles(false);
   };
 
   return (
