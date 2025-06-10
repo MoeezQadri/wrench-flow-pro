@@ -85,7 +85,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
     setAvailableTasks(availableTasks);
   }, [parts, tasks, isEditing, invoiceData]);
 
-  // Initialize form values when editing - only run once
+  // Initialize form values when editing - only run once and before other effects
   useEffect(() => {
     if (invoiceData && !initialDataLoaded.current) {
       console.log("Initializing form with invoice data:", invoiceData);
@@ -103,10 +103,11 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
     }
   }, [invoiceData]);
 
-  // Load assigned parts and tasks when vehicle is selected - but not when editing
+  // Load assigned parts and tasks when vehicle is selected - but ONLY for new invoices
   useEffect(() => {
     const loadAssignedItems = async () => {
-      if (selectedVehicleId && selectedCustomerId && !isEditing && !initialDataLoaded.current) {
+      // Only load assigned items for new invoices, not when editing
+      if (selectedVehicleId && selectedCustomerId && !isEditing && initialDataLoaded.current === false) {
         try {
           const [assignedPartsData, assignedTasksData] = await Promise.all([
             getAssignedPartsForInvoice(selectedVehicleId, selectedCustomerId),
