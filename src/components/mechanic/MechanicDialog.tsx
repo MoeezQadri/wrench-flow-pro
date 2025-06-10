@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -17,10 +18,12 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Mechanic } from "@/types";
 import { useDataContext } from "@/context/data/DataContext";
@@ -239,9 +242,3 @@ const MechanicDialog: React.FC<MechanicDialogProps> = ({ open, onOpenChange, mec
 };
 
 export default MechanicDialog;
-
-import { Switch } from "@/components/ui/switch"
-import {
-  FormDescription,
-} from "@/components/ui/form"
-
