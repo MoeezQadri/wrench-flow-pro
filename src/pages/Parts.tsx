@@ -2,42 +2,31 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { Customer } from '@/types';
 import { useDataContext } from '@/context/data/DataContext';
-
-// CustomerCell component to handle async loading of customer data
-const CustomerCell = ({
-  customerId
-}: {
-  customerId: string;
-}) => {
-  const [name, setName] = useState('Loading...');
-  const { getCustomerById } = useDataContext();
-
-  useEffect(() => {
-    const loadCustomer = async () => {
-      try {
-        const customer = await getCustomerById(customerId);
-        setName(customer?.name || 'Unknown');
-      } catch (error) {
-        console.error('Error loading customer:', error);
-        setName('Unknown');
-      }
-    };
-
-    if (customerId) {
-      loadCustomer();
-    } else {
-      setName('N/A');
-    }
-  }, [customerId, getCustomerById]);
-
-  return <span>{name}</span>;
-};
 
 const Parts: React.FC = () => {
   const [parts, setParts] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [customerNames, setCustomerNames] = useState<Record<string, string>>({});
+  const { getCustomerById } = useDataContext();
+
+  // Load customer names for all vendors at once
+  const loadCustomerNames = async (vendorIds: string[]) => {
+    const uniqueVendorIds = [...new Set(vendorIds.filter(Boolean))];
+    const nameMap: Record<string, string> = {};
+    
+    for (const vendorId of uniqueVendorIds) {
+      try {
+        const customer = await getCustomerById(vendorId);
+        nameMap[vendorId] = customer?.name || 'Unknown';
+      } catch (error) {
+        console.error('Error loading customer:', error);
+        nameMap[vendorId] = 'Unknown';
+      }
+    }
+    
+    setCustomerNames(nameMap);
+  };
 
   useEffect(() => {
     const fetchParts = async () => {
@@ -51,7 +40,14 @@ const Parts: React.FC = () => {
           throw error;
         }
 
-        setParts(data || []);
+        const partsData = data || [];
+        setParts(partsData);
+
+        // Load customer names for all vendor IDs
+        const vendorIds = partsData.map(part => part.vendor_id).filter(Boolean);
+        if (vendorIds.length > 0) {
+          await loadCustomerNames(vendorIds);
+        }
       } catch (error) {
         console.error('Error fetching parts:', error);
         toast.error('Failed to load parts inventory');
@@ -61,7 +57,14 @@ const Parts: React.FC = () => {
     };
 
     fetchParts();
-  }, []);
+  }, [getCustomerById]);
+
+  const getVendorName = (part: any) => {
+    if (part.vendor_id) {
+      return customerNames[part.vendor_id] || 'Loading...';
+    }
+    return part.vendor_name || 'N/A';
+  };
 
   return (
     <div className="container p-4">
@@ -103,11 +106,7 @@ const Parts: React.FC = () => {
                     )}
                   </td>
                   <td className="py-2 px-4 text-right">${part.price.toFixed(2)}</td>
-                  <td className="py-2 px-4">
-                    {part.vendor_id ? (
-                      <CustomerCell customerId={part.vendor_id} />
-                    ) : part.vendor_name || 'N/A'}
-                  </td>
+                  <td className="py-2 px-4">{getVendorName(part)}</td>
                 </tr>
               ))}
             </tbody>
