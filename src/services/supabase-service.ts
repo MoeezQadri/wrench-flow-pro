@@ -1,6 +1,12 @@
 import { User, Customer, Vehicle, Invoice, Part, Mechanic, Vendor, Expense, Attendance, Task, CustomerAnalytics, DashboardMetrics, InvoiceItem, Payment, InvoiceStatus, UserRole } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { 
+  syncInvoiceItemToPart, 
+  syncInvoiceItemToTask, 
+  createTaskFromInvoiceItem, 
+  createPartFromInvoiceItem 
+} from "./inventory-sync-service";
 
 // Helper function to handle errors
 const handleError = (error: any, action: string) => {
@@ -158,7 +164,7 @@ export const getAssignedTasksForInvoice = async (vehicleId: string) => {
   }
 };
 
-// Create invoice with automatic assignment
+// Create invoice with automatic assignment and bidirectional sync
 export const createInvoiceWithAutoAssignment = async (invoiceData: any) => {
   try {
     // Create the invoice first
@@ -214,32 +220,53 @@ export const createInvoiceWithAutoAssignment = async (invoiceData: any) => {
       });
     });
     
-    // Add manually specified items
+    // Process manually specified items and create missing parts/tasks
     if (invoiceData.items && invoiceData.items.length > 0) {
-      invoiceData.items.forEach((item: any) => {
-        autoItems.push({
-          invoice_id: invoice.id,
-          description: item.description,
-          type: item.type,
-          quantity: item.quantity,
-          price: item.price,
-          part_id: item.part_id,
-          task_id: item.task_id,
-          is_auto_added: false
-        });
-      });
+      for (const item of invoiceData.items) {
+        let processedItem = { ...item, invoice_id: invoice.id, is_auto_added: false };
+        
+        // Create missing parts or tasks for manual items
+        if (item.type === 'parts' && !item.part_id) {
+          const newPartId = await createPartFromInvoiceItem(item, invoice.id);
+          if (newPartId) {
+            processedItem.part_id = newPartId;
+          }
+        } else if (item.type === 'labor' && !item.task_id) {
+          const newTaskId = await createTaskFromInvoiceItem(
+            item, 
+            invoice.id, 
+            invoiceData.vehicleId, 
+            invoiceData.customerId
+          );
+          if (newTaskId) {
+            processedItem.task_id = newTaskId;
+          }
+        }
+        
+        autoItems.push(processedItem);
+      }
     }
     
     // Insert all items
     if (autoItems.length > 0) {
-      const { error: itemsError } = await supabase
+      const { data: insertedItems, error: itemsError } = await supabase
         .from('invoice_items')
-        .insert(autoItems);
+        .insert(autoItems)
+        .select();
         
       if (itemsError) throw itemsError;
+      
+      // Sync each item back to inventory/tasks
+      for (const item of insertedItems || []) {
+        if (item.type === 'parts' && item.part_id) {
+          await syncInvoiceItemToPart(item, invoice.id);
+        } else if (item.type === 'labor' && item.task_id) {
+          await syncInvoiceItemToTask(item, invoice.id, invoiceData.vehicleId);
+        }
+      }
     }
     
-    // Update task assignments
+    // Update task assignments for assigned tasks
     if (assignedTasks.length > 0) {
       const taskIds = assignedTasks.map(task => task.id);
       const { error: taskUpdateError } = await supabase

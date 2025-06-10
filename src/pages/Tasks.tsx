@@ -1,12 +1,12 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Pencil, Calendar, CalendarCheck, Tag, Car, MapPin, Filter } from "lucide-react";
+import { Plus, Pencil, Calendar, CalendarCheck, Tag, Car, MapPin, Filter, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import TaskDialog from "@/components/task/TaskDialog";
 import TaskCheckInOut from "@/components/task/TaskCheckInOut";
+import TaskMechanicAssignment from "@/components/task/TaskMechanicAssignment";
 import {
   hasPermission,
 } from "@/services/data-service";
@@ -21,6 +21,7 @@ const Tasks = () => {
   const [selectedTask, setSelectedTask] = useState<Task | undefined>(undefined);
   const [tasksList, setTasksList] = useState<Task[]>([]);
   const [selectedTaskForTimeTracking, setSelectedTaskForTimeTracking] = useState<Task | null>(null);
+  const [selectedTaskForAssignment, setSelectedTaskForAssignment] = useState<Task | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [locationFilter, setLocationFilter] = useState<TaskLocation | 'all'>('all');
   const {
@@ -33,6 +34,7 @@ const Tasks = () => {
   } = useDataContext()
   const { currentUser: user } = useAuthContext()
   const currentUser: any = user;
+  
   // Check permissions
   const canViewTasks = hasPermission(currentUser, 'tasks', 'view');
   const canManageTasks = currentUser?.role === 'manager' || currentUser?.role === 'owner';
@@ -71,6 +73,20 @@ const Tasks = () => {
 
     return filtered;
   }, [tasksList, currentUser?.role, currentUser?.mechanicId, locationFilter]);
+
+  const handleAssignmentComplete = () => {
+    setSelectedTaskForAssignment(null);
+    // Refresh tasks list
+    const loadTasks = async () => {
+      try {
+        setTasksList(tasks);
+      } catch (error) {
+        console.error("Error reloading tasks:", error);
+        toast.error("Failed to reload tasks");
+      }
+    };
+    loadTasks();
+  };
 
   if (!canViewTasks) {
     return (
@@ -222,7 +238,7 @@ const Tasks = () => {
           if (vehicleInfo) {
             setVehicleInfoCache(prev => ({
               ...prev,
-              [task.vehicleId!]: vehicleInfo
+              [vehicleInfo.vehicleId!]: vehicleInfo
             }));
 
             // Prefetch customer data
@@ -242,7 +258,7 @@ const Tasks = () => {
           if (invoiceInfo) {
             setInvoiceInfoCache(prev => ({
               ...prev,
-              [task.invoiceId!]: invoiceInfo
+              [invoiceInfo.id!]: invoiceInfo
             }));
 
             // Prefetch customer data
@@ -264,6 +280,7 @@ const Tasks = () => {
   }, [tasksList, isLoading]);
 
   const shouldShowVehicleColumn = isForeman || currentUser?.role === 'manager' || currentUser?.role === 'owner';
+  const shouldShowAssignmentColumn = isForeman || currentUser?.role === 'manager' || currentUser?.role === 'owner';
 
   if (isLoading) {
     return (
@@ -289,6 +306,15 @@ const Tasks = () => {
         <TaskCheckInOut
           task={selectedTaskForTimeTracking}
           onTaskUpdate={handleTimeTrackingUpdate}
+        />
+      )}
+
+      {selectedTaskForAssignment && (
+        <TaskMechanicAssignment
+          taskId={selectedTaskForAssignment.id}
+          currentMechanicId={selectedTaskForAssignment.mechanicId || undefined}
+          taskTitle={selectedTaskForAssignment.title}
+          onAssignmentComplete={handleAssignmentComplete}
         />
       )}
 
@@ -405,6 +431,17 @@ const Tasks = () => {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end space-x-1">
+                        {/* Mechanic assignment button for managers/foremen */}
+                        {shouldShowAssignmentColumn && !task.mechanicId && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setSelectedTaskForAssignment(task)}
+                          >
+                            <UserPlus className="h-4 w-4" />
+                          </Button>
+                        )}
+
                         {/* Time tracking button for mechanics */}
                         {currentUser?.role === 'mechanic' && currentUser?.mechanicId === task.mechanicId && task.status !== 'completed' && (
                           <Button

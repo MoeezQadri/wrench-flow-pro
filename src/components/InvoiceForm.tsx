@@ -238,7 +238,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
     try {
       if (isEditing) {
         // Handle editing logic (existing functionality)
-        const invoiceData = {
+        const invoiceUpdateData = {
           customerId: selectedCustomerId,
           vehicleId: selectedVehicleId,
           date: date,
@@ -249,11 +249,11 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
           items: items
         };
 
-        await addInvoice(invoiceData);
+        await addInvoice(invoiceUpdateData);
         toast.success("Invoice updated successfully!");
       } else {
-        // Handle new invoice creation with auto-assignment
-        const invoiceData = {
+        // Handle new invoice creation with bidirectional sync
+        const invoiceCreationData = {
           customerId: selectedCustomerId,
           vehicleId: selectedVehicleId,
           date: date,
@@ -264,8 +264,21 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
           items: items.filter(item => !item.is_auto_added) // Only manual items, auto items handled by service
         };
 
-        await createInvoiceWithAutoAssignment(invoiceData);
-        toast.success("Invoice created successfully with automatic assignments!");
+        await createInvoiceWithAutoAssignment(invoiceCreationData);
+        
+        // Show success message with sync info
+        const manualItems = items.filter(item => !item.is_auto_added);
+        const autoItems = items.filter(item => item.is_auto_added);
+        
+        let successMessage = "Invoice created successfully!";
+        if (autoItems.length > 0) {
+          successMessage += ` ${autoItems.length} items auto-assigned.`;
+        }
+        if (manualItems.length > 0) {
+          successMessage += ` ${manualItems.length} manual items synced to inventory.`;
+        }
+        
+        toast.success(successMessage);
       }
 
       navigate("/invoices");
