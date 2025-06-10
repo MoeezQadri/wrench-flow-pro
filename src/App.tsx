@@ -16,6 +16,9 @@ import Register from '@/pages/auth/Register';
 
 // Non-lazy loaded reports
 import FinanceReport from '@/pages/reports/FinanceReport';
+import TasksReport from '@/pages/reports/TasksReport';
+import InvoicingReport from '@/pages/reports/InvoicingReport';
+import AttendanceReport from '@/pages/reports/AttendanceReport';
 
 // Pages created to fix missing module errors
 import CustomerDetails from '@/pages/CustomerDetails';
@@ -82,6 +85,9 @@ function App() {
                     <Route path="expenses" element={<Expenses />} />
                     <Route path="reports" element={<Reports />} />
                     <Route path="reports/finance" element={<FinanceReport />} />
+                    <Route path="reports/tasks" element={<TasksReport />} />
+                    <Route path="reports/invoicing" element={<InvoicingReport />} />
+                    <Route path="reports/attendance" element={<AttendanceReport />} />
                     <Route path="settings" element={<Settings />} />
                     <Route path="attendance" element={<Attendance />} />
                     <Route path="vehicles" element={<Vehicles />} />

@@ -1,8 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { ChevronLeft, Download, Filter } from "lucide-react";
+import { Link } from "react-router-dom";
+import { DateRangePicker } from "@/components/dashboard/DateRangePicker";
+import { subDays, isWithinInterval, parseISO } from 'date-fns';
 import { resolvePromiseAndSetState } from '@/utils/async-helpers';
-import { useAsyncData } from '@/hooks/useAsyncData';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -51,30 +55,12 @@ const getRevenueData = async (): Promise<any[]> => {
     throw error;
   }
   
-  // Process the raw data into monthly revenue
-  const monthlyData: Record<string, number> = {};
-  
-  data.forEach(invoice => {
-    if (invoice.date && invoice.invoice_items) {
-      const month = new Date(invoice.date).toLocaleString('default', { month: 'short' });
-      const invoiceTotal = invoice.invoice_items.reduce(
-        (sum: number, item: { price: number; quantity: number }) => 
-          sum + (item.price * item.quantity), 
-        0
-      );
-      
-      monthlyData[month] = (monthlyData[month] || 0) + invoiceTotal;
-    }
-  });
-  
-  // Convert to array format
-  return Object.entries(monthlyData).map(([month, revenue]) => ({
-    month,
-    revenue
-  }));
+  return data || [];
 };
 
 const FinanceReport = () => {
+  const [startDate, setStartDate] = useState<Date>(subDays(new Date(), 30));
+  const [endDate, setEndDate] = useState<Date>(new Date());
   const [expenses, setExpenses] = useState<DatabaseExpense[]>([]);
   const [revenue, setRevenue] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -97,42 +83,153 @@ const FinanceReport = () => {
     
     loadFinanceData();
   }, []);
+
+  // Filter data based on date range
+  const filteredExpenses = expenses.filter(expense => {
+    try {
+      const expenseDate = parseISO(expense.date);
+      return isWithinInterval(expenseDate, { start: startDate, end: endDate });
+    } catch (e) {
+      return false;
+    }
+  });
+
+  const filteredRevenue = revenue.filter(invoice => {
+    try {
+      const invoiceDate = parseISO(invoice.date || '');
+      return isWithinInterval(invoiceDate, { start: startDate, end: endDate });
+    } catch (e) {
+      return false;
+    }
+  });
+
+  // Calculate totals
+  const totalExpenses = filteredExpenses.reduce((sum, expense) => sum + Number(expense.amount), 0);
+  const totalRevenue = filteredRevenue.reduce((sum, invoice) => {
+    const invoiceTotal = invoice.invoice_items?.reduce(
+      (itemSum: number, item: { price: number; quantity: number }) => 
+        itemSum + (item.price * item.quantity), 
+      0
+    ) || 0;
+    return sum + invoiceTotal;
+  }, 0);
+
+  const netProfit = totalRevenue - totalExpenses;
+  const profitMargin = totalRevenue > 0 ? ((netProfit / totalRevenue) * 100).toFixed(1) : '0';
+
+  const handleDateRangeChange = (newStartDate: Date, newEndDate: Date) => {
+    setStartDate(newStartDate);
+    setEndDate(newEndDate);
+  };
   
   if (loading) {
     return <div className="p-4 text-center">Loading financial data...</div>;
   }
   
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-6">Financial Reports</h1>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+        <div className="flex items-center gap-4">
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/reports">
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              Back to Reports
+            </Link>
+          </Button>
+          <h1 className="text-3xl font-bold tracking-tight">Financial Report</h1>
+        </div>
+        <div className="mt-4 sm:mt-0">
+          <DateRangePicker
+            startDate={startDate}
+            endDate={endDate}
+            onRangeChange={handleDateRangeChange}
+          />
+        </div>
+      </div>
+
+      {/* Financial Summary */}
+      <div className="grid gap-4 md:grid-cols-4">
         <Card>
-          <CardHeader>
-            <CardTitle>Revenue Overview</CardTitle>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Total Revenue</CardTitle>
           </CardHeader>
           <CardContent>
-            {revenue.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">No revenue data available</p>
+            <div className="text-2xl font-bold text-green-600">${totalRevenue.toLocaleString()}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Total Expenses</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">${totalExpenses.toLocaleString()}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Net Profit</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className={`text-2xl font-bold ${netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              ${netProfit.toLocaleString()}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Profit Margin</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className={`text-2xl font-bold ${parseFloat(profitMargin) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              {profitMargin}%
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+      
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <CardTitle>Revenue Breakdown</CardTitle>
+              <Button variant="outline" size="sm">
+                <Download className="h-4 w-4 mr-2" />
+                Export
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {filteredRevenue.length === 0 ? (
+              <p className="text-gray-500 text-center py-4">No revenue data available for selected period</p>
             ) : (
-              <div className="h-80">
-                {/* Revenue chart would go here */}
-                <table className="w-full">
-                  <thead>
-                    <tr>
-                      <th className="text-left">Month</th>
-                      <th className="text-right">Revenue</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {revenue.map((item, index) => (
-                      <tr key={index} className="border-t">
-                        <td className="py-2">{item.month}</td>
-                        <td className="py-2 text-right">${item.revenue.toFixed(2)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="space-y-4">
+                {filteredRevenue.slice(0, 10).map((invoice, index) => {
+                  const invoiceTotal = invoice.invoice_items?.reduce(
+                    (sum: number, item: { price: number; quantity: number }) => 
+                      sum + (item.price * item.quantity), 
+                    0
+                  ) || 0;
+                  
+                  return (
+                    <div key={invoice.id || index} className="flex justify-between items-center py-2 border-b">
+                      <div>
+                        <p className="font-medium">Invoice #{invoice.id?.slice(0, 8)}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {new Date(invoice.date).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-medium">${invoiceTotal.toFixed(2)}</p>
+                        <p className={`text-xs ${
+                          invoice.status === 'paid' ? 'text-green-600' : 
+                          invoice.status === 'overdue' ? 'text-red-600' : 'text-yellow-600'
+                        }`}>
+                          {invoice.status}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </CardContent>
@@ -140,30 +237,36 @@ const FinanceReport = () => {
         
         <Card>
           <CardHeader>
-            <CardTitle>Expense Breakdown</CardTitle>
+            <div className="flex justify-between items-center">
+              <CardTitle>Expense Breakdown</CardTitle>
+              <Button variant="outline" size="sm">
+                <Download className="h-4 w-4 mr-2" />
+                Export
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
-            {expenses.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">No expense data available</p>
+            {filteredExpenses.length === 0 ? (
+              <p className="text-gray-500 text-center py-4">No expense data available for selected period</p>
             ) : (
-              <div className="h-80">
-                {/* Expenses chart would go here */}
-                <table className="w-full">
-                  <thead>
-                    <tr>
-                      <th className="text-left">Category</th>
-                      <th className="text-right">Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {expenses.slice(0, 5).map((expense) => (
-                      <tr key={expense.id} className="border-t">
-                        <td className="py-2">{expense.category}</td>
-                        <td className="py-2 text-right">${expense.amount.toFixed(2)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="space-y-4">
+                {filteredExpenses.slice(0, 10).map((expense) => (
+                  <div key={expense.id} className="flex justify-between items-center py-2 border-b">
+                    <div>
+                      <p className="font-medium">{expense.category}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {new Date(expense.date).toLocaleDateString()}
+                      </p>
+                      {expense.description && (
+                        <p className="text-xs text-muted-foreground">{expense.description}</p>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <p className="font-medium">${expense.amount.toFixed(2)}</p>
+                      <p className="text-xs text-muted-foreground">{expense.payment_method}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </CardContent>

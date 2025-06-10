@@ -1,357 +1,212 @@
 
-import React, { useState, useEffect } from "react";
-import { format, isWithinInterval, parseISO, subDays } from "date-fns";
-import { Link } from "react-router-dom";
-import {
-  PieChart,
-  Pie,
-  Cell,
-  ResponsiveContainer,
-  Tooltip,
-  Legend
-} from "recharts";
-import { Invoice, InvoiceStatus } from "@/types";
-import { calculateInvoiceTotal } from "@/services/data-service";
-import DateRangeDropdown from "@/components/DateRangeDropdown";
-import StatusBadge from "@/components/StatusBadge";
-import { Button } from "@/components/ui/button";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowUpDown, ArrowLeft, FileText, Search } from "lucide-react";
+import { ChevronLeft, Download, Filter } from "lucide-react";
+import { Link } from "react-router-dom";
+import { DateRangePicker } from "@/components/dashboard/DateRangePicker";
+import { subDays } from "date-fns";
 import { useDataContext } from "@/context/data/DataContext";
-
-const COLORS = ['#FFC107', '#3B82F6', '#10B981', '#8B5CF6', '#EF4444'];
+import { isWithinInterval, parseISO } from "date-fns";
 
 const InvoicingReport = () => {
-  const today = new Date();
-  const thirtyDaysAgo = subDays(today, 30);
+  const [startDate, setStartDate] = useState<Date>(subDays(new Date(), 30));
+  const [endDate, setEndDate] = useState<Date>(new Date());
+  const { invoices, customers, payments } = useDataContext();
 
-  const [startDate, setStartDate] = useState<Date>(thirtyDaysAgo);
-  const [endDate, setEndDate] = useState<Date>(today);
-  const [searchTerm, setSearchTerm] = useState<string>("");
-  const [sortConfig, setSortConfig] = useState<{
-    key: keyof Invoice | 'total' | 'customerName';
-    direction: 'ascending' | 'descending';
-  }>({ key: 'date', direction: 'descending' });
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const {
-    invoices: invoices_
-  } = useDataContext();
-  // Load invoice data
-  useEffect(() => {
-    const fetchInvoiceData = async () => {
-      try {
-        setIsLoading(true);
-        const invoicesData = invoices_;
-        setInvoices(invoicesData);
-      } catch (error) {
-        console.error("Error fetching invoices:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchInvoiceData();
-  }, []);
-
-  // Filter invoices by date range
+  // Filter invoices for the selected date range
   const filteredInvoices = invoices.filter(invoice => {
     try {
-      const invoiceDate = parseISO(invoice.date);
+      const invoiceDate = parseISO(invoice.date || '');
       return isWithinInterval(invoiceDate, { start: startDate, end: endDate });
     } catch (e) {
-      // Handle parsing errors (invalid dates)
       return false;
     }
   });
 
   // Calculate statistics
-  const totalInvoiceValue = filteredInvoices.reduce((sum, invoice) => {
-    const { total } = calculateInvoiceTotal(invoice);
-    return sum + total;
+  const totalInvoices = filteredInvoices.length;
+  const paidInvoices = filteredInvoices.filter(inv => inv.status === 'paid').length;
+  const unpaidInvoices = filteredInvoices.filter(inv => inv.status === 'unpaid').length;
+  const overdueInvoices = filteredInvoices.filter(inv => inv.status === 'overdue').length;
+
+  const totalRevenue = filteredInvoices.reduce((sum, invoice) => {
+    // Calculate invoice total from invoice items
+    const invoiceTotal = invoice.invoice_items?.reduce((itemSum: number, item: any) => 
+      itemSum + (item.quantity * item.price), 0) || 0;
+    return sum + invoiceTotal;
   }, 0);
 
-  const invoicesByStatus = {
-    open: filteredInvoices.filter(invoice => invoice.status === 'open').length,
-    inProgress: filteredInvoices.filter(invoice => invoice.status === 'in-progress').length,
-    completed: filteredInvoices.filter(invoice => invoice.status === 'completed').length,
-    paid: filteredInvoices.filter(invoice => invoice.status === 'paid').length,
-    partial: filteredInvoices.filter(invoice => invoice.status === 'partial').length,
+  const paidAmount = payments
+    .filter(payment => {
+      const invoice = filteredInvoices.find(inv => inv.id === payment.invoice_id);
+      return invoice && invoice.status === 'paid';
+    })
+    .reduce((sum, payment) => sum + Number(payment.amount), 0);
+
+  const outstandingAmount = totalRevenue - paidAmount;
+
+  const handleDateRangeChange = (newStartDate: Date, newEndDate: Date) => {
+    setStartDate(newStartDate);
+    setEndDate(newEndDate);
   };
-
-  const chartData = [
-    { name: 'Open', value: invoicesByStatus.open },
-    { name: 'In Progress', value: invoicesByStatus.inProgress },
-    { name: 'Completed', value: invoicesByStatus.completed },
-    { name: 'Paid', value: invoicesByStatus.paid },
-    { name: 'Partial', value: invoicesByStatus.partial }
-  ].filter(item => item.value > 0);
-
-  // Apply search filter
-  const searchedInvoices = filteredInvoices.filter(invoice => {
-    const invoiceId = invoice.id.toLowerCase();
-    const vehicleMake = (invoice.vehicleInfo?.make || "").toLowerCase();
-    const vehicleModel = (invoice.vehicleInfo?.model || "").toLowerCase();
-    const license_plate = (invoice.vehicleInfo?.license_plate || "").toLowerCase();
-    const search = searchTerm.toLowerCase();
-
-    return invoiceId.includes(search) ||
-      vehicleMake.includes(search) ||
-      vehicleModel.includes(search) ||
-      license_plate.includes(search);
-  });
-
-  // Apply sorting
-  const sortedInvoices = [...searchedInvoices].sort((a, b) => {
-    if (sortConfig.key === 'total') {
-      const totalA = calculateInvoiceTotal(a).total;
-      const totalB = calculateInvoiceTotal(b).total;
-
-      if (sortConfig.direction === 'ascending') {
-        return totalA - totalB;
-      } else {
-        return totalB - totalA;
-      }
-    }
-
-    if (sortConfig.key === 'date') {
-      const dateA = new Date(a.date).getTime();
-      const dateB = new Date(b.date).getTime();
-
-      if (sortConfig.direction === 'ascending') {
-        return dateA - dateB;
-      } else {
-        return dateB - dateA;
-      }
-    }
-
-    if (sortConfig.key === 'status') {
-      const statusA = a.status;
-      const statusB = b.status;
-
-      if (sortConfig.direction === 'ascending') {
-        return statusA.localeCompare(statusB);
-      } else {
-        return statusB.localeCompare(statusA);
-      }
-    }
-
-    return 0;
-  });
-
-  const handleSort = (key: typeof sortConfig.key) => {
-    if (sortConfig.key === key) {
-      setSortConfig({
-        key,
-        direction: sortConfig.direction === 'ascending' ? 'descending' : 'ascending'
-      });
-    } else {
-      setSortConfig({ key, direction: 'ascending' });
-    }
-  };
-
-  const handleDateRangeChange = (start: Date, end: Date) => {
-    setStartDate(start);
-    setEndDate(end);
-  };
-
-  if (isLoading) {
-    return <div className="p-8 text-center">Loading invoice data...</div>;
-  }
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-        <div className="flex items-center gap-3">
-          <Button variant="outline" size="icon" asChild>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+        <div className="flex items-center gap-4">
+          <Button variant="outline" size="sm" asChild>
             <Link to="/reports">
-              <ArrowLeft className="h-4 w-4" />
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              Back to Reports
             </Link>
           </Button>
-          <h1 className="text-3xl font-bold tracking-tight">Invoicing Summary</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Invoicing Report</h1>
         </div>
-        <DateRangeDropdown
-          startDate={startDate}
-          endDate={endDate}
-          onRangeChange={handleDateRangeChange}
-        />
+        <div className="mt-4 sm:mt-0">
+          <DateRangePicker
+            startDate={startDate}
+            endDate={endDate}
+            onRangeChange={handleDateRangeChange}
+          />
+        </div>
       </div>
 
+      {/* Statistics */}
+      <div className="grid gap-4 grid-cols-2 md:grid-cols-5">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Total Invoices</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalInvoices}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Paid</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">{paidInvoices}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Unpaid</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-yellow-600">{unpaidInvoices}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Overdue</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">{overdueInvoices}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Outstanding</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">${outstandingAmount.toLocaleString()}</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Revenue Summary */}
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Invoices</CardTitle>
+          <CardHeader>
+            <CardTitle>Total Revenue</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{filteredInvoices.length}</div>
+            <div className="text-3xl font-bold">${totalRevenue.toLocaleString()}</div>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Value</CardTitle>
+          <CardHeader>
+            <CardTitle>Amount Paid</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${totalInvoiceValue.toFixed(2)}</div>
+            <div className="text-3xl font-bold text-green-600">${paidAmount.toLocaleString()}</div>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Average Invoice Value</CardTitle>
+          <CardHeader>
+            <CardTitle>Collection Rate</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              ${filteredInvoices.length > 0
-                ? (totalInvoiceValue / filteredInvoices.length).toFixed(2)
-                : '0.00'}
+            <div className="text-3xl font-bold">
+              {totalRevenue > 0 ? ((paidAmount / totalRevenue) * 100).toFixed(1) : 0}%
             </div>
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Invoice Status Distribution</CardTitle>
-            <CardDescription>Breakdown of invoices by current status</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {chartData.length === 0 ? (
-              <div className="h-80 flex items-center justify-center text-muted-foreground">
-                No invoice data available for the selected period
-              </div>
-            ) : (
-              <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={chartData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                    >
-                      {chartData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value) => [`${value} invoices`, 'Count']} />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Invoice Status</CardTitle>
-            <CardDescription>Count of invoices by status</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center">
-                <div className="w-4 h-4 rounded-full bg-yellow-400 mr-2"></div>
-                <span className="flex-1">Open</span>
-                <span className="font-medium">{invoicesByStatus.open}</span>
-              </div>
-              <div className="flex items-center">
-                <div className="w-4 h-4 rounded-full bg-blue-500 mr-2"></div>
-                <span className="flex-1">In Progress</span>
-                <span className="font-medium">{invoicesByStatus.inProgress}</span>
-              </div>
-              <div className="flex items-center">
-                <div className="w-4 h-4 rounded-full bg-green-500 mr-2"></div>
-                <span className="flex-1">Completed</span>
-                <span className="font-medium">{invoicesByStatus.completed}</span>
-              </div>
-              <div className="flex items-center">
-                <div className="w-4 h-4 rounded-full bg-purple-500 mr-2"></div>
-                <span className="flex-1">Paid</span>
-                <span className="font-medium">{invoicesByStatus.paid}</span>
-              </div>
-              <div className="flex items-center">
-                <div className="w-4 h-4 rounded-full bg-orange-500 mr-2"></div>
-                <span className="flex-1">Partial Payment</span>
-                <span className="font-medium">{invoicesByStatus.partial}</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
+      {/* Invoices Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Invoice List</CardTitle>
-          <CardDescription>All invoices in the selected period</CardDescription>
-          <div className="mt-4 relative">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search invoices..."
-              className="pl-8"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+          <div className="flex justify-between items-center">
+            <CardTitle>Invoice Details</CardTitle>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm">
+                <Filter className="h-4 w-4 mr-2" />
+                Filter
+              </Button>
+              <Button variant="outline" size="sm">
+                <Download className="h-4 w-4 mr-2" />
+                Export
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>
-                  <Button variant="ghost" className="p-0 h-8 hover:bg-transparent" onClick={() => handleSort('id')}>
-                    Invoice ID
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                  </Button>
-                </TableHead>
-                <TableHead>
-                  <Button variant="ghost" className="p-0 h-8 hover:bg-transparent" onClick={() => handleSort('date')}>
-                    Date
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                  </Button>
-                </TableHead>
-                <TableHead>Vehicle</TableHead>
-                <TableHead>
-                  <Button variant="ghost" className="p-0 h-8 hover:bg-transparent" onClick={() => handleSort('status')}>
-                    Status
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                  </Button>
-                </TableHead>
-                <TableHead className="text-right">
-                  <Button variant="ghost" className="p-0 h-8 hover:bg-transparent" onClick={() => handleSort('total')}>
-                    Amount
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                  </Button>
-                </TableHead>
+                <TableHead>Invoice #</TableHead>
+                <TableHead>Customer</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Amount</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Due Date</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sortedInvoices.length === 0 ? (
+              {filteredInvoices.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                    No invoices found for the selected period
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    No invoices found for the selected date range
                   </TableCell>
                 </TableRow>
               ) : (
-                sortedInvoices.map((invoice) => {
-                  const { total } = calculateInvoiceTotal(invoice);
+                filteredInvoices.map((invoice) => {
+                  const customer = customers.find(c => c.id === invoice.customer_id);
+                  const invoiceTotal = invoice.invoice_items?.reduce((sum: number, item: any) => 
+                    sum + (item.quantity * item.price), 0) || 0;
+
                   return (
                     <TableRow key={invoice.id}>
-                      <TableCell className="font-medium">{invoice.id}</TableCell>
-                      <TableCell>{format(new Date(invoice.date), 'MMM dd, yyyy')}</TableCell>
+                      <TableCell className="font-medium">#{invoice.id?.slice(0, 8)}</TableCell>
+                      <TableCell>{customer?.name || "Unknown"}</TableCell>
+                      <TableCell>{new Date(invoice.date || '').toLocaleDateString()}</TableCell>
+                      <TableCell>${invoiceTotal.toLocaleString()}</TableCell>
                       <TableCell>
-                        {`${invoice.vehicleInfo?.make || 'N/A'} ${invoice.vehicleInfo?.model || ''} ${invoice.vehicleInfo?.license_plate ? `(${invoice.vehicleInfo.license_plate})` : ''}`}
+                        <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          invoice.status === 'paid' ? 'bg-green-100 text-green-800' :
+                          invoice.status === 'overdue' ? 'bg-red-100 text-red-800' :
+                          'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {invoice.status}
+                        </div>
                       </TableCell>
                       <TableCell>
-                        <StatusBadge status={invoice.status} />
+                        {invoice.due_date ? new Date(invoice.due_date).toLocaleDateString() : 'N/A'}
                       </TableCell>
-                      <TableCell className="text-right">${total.toFixed(2)}</TableCell>
                     </TableRow>
                   );
                 })
