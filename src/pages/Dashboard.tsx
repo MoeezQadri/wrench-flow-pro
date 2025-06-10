@@ -1,147 +1,108 @@
-import {
-  BarChart,
-  Calendar,
-  DollarSign,
-  FileText,
-  Wrench,
-  TrendingUp,
-  Users
-} from 'lucide-react';
-import { Link } from 'react-router-dom';
+
+import React, { useState, useEffect } from 'react';
+import { subDays } from 'date-fns';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Link } from 'react-router-dom';
 import {
-  BarChart as RechartsBarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend
-} from 'recharts';
-import { calculateDashboardMetrics } from '@/services/data-service';
-import { useState, useEffect } from 'react';
-import { DashboardMetrics } from '@/types';
-import { resolvePromiseAndSetState } from '@/utils/async-helpers';
-import { useAsyncData } from '@/hooks/useAsyncData';
-
-// Sample data for charts with expenses added
-const weeklyRevenueData = [
-  { name: 'Mon', revenue: 500, expenses: 300 },
-  { name: 'Tue', revenue: 750, expenses: 450 },
-  { name: 'Wed', revenue: 620, expenses: 380 },
-  { name: 'Thu', revenue: 880, expenses: 520 },
-  { name: 'Fri', revenue: 950, expenses: 600 },
-  { name: 'Sat', revenue: 670, expenses: 380 },
-  { name: 'Sun', revenue: 350, expenses: 200 },
-];
+  Calendar,
+  FileText,
+  Users,
+  Wrench,
+  RefreshCw
+} from 'lucide-react';
+import { DateRangePicker } from '@/components/dashboard/DateRangePicker';
+import { DashboardMetrics } from '@/components/dashboard/DashboardMetrics';
+import { RevenueChart } from '@/components/dashboard/RevenueChart';
+import { fetchDashboardData, fetchChartData, DashboardData, ChartData } from '@/services/dashboard-service';
+import { toast } from "sonner";
 
 const Dashboard = () => {
-  const [metrics, setMetrics] = useState<DashboardMetrics>({
+  const [startDate, setStartDate] = useState<Date>(subDays(new Date(), 30));
+  const [endDate, setEndDate] = useState<Date>(new Date());
+  const [dashboardData, setDashboardData] = useState<DashboardData>({
     totalRevenue: 0,
-    pendingInvoices: 0,
-    activeJobs: 0,
-    mechanicEfficiency: 0,
+    revenueChange: 0,
+    totalInvoices: 0,
+    invoicesChange: 0,
+    activeTasks: 0,
+    tasksChange: 0,
+    newCustomers: 0,
+    customersChange: 0,
     completedJobs: 0,
-    monthlyRevenue: 0,
-    monthlyExpenses: 0,
-    monthlyProfit: 0,
-    activeCustomers: 0, // Using activeCustomers instead of customerCount
-    // vehicleCount: 0,
+    jobsChange: 0,
     averageJobValue: 0,
-    inventoryValue: 0,
-    pendingTasks: 0,
-    activeVehicles: 0,
-    lowStockItems: 0
+    jobValueChange: 0
   });
+  const [chartData, setChartData] = useState<ChartData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const [loading, setLoading] = useState<boolean>(true);
+  const loadDashboardData = async () => {
+    setIsLoading(true);
+    try {
+      const [metricsData, chartDataResult] = await Promise.all([
+        fetchDashboardData(startDate, endDate),
+        fetchChartData(startDate, endDate)
+      ]);
+      
+      setDashboardData(metricsData);
+      setChartData(chartDataResult);
+    } catch (error) {
+      console.error('Error loading dashboard data:', error);
+      toast.error('Failed to load dashboard data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const loadMetrics = async () => {
-      setLoading(true);
-      await resolvePromiseAndSetState(calculateDashboardMetrics(), setMetrics);
-      setLoading(false);
-    };
+    loadDashboardData();
+  }, [startDate, endDate]);
 
-    loadMetrics();
-  }, []);
+  const handleDateRangeChange = (newStartDate: Date, newEndDate: Date) => {
+    setStartDate(newStartDate);
+    setEndDate(newEndDate);
+  };
+
+  const handleRefresh = () => {
+    loadDashboardData();
+  };
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <div className="flex items-center space-x-2 mt-4 sm:mt-0">
-          <span className="text-sm text-muted-foreground">Last updated: Today, 2:30 PM</span>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-muted-foreground">
+            Overview of your garage operations and performance metrics
+          </p>
+        </div>
+        <div className="flex items-center gap-4">
+          <DateRangePicker
+            startDate={startDate}
+            endDate={endDate}
+            onRangeChange={handleDateRangeChange}
+          />
+          <Button 
+            variant="outline" 
+            size="icon"
+            onClick={handleRefresh}
+            disabled={isLoading}
+          >
+            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+          </Button>
         </div>
       </div>
 
-      {/* Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">${metrics.totalRevenue.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">+2.5% from last month</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Invoices</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{metrics.pendingInvoices}</div>
-            <p className="text-xs text-muted-foreground">-1 from yesterday</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Jobs</CardTitle>
-            <Wrench className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{metrics.activeJobs}</div>
-            <p className="text-xs text-muted-foreground">+1 from yesterday</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Mechanic Efficiency</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{metrics.mechanicEfficiency}%</div>
-            <p className="text-xs text-muted-foreground">+5% from last week</p>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Metrics Cards */}
+      <DashboardMetrics data={dashboardData} isLoading={isLoading} />
 
-      {/* Charts and Tables */}
+      {/* Charts and Quick Actions */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="col-span-4">
-          <CardHeader>
-            <CardTitle>Weekly Revenue & Expenses</CardTitle>
-            <CardDescription>Overview of this week's financial activity</CardDescription>
-          </CardHeader>
-          <CardContent className="pl-0">
-            <ResponsiveContainer width="100%" height={300}>
-              <RechartsBarChart data={weeklyRevenueData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="revenue" name="Revenue" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="expenses" name="Expenses" fill="#ef4444" radius={[4, 4, 0, 0]} />
-              </RechartsBarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+        <div className="col-span-4">
+          <RevenueChart data={chartData} isLoading={isLoading} />
+        </div>
+        
         <Card className="col-span-3">
           <CardHeader>
             <CardTitle>Quick Actions</CardTitle>
@@ -177,6 +138,19 @@ const Dashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Recent Activity */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Activity</CardTitle>
+          <CardDescription>Latest updates from your garage operations</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8 text-muted-foreground">
+            Activity feed coming soon...
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
