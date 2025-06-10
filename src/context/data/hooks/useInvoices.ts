@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import type { Invoice } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
@@ -69,6 +68,8 @@ export const useInvoices = () => {
                     is_auto_added: item.is_auto_added || false
                 }));
 
+                console.log('Inserting invoice items:', itemsToInsert);
+
                 const { error: itemsError } = await supabase
                     .from('invoice_items')
                     .insert(itemsToInsert);
@@ -77,6 +78,72 @@ export const useInvoices = () => {
                     console.error('Error adding invoice items:', itemsError);
                     toast.error('Failed to save invoice items');
                     throw itemsError;
+                }
+
+                // Update parts inventory for parts items
+                for (const item of newInvoice.items) {
+                    if (item.type === 'parts' && item.part_id) {
+                        try {
+                            // Get current part data
+                            const { data: part, error: partError } = await supabase
+                                .from('parts')
+                                .select('*')
+                                .eq('id', item.part_id)
+                                .single();
+
+                            if (partError) {
+                                console.error('Error fetching part:', partError);
+                                continue;
+                            }
+
+                            if (part) {
+                                // Update part with invoice reference and reduce quantity
+                                const currentInvoiceIds = part.invoice_ids || [];
+                                const updatedInvoiceIds = currentInvoiceIds.includes(newInvoice.id) 
+                                    ? currentInvoiceIds 
+                                    : [...currentInvoiceIds, newInvoice.id];
+
+                                const newQuantity = Math.max(0, part.quantity - item.quantity);
+
+                                const { error: updateError } = await supabase
+                                    .from('parts')
+                                    .update({
+                                        quantity: newQuantity,
+                                        invoice_ids: updatedInvoiceIds,
+                                        updated_at: new Date().toISOString()
+                                    })
+                                    .eq('id', item.part_id);
+
+                                if (updateError) {
+                                    console.error('Error updating part inventory:', updateError);
+                                }
+                            }
+                        } catch (error) {
+                            console.error('Error processing part inventory update:', error);
+                        }
+                    }
+                }
+
+                // Update tasks for labor items
+                for (const item of newInvoice.items) {
+                    if (item.type === 'labor' && item.task_id) {
+                        try {
+                            const { error: taskError } = await supabase
+                                .from('tasks')
+                                .update({
+                                    invoice_id: newInvoice.id,
+                                    price: item.price,
+                                    updated_at: new Date().toISOString()
+                                })
+                                .eq('id', item.task_id);
+
+                            if (taskError) {
+                                console.error('Error updating task:', taskError);
+                            }
+                        } catch (error) {
+                            console.error('Error processing task update:', error);
+                        }
+                    }
                 }
             }
 
@@ -180,6 +247,8 @@ export const useInvoices = () => {
                         task_id: item.task_id || null,
                         is_auto_added: item.is_auto_added || false
                     }));
+
+                    console.log('Updating invoice items:', itemsToInsert);
 
                     const { error: itemsError } = await supabase
                         .from('invoice_items')
@@ -303,9 +372,48 @@ export const useInvoices = () => {
         invoices,
         setInvoices,
         addInvoice,
-        removeInvoice,
+        removeInvoice: async (id: string) => {
+            try {
+                // First delete payments
+                const { error: paymentsError } = await supabase
+                    .from('payments')
+                    .delete()
+                    .eq('invoice_id', id);
+
+                if (paymentsError) {
+                    console.error('Error removing payments:', paymentsError);
+                }
+
+                // Then delete invoice items
+                const { error: itemsError } = await supabase
+                    .from('invoice_items')
+                    .delete()
+                    .eq('invoice_id', id);
+
+                if (itemsError) {
+                    console.error('Error removing invoice items:', itemsError);
+                }
+
+                // Finally delete the invoice
+                const { error } = await supabase.from('invoices').delete().eq('id', id);
+                if (error) {
+                    console.error('Error removing invoice:', error);
+                    toast.error('Failed to delete invoice');
+                    throw error;
+                }
+                setInvoices((prev) => prev.filter((item) => item.id !== id));
+                toast.success('Invoice deleted successfully');
+            } catch (error) {
+                console.error('Error removing invoice:', error);
+                toast.error('Failed to delete invoice');
+                throw error;
+            }
+        },
         updateInvoice,
-        getInvoiceById,
+        getInvoiceById: (id: string) => {
+            const invoice = invoices.find(invoice => invoice.id === id);
+            return invoice || null;
+        },
         loadInvoices
     };
 };
