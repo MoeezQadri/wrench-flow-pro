@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -71,7 +72,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
     setCustomers(customersData);
   }, [customersData]);
 
-  // Fetch parts and tasks
+  // Fetch parts and tasks - only show completed items
   useEffect(() => {
     // Get available parts (those not assigned to any invoice or assigned to current invoice if editing)
     const availableParts = parts.filter(part => 
@@ -81,10 +82,12 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
     );
     setAvailableParts(availableParts);
 
-    // Get available tasks (those not assigned to any invoice or assigned to current invoice if editing)
+    // Get available tasks - only completed tasks (those not assigned to any invoice or assigned to current invoice if editing)
     const availableTasks = tasks.filter(task => 
-      !task.invoiceId || 
-      (isEditing && task.invoiceId === invoiceData?.id)
+      task.status === 'completed' && (
+        !task.invoiceId || 
+        (isEditing && task.invoiceId === invoiceData?.id)
+      )
     );
     setAvailableTasks(availableTasks);
   }, [parts, tasks, isEditing, invoiceData]);
@@ -124,12 +127,30 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
           ]);
           
           setAssignedParts(assignedPartsData);
-          setAssignedTasks(assignedTasksData);
+          
+          // Map the data to match the Task interface and filter for completed tasks only
+          const mappedTasks: Task[] = assignedTasksData
+            .filter(task => task.status === 'completed')
+            .map(task => ({
+              id: task.id,
+              title: task.title,
+              description: task.description,
+              mechanicId: task.mechanic_id,
+              vehicleId: selectedVehicleId,
+              status: task.status,
+              location: task.location,
+              hoursEstimated: task.hours_estimated,
+              hoursSpent: task.hours_spent,
+              price: task.price,
+              invoiceId: task.invoice_id
+            }));
+          
+          setAssignedTasks(mappedTasks);
           
           // Show notification if there are auto-assignable items
-          if (assignedPartsData.length > 0 || assignedTasksData.length > 0) {
+          if (assignedPartsData.length > 0 || mappedTasks.length > 0) {
             setShowAutoItems(true);
-            toast.success(`Found ${assignedPartsData.length} assigned parts and ${assignedTasksData.length} assigned tasks that will be automatically added to this invoice.`);
+            toast.success(`Found ${assignedPartsData.length} assigned parts and ${mappedTasks.length} completed tasks that will be automatically added to this invoice.`);
           }
         } catch (error) {
           console.error('Error loading assigned items:', error);
@@ -157,13 +178,13 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
       });
     });
     
-    // Add assigned tasks
+    // Add assigned completed tasks
     assignedTasks.forEach(task => {
       autoItems.push({
         id: `auto-task-${task.id}`,
         description: task.title,
         type: 'labor',
-        quantity: task.hours_estimated || 1,
+        quantity: task.hoursEstimated || 1,
         price: task.price || 0,
         task_id: task.id,
         is_auto_added: true
@@ -312,7 +333,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
               <div>
                 <h3 className="font-medium text-blue-900">Automatic Assignment Available</h3>
                 <p className="text-sm text-blue-700">
-                  Found {assignedParts.length} assigned parts and {assignedTasks.length} assigned tasks for this vehicle.
+                  Found {assignedParts.length} assigned parts and {assignedTasks.length} completed tasks for this vehicle.
                 </p>
               </div>
               <div className="flex gap-2">

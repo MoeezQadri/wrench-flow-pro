@@ -129,14 +129,14 @@ export const getAssignedPartsForInvoice = async (vehicleId: string, customerId: 
   }
 };
 
-// Get assigned tasks for a specific vehicle
+// Get assigned tasks for a specific vehicle - only completed tasks
 export const getAssignedTasksForInvoice = async (vehicleId: string) => {
   try {
     const { data, error } = await supabase
       .from('tasks')
       .select('*')
       .eq('vehicle_id', vehicleId)
-      .in('status', ['completed', 'in-progress']);
+      .eq('status', 'completed'); // Only get completed tasks
       
     if (error) throw error;
     
