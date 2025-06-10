@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import type { Mechanic, Customer, Vehicle, Vendor, Invoice, Expense, Task, Part, Payment } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
@@ -79,112 +80,88 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     // Helper to generate UUID
     const generateUUID = () => crypto.randomUUID();
 
-    // Fetch helpers with improved error handling
-    const fetchData = async <T,>(table: string, setter: React.Dispatch<React.SetStateAction<T[]>>) => {
-        try {
-            const { data, error } = await supabase.from(table).select('*');
-            if (error) {
-                console.error(`Error fetching ${table}:`, error);
-                toast.error(`Failed to load ${table}`);
-                return;
-            }
-            setter(data as T[]);
-        } catch (error) {
-            console.error(`Error fetching ${table}:`, error);
-            toast.error(`Failed to load ${table}`);
-        }
-    };
-
     useEffect(() => {
-        fetchData<Mechanic>('mechanics', setMechanics);
-        fetchData<Vendor>('vendors', setVendors);
-        fetchData<Customer>('customers', setCustomers);
-        fetchData<Vehicle>('vehicles', setVehicles);
-        fetchData<Invoice>('invoices', setInvoices);
-        fetchData<Expense>('expenses', setExpenses);
-        fetchData<Task>('tasks', setTasks);
-        fetchData<Part>('parts', setParts);
+        const fetchAllData = async () => {
+            try {
+                // Fetch mechanics
+                const { data: mechanicsData, error: mechanicsError } = await supabase.from('mechanics').select('*');
+                if (mechanicsError) {
+                    console.error('Error fetching mechanics:', mechanicsError);
+                    toast.error('Failed to load mechanics');
+                } else {
+                    setMechanics(mechanicsData || []);
+                }
+
+                // Fetch vendors
+                const { data: vendorsData, error: vendorsError } = await supabase.from('vendors').select('*');
+                if (vendorsError) {
+                    console.error('Error fetching vendors:', vendorsError);
+                    toast.error('Failed to load vendors');
+                } else {
+                    setVendors(vendorsData || []);
+                }
+
+                // Fetch customers
+                const { data: customersData, error: customersError } = await supabase.from('customers').select('*');
+                if (customersError) {
+                    console.error('Error fetching customers:', customersError);
+                    toast.error('Failed to load customers');
+                } else {
+                    setCustomers(customersData || []);
+                }
+
+                // Fetch vehicles
+                const { data: vehiclesData, error: vehiclesError } = await supabase.from('vehicles').select('*');
+                if (vehiclesError) {
+                    console.error('Error fetching vehicles:', vehiclesError);
+                    toast.error('Failed to load vehicles');
+                } else {
+                    setVehicles(vehiclesData || []);
+                }
+
+                // Fetch invoices
+                const { data: invoicesData, error: invoicesError } = await supabase.from('invoices').select('*');
+                if (invoicesError) {
+                    console.error('Error fetching invoices:', invoicesError);
+                    toast.error('Failed to load invoices');
+                } else {
+                    setInvoices(invoicesData || []);
+                }
+
+                // Fetch expenses
+                const { data: expensesData, error: expensesError } = await supabase.from('expenses').select('*');
+                if (expensesError) {
+                    console.error('Error fetching expenses:', expensesError);
+                    toast.error('Failed to load expenses');
+                } else {
+                    setExpenses(expensesData || []);
+                }
+
+                // Fetch tasks
+                const { data: tasksData, error: tasksError } = await supabase.from('tasks').select('*');
+                if (tasksError) {
+                    console.error('Error fetching tasks:', tasksError);
+                    toast.error('Failed to load tasks');
+                } else {
+                    setTasks(tasksData || []);
+                }
+
+                // Fetch parts
+                const { data: partsData, error: partsError } = await supabase.from('parts').select('*');
+                if (partsError) {
+                    console.error('Error fetching parts:', partsError);
+                    toast.error('Failed to load parts');
+                } else {
+                    setParts(partsData || []);
+                }
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                toast.error('Failed to load data');
+            }
+        };
+
+        fetchAllData();
     }, []);
-
-    // CRUD helpers with improved error handling
-    const addItem = async <T,>(
-        table: string, 
-        item: T, 
-        setter: React.Dispatch<React.SetStateAction<T[]>>
-    ): Promise<T | null> => {
-        try {
-            const { data, error } = await supabase.from(table).insert(item).select();
-            if (error) {
-                console.error(`Error adding to ${table}:`, error);
-                toast.error(`Failed to add ${table.slice(0, -1)}`);
-                throw error;
-            }
-            if (data && data.length > 0) {
-                const newItem = data[0] as T;
-                setter((prev) => [...prev, newItem]);
-                return newItem;
-            }
-            return null;
-        } catch (error) {
-            console.error(`Error adding to ${table}:`, error);
-            toast.error(`Failed to add ${table.slice(0, -1)}`);
-            throw error;
-        }
-    };
-
-    const removeItem = async <T,>(
-        table: string, 
-        id: string, 
-        setter: React.Dispatch<React.SetStateAction<T[]>>
-    ) => {
-        try {
-            const { error } = await supabase.from(table).delete().eq('id', id);
-            if (error) {
-                console.error(`Error removing from ${table}:`, error);
-                toast.error(`Failed to delete ${table.slice(0, -1)}`);
-                throw error;
-            }
-            setter((prev) => prev.filter((item: any) => item.id !== id));
-            toast.success(`${table.slice(0, -1)} deleted successfully`);
-        } catch (error) {
-            console.error(`Error removing from ${table}:`, error);
-            toast.error(`Failed to delete ${table.slice(0, -1)}`);
-            throw error;
-        }
-    };
-
-    const updateItem = async <T extends { id: string }>(
-        table: string,
-        id: string,
-        updates: Partial<T>,
-        setter: React.Dispatch<React.SetStateAction<T[]>>
-    ): Promise<T | null> => {
-        try {
-            const { data, error } = await supabase
-                .from(table)
-                .update(updates)
-                .eq('id', id)
-                .select();
-
-            if (error) {
-                console.error(`Error updating ${table}:`, error);
-                toast.error(`Failed to update ${table.slice(0, -1)}`);
-                throw error;
-            }
-
-            if (data && data.length > 0) {
-                const updatedItem = data[0] as T;
-                setter((prev) => prev.map((item) => item.id === id ? updatedItem : item));
-                toast.success(`${table.slice(0, -1)} updated successfully`);
-                return updatedItem;
-            }
-            return null;
-        } catch (error) {
-            console.error(`Error updating ${table}:`, error);
-            toast.error(`Failed to update ${table.slice(0, -1)}`);
-            throw error;
-        }
-    };
 
     // Mechanic operations with UUID support
     const addMechanic = async (mechanicData: Omit<Mechanic, 'id'>) => {
@@ -196,15 +173,43 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
         };
 
         console.log('Adding mechanic:', newMechanic);
-        const result = await addItem('mechanics', newMechanic, setMechanics);
-        if (!result) {
+        try {
+            const { data, error } = await supabase.from('mechanics').insert(newMechanic).select();
+            if (error) {
+                console.error('Error adding mechanic:', error);
+                toast.error('Failed to add mechanic');
+                throw error;
+            }
+            if (data && data.length > 0) {
+                const result = data[0] as Mechanic;
+                setMechanics((prev) => [...prev, result]);
+                toast.success('Mechanic added successfully');
+                return result;
+            }
             throw new Error('Failed to add mechanic');
+        } catch (error) {
+            console.error('Error adding mechanic:', error);
+            toast.error('Failed to add mechanic');
+            throw error;
         }
-        toast.success('Mechanic added successfully');
-        return result;
     };
 
-    const removeMechanic = async (id: string) => await removeItem('mechanics', id, setMechanics);
+    const removeMechanic = async (id: string) => {
+        try {
+            const { error } = await supabase.from('mechanics').delete().eq('id', id);
+            if (error) {
+                console.error('Error removing mechanic:', error);
+                toast.error('Failed to delete mechanic');
+                throw error;
+            }
+            setMechanics((prev) => prev.filter((item) => item.id !== id));
+            toast.success('Mechanic deleted successfully');
+        } catch (error) {
+            console.error('Error removing mechanic:', error);
+            toast.error('Failed to delete mechanic');
+            throw error;
+        }
+    };
 
     const updateMechanic = async (id: string, mechanicData: Omit<Mechanic, 'id'>) => {
         const updatedData = {
@@ -213,11 +218,31 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
         };
 
         console.log('Updating mechanic:', updatedData);
-        const result = await updateItem('mechanics', id, updatedData, setMechanics);
-        if (!result) {
+        try {
+            const { data, error } = await supabase
+                .from('mechanics')
+                .update(updatedData)
+                .eq('id', id)
+                .select();
+
+            if (error) {
+                console.error('Error updating mechanic:', error);
+                toast.error('Failed to update mechanic');
+                throw error;
+            }
+
+            if (data && data.length > 0) {
+                const result = data[0] as Mechanic;
+                setMechanics((prev) => prev.map((item) => item.id === id ? result : item));
+                toast.success('Mechanic updated successfully');
+                return result;
+            }
             throw new Error('Failed to update mechanic');
+        } catch (error) {
+            console.error('Error updating mechanic:', error);
+            toast.error('Failed to update mechanic');
+            throw error;
         }
-        return result;
     };
 
     const getMechanicById = (id: string) => mechanics.find(mechanic => mechanic.id === id) || null;
@@ -231,27 +256,136 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
         };
-        const result = await addItem('vendors', newVendor, setVendors);
-        if (result) {
-            toast.success('Vendor added successfully');
+        
+        try {
+            const { data, error } = await supabase.from('vendors').insert(newVendor).select();
+            if (error) {
+                console.error('Error adding vendor:', error);
+                toast.error('Failed to add vendor');
+                throw error;
+            }
+            if (data && data.length > 0) {
+                const result = data[0];
+                setVendors((prev) => [...prev, result]);
+                toast.success('Vendor added successfully');
+                return result;
+            }
+            return null;
+        } catch (error) {
+            console.error('Error adding vendor:', error);
+            toast.error('Failed to add vendor');
+            throw error;
         }
-        return result;
     };
 
-    const removeVendor = async (id: string) => await removeItem('vendors', id, setVendors);
-    const updateVendor = async (id: string, updates: Partial<Vendor>) => await updateItem('vendors', id, updates, setVendors);
+    const removeVendor = async (id: string) => {
+        try {
+            const { error } = await supabase.from('vendors').delete().eq('id', id);
+            if (error) {
+                console.error('Error removing vendor:', error);
+                toast.error('Failed to delete vendor');
+                throw error;
+            }
+            setVendors((prev) => prev.filter((item) => item.id !== id));
+            toast.success('Vendor deleted successfully');
+        } catch (error) {
+            console.error('Error removing vendor:', error);
+            toast.error('Failed to delete vendor');
+            throw error;
+        }
+    };
+
+    const updateVendor = async (id: string, updates: Partial<Vendor>) => {
+        try {
+            const { data, error } = await supabase
+                .from('vendors')
+                .update(updates)
+                .eq('id', id)
+                .select();
+
+            if (error) {
+                console.error('Error updating vendor:', error);
+                toast.error('Failed to update vendor');
+                throw error;
+            }
+
+            if (data && data.length > 0) {
+                const result = data[0] as Vendor;
+                setVendors((prev) => prev.map((item) => item.id === id ? result : item));
+                toast.success('Vendor updated successfully');
+            }
+        } catch (error) {
+            console.error('Error updating vendor:', error);
+            toast.error('Failed to update vendor');
+            throw error;
+        }
+    };
 
     // Customer operations
     const addCustomer = async (customer: Customer) => {
-        const result = await addItem('customers', customer, setCustomers);
-        if (result) {
-            toast.success('Customer added successfully');
+        try {
+            const { data, error } = await supabase.from('customers').insert(customer).select();
+            if (error) {
+                console.error('Error adding customer:', error);
+                toast.error('Failed to add customer');
+                throw error;
+            }
+            if (data && data.length > 0) {
+                const result = data[0] as Customer;
+                setCustomers((prev) => [...prev, result]);
+                toast.success('Customer added successfully');
+                return result;
+            }
+            return customer;
+        } catch (error) {
+            console.error('Error adding customer:', error);
+            toast.error('Failed to add customer');
+            throw error;
         }
-        return result || customer;
     };
 
-    const removeCustomer = async (id: string) => await removeItem('customers', id, setCustomers);
-    const updateCustomer = async (id: string, updates: Partial<Customer>) => await updateItem('customers', id, updates, setCustomers);
+    const removeCustomer = async (id: string) => {
+        try {
+            const { error } = await supabase.from('customers').delete().eq('id', id);
+            if (error) {
+                console.error('Error removing customer:', error);
+                toast.error('Failed to delete customer');
+                throw error;
+            }
+            setCustomers((prev) => prev.filter((item) => item.id !== id));
+            toast.success('Customer deleted successfully');
+        } catch (error) {
+            console.error('Error removing customer:', error);
+            toast.error('Failed to delete customer');
+            throw error;
+        }
+    };
+
+    const updateCustomer = async (id: string, updates: Partial<Customer>) => {
+        try {
+            const { data, error } = await supabase
+                .from('customers')
+                .update(updates)
+                .eq('id', id)
+                .select();
+
+            if (error) {
+                console.error('Error updating customer:', error);
+                toast.error('Failed to update customer');
+                throw error;
+            }
+
+            if (data && data.length > 0) {
+                const result = data[0] as Customer;
+                setCustomers((prev) => prev.map((item) => item.id === id ? result : item));
+                toast.success('Customer updated successfully');
+            }
+        } catch (error) {
+            console.error('Error updating customer:', error);
+            toast.error('Failed to update customer');
+            throw error;
+        }
+    };
 
     const getCustomerById = async (id: string): Promise<Customer | null> => {
         try {
@@ -272,14 +406,68 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
 
     // Vehicle operations
     const addVehicle = async (vehicle: Vehicle) => {
-        const result = await addItem('vehicles', vehicle, setVehicles);
-        if (result) {
-            toast.success('Vehicle added successfully');
+        try {
+            const { data, error } = await supabase.from('vehicles').insert(vehicle).select();
+            if (error) {
+                console.error('Error adding vehicle:', error);
+                toast.error('Failed to add vehicle');
+                throw error;
+            }
+            if (data && data.length > 0) {
+                const result = data[0] as Vehicle;
+                setVehicles((prev) => [...prev, result]);
+                toast.success('Vehicle added successfully');
+            }
+        } catch (error) {
+            console.error('Error adding vehicle:', error);
+            toast.error('Failed to add vehicle');
+            throw error;
         }
     };
 
-    const removeVehicle = async (id: string) => await removeItem('vehicles', id, setVehicles);
-    const updateVehicle = async (id: string, updates: Partial<Vehicle>) => await updateItem('vehicles', id, updates, setVehicles);
+    const removeVehicle = async (id: string) => {
+        try {
+            const { error } = await supabase.from('vehicles').delete().eq('id', id);
+            if (error) {
+                console.error('Error removing vehicle:', error);
+                toast.error('Failed to delete vehicle');
+                throw error;
+            }
+            setVehicles((prev) => prev.filter((item) => item.id !== id));
+            toast.success('Vehicle deleted successfully');
+        } catch (error) {
+            console.error('Error removing vehicle:', error);
+            toast.error('Failed to delete vehicle');
+            throw error;
+        }
+    };
+
+    const updateVehicle = async (id: string, updates: Partial<Vehicle>) => {
+        try {
+            const { data, error } = await supabase
+                .from('vehicles')
+                .update(updates)
+                .eq('id', id)
+                .select();
+
+            if (error) {
+                console.error('Error updating vehicle:', error);
+                toast.error('Failed to update vehicle');
+                throw error;
+            }
+
+            if (data && data.length > 0) {
+                const result = data[0] as Vehicle;
+                setVehicles((prev) => prev.map((item) => item.id === id ? result : item));
+                toast.success('Vehicle updated successfully');
+            }
+        } catch (error) {
+            console.error('Error updating vehicle:', error);
+            toast.error('Failed to update vehicle');
+            throw error;
+        }
+    };
+
     const getVehiclesByCustomerId = (customerId: string) => vehicles.filter(item => item.customer_id === customerId);
     const getVehicleById = (id: string) => vehicles.find(vehicle => vehicle.id === id) || null;
 
@@ -306,57 +494,325 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
                 license_plate: 'ABC-123'
             }
         };
-        const result = await addItem('invoices', newInvoice, setInvoices);
-        if (result) {
-            toast.success('Invoice created successfully');
+        
+        try {
+            const { data, error } = await supabase.from('invoices').insert(newInvoice).select();
+            if (error) {
+                console.error('Error adding invoice:', error);
+                toast.error('Failed to create invoice');
+                throw error;
+            }
+            if (data && data.length > 0) {
+                const result = data[0] as Invoice;
+                setInvoices((prev) => [...prev, result]);
+                toast.success('Invoice created successfully');
+                return result;
+            }
+            return newInvoice;
+        } catch (error) {
+            console.error('Error adding invoice:', error);
+            toast.error('Failed to create invoice');
+            throw error;
         }
-        return result || newInvoice;
     };
 
-    const removeInvoice = async (id: string) => await removeItem('invoices', id, setInvoices);
-    const updateInvoice = async (id: string, updates: Partial<Invoice>) => await updateItem('invoices', id, updates, setInvoices);
+    const removeInvoice = async (id: string) => {
+        try {
+            const { error } = await supabase.from('invoices').delete().eq('id', id);
+            if (error) {
+                console.error('Error removing invoice:', error);
+                toast.error('Failed to delete invoice');
+                throw error;
+            }
+            setInvoices((prev) => prev.filter((item) => item.id !== id));
+            toast.success('Invoice deleted successfully');
+        } catch (error) {
+            console.error('Error removing invoice:', error);
+            toast.error('Failed to delete invoice');
+            throw error;
+        }
+    };
+
+    const updateInvoice = async (id: string, updates: Partial<Invoice>) => {
+        try {
+            const { data, error } = await supabase
+                .from('invoices')
+                .update(updates)
+                .eq('id', id)
+                .select();
+
+            if (error) {
+                console.error('Error updating invoice:', error);
+                toast.error('Failed to update invoice');
+                throw error;
+            }
+
+            if (data && data.length > 0) {
+                const result = data[0] as Invoice;
+                setInvoices((prev) => prev.map((item) => item.id === id ? result : item));
+                toast.success('Invoice updated successfully');
+            }
+        } catch (error) {
+            console.error('Error updating invoice:', error);
+            toast.error('Failed to update invoice');
+            throw error;
+        }
+    };
+
     const getInvoiceById = (id: string) => invoices.find(invoice => invoice.id === id) || null;
 
     // Other operations with similar pattern
     const addExpense = async (expense: Expense) => {
-        const result = await addItem('expenses', expense, setExpenses);
-        if (result) {
-            toast.success('Expense added successfully');
+        try {
+            const { data, error } = await supabase.from('expenses').insert(expense).select();
+            if (error) {
+                console.error('Error adding expense:', error);
+                toast.error('Failed to add expense');
+                throw error;
+            }
+            if (data && data.length > 0) {
+                const result = data[0] as Expense;
+                setExpenses((prev) => [...prev, result]);
+                toast.success('Expense added successfully');
+            }
+        } catch (error) {
+            console.error('Error adding expense:', error);
+            toast.error('Failed to add expense');
+            throw error;
         }
     };
 
-    const removeExpense = async (id: string) => await removeItem('expenses', id, setExpenses);
-    const updateExpense = async (id: string, updates: Partial<Expense>) => await updateItem('expenses', id, updates, setExpenses);
+    const removeExpense = async (id: string) => {
+        try {
+            const { error } = await supabase.from('expenses').delete().eq('id', id);
+            if (error) {
+                console.error('Error removing expense:', error);
+                toast.error('Failed to delete expense');
+                throw error;
+            }
+            setExpenses((prev) => prev.filter((item) => item.id !== id));
+            toast.success('Expense deleted successfully');
+        } catch (error) {
+            console.error('Error removing expense:', error);
+            toast.error('Failed to delete expense');
+            throw error;
+        }
+    };
+
+    const updateExpense = async (id: string, updates: Partial<Expense>) => {
+        try {
+            const { data, error } = await supabase
+                .from('expenses')
+                .update(updates)
+                .eq('id', id)
+                .select();
+
+            if (error) {
+                console.error('Error updating expense:', error);
+                toast.error('Failed to update expense');
+                throw error;
+            }
+
+            if (data && data.length > 0) {
+                const result = data[0] as Expense;
+                setExpenses((prev) => prev.map((item) => item.id === id ? result : item));
+                toast.success('Expense updated successfully');
+            }
+        } catch (error) {
+            console.error('Error updating expense:', error);
+            toast.error('Failed to update expense');
+            throw error;
+        }
+    };
 
     const addTask = async (task: Task) => {
-        const result = await addItem('tasks', task, setTasks);
-        if (result) {
-            toast.success('Task added successfully');
+        try {
+            const { data, error } = await supabase.from('tasks').insert(task).select();
+            if (error) {
+                console.error('Error adding task:', error);
+                toast.error('Failed to add task');
+                throw error;
+            }
+            if (data && data.length > 0) {
+                const result = data[0] as Task;
+                setTasks((prev) => [...prev, result]);
+                toast.success('Task added successfully');
+            }
+        } catch (error) {
+            console.error('Error adding task:', error);
+            toast.error('Failed to add task');
+            throw error;
         }
     };
 
-    const removeTask = async (id: string) => await removeItem('tasks', id, setTasks);
-    const updateTask = async (id: string, updates: Partial<Task>) => await updateItem('tasks', id, updates, setTasks);
+    const removeTask = async (id: string) => {
+        try {
+            const { error } = await supabase.from('tasks').delete().eq('id', id);
+            if (error) {
+                console.error('Error removing task:', error);
+                toast.error('Failed to delete task');
+                throw error;
+            }
+            setTasks((prev) => prev.filter((item) => item.id !== id));
+            toast.success('Task deleted successfully');
+        } catch (error) {
+            console.error('Error removing task:', error);
+            toast.error('Failed to delete task');
+            throw error;
+        }
+    };
+
+    const updateTask = async (id: string, updates: Partial<Task>) => {
+        try {
+            const { data, error } = await supabase
+                .from('tasks')
+                .update(updates)
+                .eq('id', id)
+                .select();
+
+            if (error) {
+                console.error('Error updating task:', error);
+                toast.error('Failed to update task');
+                throw error;
+            }
+
+            if (data && data.length > 0) {
+                const result = data[0] as Task;
+                setTasks((prev) => prev.map((item) => item.id === id ? result : item));
+                toast.success('Task updated successfully');
+            }
+        } catch (error) {
+            console.error('Error updating task:', error);
+            toast.error('Failed to update task');
+            throw error;
+        }
+    };
 
     const addPart = async (part: Part) => {
-        const result = await addItem('parts', part, setParts);
-        if (result) {
-            toast.success('Part added successfully');
+        try {
+            const { data, error } = await supabase.from('parts').insert(part).select();
+            if (error) {
+                console.error('Error adding part:', error);
+                toast.error('Failed to add part');
+                throw error;
+            }
+            if (data && data.length > 0) {
+                const result = data[0] as Part;
+                setParts((prev) => [...prev, result]);
+                toast.success('Part added successfully');
+            }
+        } catch (error) {
+            console.error('Error adding part:', error);
+            toast.error('Failed to add part');
+            throw error;
         }
     };
 
-    const removePart = async (id: string) => await removeItem('parts', id, setParts);
-    const updatePart = async (id: string, updates: Partial<Part>) => await updateItem('parts', id, updates, setParts);
+    const removePart = async (id: string) => {
+        try {
+            const { error } = await supabase.from('parts').delete().eq('id', id);
+            if (error) {
+                console.error('Error removing part:', error);
+                toast.error('Failed to delete part');
+                throw error;
+            }
+            setParts((prev) => prev.filter((item) => item.id !== id));
+            toast.success('Part deleted successfully');
+        } catch (error) {
+            console.error('Error removing part:', error);
+            toast.error('Failed to delete part');
+            throw error;
+        }
+    };
+
+    const updatePart = async (id: string, updates: Partial<Part>) => {
+        try {
+            const { data, error } = await supabase
+                .from('parts')
+                .update(updates)
+                .eq('id', id)
+                .select();
+
+            if (error) {
+                console.error('Error updating part:', error);
+                toast.error('Failed to update part');
+                throw error;
+            }
+
+            if (data && data.length > 0) {
+                const result = data[0] as Part;
+                setParts((prev) => prev.map((item) => item.id === id ? result : item));
+                toast.success('Part updated successfully');
+            }
+        } catch (error) {
+            console.error('Error updating part:', error);
+            toast.error('Failed to update part');
+            throw error;
+        }
+    };
 
     const addPayment = async (payment: Payment) => {
-        const result = await addItem('payments', payment, setPayments);
-        if (result) {
-            toast.success('Payment added successfully');
+        try {
+            const { data, error } = await supabase.from('payments').insert(payment).select();
+            if (error) {
+                console.error('Error adding payment:', error);
+                toast.error('Failed to add payment');
+                throw error;
+            }
+            if (data && data.length > 0) {
+                const result = data[0] as Payment;
+                setPayments((prev) => [...prev, result]);
+                toast.success('Payment added successfully');
+            }
+        } catch (error) {
+            console.error('Error adding payment:', error);
+            toast.error('Failed to add payment');
+            throw error;
         }
     };
 
-    const removePayment = async (id: string) => await removeItem('payments', id, setPayments);
-    const updatePayment = async (id: string, updates: Partial<Payment>) => await updateItem('payments', id, updates, setPayments);
+    const removePayment = async (id: string) => {
+        try {
+            const { error } = await supabase.from('payments').delete().eq('id', id);
+            if (error) {
+                console.error('Error removing payment:', error);
+                toast.error('Failed to delete payment');
+                throw error;
+            }
+            setPayments((prev) => prev.filter((item) => item.id !== id));
+            toast.success('Payment deleted successfully');
+        } catch (error) {
+            console.error('Error removing payment:', error);
+            toast.error('Failed to delete payment');
+            throw error;
+        }
+    };
+
+    const updatePayment = async (id: string, updates: Partial<Payment>) => {
+        try {
+            const { data, error } = await supabase
+                .from('payments')
+                .update(updates)
+                .eq('id', id)
+                .select();
+
+            if (error) {
+                console.error('Error updating payment:', error);
+                toast.error('Failed to update payment');
+                throw error;
+            }
+
+            if (data && data.length > 0) {
+                const result = data[0] as Payment;
+                setPayments((prev) => prev.map((item) => item.id === id ? result : item));
+                toast.success('Payment updated successfully');
+            }
+        } catch (error) {
+            console.error('Error updating payment:', error);
+            toast.error('Failed to update payment');
+            throw error;
+        }
+    };
 
     const getCustomerAnalytics = async (customerId: string): Promise<{ lifetimeValue: number; totalInvoices: number; averageInvoiceValue: number; vehicles: Vehicle[]; invoiceHistory: Invoice[] }> => {
         const vehicles: Vehicle[] = await getVehiclesByCustomerId(customerId);
