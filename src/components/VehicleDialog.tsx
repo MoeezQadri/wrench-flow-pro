@@ -43,7 +43,7 @@ const VehicleDialog = ({ open, onOpenChange, onSave, vehicle, customerId }: Vehi
     try {
       const newVehicle: Vehicle = {
         id: vehicle?.id || generateId("vehicle"),
-        customer_id: customerId || vehicle?.customer_id || "",
+        customer_id: data.customer_id,
         make: data.make,
         model: data.model,
         year: data.year,
@@ -71,7 +71,7 @@ const VehicleDialog = ({ open, onOpenChange, onSave, vehicle, customerId }: Vehi
           <DialogDescription>
             {isEditing
               ? "Update the vehicle information below."
-              : "Enter the details for the new vehicle."}
+              : "Enter the details for the new vehicle. A customer must be selected."}
           </DialogDescription>
         </DialogHeader>
 
@@ -79,6 +79,7 @@ const VehicleDialog = ({ open, onOpenChange, onSave, vehicle, customerId }: Vehi
           defaultValues={
             vehicle
               ? {
+                customer_id: vehicle.customer_id,
                 make: vehicle.make,
                 model: vehicle.model,
                 year: vehicle.year,
@@ -90,6 +91,7 @@ const VehicleDialog = ({ open, onOpenChange, onSave, vehicle, customerId }: Vehi
           }
           onSubmit={handleSubmit}
           formId={formId}
+          preselectedCustomerId={customerId}
         />
 
         <DialogFooter>

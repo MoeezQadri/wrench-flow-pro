@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -12,8 +12,12 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useDataContext } from '@/context/data/DataContext';
+import { Customer } from "@/types";
 
 const vehicleFormSchema = z.object({
+  customer_id: z.string().min(1, "Customer is required"),
   make: z.string().min(1, "Make is required"),
   model: z.string().min(1, "Model is required"),
   year: z.string().min(4, "Year must be at least 4 characters"),
@@ -28,12 +32,21 @@ interface VehicleFormSectionProps {
   onSubmit: (data: VehicleFormValues) => void;
   formId: string;
   defaultValues?: VehicleFormValues;
+  preselectedCustomerId?: string;
 }
 
-const VehicleFormSection = ({ onSubmit, formId, defaultValues }: VehicleFormSectionProps) => {
+const VehicleFormSection = ({ onSubmit, formId, defaultValues, preselectedCustomerId }: VehicleFormSectionProps) => {
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const { customers: customers_ } = useDataContext();
+
+  useEffect(() => {
+    setCustomers(customers_);
+  }, [customers_]);
+
   const form = useForm<VehicleFormValues>({
     resolver: zodResolver(vehicleFormSchema),
     defaultValues: defaultValues || {
+      customer_id: preselectedCustomerId || "",
       make: "",
       model: "",
       year: "",
@@ -46,6 +59,35 @@ const VehicleFormSection = ({ onSubmit, formId, defaultValues }: VehicleFormSect
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} id={formId} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="customer_id"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Customer *</FormLabel>
+              <Select 
+                value={field.value} 
+                onValueChange={field.onChange}
+                disabled={!!preselectedCustomerId}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a customer" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {customers.map((customer) => (
+                    <SelectItem key={customer.id} value={customer.id}>
+                      {customer.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
