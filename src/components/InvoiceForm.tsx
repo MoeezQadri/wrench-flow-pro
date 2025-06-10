@@ -423,6 +423,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
             selectedVehicleId={selectedVehicleId}
             onVehicleIdChange={setSelectedVehicleId}
             isEditing={isEditing}
+            vehicleInfo={invoiceData?.vehicleInfo}
           />
 
           {/* Date */}

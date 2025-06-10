@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -14,6 +15,12 @@ interface CustomerVehicleSelectionProps {
   selectedVehicleId: string;
   onVehicleIdChange: (vehicleId: string) => void;
   isEditing?: boolean;
+  vehicleInfo?: {
+    make: string;
+    model: string;
+    year: string;
+    license_plate: string;
+  };
 }
 
 const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
@@ -22,6 +29,7 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
   selectedVehicleId,
   onVehicleIdChange,
   isEditing = false,
+  vehicleInfo,
 }) => {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [isLoadingVehicles, setIsLoadingVehicles] = useState(false);
@@ -95,8 +103,21 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
     loadedCustomerRef.current = "";
   };
 
-  // Find the selected vehicle to display its name
+  // Find the selected vehicle to display its name - prefer from loaded vehicles, fallback to vehicleInfo
   const selectedVehicle = vehicles.find(v => v.id === selectedVehicleId);
+  
+  // Get display text for the selected vehicle
+  const getVehicleDisplayText = () => {
+    if (selectedVehicle) {
+      return `${selectedVehicle.year} ${selectedVehicle.make} ${selectedVehicle.model} (${selectedVehicle.license_plate})`;
+    } else if (isEditing && vehicleInfo && selectedVehicleId) {
+      // When editing, use the vehicle info from the invoice data if vehicles haven't loaded yet
+      return `${vehicleInfo.year} ${vehicleInfo.make} ${vehicleInfo.model} (${vehicleInfo.license_plate})`;
+    }
+    return null;
+  };
+
+  const vehicleDisplayText = getVehicleDisplayText();
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -180,9 +201,7 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
                     : "Select a vehicle"
               }
             >
-              {selectedVehicle && (
-                `${selectedVehicle.year} ${selectedVehicle.make} ${selectedVehicle.model} (${selectedVehicle.license_plate})`
-              )}
+              {vehicleDisplayText}
             </SelectValue>
           </SelectTrigger>
           <SelectContent>
