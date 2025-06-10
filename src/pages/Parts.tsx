@@ -3,11 +3,16 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useDataContext } from '@/context/data/DataContext';
+import { Button } from '@/components/ui/button';
+import { Plus } from 'lucide-react';
+import PartDialog from '@/components/part/PartDialog';
+import { Part } from '@/types';
 
 const Parts: React.FC = () => {
   const [parts, setParts] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [customerNames, setCustomerNames] = useState<Record<string, string>>({});
+  const [showPartDialog, setShowPartDialog] = useState(false);
   const { getCustomerById } = useDataContext();
 
   // Load customer names for all vendors at once
@@ -59,6 +64,50 @@ const Parts: React.FC = () => {
     fetchParts();
   }, [getCustomerById]);
 
+  const handleSavePart = async (part: Part) => {
+    try {
+      const { data, error } = await supabase
+        .from('parts')
+        .insert([{
+          id: part.id,
+          name: part.name,
+          description: part.description,
+          part_number: part.part_number,
+          price: part.price,
+          quantity: part.quantity,
+          vendor_id: part.vendor_id,
+          vendor_name: part.vendor_name,
+          invoice_ids: part.invoice_ids || []
+        }])
+        .select()
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      // Add the new part to the local state
+      setParts(prev => [...prev, data]);
+      
+      // If the part has a vendor_id and we don't have the name cached, load it
+      if (data.vendor_id && !customerNames[data.vendor_id]) {
+        const customer = await getCustomerById(data.vendor_id);
+        if (customer) {
+          setCustomerNames(prev => ({
+            ...prev,
+            [data.vendor_id]: customer.name
+          }));
+        }
+      }
+
+      console.log('Part saved successfully:', data);
+    } catch (error) {
+      console.error('Error saving part:', error);
+      toast.error('Failed to save part');
+      throw error;
+    }
+  };
+
   const getVendorName = (part: any) => {
     if (part.vendor_id) {
       return customerNames[part.vendor_id] || 'Loading...';
@@ -66,9 +115,30 @@ const Parts: React.FC = () => {
     return part.vendor_name || 'N/A';
   };
 
+  const getAssignmentStatus = (part: any) => {
+    if (part.invoice_ids && part.invoice_ids.length > 0) {
+      return (
+        <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">
+          Assigned to {part.invoice_ids.length} invoice(s)
+        </span>
+      );
+    }
+    return (
+      <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded">
+        Workshop Inventory
+      </span>
+    );
+  };
+
   return (
     <div className="container p-4">
-      <h1 className="text-2xl font-bold mb-4">Parts Inventory</h1>
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">Parts Inventory</h1>
+        <Button onClick={() => setShowPartDialog(true)}>
+          <Plus className="w-4 h-4 mr-2" />
+          Add Part
+        </Button>
+      </div>
 
       {loading ? (
         <div className="text-center py-8">Loading parts inventory...</div>
@@ -87,6 +157,7 @@ const Parts: React.FC = () => {
                 <th className="py-2 px-4 text-right">Quantity</th>
                 <th className="py-2 px-4 text-right">Price</th>
                 <th className="py-2 px-4 text-left">Vendor</th>
+                <th className="py-2 px-4 text-left">Assignment</th>
               </tr>
             </thead>
             <tbody>
@@ -107,12 +178,19 @@ const Parts: React.FC = () => {
                   </td>
                   <td className="py-2 px-4 text-right">${part.price.toFixed(2)}</td>
                   <td className="py-2 px-4">{getVendorName(part)}</td>
+                  <td className="py-2 px-4">{getAssignmentStatus(part)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       )}
+
+      <PartDialog
+        open={showPartDialog}
+        onOpenChange={setShowPartDialog}
+        onSave={handleSavePart}
+      />
     </div>
   );
 };

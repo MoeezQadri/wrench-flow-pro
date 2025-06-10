@@ -23,6 +23,8 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 import { Invoice, Part } from "@/types";
 import { X } from "lucide-react";
 import { useDataContext } from "@/context/data/DataContext";
@@ -52,7 +54,7 @@ interface PartFormProps {
 const PartForm = ({ defaultValues, onSubmit, formId, invoice, invoiceId, part }: PartFormProps) => {
   const [availableInvoices, setAvailableInvoices] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [showInvoiceSelection, setShowInvoiceSelection] = useState(false);
+  const [assignmentType, setAssignmentType] = useState<'workshop' | 'invoice'>('workshop');
   const [selectedInvoiceIds, setSelectedInvoiceIds] = useState<string[]>([]);
 
   const {
@@ -97,13 +99,13 @@ const PartForm = ({ defaultValues, onSubmit, formId, invoice, invoiceId, part }:
   // Initialize form with any existing invoice associations
   useEffect(() => {
     if (part?.invoice_ids && part.invoice_ids.length > 0) {
-      setShowInvoiceSelection(true);
+      setAssignmentType('invoice');
       setSelectedInvoiceIds(part.invoice_ids);
       form.setValue('invoiceIds', part.invoice_ids);
     }
     // If form is being opened with a specific invoice already selected
     if (invoiceId) {
-      setShowInvoiceSelection(true);
+      setAssignmentType('invoice');
       setSelectedInvoiceIds(prev => {
         const newIds = [...prev];
         if (!newIds.includes(invoiceId)) {
@@ -111,9 +113,18 @@ const PartForm = ({ defaultValues, onSubmit, formId, invoice, invoiceId, part }:
         }
         return newIds;
       });
-      form.setValue('invoiceIds', selectedInvoiceIds);
     }
   }, [part, invoiceId, form]);
+
+  // Update form values when assignment type changes
+  useEffect(() => {
+    if (assignmentType === 'workshop') {
+      setSelectedInvoiceIds([]);
+      form.setValue('invoiceIds', []);
+    } else {
+      form.setValue('invoiceIds', selectedInvoiceIds);
+    }
+  }, [assignmentType, selectedInvoiceIds, form]);
 
   // Handle selecting an invoice
   const handleInvoiceSelect = (invoiceId: string) => {
@@ -124,23 +135,18 @@ const PartForm = ({ defaultValues, onSubmit, formId, invoice, invoiceId, part }:
       }
       return newIds;
     });
-    form.setValue('invoiceIds', selectedInvoiceIds);
   };
 
   // Handle removing an invoice
   const handleInvoiceRemove = (invoiceId: string) => {
-    setSelectedInvoiceIds(prev => {
-      const newIds = prev.filter(id => id !== invoiceId);
-      return newIds;
-    });
-    form.setValue('invoiceIds', selectedInvoiceIds);
+    setSelectedInvoiceIds(prev => prev.filter(id => id !== invoiceId));
   };
 
   // Before submitting, ensure invoiceIds is properly set
   const handleFormSubmit = (data: PartFormValues) => {
     const formData = { ...data };
 
-    if (showInvoiceSelection) {
+    if (assignmentType === 'invoice') {
       formData.invoiceIds = selectedInvoiceIds;
     } else {
       formData.invoiceIds = [];
@@ -299,23 +305,41 @@ const PartForm = ({ defaultValues, onSubmit, formId, invoice, invoiceId, part }:
           )}
         />
 
-        {/* Invoice Association Section */}
+        {/* Part Assignment Section */}
         <div className="border rounded-md p-4 mt-6">
-          <div className="flex items-center space-x-2 mb-4">
-            <Checkbox
-              id="invoice-tagging"
-              checked={showInvoiceSelection}
-              onCheckedChange={(checked) => setShowInvoiceSelection(!!checked)}
-            />
-            <label
-              htmlFor="invoice-tagging"
-              className="text-sm font-medium leading-none cursor-pointer"
-            >
-              Tag this part to invoices (optional)
-            </label>
-          </div>
+          <FormLabel className="text-base font-medium">Part Assignment</FormLabel>
+          <FormDescription className="mb-4">
+            Choose whether to add this part to workshop inventory or assign it to specific invoices.
+          </FormDescription>
+          
+          <RadioGroup 
+            value={assignmentType} 
+            onValueChange={(value: 'workshop' | 'invoice') => setAssignmentType(value)}
+            className="mb-4"
+          >
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="workshop" id="workshop" />
+              <Label htmlFor="workshop" className="cursor-pointer">
+                Add to Workshop Inventory
+              </Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="invoice" id="invoice" />
+              <Label htmlFor="invoice" className="cursor-pointer">
+                Assign to Specific Invoice(s)
+              </Label>
+            </div>
+          </RadioGroup>
 
-          {showInvoiceSelection && (
+          {assignmentType === 'workshop' && (
+            <div className="p-3 bg-green-50 rounded-md">
+              <p className="text-sm text-green-800">
+                This part will be added to your workshop inventory and can be assigned to invoices later.
+              </p>
+            </div>
+          )}
+
+          {assignmentType === 'invoice' && (
             <>
               <div className="mb-4">
                 <FormLabel>Select Invoices</FormLabel>
@@ -324,7 +348,7 @@ const PartForm = ({ defaultValues, onSubmit, formId, invoice, invoiceId, part }:
                 >
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select an invoice to tag" />
+                      <SelectValue placeholder="Select an invoice to assign" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
@@ -336,7 +360,7 @@ const PartForm = ({ defaultValues, onSubmit, formId, invoice, invoiceId, part }:
                   </SelectContent>
                 </Select>
                 <FormDescription>
-                  Tag this part to one or more invoices
+                  Assign this part to one or more active invoices
                 </FormDescription>
               </div>
 
