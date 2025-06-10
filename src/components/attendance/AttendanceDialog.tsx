@@ -32,8 +32,6 @@ export function AttendanceDialog({
   open,
   onOpenChange,
 }: AttendanceDialogProps) {
-  const formId = "attendance-form";
-
   const handleSave = async (data: Omit<Attendance, "id">) => {
     await onSave(data);
   };
@@ -47,15 +45,9 @@ export function AttendanceDialog({
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
         <AttendanceForm
-          formId={formId}
-          defaultValues={attendance}
+          initialData={attendance}
           onSubmit={handleSave}
         />
-        <DialogFooter>
-          <Button type="submit" form={formId}>
-            Save
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

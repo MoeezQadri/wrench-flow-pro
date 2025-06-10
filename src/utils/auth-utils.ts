@@ -33,7 +33,7 @@ export const createUserFromSession = (
     role: profileData?.role || 
       session.user.user_metadata?.role || 'owner',
     is_active: profileData?.is_active ?? true,
-    organizationId: profileData?.organization_id || 
+    organization_id: profileData?.organization_id || 
       session.user.user_metadata?.organization_id || undefined,
     lastLogin: new Date().toISOString()
   };
