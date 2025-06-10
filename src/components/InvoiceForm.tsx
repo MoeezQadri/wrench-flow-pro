@@ -281,7 +281,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
         
         // Also update in context
         if (updateInvoiceInContext) {
-          await updateInvoiceInContext(updatedInvoiceData);
+          await updateInvoiceInContext(updatedInvoiceData.id, updatedInvoiceData);
         }
         
         toast.success("Invoice updated successfully!");

@@ -1,4 +1,3 @@
-
 import { User, Customer, Vehicle, Invoice, Part, Mechanic, Vendor, Expense, Attendance, Task, CustomerAnalytics, DashboardMetrics, InvoiceItem, Payment, InvoiceStatus, UserRole } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -712,5 +711,59 @@ export const fetchCustomerAnalytics = async (customerId: string): Promise<Custom
       invoiceHistory: [],
       customerId: "0"
     };
+  }
+};
+
+// Update invoice with proper error handling
+export const updateInvoice = async (invoiceData: any) => {
+  try {
+    const { id, items, payments, ...invoiceFields } = invoiceData;
+    
+    // Update the main invoice record
+    const { data: updatedInvoice, error: invoiceError } = await supabase
+      .from('invoices')
+      .update({
+        ...invoiceFields,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select()
+      .single();
+      
+    if (invoiceError) throw invoiceError;
+    
+    // Delete existing invoice items
+    const { error: deleteItemsError } = await supabase
+      .from('invoice_items')
+      .delete()
+      .eq('invoice_id', id);
+      
+    if (deleteItemsError) throw deleteItemsError;
+    
+    // Insert updated invoice items
+    if (items && items.length > 0) {
+      const itemsToInsert = items.map((item: any) => ({
+        id: generateUUID(),
+        invoice_id: id,
+        description: item.description,
+        type: item.type,
+        quantity: item.quantity,
+        price: item.price,
+        part_id: item.part_id,
+        task_id: item.task_id,
+        is_auto_added: item.is_auto_added || false
+      }));
+      
+      const { error: itemsError } = await supabase
+        .from('invoice_items')
+        .insert(itemsToInsert);
+        
+      if (itemsError) throw itemsError;
+    }
+    
+    return updatedInvoice;
+  } catch (error) {
+    handleError(error, 'updating invoice');
+    throw error;
   }
 };
