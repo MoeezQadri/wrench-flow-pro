@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Invoice, Customer } from '@/types';
 import { resolvePromiseAndSetState } from '@/utils/async-helpers';
@@ -75,11 +76,11 @@ const Invoices: React.FC = () => {
 
     // Calculate discount if applicable
     let discountAmount = 0;
-    if (invoice.discount) {
-      if (invoice.discount.type === 'percentage') {
-        discountAmount = subtotal * (invoice.discount.value / 100);
-      } else {
-        discountAmount = invoice.discount.value;
+    if (invoice.discount_type && invoice.discount_type !== 'none') {
+      if (invoice.discount_type === 'percentage') {
+        discountAmount = subtotal * ((invoice.discount_value || 0) / 100);
+      } else if (invoice.discount_type === 'fixed') {
+        discountAmount = invoice.discount_value || 0;
       }
     }
 

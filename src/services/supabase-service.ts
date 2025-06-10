@@ -1,3 +1,4 @@
+
 import { User, Customer, Vehicle, Invoice, Part, Mechanic, Vendor, Expense, Attendance, Task, CustomerAnalytics, DashboardMetrics, InvoiceItem, Payment, InvoiceStatus, UserRole } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -46,7 +47,8 @@ const mapInvoiceFromDb = (invoice: any): Invoice => {
       license_plate: vehicle?.license_plate || ''
     },
     created_at: invoice.created_at,
-    discount: invoice.discount
+    discount_type: invoice.discount_type,
+    discount_value: invoice.discount_value
   };
 };
 
