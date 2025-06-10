@@ -70,7 +70,40 @@ export const useVehicles = () => {
         }
     };
 
-    const getVehiclesByCustomerId = (customerId: string) => vehicles.filter(item => item.customer_id === customerId);
+    const getVehiclesByCustomerId = async (customerId: string): Promise<Vehicle[]> => {
+        try {
+            console.log("Fetching vehicles for customer:", customerId);
+            const { data, error } = await supabase
+                .from('vehicles')
+                .select('*')
+                .eq('customer_id', customerId);
+            
+            if (error) {
+                console.error('Error fetching vehicles:', error);
+                toast.error('Failed to load vehicles');
+                return [];
+            }
+            
+            const mappedVehicles = (data || []).map(v => ({
+                id: v.id,
+                customer_id: v.customer_id,
+                make: v.make,
+                model: v.model,
+                year: v.year,
+                license_plate: v.license_plate,
+                vin: v.vin,
+                color: v.color
+            }));
+            
+            console.log("Vehicles fetched from database:", mappedVehicles);
+            return mappedVehicles;
+        } catch (error) {
+            console.error('Error fetching vehicles:', error);
+            toast.error('Failed to load vehicles');
+            return [];
+        }
+    };
+
     const getVehicleById = (id: string) => vehicles.find(vehicle => vehicle.id === id) || null;
 
     const loadVehicles = async () => {

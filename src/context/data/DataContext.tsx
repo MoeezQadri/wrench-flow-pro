@@ -51,7 +51,7 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     }, []);
 
     const getCustomerAnalytics = async (customerId: string): Promise<{ lifetimeValue: number; totalInvoices: number; averageInvoiceValue: number; vehicles: Vehicle[]; invoiceHistory: Invoice[] }> => {
-        const vehicles: Vehicle[] = vehiclesHook.getVehiclesByCustomerId(customerId);
+        const vehicles: Vehicle[] = await vehiclesHook.getVehiclesByCustomerId(customerId);
         const invoiceHistory: Invoice[] = invoicesHook.invoices.filter(inv => inv.customer_id === customerId);
 
         const lifetimeValue = invoiceHistory.reduce((sum, invoice) => {
