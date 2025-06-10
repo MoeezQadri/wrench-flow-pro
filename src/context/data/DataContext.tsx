@@ -82,11 +82,12 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
             removeCustomer: customersHook.removeCustomer,
             updateCustomer: customersHook.updateCustomer,
             getCustomerById: customersHook.getCustomerById,
+            loadCustomers: customersHook.loadCustomers,
 
             vehicles: vehiclesHook.vehicles,
             addVehicle: vehiclesHook.addVehicle,
             removeVehicle: vehiclesHook.removeVehicle,
-            updateVehicle: vehiclesHook.updateV/ehicle,
+            updateVehicle: vehiclesHook.updateVehicle,
             getVehiclesByCustomerId: vehiclesHook.getVehiclesByCustomerId,
             getVehicleById: vehiclesHook.getVehicleById,
 

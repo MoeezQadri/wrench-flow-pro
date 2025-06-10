@@ -18,6 +18,7 @@ export interface DataContextType {
     removeCustomer: (id: string) => Promise<void>;
     updateCustomer: (id: string, updates: Partial<Customer>) => Promise<void>;
     getCustomerById: (id: string) => Promise<Customer | null>;
+    loadCustomers: () => Promise<void>;
 
     vehicles: Vehicle[];
     addVehicle: (vehicle: Vehicle) => Promise<void>;
