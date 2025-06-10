@@ -187,9 +187,6 @@ const Vehicles: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap">{vehicle.vin || 'N/A'}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex space-x-2">
-                      <Link to={`/vehicles/${vehicle.id}`} className="text-blue-600 hover:underline">
-                        View
-                      </Link>
                       <button 
                         onClick={() => handleEditVehicle(vehicle)}
                         className="text-green-600 hover:underline flex items-center gap-1"
