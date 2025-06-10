@@ -17,9 +17,11 @@ import { Invoice, InvoiceItem, Vehicle, Part, Task, TaskLocation, InvoiceStatus,
 
 import InvoiceItemsSection from "./invoice/InvoiceItemsSection";
 import PaymentsSection from "./invoice/PaymentsSection";
+import CustomerVehicleSelection from "./invoice/CustomerVehicleSelection";
 import { toast } from "sonner";
 import { useDataContext } from "@/context/data/DataContext";
 import { createInvoiceWithAutoAssignment, getAssignedPartsForInvoice, getAssignedTasksForInvoice, updateInvoice } from "@/services/supabase-service";
+import { createTestCustomers } from "@/utils/test-data-helper";
 
 interface InvoiceFormProps {
   isEditing?: boolean;
@@ -28,8 +30,6 @@ interface InvoiceFormProps {
 
 const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceData = null }) => {
   const navigate = useNavigate();
-  const [customers, setCustomers] = useState([]);
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
   const [selectedVehicleId, setSelectedVehicleId] = useState("");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
@@ -59,20 +59,12 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
   });
 
   const {
-    getVehiclesByCustomerId,
-    addInvoice,
-    updateInvoice: updateInvoiceInContext,
-    customers: customersData,
+    customers,
     parts,
     tasks,
-    loadInvoices
+    loadInvoices,
+    updateInvoice: updateInvoiceInContext,
   } = useDataContext();
-
-  // Fetch customers on component mount
-  useEffect(() => {
-    console.log("Customers data loaded:", customersData);
-    setCustomers(customersData);
-  }, [customersData]);
 
   // Fetch parts and tasks - only show completed items
   useEffect(() => {
@@ -93,25 +85,6 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
     );
     setAvailableTasks(availableTasks);
   }, [parts, tasks, isEditing, invoiceData]);
-
-  // Fetch vehicles when customer is selected
-  useEffect(() => {
-    const loadVehicles = async () => {
-      if (selectedCustomerId) {
-        console.log("Loading vehicles for customer:", selectedCustomerId);
-        try {
-          const fetchedVehicles = await getVehiclesByCustomerId(selectedCustomerId);
-          console.log("Vehicles loaded:", fetchedVehicles);
-          setVehicles(fetchedVehicles);
-        } catch (error) {
-          console.error("Error loading vehicles:", error);
-          toast.error("Failed to load vehicles for selected customer");
-        }
-      }
-    };
-
-    loadVehicles();
-  }, [selectedCustomerId, getVehiclesByCustomerId]);
 
   // Initialize form values when editing - only run once
   useEffect(() => {
@@ -266,6 +239,10 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
     return errors.length === 0;
   };
 
+  const handleCreateTestData = async () => {
+    await createTestCustomers();
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     console.log("Form submission started");
@@ -390,62 +367,47 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Customer Selection */}
-          <div>
-            <Label htmlFor="customer">Customer *</Label>
-            <Select value={selectedCustomerId} onValueChange={(value) => setSelectedCustomerId(value)} required>
-              <SelectTrigger id="customer">
-                <SelectValue placeholder="Select a customer" />
-              </SelectTrigger>
-              <SelectContent>
-                {customers.length === 0 ? (
-                  <SelectItem value="no-customers" disabled>No customers available</SelectItem>
-                ) : (
-                  customers.map((customer: any) => (
-                    <SelectItem key={customer.id} value={customer.id}>
-                      {customer.name}
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
+        {/* Show helper for empty customers */}
+        {customers.length === 0 && !isEditing && (
+          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-medium text-blue-900">No Customers Found</h3>
+                <p className="text-sm text-blue-700">
+                  You need customers to create invoices. Create some test data to get started.
+                </p>
+              </div>
+              <Button
+                type="button"
+                onClick={handleCreateTestData}
+                variant="outline"
+                className="border-blue-300 text-blue-700 hover:bg-blue-100"
+              >
+                Create Test Data
+              </Button>
+            </div>
           </div>
+        )}
 
-          {/* Vehicle Selection and Date */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="vehicle">Vehicle *</Label>
-              <Select value={selectedVehicleId} onValueChange={setSelectedVehicleId} required>
-                <SelectTrigger id="vehicle">
-                  <SelectValue placeholder="Select a vehicle" />
-                </SelectTrigger>
-                <SelectContent>
-                  {vehicles.length === 0 ? (
-                    <SelectItem value="no-vehicles" disabled>
-                      {selectedCustomerId ? "No vehicles found for this customer" : "Please select a customer first"}
-                    </SelectItem>
-                  ) : (
-                    vehicles.map((vehicle) => (
-                      <SelectItem key={vehicle.id} value={vehicle.id}>
-                        {vehicle.year} {vehicle.make} {vehicle.model}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Customer and Vehicle Selection */}
+          <CustomerVehicleSelection
+            selectedCustomerId={selectedCustomerId}
+            onCustomerIdChange={setSelectedCustomerId}
+            selectedVehicleId={selectedVehicleId}
+            onVehicleIdChange={setSelectedVehicleId}
+          />
 
-            <div>
-              <Label htmlFor="date">Date *</Label>
-              <Input
-                id="date"
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                required
-              />
-            </div>
+          {/* Date */}
+          <div>
+            <Label htmlFor="date">Date *</Label>
+            <Input
+              id="date"
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              required
+            />
           </div>
 
           {/* Status Selection - Only show when editing */}

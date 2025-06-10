@@ -3,10 +3,11 @@ import React, { useState, useEffect } from 'react';
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, RefreshCw } from "lucide-react";
 import { Customer, Vehicle } from "@/types";
 import { useDataContext } from '@/context/data/DataContext';
 import { Link } from "react-router-dom";
+import { toast } from "sonner";
 
 interface CustomerVehicleSelectionProps {
   selectedCustomerId: string;
@@ -22,46 +23,101 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
   onVehicleIdChange,
 }) => {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [isLoadingVehicles, setIsLoadingVehicles] = useState(false);
+  const [isLoadingCustomers, setIsLoadingCustomers] = useState(false);
+  
   const {
     customers,
-    getVehiclesByCustomerId
+    getVehiclesByCustomerId,
+    loadCustomers
   } = useDataContext();
 
+  // Load customers on mount if empty
+  useEffect(() => {
+    if (customers.length === 0 && !isLoadingCustomers) {
+      console.log("No customers found, attempting to reload...");
+      handleRefreshCustomers();
+    }
+  }, [customers.length]);
+
+  // Load vehicles when customer changes
   useEffect(() => {
     const loadVehicles = async () => {
       if (selectedCustomerId) {
-        const fetchedVehicles = await getVehiclesByCustomerId(selectedCustomerId);
-        setVehicles(fetchedVehicles);
+        setIsLoadingVehicles(true);
+        try {
+          console.log("Loading vehicles for customer:", selectedCustomerId);
+          const fetchedVehicles = await getVehiclesByCustomerId(selectedCustomerId);
+          console.log("Vehicles loaded:", fetchedVehicles);
+          setVehicles(fetchedVehicles);
+        } catch (error) {
+          console.error("Error loading vehicles:", error);
+          toast.error("Failed to load vehicles for selected customer");
+          setVehicles([]);
+        } finally {
+          setIsLoadingVehicles(false);
+        }
       } else {
         setVehicles([]);
       }
     };
 
     loadVehicles();
-  }, [selectedCustomerId]); // Only depend on selectedCustomerId
+  }, [selectedCustomerId, getVehiclesByCustomerId]);
+
+  const handleRefreshCustomers = async () => {
+    setIsLoadingCustomers(true);
+    try {
+      console.log("Refreshing customers...");
+      await loadCustomers();
+      toast.success("Customers refreshed");
+    } catch (error) {
+      console.error("Error refreshing customers:", error);
+      toast.error("Failed to refresh customers");
+    } finally {
+      setIsLoadingCustomers(false);
+    }
+  };
+
+  const handleCustomerChange = (value: string) => {
+    onCustomerIdChange(value);
+    onVehicleIdChange(""); // Reset vehicle selection when customer changes
+  };
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div>
         <div className="flex justify-between items-end mb-2">
-          <Label htmlFor="customer">Customer</Label>
-          <Link to="/customers/new">
-            <Button type="button" variant="ghost" size="sm" className="h-8">
-              <PlusCircle className="h-4 w-4 mr-1" />
-              Add New
+          <Label htmlFor="customer">Customer *</Label>
+          <div className="flex gap-2">
+            <Button 
+              type="button" 
+              variant="ghost" 
+              size="sm" 
+              className="h-8"
+              onClick={handleRefreshCustomers}
+              disabled={isLoadingCustomers}
+            >
+              <RefreshCw className={`h-4 w-4 mr-1 ${isLoadingCustomers ? 'animate-spin' : ''}`} />
+              Refresh
             </Button>
-          </Link>
+            <Link to="/customers/new">
+              <Button type="button" variant="ghost" size="sm" className="h-8">
+                <PlusCircle className="h-4 w-4 mr-1" />
+                Add New
+              </Button>
+            </Link>
+          </div>
         </div>
-        <Select value={selectedCustomerId} onValueChange={(value) => {
-          onCustomerIdChange(value);
-          onVehicleIdChange(""); // Reset vehicle selection when customer changes
-        }} required>
+        <Select value={selectedCustomerId} onValueChange={handleCustomerChange} required>
           <SelectTrigger id="customer">
-            <SelectValue placeholder="Select a customer" />
+            <SelectValue placeholder={isLoadingCustomers ? "Loading customers..." : "Select a customer"} />
           </SelectTrigger>
           <SelectContent>
             {customers.length === 0 ? (
-              <SelectItem value="no-customers" disabled>No customers available</SelectItem>
+              <SelectItem value="no-customers" disabled>
+                {isLoadingCustomers ? "Loading customers..." : "No customers available - click Refresh or Add New"}
+              </SelectItem>
             ) : (
               customers.map((customer) => (
                 <SelectItem key={customer.id} value={customer.id}>
@@ -75,7 +131,7 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
 
       <div>
         <div className="flex justify-between items-end mb-2">
-          <Label htmlFor="vehicle">Vehicle</Label>
+          <Label htmlFor="vehicle">Vehicle *</Label>
           {selectedCustomerId && (
             <Link to={`/vehicles/new?customerId=${selectedCustomerId}`}>
               <Button type="button" variant="ghost" size="sm" className="h-8">
@@ -85,14 +141,27 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
             </Link>
           )}
         </div>
-        <Select value={selectedVehicleId} onValueChange={onVehicleIdChange} required={vehicles.length > 0}>
-          <SelectTrigger id="vehicle" disabled={!selectedCustomerId}>
-            <SelectValue placeholder={!selectedCustomerId ? "Select a customer first" : "Select a vehicle"} />
+        <Select 
+          value={selectedVehicleId} 
+          onValueChange={onVehicleIdChange} 
+          required={vehicles.length > 0}
+          disabled={!selectedCustomerId || isLoadingVehicles}
+        >
+          <SelectTrigger id="vehicle">
+            <SelectValue placeholder={
+              !selectedCustomerId 
+                ? "Select a customer first" 
+                : isLoadingVehicles 
+                  ? "Loading vehicles..."
+                  : "Select a vehicle"
+            } />
           </SelectTrigger>
           <SelectContent>
             {vehicles.length === 0 ? (
               <SelectItem value="no-vehicles" disabled>
-                {selectedCustomerId ? "No vehicles found for this customer" : "Please select a customer first"}
+                {selectedCustomerId 
+                  ? (isLoadingVehicles ? "Loading vehicles..." : "No vehicles found for this customer") 
+                  : "Please select a customer first"}
               </SelectItem>
             ) : (
               vehicles.map((vehicle) => (
