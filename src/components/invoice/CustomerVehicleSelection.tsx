@@ -27,7 +27,6 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [isLoadingVehicles, setIsLoadingVehicles] = useState(false);
   const [isLoadingCustomers, setIsLoadingCustomers] = useState(false);
-  const [loadedCustomerId, setLoadedCustomerId] = useState<string>("");
   
   const {
     customers,
@@ -43,17 +42,16 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
     }
   }, [customers.length]);
 
-  // Load vehicles when customer changes - optimized for editing
+  // Load vehicles when customer is selected or when editing and customer is already set
   useEffect(() => {
     const loadVehicles = async () => {
-      if (selectedCustomerId && selectedCustomerId !== loadedCustomerId) {
+      if (selectedCustomerId) {
         setIsLoadingVehicles(true);
         try {
           console.log("Loading vehicles for customer:", selectedCustomerId);
           const fetchedVehicles = await getVehiclesByCustomerId(selectedCustomerId);
           console.log("Vehicles loaded:", fetchedVehicles);
           setVehicles(fetchedVehicles);
-          setLoadedCustomerId(selectedCustomerId);
         } catch (error) {
           console.error("Error loading vehicles:", error);
           toast.error("Failed to load vehicles for selected customer");
@@ -61,9 +59,8 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
         } finally {
           setIsLoadingVehicles(false);
         }
-      } else if (!selectedCustomerId) {
+      } else {
         setVehicles([]);
-        setLoadedCustomerId("");
       }
     };
 
@@ -90,6 +87,9 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
       onVehicleIdChange(""); // Reset vehicle selection when customer changes, but not when editing
     }
   };
+
+  // Find the selected vehicle to display its name
+  const selectedVehicle = vehicles.find(v => v.id === selectedVehicleId);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -164,13 +164,19 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
           disabled={!selectedCustomerId || isLoadingVehicles}
         >
           <SelectTrigger id="vehicle">
-            <SelectValue placeholder={
-              !selectedCustomerId 
-                ? "Select a customer first" 
-                : isLoadingVehicles 
-                  ? "Loading vehicles..."
-                  : "Select a vehicle"
-            } />
+            <SelectValue 
+              placeholder={
+                !selectedCustomerId 
+                  ? "Select a customer first" 
+                  : isLoadingVehicles 
+                    ? "Loading vehicles..."
+                    : "Select a vehicle"
+              }
+            >
+              {selectedVehicle && (
+                `${selectedVehicle.year} ${selectedVehicle.make} ${selectedVehicle.model} (${selectedVehicle.license_plate})`
+              )}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             {vehicles.length === 0 ? (
