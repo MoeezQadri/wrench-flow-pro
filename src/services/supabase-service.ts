@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { Customer, Vehicle, Invoice, Part, Task, InvoiceItem } from '@/types';
 import { toast } from 'sonner';
@@ -48,7 +47,7 @@ export const createInvoiceWithAutoAssignment = async (invoiceData: {
         id: crypto.randomUUID(),
         invoice_id: invoiceId,
         description: item.description,
-        type: item.type === 'parts' ? 'part' : item.type, // Normalize 'parts' to 'part'
+        type: item.type, // All types should now be correct ('part', 'labor', 'other')
         quantity: item.quantity,
         price: item.price,
         part_id: item.part_id || null,
@@ -69,7 +68,7 @@ export const createInvoiceWithAutoAssignment = async (invoiceData: {
 
       // Update parts inventory and task assignments
       for (const item of invoiceData.items) {
-        if (item.type === 'parts' && item.part_id) {
+        if (item.type === 'part' && item.part_id) {
           try {
             // Get current part data
             const { data: part, error: partError } = await supabase
@@ -461,7 +460,7 @@ export const getPartsByInvoiceId = async (invoiceId: string): Promise<Part[]> =>
             .from('invoice_items')
             .select('*, parts(*)')
             .eq('invoice_id', invoiceId)
-            .eq('type', 'parts');
+            .eq('type', 'part'); // Changed from 'parts' to 'part'
 
         if (error) {
             console.error('Error fetching parts for invoice:', error);
@@ -624,7 +623,7 @@ export const updateInvoice = async (invoiceData: Invoice) => {
                     id: crypto.randomUUID(),
                     invoice_id: id,
                     description: item.description,
-                    type: item.type === 'parts' ? 'part' : item.type, // Normalize 'parts' to 'part'
+                    type: item.type, // Should already be correct ('part', 'labor', 'other')
                     quantity: item.quantity,
                     price: item.price,
                     part_id: item.part_id || null,

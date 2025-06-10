@@ -39,7 +39,7 @@ const InvoiceItemsSection: React.FC<InvoiceItemsSectionProps> = ({
     const newItems: InvoiceItem[] = selectedParts.map(({ part, quantity }) => ({
       id: `workshop-part-${part.id}-${Date.now()}`,
       description: part.name,
-      type: 'parts' as const,
+      type: 'part' as const, // Changed from 'parts' to 'part'
       quantity: quantity,
       price: part.price,
       part_id: part.id,

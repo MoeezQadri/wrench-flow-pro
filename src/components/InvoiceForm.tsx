@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm, FormProvider } from "react-hook-form";
@@ -331,13 +330,10 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
         console.log("Creating new invoice");
         console.log("Items before sending to backend:", items);
         
-        // Fix the type field for all items before sending to backend
-        const normalizedItems = items.filter(item => !item.is_auto_added).map(item => ({
-          ...item,
-          type: item.type === 'parts' ? 'part' : item.type // Normalize 'parts' to 'part'
-        }));
+        // No need to normalize types since all types are already correct
+        const manualItems = items.filter(item => !item.is_auto_added);
         
-        console.log("Normalized items:", normalizedItems);
+        console.log("Manual items to send:", manualItems);
         
         const invoiceCreationData = {
           customerId: selectedCustomerId,
@@ -347,7 +343,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
           discountType: discountType,
           discountValue: discountValue,
           notes: notes,
-          items: normalizedItems
+          items: manualItems
         };
 
         console.log("Calling createInvoiceWithAutoAssignment with:", invoiceCreationData);
@@ -357,7 +353,6 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
           await loadInvoices();
         }
         
-        const manualItems = normalizedItems;
         const autoItems = items.filter(item => item.is_auto_added);
         
         let successMessage = "Invoice created successfully!";

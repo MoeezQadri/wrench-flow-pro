@@ -17,7 +17,7 @@ const handleError = (error: any, action: string) => {
  * Sync invoice item changes back to parts inventory
  */
 export const syncInvoiceItemToPart = async (item: InvoiceItem, invoiceId: string) => {
-  if (item.type !== 'parts' || !item.part_id) {
+  if (item.type !== 'part' || !item.part_id) { // Changed from 'parts' to 'part'
     return;
   }
 
@@ -137,7 +137,7 @@ export const createPartFromInvoiceItem = async (
   item: InvoiceItem, 
   invoiceId: string
 ): Promise<string | null> => {
-  if (item.type !== 'parts' || item.part_id) {
+  if (item.type !== 'part' || item.part_id) { // Changed from 'parts' to 'part'
     return null; // Skip if not parts or already has part_id
   }
 
@@ -181,7 +181,7 @@ export const syncPartToInvoiceItems = async (partId: string, newQuantity: number
       .from('invoice_items')
       .select('*, invoices!inner(status)')
       .eq('part_id', partId)
-      .eq('type', 'parts');
+      .eq('type', 'part'); // Changed from 'parts' to 'part'
 
     if (error) throw error;
 

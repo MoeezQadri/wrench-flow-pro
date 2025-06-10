@@ -33,7 +33,7 @@ import { InvoiceItem, Part, Task } from "@/types";
 
 const invoiceItemSchema = z.object({
   description: z.string().min(1, "Description is required"),
-  type: z.enum(["parts", "labor", "other"]),
+  type: z.enum(["part", "labor", "other"]), // Changed from "parts" to "part"
   quantity: z.coerce.number().min(0.01, "Quantity must be at least 0.01"),
   price: z.coerce.number().min(0, "Price must be at least 0"),
   part_id: z.string().optional(),
@@ -157,7 +157,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="parts">Parts</SelectItem>
+                      <SelectItem value="part">Parts</SelectItem>
                       <SelectItem value="labor">Labor</SelectItem>
                       <SelectItem value="other">Other</SelectItem>
                     </SelectContent>
@@ -167,7 +167,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
               )}
             />
 
-            {watchedType === "parts" && (
+            {watchedType === "part" && (
               <FormField
                 control={form.control}
                 name="part_id"
