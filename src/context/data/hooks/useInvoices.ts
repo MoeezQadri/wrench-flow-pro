@@ -82,7 +82,7 @@ export const useInvoices = () => {
 
                 // Update parts inventory for parts items
                 for (const item of newInvoice.items) {
-                    if (item.type === 'parts' && item.part_id) {
+                    if (item.type === 'part' && item.part_id) {
                         try {
                             // Get current part data
                             const { data: part, error: partError } = await supabase
