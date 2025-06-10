@@ -13,7 +13,7 @@ const EditInvoice = () => {
   const navigate = useNavigate();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
-  const { getInvoiceById, loadInvoices } = useDataContext();
+  const { getInvoiceById, loadInvoices, loadCustomers } = useDataContext();
 
   useEffect(() => {
     const fetchInvoice = async () => {
@@ -21,12 +21,15 @@ const EditInvoice = () => {
         try {
           console.log("Fetching invoice with ID:", id);
           
-          // Ensure invoices are loaded first
-          await loadInvoices();
+          // Ensure data is loaded first
+          await Promise.all([
+            loadInvoices(),
+            loadCustomers()
+          ]);
           
           // Find the invoice in the context invoices array
           const foundInvoice = getInvoiceById(id);
-          console.log("Found invoice:", foundInvoice);
+          console.log("Found invoice for editing:", foundInvoice);
 
           if (foundInvoice) {
             // Check if invoice status allows editing
@@ -51,6 +54,7 @@ const EditInvoice = () => {
 
             setInvoice(typedInvoice);
           } else {
+            console.error("Invoice not found:", id);
             toast.error("Invoice not found.");
             navigate("/invoices");
           }
@@ -65,7 +69,7 @@ const EditInvoice = () => {
     };
 
     fetchInvoice();
-  }, [id, navigate, getInvoiceById, loadInvoices]);
+  }, [id, navigate, getInvoiceById, loadInvoices, loadCustomers]);
 
   if (loading) {
     return <div className="p-6">Loading invoice...</div>;

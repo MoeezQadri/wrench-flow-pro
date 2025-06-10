@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
@@ -16,7 +15,8 @@ const InvoiceDetails: React.FC = () => {
     getInvoiceById,
     customers,
     getVehiclesByCustomerId,
-    loadInvoices
+    loadInvoices,
+    loadCustomers
   } = useDataContext();
   const [customerName, setCustomerName] = useState<string>('');
   const [vehicleInfo, setVehicleInfo] = useState<any>(null);
@@ -26,24 +26,34 @@ const InvoiceDetails: React.FC = () => {
       setLoading(true);
       if (id) {
         try {
-          // Ensure invoices are loaded first
-          await loadInvoices();
+          console.log("Loading invoice with ID:", id);
           
-          const resp = getInvoiceById(id);
-          console.log("Invoice details:", resp);
-          setInvoice(resp);
+          // Ensure data is loaded first
+          await Promise.all([
+            loadInvoices(),
+            loadCustomers()
+          ]);
           
-          if (resp) {
+          // Get invoice from context
+          const foundInvoice = getInvoiceById(id);
+          console.log("Found invoice:", foundInvoice);
+          
+          if (foundInvoice) {
+            setInvoice(foundInvoice);
+            
             // Get customer name
-            const customer = customers.find(c => c.id === resp.customer_id);
+            const customer = customers.find(c => c.id === foundInvoice.customer_id);
             setCustomerName(customer ? customer.name : 'Unknown Customer');
             
             // Get vehicle info
-            if (resp.customer_id) {
-              const vehicles = await getVehiclesByCustomerId(resp.customer_id);
-              const vehicle = vehicles.find(v => v.id === resp.vehicle_id);
+            if (foundInvoice.customer_id) {
+              const vehicles = getVehiclesByCustomerId(foundInvoice.customer_id);
+              const vehicle = vehicles.find(v => v.id === foundInvoice.vehicle_id);
               setVehicleInfo(vehicle);
             }
+          } else {
+            console.error("Invoice not found with ID:", id);
+            toast.error('Invoice not found');
           }
         } catch (error) {
           console.error('Error loading invoice:', error);
@@ -54,7 +64,7 @@ const InvoiceDetails: React.FC = () => {
     };
 
     loadInvoice();
-  }, [id, getInvoiceById, customers, getVehiclesByCustomerId, loadInvoices]);
+  }, [id, getInvoiceById, customers, getVehiclesByCustomerId, loadInvoices, loadCustomers]);
 
   if (loading) {
     return <div className="p-6">Loading invoice details...</div>;
