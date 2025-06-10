@@ -259,6 +259,8 @@ export type Database = {
           created_at: string | null
           customer_id: string
           date: string | null
+          discount_type: string
+          discount_value: number | null
           due_date: string | null
           id: string
           notes: string | null
@@ -271,6 +273,8 @@ export type Database = {
           created_at?: string | null
           customer_id: string
           date?: string | null
+          discount_type?: string
+          discount_value?: number | null
           due_date?: string | null
           id?: string
           notes?: string | null
@@ -283,6 +287,8 @@ export type Database = {
           created_at?: string | null
           customer_id?: string
           date?: string | null
+          discount_type?: string
+          discount_value?: number | null
           due_date?: string | null
           id?: string
           notes?: string | null

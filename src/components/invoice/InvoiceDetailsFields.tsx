@@ -57,7 +57,7 @@ const InvoiceDetailsFields = () => {
         )}
       />
 
-      {/* Status - Now aligned with the date */}
+      {/* Status */}
       <FormField
         control={form.control}
         name="status"
@@ -108,7 +108,7 @@ const InvoiceDetailsFields = () => {
         )}
       />
 
-      {/* Discount Type - Only editable in certain statuses */}
+      {/* Discount Type */}
       <FormField
         control={form.control}
         name="discountType"
@@ -136,7 +136,7 @@ const InvoiceDetailsFields = () => {
         )}
       />
 
-      {/* Discount Value - Only editable in certain statuses */}
+      {/* Discount Value */}
       {discountType !== "none" && (
         <FormField
           control={form.control}

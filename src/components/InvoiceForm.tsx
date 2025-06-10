@@ -27,6 +27,8 @@ const formSchema = z.object({
   vehicleId: z.string().min(1, { message: "Please select a vehicle." }),
   date: z.string().min(1, { message: "Please select a date." }),
   taxRate: z.number().min(0, { message: "Tax rate must be at least 0." }).max(100, { message: "Tax rate cannot exceed 100." }),
+  discountType: z.enum(['none', 'percentage', 'fixed']).default('none'),
+  discountValue: z.number().min(0).default(0),
   notes: z.string().optional(),
 });
 
@@ -46,6 +48,8 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
   const [selectedVehicleId, setSelectedVehicleId] = useState("");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [taxRate, setTaxRate] = useState(7.5);
+  const [discountType, setDiscountType] = useState<'none' | 'percentage' | 'fixed'>('none');
+  const [discountValue, setDiscountValue] = useState(0);
   const [notes, setNotes] = useState("");
   const [items, setItems] = useState<InvoiceItem[]>([]);
   const [availableParts, setAvailableParts] = useState<Part[]>([]);
@@ -112,12 +116,10 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
     const taxAmount = subtotal * (taxRate / 100);
 
     let discountAmount = 0;
-    if (invoiceData?.discount) {
-      if (invoiceData.discount.type === 'percentage') {
-        discountAmount = subtotal * (invoiceData.discount.value / 100);
-      } else {
-        discountAmount = invoiceData.discount.value;
-      }
+    if (discountType === 'percentage') {
+      discountAmount = subtotal * (discountValue / 100);
+    } else if (discountType === 'fixed') {
+      discountAmount = discountValue;
     }
 
     const total = subtotal + taxAmount - discountAmount;
@@ -139,6 +141,8 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
       vehicleId: invoiceData?.vehicle_id || "",
       date: invoiceData?.date || new Date().toISOString().slice(0, 10),
       taxRate: invoiceData?.tax_rate || 7.5,
+      discountType: invoiceData?.discount_type || 'none',
+      discountValue: invoiceData?.discount_value || 0,
       notes: invoiceData?.notes || "",
     },
   });
@@ -153,6 +157,8 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
         vehicleId: selectedVehicleId,
         date: date,
         taxRate: taxRate,
+        discountType: discountType,
+        discountValue: discountValue,
         notes: notes,
         items: items
       };
@@ -227,18 +233,51 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
           vehicleId={selectedVehicleId}
         />
 
-        {/* Tax Rate */}
-        <div>
-          <Label htmlFor="taxRate">Tax Rate (%)</Label>
-          <Input
-            id="taxRate"
-            type="number"
-            step="0.01"
-            min="0"
-            max="100"
-            value={taxRate}
-            onChange={(e) => setTaxRate(parseFloat(e.target.value) || 0)}
-          />
+        {/* Tax Rate and Discount */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <Label htmlFor="taxRate">Tax Rate (%)</Label>
+            <Input
+              id="taxRate"
+              type="number"
+              step="0.01"
+              min="0"
+              max="100"
+              value={taxRate}
+              onChange={(e) => setTaxRate(parseFloat(e.target.value) || 0)}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="discountType">Discount Type</Label>
+            <Select value={discountType} onValueChange={(value: 'none' | 'percentage' | 'fixed') => setDiscountType(value)}>
+              <SelectTrigger id="discountType">
+                <SelectValue placeholder="Select discount type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">No Discount</SelectItem>
+                <SelectItem value="percentage">Percentage (%)</SelectItem>
+                <SelectItem value="fixed">Fixed Amount ($)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {discountType !== 'none' && (
+            <div>
+              <Label htmlFor="discountValue">
+                {discountType === 'percentage' ? 'Discount Percentage (%)' : 'Discount Amount ($)'}
+              </Label>
+              <Input
+                id="discountValue"
+                type="number"
+                step="0.01"
+                min="0"
+                max={discountType === 'percentage' ? "100" : undefined}
+                value={discountValue}
+                onChange={(e) => setDiscountValue(parseFloat(e.target.value) || 0)}
+              />
+            </div>
+          )}
         </div>
 
         {/* Notes */}

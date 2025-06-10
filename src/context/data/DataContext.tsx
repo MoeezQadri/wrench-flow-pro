@@ -205,6 +205,8 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
             payments: [], // Initially no payments
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
+            discount_type: invoiceData.discountType || 'none',
+            discount_value: invoiceData.discountValue || 0,
             vehicleInfo: {
                 make: 'Honda',
                 model: 'Civic',

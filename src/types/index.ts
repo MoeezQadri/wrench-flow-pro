@@ -84,10 +84,8 @@ export interface Invoice {
   created_at?: string;
   updated_at?: string;
   due_date?: string;
-  discount?: {
-    type: 'percentage' | 'fixed';
-    value: number;
-  };
+  discount_type?: 'none' | 'percentage' | 'fixed';
+  discount_value?: number;
   vehicleInfo?: {
     make: string;
     model: string;
