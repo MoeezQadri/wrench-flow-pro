@@ -2,25 +2,22 @@
 import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, CalendarDays, BarChart } from "lucide-react";
+import { Plus, BarChart } from "lucide-react";
 import MechanicDialog from "@/components/mechanic/MechanicDialog";
 import { Mechanic } from "@/types";
-import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import MechanicPerformance from "@/components/mechanic/MechanicPerformance";
 import { useDataContext } from "@/context/data/DataContext";
 import { useAuthContext } from "@/context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 const Mechanics = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedMechanic, setSelectedMechanic] = useState<Mechanic | null>(null);
+  const navigate = useNavigate();
   const {
     mechanics,
     addMechanic,
     updateMechanic,
-    tasks
   } = useDataContext();
   const { currentUser } = useAuthContext();
   const canManageMechanics = currentUser.role === 'manager' || currentUser.role === 'owner' || currentUser.role === 'foreman';
@@ -49,6 +46,10 @@ const Mechanics = () => {
       console.error('Error saving mechanic:', error);
       // Error toast is already shown in DataContext
     }
+  };
+
+  const handleViewPerformance = (mechanic: Mechanic) => {
+    navigate(`/mechanics/${mechanic.id}/performance`);
   };
 
   return (
@@ -97,49 +98,14 @@ const Mechanics = () => {
                     </Button>
                   )}
 
-                  <Sheet>
-                    <SheetTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        <BarChart className="h-4 w-4 mr-2" />
-                        Performance
-                      </Button>
-                    </SheetTrigger>
-                    <SheetContent className="w-[90vw] sm:w-[540px] md:w-[740px]" side="right">
-                      <SheetHeader>
-                        <SheetTitle>Performance Metrics: {mechanic.name}</SheetTitle>
-                        <SheetDescription>
-                          Detailed performance analysis and task history
-                        </SheetDescription>
-                      </SheetHeader>
-
-                      <div className="py-4">
-                        <Tabs defaultValue="metrics">
-                          <TabsList>
-                            <TabsTrigger value="metrics">Performance Metrics</TabsTrigger>
-                            <TabsTrigger value="attendance">Attendance</TabsTrigger>
-                          </TabsList>
-
-                          <TabsContent value="metrics" className="py-4">
-                            <MechanicPerformance
-                              mechanic={mechanic}
-                              tasks={tasks.filter(task => task.mechanicId === mechanic.id)}
-                            />
-                          </TabsContent>
-
-                          <TabsContent value="attendance">
-                            <div className="flex items-center justify-center h-64">
-                              <div className="text-center">
-                                <CalendarDays className="h-10 w-10 text-muted-foreground mx-auto mb-4" />
-                                <p className="text-muted-foreground">
-                                  Attendance records can be viewed in the Attendance page
-                                </p>
-                              </div>
-                            </div>
-                          </TabsContent>
-                        </Tabs>
-                      </div>
-                    </SheetContent>
-                  </Sheet>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleViewPerformance(mechanic)}
+                  >
+                    <BarChart className="h-4 w-4 mr-2" />
+                    Performance
+                  </Button>
                 </div>
               </div>
             </CardContent>
