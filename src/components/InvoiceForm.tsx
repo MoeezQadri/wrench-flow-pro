@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm, FormProvider } from "react-hook-form";
@@ -125,6 +126,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
       setDiscountValue(invoiceData.discount_value || 0);
       setNotes(invoiceData.notes || "");
       setItems(invoiceData.items || []);
+      setPayments(invoiceData.payments || []);
       initialDataLoaded.current = true;
     }
   }, [invoiceData]);
@@ -219,13 +221,6 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
     form.setValue('status', status);
   }, [status, form]);
 
-  // Initialize payments when editing
-  useEffect(() => {
-    if (invoiceData && invoiceData.payments && !initialDataLoaded.current) {
-      setPayments(invoiceData.payments);
-    }
-  }, [invoiceData]);
-
   // Calculate totals including discount
   const calculateTotals = () => {
     const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -318,6 +313,11 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
         // Also update in context
         if (updateInvoiceInContext) {
           await updateInvoiceInContext(updatedInvoiceData.id, updatedInvoiceData);
+        }
+        
+        // Reload invoices to ensure data consistency
+        if (loadInvoices) {
+          await loadInvoices();
         }
         
         toast.success("Invoice updated successfully!");

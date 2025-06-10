@@ -35,14 +35,16 @@ const PaymentsSection = ({
 
   // Add new payment
   const handleAddPayment = () => {
-    if (typeof newPaymentAmount !== "number" || newPaymentAmount <= 0) {
+    const amountAsNumber = typeof newPaymentAmount === 'string' ? parseFloat(newPaymentAmount) : newPaymentAmount;
+    
+    if (!amountAsNumber || amountAsNumber <= 0) {
       toast.error("Please enter a valid payment amount");
       return;
     }
 
     // Calculate total payments to check if we're exceeding the invoice total
     const existingPaymentsTotal = payments.reduce((sum, payment) => sum + payment.amount, 0);
-    if (existingPaymentsTotal + newPaymentAmount > total) {
+    if (existingPaymentsTotal + amountAsNumber > total) {
       toast.error("Total payments cannot exceed invoice total");
       return;
     }
@@ -50,7 +52,7 @@ const PaymentsSection = ({
     const newPayment: Payment = {
       id: Date.now().toString(), // Temporary ID
       invoice_id: "", // Will be set when the invoice is saved
-      amount: newPaymentAmount as number,
+      amount: amountAsNumber,
       method: newPaymentMethod,
       date: format(new Date(), "yyyy-MM-dd"),
       notes: newPaymentNotes,
@@ -59,7 +61,7 @@ const PaymentsSection = ({
     setPayments([...payments, newPayment]);
     
     // Update invoice status based on payments
-    const newTotalPayments = existingPaymentsTotal + newPaymentAmount;
+    const newTotalPayments = existingPaymentsTotal + amountAsNumber;
     if (newTotalPayments === total) {
       form.setValue("status", "paid");
     } else if (newTotalPayments > 0) {
@@ -156,7 +158,7 @@ const PaymentsSection = ({
               type="button" 
               onClick={handleAddPayment}
               className="flex items-center"
-              disabled={!newPaymentAmount || newPaymentAmount <= 0}
+              disabled={!newPaymentAmount || (typeof newPaymentAmount === 'number' && newPaymentAmount <= 0) || (typeof newPaymentAmount === 'string' && parseFloat(newPaymentAmount) <= 0)}
             >
               <Plus className="mr-2 h-4 w-4" />
               Add Payment
