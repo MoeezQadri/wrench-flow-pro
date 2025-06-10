@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -440,6 +441,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
           availableParts={availableParts}
           availableTasks={availableTasks}
           vehicleId={selectedVehicleId}
+          isEditing={isEditing}
         />
 
         {/* Tax Rate and Discount */}
