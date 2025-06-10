@@ -6,7 +6,6 @@ import { Link } from 'react-router-dom';
 import { useDataContext } from '@/context/data/DataContext';
 
 const Invoices: React.FC = () => {
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const { 
     invoices: contextInvoices, 
@@ -22,16 +21,13 @@ const Invoices: React.FC = () => {
         // Ensure invoices and customers are loaded
         await Promise.all([
           loadInvoices(),
-          // loadCustomers() is not directly called here as it's already called in DataContext
+          loadCustomers()
         ]);
         
         console.log("Invoice page data loaded:", {
           invoicesCount: contextInvoices.length,
           customersCount: contextCustomers.length
         });
-        
-        // Use invoices from context directly
-        setInvoices(contextInvoices);
       } catch (error) {
         console.error('Error loading data:', error);
         toast.error('Failed to load invoices');
@@ -41,17 +37,7 @@ const Invoices: React.FC = () => {
     };
 
     loadData();
-  }, [loadInvoices]);
-
-  // Update invoices when context changes
-  useEffect(() => {
-    setInvoices(contextInvoices);
-  }, [contextInvoices]);
-  
-  // Log whenever customer data changes
-  useEffect(() => {
-    console.log("Customers in Invoice page:", contextCustomers.length);
-  }, [contextCustomers]);
+  }, []); // Remove dependencies to prevent infinite loop
 
   const calculateInvoiceTotal = (invoice: Invoice): number => {
     if (!invoice.items) return 0;
@@ -108,7 +94,7 @@ const Invoices: React.FC = () => {
         </div>
       )}
 
-      {invoices.length === 0 ? (
+      {contextInvoices.length === 0 ? (
         <div className="text-center py-8 text-gray-500">
           No invoices found. Create a new invoice to get started.
         </div>
@@ -126,7 +112,7 @@ const Invoices: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {invoices.map(invoice => {
+              {contextInvoices.map(invoice => {
                 // Calculate final total for display
                 const finalTotal = calculateInvoiceTotal(invoice);
                 const customerName = getCustomerName(invoice.customer_id);

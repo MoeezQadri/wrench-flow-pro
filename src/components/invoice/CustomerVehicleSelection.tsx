@@ -28,10 +28,6 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
   } = useDataContext();
 
   useEffect(() => {
-    console.log("Customers in selection:", customers.length);
-  }, [customers]);
-
-  useEffect(() => {
     const loadVehicles = async () => {
       if (selectedCustomerId) {
         const fetchedVehicles = await getVehiclesByCustomerId(selectedCustomerId);
@@ -42,7 +38,7 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
     };
 
     loadVehicles();
-  }, [selectedCustomerId, getVehiclesByCustomerId]);
+  }, [selectedCustomerId]); // Only depend on selectedCustomerId
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
