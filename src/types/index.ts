@@ -35,7 +35,7 @@ export interface InvoiceItem {
   id: string;
   invoice_id?: string;
   description: string;
-  type: 'labor' | 'parts';
+  type: 'labor' | 'parts' | 'other';
   quantity: number;
   price: number;
   part_id?: string; // Reference to parts from inventory
