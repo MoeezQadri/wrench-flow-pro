@@ -30,7 +30,7 @@ export interface DataContextType {
     invoices: Invoice[];
     addInvoice: (invoiceData: any) => Promise<Invoice>;
     removeInvoice: (id: string) => Promise<void>;
-    updateInvoice: (id: string, updates: Partial<Invoice>) => Promise<void>;
+    updateInvoice: (id: string, updates: Partial<Invoice>) => Promise<Invoice>;
     getInvoiceById: (id: string) => Invoice | null;
     loadInvoices: () => Promise<void>;
 
