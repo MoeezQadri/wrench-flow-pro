@@ -82,7 +82,7 @@ const VehicleDialog = ({ open, onOpenChange, onSave, vehicle, customerId }: Vehi
                 customer_id: vehicle.customer_id,
                 make: vehicle.make,
                 model: vehicle.model,
-                year: parseInt(vehicle.year), // Convert string to number for form
+                year: vehicle.year, // Keep as string
                 license_plate: vehicle.license_plate,
                 vin: vehicle.vin || "",
                 color: vehicle.color || "",

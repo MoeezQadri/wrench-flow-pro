@@ -30,15 +30,15 @@ export interface Vehicle {
   updated_at?: string;
 }
 
-export type TaskStatus = 'open' | 'in-progress' | 'completed' | 'blocked' | 'canceled';
-export type TaskLocation = 'workshop' | 'roadside' | 'other';
+export type TaskStatus = 'open' | 'in-progress' | 'completed' | 'blocked' | 'canceled' | 'pending';
+export type TaskLocation = 'workshop' | 'roadside' | 'other' | 'onsite' | 'remote';
 export type InvoiceStatus = 'open' | 'paid' | 'partial' | 'overdue' | 'draft' | 'in-progress' | 'completed';
 export type AttendanceStatus = 'present' | 'late' | 'absent' | 'half-day' | 'pending' | 'approved' | 'rejected';
 export type PaymentMethod = 'cash' | 'card' | 'bank-transfer' | 'check' | 'other';
 export type EmploymentType = 'fulltime' | 'contractor';
 
-// Define UserRole as a string union type, not an interface
-export type UserRole = 'owner' | 'manager' | 'mechanic' | 'admin';
+// Define UserRole to include all needed roles
+export type UserRole = 'owner' | 'manager' | 'mechanic' | 'admin' | 'superuser' | 'superadmin' | 'foreman';
 
 export interface Payment {
   id: string;
@@ -58,6 +58,7 @@ export interface Invoice {
   tax_rate: number;
   discount_type?: 'none' | 'percentage' | 'fixed';
   discount_value?: number;
+  due_date?: string;
   notes?: string;
   items?: InvoiceItem[];
   payments?: Payment[];
@@ -152,8 +153,14 @@ export interface User {
   role?: UserRole;
   organization_id?: string;
   lastLogin?: string;
+  is_active?: boolean;
   created_at?: string;
   updated_at?: string;
+  // Additional properties for auth service compatibility
+  passwordHash?: string;
+  resetToken?: string;
+  resetTokenExpires?: string;
+  mustChangePassword?: boolean;
 }
 
 export interface Mechanic {
@@ -244,4 +251,16 @@ export interface CustomerAnalytics {
   averageInvoiceValue: number;
   vehicles: Vehicle[];
   invoiceHistory: Invoice[];
+}
+
+// Add missing DashboardMetrics interface
+export interface DashboardMetrics {
+  totalRevenue: number;
+  totalInvoices: number;
+  completedTasks: number;
+  activeCustomers: number;
+  revenueGrowth?: number;
+  invoiceGrowth?: number;
+  taskGrowth?: number;
+  customerGrowth?: number;
 }

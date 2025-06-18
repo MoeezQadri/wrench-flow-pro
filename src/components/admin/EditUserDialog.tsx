@@ -41,7 +41,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
           </div>
           <div>
             <Label htmlFor="role">Role</Label>
-            <Select defaultValue={typeof user.role === 'string' ? user.role : user.role?.toString()}>
+            <Select defaultValue={user.role || 'owner'}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -49,6 +49,9 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
                 <SelectItem value="owner">Owner</SelectItem>
                 <SelectItem value="manager">Manager</SelectItem>
                 <SelectItem value="mechanic">Mechanic</SelectItem>
+                <SelectItem value="admin">Admin</SelectItem>
+                <SelectItem value="superuser">Super User</SelectItem>
+                <SelectItem value="superadmin">Super Admin</SelectItem>
               </SelectContent>
             </Select>
           </div>
