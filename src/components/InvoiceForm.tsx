@@ -84,11 +84,32 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
 
   // Fetch parts and tasks - only show completed items
   useEffect(() => {
+    console.log('Parts filtering debug:', {
+      totalParts: parts.length,
+      isEditing,
+      invoiceId: invoiceData?.id
+    });
+    
+    parts.forEach((part, index) => {
+      console.log(`Part ${index}:`, {
+        id: part.id,
+        name: part.name,
+        invoice_ids: part.invoice_ids,
+        quantity: part.quantity
+      });
+    });
+
     const availableParts = parts.filter(part => 
       !part.invoice_ids || 
       part.invoice_ids.length === 0 || 
       (isEditing && part.invoice_ids.includes(invoiceData?.id || ''))
     );
+    
+    console.log('Filtered available parts:', {
+      count: availableParts.length,
+      parts: availableParts.map(p => ({ id: p.id, name: p.name, invoice_ids: p.invoice_ids }))
+    });
+    
     setAvailableParts(availableParts);
 
     const availableTasks = tasks.filter(task => 
@@ -97,6 +118,12 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
         (isEditing && task.invoiceId === invoiceData?.id)
       )
     );
+    
+    console.log('Filtered available tasks:', {
+      count: availableTasks.length,
+      tasks: availableTasks.map(t => ({ id: t.id, title: t.title, invoiceId: t.invoiceId }))
+    });
+    
     setAvailableTasks(availableTasks);
   }, [parts, tasks, isEditing, invoiceData]);
 
