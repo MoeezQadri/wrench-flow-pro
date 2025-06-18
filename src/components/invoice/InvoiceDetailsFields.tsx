@@ -17,6 +17,15 @@ const InvoiceDetailsFields = () => {
   // Define which statuses allow editing discount
   const canEditDiscount = ['open', 'in-progress', 'completed', 'partial'].includes(status);
 
+  // Debug logging
+  console.log('InvoiceDetailsFields debug:', {
+    discountType,
+    status,
+    discountTypeType: typeof discountType,
+    statusType: typeof status,
+    canEditDiscount
+  });
+
   return (
     <div className="grid gap-6 md:grid-cols-2">
       {/* Invoice Date */}
@@ -66,7 +75,7 @@ const InvoiceDetailsFields = () => {
             <FormLabel>Status</FormLabel>
             <Select 
               onValueChange={field.onChange} 
-              value={field.value}
+              value={field.value || "open"}
             >
               <FormControl>
                 <SelectTrigger className="h-10">
@@ -137,7 +146,7 @@ const InvoiceDetailsFields = () => {
       />
 
       {/* Discount Value */}
-      {discountType !== "none" && (
+      {discountType && discountType !== "none" && (
         <FormField
           control={form.control}
           name="discountValue"

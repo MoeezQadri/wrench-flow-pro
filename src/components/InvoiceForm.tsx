@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm, FormProvider } from "react-hook-form";
@@ -66,6 +65,18 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
     updateInvoice: updateInvoiceInContext,
     addInvoice,
   } = useDataContext();
+
+  // Debug logging for state values
+  useEffect(() => {
+    console.log('InvoiceForm state debug:', {
+      status,
+      discountType,
+      statusType: typeof status,
+      discountTypeType: typeof discountType,
+      statusValue: status,
+      discountTypeValue: discountType
+    });
+  }, [status, discountType]);
 
   // Fetch parts and tasks - only show completed items
   useEffect(() => {
@@ -440,7 +451,13 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
           {isEditing && (
             <div>
               <Label htmlFor="status">Status</Label>
-              <Select value={status || 'open'} onValueChange={(value: InvoiceStatus) => setStatus(value)}>
+              <Select 
+                value={status || 'open'} 
+                onValueChange={(value: InvoiceStatus) => {
+                  console.log('Status changing to:', value);
+                  setStatus(value);
+                }}
+              >
                 <SelectTrigger id="status">
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
@@ -512,7 +529,13 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
 
             <div>
               <Label htmlFor="discountType">Discount Type</Label>
-              <Select value={discountType || 'none'} onValueChange={(value: 'none' | 'percentage' | 'fixed') => setDiscountType(value)}>
+              <Select 
+                value={discountType || 'none'} 
+                onValueChange={(value: 'none' | 'percentage' | 'fixed') => {
+                  console.log('Discount type changing to:', value);
+                  setDiscountType(value);
+                }}
+              >
                 <SelectTrigger id="discountType">
                   <SelectValue placeholder="Select discount type" />
                 </SelectTrigger>
