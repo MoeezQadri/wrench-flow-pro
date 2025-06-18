@@ -109,7 +109,6 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         updated_at: profile?.updated_at || null,
       };
 
-
       setCurrentUser(userDetails);
     } catch (error: any) {
       console.log("Error fetching user details:", error.message);
@@ -163,7 +162,27 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         },
       });
 
-      return { data: data.user, error };
+      if (error) {
+        return { data: null, error };
+      }
+
+      // Convert Supabase user to our custom User type
+      if (data.user) {
+        const customUser: User = {
+          id: data.user.id,
+          email: data.user.email || email, // Use provided email as fallback
+          name: name,
+          role: 'owner', // Default role for new signups
+          organization_id: undefined,
+          is_active: true,
+          lastLogin: undefined,
+          created_at: data.user.created_at,
+          updated_at: data.user.updated_at,
+        };
+        return { data: customUser, error: null };
+      }
+
+      return { data: null, error: null };
     } catch (error) {
       return { data: null, error: error as Error };
     }
