@@ -70,69 +70,7 @@ export const createInvoice = async (invoiceData: CreateInvoiceData): Promise<Inv
       }
 
       // Update parts inventory and task assignments
-      for (const item of invoiceData.items) {
-        if (item.type === 'part' && item.part_id) {
-          try {
-            // Get current part data
-            const { data: part, error: partError } = await supabase
-              .from('parts')
-              .select('*')
-              .eq('id', item.part_id)
-              .single();
-
-            if (partError) {
-              console.error('Error fetching part for update:', partError);
-              continue;
-            }
-
-            if (part) {
-              // Update part with invoice reference and reduce quantity
-              const currentInvoiceIds = part.invoice_ids || [];
-              const updatedInvoiceIds = currentInvoiceIds.includes(invoiceId) 
-                ? currentInvoiceIds 
-                : [...currentInvoiceIds, invoiceId];
-
-              const newQuantity = Math.max(0, part.quantity - item.quantity);
-
-              console.log(`Updating part ${part.name}: quantity ${part.quantity} -> ${newQuantity}`);
-
-              const { error: updateError } = await supabase
-                .from('parts')
-                .update({
-                  quantity: newQuantity,
-                  invoice_ids: updatedInvoiceIds,
-                  updated_at: new Date().toISOString()
-                })
-                .eq('id', item.part_id);
-
-              if (updateError) {
-                console.error('Error updating part inventory:', updateError);
-              }
-            }
-          } catch (error) {
-            console.error('Error processing part inventory update:', error);
-          }
-        }
-
-        if (item.type === 'labor' && item.task_id) {
-          try {
-            const { error: taskError } = await supabase
-              .from('tasks')
-              .update({
-                invoice_id: invoiceId,
-                price: item.price,
-                updated_at: new Date().toISOString()
-              })
-              .eq('id', item.task_id);
-
-            if (taskError) {
-              console.error('Error updating task:', taskError);
-            }
-          } catch (error) {
-            console.error('Error processing task update:', error);
-          }
-        }
-      }
+      await updatePartsAndTasksForInvoice(invoiceData.items, invoiceId);
     }
 
     // Return the created invoice with items
@@ -151,6 +89,19 @@ export const createInvoice = async (invoiceData: CreateInvoiceData): Promise<Inv
 export const updateInvoiceService = async (invoiceData: Invoice): Promise<Invoice> => {
   try {
     const { id, customer_id, vehicle_id, date, tax_rate, discount_type, discount_value, notes, status, items, payments } = invoiceData;
+
+    console.log('Updating invoice service called with:', { id, items: items?.length, payments: payments?.length });
+
+    // First, get existing items to clean up part assignments
+    const { data: existingItems } = await supabase
+      .from('invoice_items')
+      .select('*')
+      .eq('invoice_id', id);
+
+    // Clean up old part assignments
+    if (existingItems) {
+      await cleanupOldPartAssignments(existingItems, id);
+    }
 
     // Update the invoice
     const { data: invoiceResult, error: invoiceError } = await supabase
@@ -201,6 +152,8 @@ export const updateInvoiceService = async (invoiceData: Invoice): Promise<Invoic
           is_auto_added: item.is_auto_added || false
         }));
 
+        console.log('Inserting updated invoice items:', itemsToInsert);
+
         const { error: itemsError } = await supabase
           .from('invoice_items')
           .insert(itemsToInsert);
@@ -209,6 +162,9 @@ export const updateInvoiceService = async (invoiceData: Invoice): Promise<Invoic
           console.error('Error inserting updated invoice items:', itemsError);
           throw new Error(`Failed to update invoice items: ${itemsError.message}`);
         }
+
+        // Update parts inventory and task assignments for new items
+        await updatePartsAndTasksForInvoice(items, id);
       }
     }
 
@@ -259,5 +215,131 @@ export const updateInvoiceService = async (invoiceData: Invoice): Promise<Invoic
   } catch (error) {
     console.error('Error updating invoice:', error);
     throw error;
+  }
+};
+
+// Helper function to update parts and tasks for an invoice
+const updatePartsAndTasksForInvoice = async (items: InvoiceItem[], invoiceId: string) => {
+  console.log('Updating parts and tasks for invoice:', invoiceId, 'items:', items);
+
+  for (const item of items) {
+    if (item.type === 'part' && item.part_id) {
+      try {
+        console.log('Processing part item:', item);
+        
+        // Get current part data
+        const { data: part, error: partError } = await supabase
+          .from('parts')
+          .select('*')
+          .eq('id', item.part_id)
+          .single();
+
+        if (partError) {
+          console.error('Error fetching part for update:', partError);
+          continue;
+        }
+
+        if (part) {
+          // Update part with invoice reference and reduce quantity
+          const currentInvoiceIds = part.invoice_ids || [];
+          const updatedInvoiceIds = currentInvoiceIds.includes(invoiceId) 
+            ? currentInvoiceIds 
+            : [...currentInvoiceIds, invoiceId];
+
+          const newQuantity = Math.max(0, part.quantity - item.quantity);
+
+          console.log(`Updating part ${part.name}: quantity ${part.quantity} -> ${newQuantity}, invoice_ids:`, updatedInvoiceIds);
+
+          const { error: updateError } = await supabase
+            .from('parts')
+            .update({
+              quantity: newQuantity,
+              invoice_ids: updatedInvoiceIds,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', item.part_id);
+
+          if (updateError) {
+            console.error('Error updating part inventory:', updateError);
+          } else {
+            console.log('Successfully updated part inventory for:', part.name);
+          }
+        }
+      } catch (error) {
+        console.error('Error processing part inventory update:', error);
+      }
+    }
+
+    if (item.type === 'labor' && item.task_id) {
+      try {
+        console.log('Processing labor item:', item);
+        
+        const { error: taskError } = await supabase
+          .from('tasks')
+          .update({
+            invoice_id: invoiceId,
+            price: item.price,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', item.task_id);
+
+        if (taskError) {
+          console.error('Error updating task:', taskError);
+        } else {
+          console.log('Successfully updated task for invoice:', invoiceId);
+        }
+      } catch (error) {
+        console.error('Error processing task update:', error);
+      }
+    }
+  }
+};
+
+// Helper function to clean up old part assignments when updating an invoice
+const cleanupOldPartAssignments = async (existingItems: any[], invoiceId: string) => {
+  console.log('Cleaning up old part assignments for invoice:', invoiceId);
+
+  for (const item of existingItems) {
+    if (item.type === 'part' && item.part_id) {
+      try {
+        // Get current part data
+        const { data: part, error: partError } = await supabase
+          .from('parts')
+          .select('*')
+          .eq('id', item.part_id)
+          .single();
+
+        if (partError) {
+          console.error('Error fetching part for cleanup:', partError);
+          continue;
+        }
+
+        if (part) {
+          // Remove invoice ID from part and restore quantity
+          const currentInvoiceIds = part.invoice_ids || [];
+          const updatedInvoiceIds = currentInvoiceIds.filter(id => id !== invoiceId);
+          const restoredQuantity = part.quantity + item.quantity;
+
+          console.log(`Cleaning up part ${part.name}: restoring quantity ${part.quantity} -> ${restoredQuantity}`);
+
+          const { error: updateError } = await supabase
+            .from('parts')
+            .update({
+              quantity: restoredQuantity,
+              invoice_ids: updatedInvoiceIds,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', item.part_id);
+
+          if (updateError) {
+            console.error('Error cleaning up part:', updateError);
+          } else {
+            console.log('Successfully cleaned up part:', part.name);
+          }
+        }
+      } catch (error) {
+        console.error('Error cleaning up part assignment:', error);
+      }
+    }
   }
 };

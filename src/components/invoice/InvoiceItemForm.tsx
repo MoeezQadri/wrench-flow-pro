@@ -77,6 +77,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
 
   useEffect(() => {
     if (editingItem) {
+      console.log('Editing item:', editingItem);
       form.reset({
         description: editingItem.description,
         type: editingItem.type,
@@ -95,7 +96,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
         task_id: "",
       });
     }
-  }, [editingItem, form]);
+  }, [editingItem, form, open]);
 
   const handleSubmit = (data: InvoiceItemFormData) => {
     console.log("InvoiceItemForm submit called with:", data);
@@ -110,21 +111,26 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
       is_auto_added: false,
     };
 
+    console.log('Saving item:', item);
     onSave(item);
     form.reset();
   };
 
   const handlePartSelect = (partId: string) => {
+    console.log('Part selected:', partId);
     const part = availableParts.find(p => p.id === partId);
     if (part) {
+      console.log('Found part:', part);
       form.setValue("description", part.name);
       form.setValue("price", part.price);
     }
   };
 
   const handleTaskSelect = (taskId: string) => {
+    console.log('Task selected:', taskId);
     const task = availableTasks.find(t => t.id === taskId);
     if (task) {
+      console.log('Found task:', task);
       form.setValue("description", task.title);
       form.setValue("price", task.price || 0);
       form.setValue("quantity", task.hoursEstimated || 1);
@@ -135,8 +141,22 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
     event.preventDefault();
     event.stopPropagation();
     console.log("Cancel button clicked");
+    form.reset();
     onOpenChange(false);
   };
+
+  // Filter available parts - exclude those already assigned to other invoices
+  const filteredParts = availableParts.filter(part => 
+    !part.invoice_ids || part.invoice_ids.length === 0
+  );
+
+  // Filter available tasks - exclude those already assigned to invoices
+  const filteredTasks = availableTasks.filter(task => 
+    task.status === 'completed' && !task.invoiceId
+  );
+
+  console.log('Available parts for custom items:', filteredParts);
+  console.log('Available tasks for custom items:', filteredTasks);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -195,9 +215,10 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {availableParts.map((part) => (
+                        <SelectItem value="">Custom Part (no inventory link)</SelectItem>
+                        {filteredParts.map((part) => (
                           <SelectItem key={part.id} value={part.id}>
-                            {part.name} - ${part.price.toFixed(2)}
+                            {part.name} - ${part.price.toFixed(2)} (Stock: {part.quantity})
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -228,7 +249,8 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {availableTasks.map((task) => (
+                        <SelectItem value="">Custom Labor (no task link)</SelectItem>
+                        {filteredTasks.map((task) => (
                           <SelectItem key={task.id} value={task.id}>
                             {task.title} - ${(task.price || 0).toFixed(2)}
                           </SelectItem>

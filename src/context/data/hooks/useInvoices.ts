@@ -25,7 +25,45 @@ export const useInvoices = () => {
 
     const removeInvoice = async (id: string) => {
         try {
-            // First delete payments
+            console.log('Removing invoice:', id);
+            
+            // First get the invoice items to clean up part assignments
+            const { data: invoiceItems } = await supabase
+                .from('invoice_items')
+                .select('*')
+                .eq('invoice_id', id);
+
+            // Clean up part assignments before deleting
+            if (invoiceItems) {
+                for (const item of invoiceItems) {
+                    if (item.type === 'part' && item.part_id) {
+                        // Get current part data
+                        const { data: part } = await supabase
+                            .from('parts')
+                            .select('*')
+                            .eq('id', item.part_id)
+                            .single();
+
+                        if (part) {
+                            // Remove invoice ID from part and restore quantity
+                            const currentInvoiceIds = part.invoice_ids || [];
+                            const updatedInvoiceIds = currentInvoiceIds.filter(invoiceId => invoiceId !== id);
+                            const restoredQuantity = part.quantity + item.quantity;
+
+                            await supabase
+                                .from('parts')
+                                .update({
+                                    quantity: restoredQuantity,
+                                    invoice_ids: updatedInvoiceIds,
+                                    updated_at: new Date().toISOString()
+                                })
+                                .eq('id', item.part_id);
+                        }
+                    }
+                }
+            }
+
+            // Delete payments
             const { error: paymentsError } = await supabase
                 .from('payments')
                 .delete()
@@ -35,7 +73,7 @@ export const useInvoices = () => {
                 console.error('Error removing payments:', paymentsError);
             }
 
-            // Then delete invoice items
+            // Delete invoice items
             const { error: itemsError } = await supabase
                 .from('invoice_items')
                 .delete()
