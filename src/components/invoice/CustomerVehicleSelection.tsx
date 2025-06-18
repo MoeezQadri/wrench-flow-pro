@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -8,7 +7,6 @@ import { Customer, Vehicle } from "@/types";
 import { useDataContext } from '@/context/data/DataContext';
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
-
 interface CustomerVehicleSelectionProps {
   selectedCustomerId: string;
   onCustomerIdChange: (customerId: string) => void;
@@ -22,21 +20,19 @@ interface CustomerVehicleSelectionProps {
     license_plate: string;
   };
 }
-
 const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
   selectedCustomerId,
   onCustomerIdChange,
   selectedVehicleId,
   onVehicleIdChange,
   isEditing = false,
-  vehicleInfo,
+  vehicleInfo
 }) => {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [isLoadingVehicles, setIsLoadingVehicles] = useState(false);
   const [isLoadingCustomers, setIsLoadingCustomers] = useState(false);
   const loadedCustomerRef = useRef<string>("");
   const hasInitiallyLoaded = useRef(false);
-  
   const {
     customers,
     getVehiclesByCustomerId,
@@ -76,10 +72,8 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
         loadedCustomerRef.current = "";
       }
     };
-
     loadVehicles();
   }, [selectedCustomerId, getVehiclesByCustomerId]);
-
   const handleRefreshCustomers = async () => {
     setIsLoadingCustomers(true);
     try {
@@ -93,7 +87,6 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
       setIsLoadingCustomers(false);
     }
   };
-
   const handleCustomerChange = (value: string) => {
     onCustomerIdChange(value);
     if (!isEditing) {
@@ -105,7 +98,7 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
 
   // Find the selected vehicle to display its name - prefer from loaded vehicles, fallback to vehicleInfo
   const selectedVehicle = vehicles.find(v => v.id === selectedVehicleId);
-  
+
   // Get display text for the selected vehicle
   const getVehicleDisplayText = () => {
     if (selectedVehicle) {
@@ -116,57 +109,31 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
     }
     return null;
   };
-
   const vehicleDisplayText = getVehicleDisplayText();
-
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  return <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div>
         <div className="flex justify-between items-center mb-2 min-h-[32px]">
           <Label htmlFor="customer">Customer *</Label>
           <div className="flex gap-2">
-            <Button 
-              type="button" 
-              variant="ghost" 
-              size="sm" 
-              className="h-8"
-              onClick={handleRefreshCustomers}
-              disabled={isLoadingCustomers}
-            >
-              <RefreshCw className={`h-4 w-4 mr-1 ${isLoadingCustomers ? 'animate-spin' : ''}`} />
-              Refresh
-            </Button>
-            {!isEditing && (
-              <Link to="/customers/new">
+            
+            {!isEditing && <Link to="/customers/new">
                 <Button type="button" variant="ghost" size="sm" className="h-8">
                   <PlusCircle className="h-4 w-4 mr-1" />
                   Add New
                 </Button>
-              </Link>
-            )}
+              </Link>}
           </div>
         </div>
-        <Select 
-          value={selectedCustomerId} 
-          onValueChange={handleCustomerChange} 
-          required
-          disabled={isEditing}
-        >
+        <Select value={selectedCustomerId} onValueChange={handleCustomerChange} required disabled={isEditing}>
           <SelectTrigger id="customer">
             <SelectValue placeholder={isLoadingCustomers ? "Loading customers..." : "Select a customer"} />
           </SelectTrigger>
           <SelectContent>
-            {customers.length === 0 ? (
-              <SelectItem value="no-customers" disabled>
+            {customers.length === 0 ? <SelectItem value="no-customers" disabled>
                 {isLoadingCustomers ? "Loading customers..." : "No customers available - click Refresh or Add New"}
-              </SelectItem>
-            ) : (
-              customers.map((customer) => (
-                <SelectItem key={customer.id} value={customer.id}>
+              </SelectItem> : customers.map(customer => <SelectItem key={customer.id} value={customer.id}>
                   {customer.name}
-                </SelectItem>
-              ))
-            )}
+                </SelectItem>)}
           </SelectContent>
         </Select>
       </div>
@@ -175,54 +142,29 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
         <div className="flex justify-between items-center mb-2 min-h-[32px]">
           <Label htmlFor="vehicle">Vehicle *</Label>
           <div className="flex gap-2">
-            {selectedCustomerId && !isEditing && (
-              <Link to={`/vehicles/new?customerId=${selectedCustomerId}`}>
+            {selectedCustomerId && !isEditing && <Link to={`/vehicles/new?customerId=${selectedCustomerId}`}>
                 <Button type="button" variant="ghost" size="sm" className="h-8">
                   <PlusCircle className="h-4 w-4 mr-1" />
                   Add New
                 </Button>
-              </Link>
-            )}
+              </Link>}
           </div>
         </div>
-        <Select 
-          value={selectedVehicleId} 
-          onValueChange={onVehicleIdChange} 
-          required={vehicles.length > 0}
-          disabled={!selectedCustomerId || isLoadingVehicles}
-        >
+        <Select value={selectedVehicleId} onValueChange={onVehicleIdChange} required={vehicles.length > 0} disabled={!selectedCustomerId || isLoadingVehicles}>
           <SelectTrigger id="vehicle">
-            <SelectValue 
-              placeholder={
-                !selectedCustomerId 
-                  ? "Select a customer first" 
-                  : isLoadingVehicles 
-                    ? "Loading vehicles..."
-                    : "Select a vehicle"
-              }
-            >
+            <SelectValue placeholder={!selectedCustomerId ? "Select a customer first" : isLoadingVehicles ? "Loading vehicles..." : "Select a vehicle"}>
               {vehicleDisplayText}
             </SelectValue>
           </SelectTrigger>
           <SelectContent>
-            {vehicles.length === 0 ? (
-              <SelectItem value="no-vehicles" disabled>
-                {selectedCustomerId 
-                  ? (isLoadingVehicles ? "Loading vehicles..." : "No vehicles found for this customer") 
-                  : "Please select a customer first"}
-              </SelectItem>
-            ) : (
-              vehicles.map((vehicle) => (
-                <SelectItem key={vehicle.id} value={vehicle.id}>
+            {vehicles.length === 0 ? <SelectItem value="no-vehicles" disabled>
+                {selectedCustomerId ? isLoadingVehicles ? "Loading vehicles..." : "No vehicles found for this customer" : "Please select a customer first"}
+              </SelectItem> : vehicles.map(vehicle => <SelectItem key={vehicle.id} value={vehicle.id}>
                   {vehicle.year} {vehicle.make} {vehicle.model} ({vehicle.license_plate})
-                </SelectItem>
-              ))
-            )}
+                </SelectItem>)}
           </SelectContent>
         </Select>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default CustomerVehicleSelection;
