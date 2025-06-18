@@ -19,7 +19,7 @@ import PaymentsSection from "./invoice/PaymentsSection";
 import CustomerVehicleSelection from "./invoice/CustomerVehicleSelection";
 import { toast } from "sonner";
 import { useDataContext } from "@/context/data/DataContext";
-import { createInvoiceWithAutoAssignment, getAssignedPartsForInvoice, getAssignedTasksForInvoice, updateInvoice } from "@/services/supabase-service";
+import { getAssignedPartsForInvoice, getAssignedTasksForInvoice, updateInvoice } from "@/services/supabase-service";
 import { createTestCustomers } from "@/utils/test-data-helper";
 
 interface InvoiceFormProps {
@@ -63,6 +63,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
     tasks,
     loadInvoices,
     updateInvoice: updateInvoiceInContext,
+    addInvoice,
   } = useDataContext();
 
   // Fetch parts and tasks - only show completed items
@@ -124,7 +125,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
   // Load assigned parts and tasks when vehicle is selected - but ONLY for new invoices
   useEffect(() => {
     const loadAssignedItems = async () => {
-      if (selectedVehicleId && selectedCustomerId && !isEditing && initialDataLoaded.current === false) {
+      if (selectedVehicleId && selectedCustomerId && !isEditing && !initialDataLoaded.current) {
         try {
           const [assignedPartsData, assignedTasksData] = await Promise.all([
             getAssignedPartsForInvoice(selectedVehicleId, selectedCustomerId),
@@ -250,7 +251,6 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
         errors.push("Date must be in YYYY-MM-DD format");
       }
     }
-    // Removed the requirement for items - invoices can now be created without items
 
     setFormErrors(errors);
     return errors.length === 0;
@@ -292,7 +292,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
         console.log("Updating existing invoice:", invoiceData.id);
         
         // Ensure date is in proper format for backend
-        const formattedDate = date; // Should already be in YYYY-MM-DD format
+        const formattedDate = date;
         console.log("Date being sent to backend:", formattedDate);
         console.log("Payments being sent to backend:", payments);
         
@@ -307,7 +307,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
           discount_value: discountValue,
           notes: notes,
           items: items,
-          payments: payments // Make sure payments are included
+          payments: payments
         };
 
         console.log("Calling updateInvoice with:", updatedInvoiceData);
@@ -329,12 +329,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
         navigate("/invoices");
       } else {
         console.log("Creating new invoice");
-        console.log("Items before sending to backend:", items);
-        
-        // No need to normalize types since all types are already correct
-        const manualItems = items.filter(item => !item.is_auto_added);
-        
-        console.log("Manual items to send:", manualItems);
+        console.log("Items before sending:", items);
         
         const invoiceCreationData = {
           customerId: selectedCustomerId,
@@ -344,27 +339,17 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
           discountType: discountType,
           discountValue: discountValue,
           notes: notes,
-          items: manualItems
+          items: items
         };
 
-        console.log("Calling createInvoiceWithAutoAssignment with:", invoiceCreationData);
-        await createInvoiceWithAutoAssignment(invoiceCreationData);
+        console.log("Calling addInvoice with:", invoiceCreationData);
+        await addInvoice(invoiceCreationData);
         
         if (loadInvoices) {
           await loadInvoices();
         }
         
-        const autoItems = items.filter(item => item.is_auto_added);
-        
-        let successMessage = "Invoice created successfully!";
-        if (autoItems.length > 0) {
-          successMessage += ` ${autoItems.length} items auto-assigned.`;
-        }
-        if (manualItems.length > 0) {
-          successMessage += ` ${manualItems.length} manual items synced to inventory.`;
-        }
-        
-        toast.success(successMessage);
+        toast.success("Invoice created successfully!");
         navigate("/invoices");
       }
     } catch (error) {
@@ -447,7 +432,6 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
               }}
               required
             />
-            {/* Debug info for date */}
             <p className="text-xs text-gray-500 mt-1">Current date value: {date}</p>
           </div>
 
