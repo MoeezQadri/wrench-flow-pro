@@ -117,7 +117,7 @@ const InvoiceDetailsFields = () => {
             <FormLabel>Discount Type</FormLabel>
             <Select 
               onValueChange={field.onChange} 
-              value={field.value}
+              value={field.value || "none"}
               disabled={!canEditDiscount}
             >
               <FormControl>
