@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import {
   Dialog,
@@ -124,7 +125,7 @@ const WorkshopPartsSelector: React.FC<WorkshopPartsSelectorProps> = ({
               {workshopParts.length === 0 ? (
                 <>
                   <p>No workshop parts available.</p>
-                  <p className="text-sm mt-2">Parts with inventory quantity > 0 and not assigned to invoices will appear here.</p>
+                  <p className="text-sm mt-2">Parts with inventory quantity {"> 0"} and not assigned to invoices will appear here.</p>
                 </>
               ) : (
                 <p>No parts found matching your search.</p>
