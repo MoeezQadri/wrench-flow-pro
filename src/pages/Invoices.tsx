@@ -7,17 +7,34 @@ import { useDataContext } from '@/context/data/DataContext';
 
 const Invoices: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
+  
+  // Add error boundary for context
+  let contextData;
+  try {
+    contextData = useDataContext();
+  } catch (error) {
+    console.error('Failed to get data context:', error);
+    return (
+      <div className="p-4 text-center">
+        <div className="text-red-600">
+          Failed to load data context. Please refresh the page.
+        </div>
+      </div>
+    );
+  }
+
   const { 
     invoices: contextInvoices, 
     customers: contextCustomers,
     loadInvoices,
     loadCustomers
-  } = useDataContext();
+  } = contextData;
 
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
       try {
+        console.log('Loading invoices and customers...');
         // Ensure invoices and customers are loaded
         await Promise.all([
           loadInvoices(),
@@ -37,7 +54,7 @@ const Invoices: React.FC = () => {
     };
 
     loadData();
-  }, []); // Remove dependencies to prevent infinite loop
+  }, [loadInvoices, loadCustomers]); // Add dependencies to prevent infinite loop
 
   const calculateInvoiceTotal = (invoice: Invoice): number => {
     if (!invoice.items) return 0;
@@ -153,8 +170,6 @@ const Invoices: React.FC = () => {
                         <Link
                           to={`/invoices/${invoice.id}/edit`}
                           className="text-green-600 hover:text-green-800 underline"
-                        >
-                          Edit
                         </Link>
                       </div>
                     </td>

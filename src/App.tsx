@@ -52,9 +52,9 @@ const SuperAdminLogin = lazy(() => import('@/pages/superadmin/SuperAdminLogin'))
 
 function App() {
   return (
-    <AuthProvider>
-      <DataProvider>
-        <Router>
+    <Router>
+      <AuthProvider>
+        <DataProvider>
           <PersistentRouter>
             <Suspense fallback={<LoadingScreen />}>
               <Routes>
@@ -105,9 +105,9 @@ function App() {
               </Routes>
             </Suspense>
           </PersistentRouter>
-        </Router>
-      </DataProvider>
-    </AuthProvider>
+        </DataProvider>
+      </AuthProvider>
+    </Router>
   );
 }
 
