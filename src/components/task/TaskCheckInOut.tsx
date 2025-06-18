@@ -44,7 +44,7 @@ const TaskCheckInOut = ({ task, onTaskUpdate }: TaskCheckInOutProps) => {
     toast.success("Checked out of task");
   };
 
-  const canCheckIn = task.status === 'pending' && currentUser?.id === task.mechanicId;
+  const canCheckIn = task.status === 'open' && currentUser?.id === task.mechanicId; // Use 'open' instead of 'pending'
   const canCheckOut = task.status === 'in-progress' && currentUser?.id === task.mechanicId;
 
   return (

@@ -87,14 +87,14 @@ const TaskDialog = ({ open, onOpenChange, onSave, task, invoiceId }: TaskDialogP
         id: task?.id || generateId("task"),
         title: data.title,
         description: data.description || "",
-        status: data.status,
+        status: data.status as 'open' | 'in-progress' | 'completed' | 'blocked' | 'canceled', // Cast to correct type
         mechanicId: data.mechanicId === "unassigned" ? undefined : data.mechanicId,
         vehicleId: taskVehicleId,
         invoiceId: taskInvoiceId,
         hoursEstimated: data.hoursEstimated,
         hoursSpent: data.hoursSpent,
         price: data.price,
-        location: taskLocation,
+        location: taskLocation as 'workshop' | 'roadside' | 'other', // Cast to correct type
         created_at: task?.created_at || new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
@@ -146,7 +146,7 @@ const TaskDialog = ({ open, onOpenChange, onSave, task, invoiceId }: TaskDialogP
               ? {
                 title: task.title,
                 description: task.description,
-                status: task.status,
+                status: task.status === 'open' ? 'in-progress' : task.status as 'in-progress' | 'completed', // Map open to in-progress
                 price: task.price || 0,
                 location: task.location || "workshop",
                 taskType: getTaskType(task),

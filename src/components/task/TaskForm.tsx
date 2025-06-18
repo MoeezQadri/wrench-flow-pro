@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -28,9 +27,9 @@ import { useDataContext } from "@/context/data/DataContext";
 const taskSchema = z.object({
   title: z.string().min(1, { message: "Title is required" }),
   description: z.string().optional(),
-  status: z.enum(["pending", "in-progress", "completed"]),
+  status: z.enum(["in-progress", "completed"]), // Remove pending and open
   price: z.coerce.number().min(0, { message: "Price must be 0 or greater" }),
-  location: z.enum(["workshop", "onsite", "remote"]),
+  location: z.enum(["workshop", "roadside", "other"]), // Use roadside instead of onsite
   taskType: z.enum(["invoice", "internal"]),
   vehicleId: z.string().optional(),
   mechanicId: z.string().optional(),
@@ -78,7 +77,7 @@ const TaskForm = ({ defaultValues, onSubmit, formId, task }: TaskFormProps) => {
     defaultValues: defaultValues || {
       title: "",
       description: "",
-      status: "pending",
+      status: "in-progress", // Changed default from pending
       price: 0,
       location: "workshop",
       taskType: "internal",
@@ -246,7 +245,6 @@ const TaskForm = ({ defaultValues, onSubmit, formId, task }: TaskFormProps) => {
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="pending">Pending</SelectItem>
                     <SelectItem value="in-progress">In Progress</SelectItem>
                     <SelectItem value="completed">Completed</SelectItem>
                   </SelectContent>
@@ -276,8 +274,8 @@ const TaskForm = ({ defaultValues, onSubmit, formId, task }: TaskFormProps) => {
                     <SelectItem value="workshop">Workshop</SelectItem>
                     {watchTaskType === "invoice" && (
                       <>
-                        <SelectItem value="onsite">On-site</SelectItem>
-                        <SelectItem value="remote">Remote</SelectItem>
+                        <SelectItem value="roadside">Roadside</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
                       </>
                     )}
                   </SelectContent>

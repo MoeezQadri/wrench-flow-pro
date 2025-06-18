@@ -9,7 +9,10 @@ export const useVehicles = () => {
 
     const addVehicle = async (vehicle: Vehicle) => {
         try {
-            const { data, error } = await supabase.from('vehicles').insert(vehicle).select();
+            const { data, error } = await supabase.from('vehicles').insert({
+                ...vehicle,
+                year: vehicle.year // Already string in Vehicle interface
+            }).select();
             if (error) {
                 console.error('Error adding vehicle:', error);
                 toast.error('Failed to add vehicle');
@@ -48,7 +51,10 @@ export const useVehicles = () => {
         try {
             const { data, error } = await supabase
                 .from('vehicles')
-                .update(updates)
+                .update({
+                    ...updates,
+                    year: updates.year // Already string in Vehicle interface
+                })
                 .eq('id', id)
                 .select();
 
@@ -89,7 +95,7 @@ export const useVehicles = () => {
                 customer_id: v.customer_id,
                 make: v.make,
                 model: v.model,
-                year: v.year,
+                year: v.year, // Keep as string from database
                 license_plate: v.license_plate,
                 vin: v.vin,
                 color: v.color
@@ -113,7 +119,12 @@ export const useVehicles = () => {
                 console.error('Error fetching vehicles:', vehiclesError);
                 toast.error('Failed to load vehicles');
             } else {
-                setVehicles(vehiclesData || []);
+                // Map the data to ensure year is treated as string
+                const mappedVehicles = (vehiclesData || []).map(v => ({
+                    ...v,
+                    year: v.year // Keep as string from database
+                }));
+                setVehicles(mappedVehicles);
             }
         } catch (error) {
             console.error('Error fetching vehicles:', error);

@@ -1,3 +1,4 @@
+
 export interface Customer {
   id: string;
   name: string;
@@ -14,9 +15,10 @@ export interface Vehicle {
   customer_id: string;
   make: string;
   model: string;
-  year: number;
+  year: string; // Changed to string to match database
   license_plate: string;
   vin?: string;
+  color?: string; // Added color property
   notes?: string;
   created_at?: string;
   updated_at?: string;
@@ -52,7 +54,7 @@ export interface Invoice {
   vehicleInfo?: {
     make: string;
     model: string;
-    year: number;
+    year: string; // Changed to string
     license_plate: string;
   };
 }
@@ -129,4 +131,85 @@ export interface Task {
   updated_at?: string;
   labor_rate?: number;
   skill_level?: string;
+}
+
+// Adding missing type definitions
+export interface User {
+  id: string;
+  email: string;
+  name?: string;
+  role?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface UserRole {
+  id: string;
+  user_id: string;
+  role: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface Mechanic {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  hire_date?: string;
+  hourly_rate?: number;
+  specialties?: string[];
+  status?: 'active' | 'inactive';
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface Vendor {
+  id: string;
+  name: string;
+  contact_person?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  notes?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface Expense {
+  id: string;
+  vendor_id?: string;
+  category: string;
+  description: string;
+  amount: number;
+  date: string;
+  receipt_url?: string;
+  notes?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface Attendance {
+  id: string;
+  mechanic_id: string;
+  date: string;
+  check_in?: string;
+  check_out?: string;
+  break_start?: string;
+  break_end?: string;
+  total_hours?: number;
+  notes?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface Organization {
+  id: string;
+  name: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  website?: string;
+  created_at?: string;
+  updated_at?: string;
 }
