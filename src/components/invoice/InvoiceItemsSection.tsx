@@ -39,7 +39,7 @@ const InvoiceItemsSection: React.FC<InvoiceItemsSectionProps> = ({
     const newItems: InvoiceItem[] = selectedParts.map(({ part, quantity }) => ({
       id: `workshop-part-${part.id}-${Date.now()}`,
       description: part.name,
-      type: 'part' as const, // Changed from 'parts' to 'part'
+      type: 'part' as const,
       quantity: quantity,
       price: part.price,
       part_id: part.id,
@@ -63,6 +63,33 @@ const InvoiceItemsSection: React.FC<InvoiceItemsSectionProps> = ({
     return (item.price * item.quantity).toFixed(2);
   };
 
+  // Button click handlers with proper event handling
+  const handleShowPartsSelector = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    console.log("Parts selector button clicked");
+    setShowPartsSelector(true);
+  };
+
+  const handleShowItemForm = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    console.log("Add Custom Item button clicked");
+    setShowItemForm(true);
+  };
+
+  const handleEditItemClick = (event: React.MouseEvent<HTMLButtonElement>, item: InvoiceItem) => {
+    event.preventDefault();
+    event.stopPropagation();
+    handleEditItem(item);
+  };
+
+  const handleRemoveItemClick = (event: React.MouseEvent<HTMLButtonElement>, itemId: string) => {
+    event.preventDefault();
+    event.stopPropagation();
+    handleRemoveItem(itemId);
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -71,7 +98,7 @@ const InvoiceItemsSection: React.FC<InvoiceItemsSectionProps> = ({
           <Button
             type="button"
             variant="outline"
-            onClick={() => setShowPartsSelector(true)}
+            onClick={handleShowPartsSelector}
             className="flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
@@ -79,7 +106,7 @@ const InvoiceItemsSection: React.FC<InvoiceItemsSectionProps> = ({
           </Button>
           <Button
             type="button"
-            onClick={() => setShowItemForm(true)}
+            onClick={handleShowItemForm}
             className="flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
@@ -130,7 +157,7 @@ const InvoiceItemsSection: React.FC<InvoiceItemsSectionProps> = ({
                         type="button"
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleEditItem(item)}
+                        onClick={(event) => handleEditItemClick(event, item)}
                       >
                         Edit
                       </Button>
@@ -138,7 +165,7 @@ const InvoiceItemsSection: React.FC<InvoiceItemsSectionProps> = ({
                         type="button"
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleRemoveItem(item.id)}
+                        onClick={(event) => handleRemoveItemClick(event, item.id)}
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -156,13 +183,13 @@ const InvoiceItemsSection: React.FC<InvoiceItemsSectionProps> = ({
             <Button
               type="button"
               variant="outline"
-              onClick={() => setShowPartsSelector(true)}
+              onClick={handleShowPartsSelector}
             >
               Add Parts from Workshop
             </Button>
             <Button
               type="button"
-              onClick={() => setShowItemForm(true)}
+              onClick={handleShowItemForm}
             >
               Add Custom Item
             </Button>

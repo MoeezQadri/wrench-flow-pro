@@ -33,7 +33,7 @@ import { InvoiceItem, Part, Task } from "@/types";
 
 const invoiceItemSchema = z.object({
   description: z.string().min(1, "Description is required"),
-  type: z.enum(["part", "labor", "other"]), // Changed from "parts" to "part"
+  type: z.enum(["part", "labor", "other"]),
   quantity: z.coerce.number().min(0.01, "Quantity must be at least 0.01"),
   price: z.coerce.number().min(0, "Price must be at least 0"),
   part_id: z.string().optional(),
@@ -98,6 +98,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
   }, [editingItem, form]);
 
   const handleSubmit = (data: InvoiceItemFormData) => {
+    console.log("InvoiceItemForm submit called with:", data);
     const item: InvoiceItem = {
       id: editingItem?.id || `item-${Date.now()}`,
       description: data.description,
@@ -128,6 +129,13 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
       form.setValue("price", task.price || 0);
       form.setValue("quantity", task.hoursEstimated || 1);
     }
+  };
+
+  const handleCancel = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    console.log("Cancel button clicked");
+    onOpenChange(false);
   };
 
   return (
@@ -297,7 +305,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
               <Button 
                 type="button" 
                 variant="outline" 
-                onClick={() => onOpenChange(false)}
+                onClick={handleCancel}
               >
                 Cancel
               </Button>
