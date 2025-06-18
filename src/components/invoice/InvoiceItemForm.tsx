@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import {
   Dialog,
@@ -229,7 +228,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
                   <SelectValue placeholder="Select from workshop inventory or leave blank for custom" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Custom Part (not from inventory)</SelectItem>
+                  <SelectItem value="none">Custom Part (not from inventory)</SelectItem>
                   {availableParts && availableParts.length > 0 ? (
                     availableParts.map((part) => (
                       <SelectItem key={part.id} value={part.id}>
@@ -237,7 +236,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
                       </SelectItem>
                     ))
                   ) : (
-                    <SelectItem value="" disabled>No parts available in workshop inventory</SelectItem>
+                    <SelectItem value="no-parts" disabled>No parts available in workshop inventory</SelectItem>
                   )}
                 </SelectContent>
               </Select>
@@ -258,7 +257,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
                   <SelectValue placeholder="Select from completed tasks or leave blank for custom" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Custom Labor (not from completed tasks)</SelectItem>
+                  <SelectItem value="none">Custom Labor (not from completed tasks)</SelectItem>
                   {availableTasks && availableTasks.length > 0 ? (
                     availableTasks.map((task) => (
                       <SelectItem key={task.id} value={task.id}>
@@ -266,7 +265,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
                       </SelectItem>
                     ))
                   ) : (
-                    <SelectItem value="" disabled>No completed tasks available</SelectItem>
+                    <SelectItem value="no-tasks" disabled>No completed tasks available</SelectItem>
                   )}
                 </SelectContent>
               </Select>

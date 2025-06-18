@@ -7,6 +7,7 @@ export interface DataContextType {
     removeMechanic: (id: string) => Promise<void>;
     updateMechanic: (id: string, mechanicData: Omit<Mechanic, 'id'>) => Promise<Mechanic>;
     getMechanicById: (id: string) => Mechanic;
+    loadMechanics: () => Promise<void>;
 
     vendors: Vendor[];
     addVendor: (vendorData: any) => Promise<any>;
@@ -43,11 +44,13 @@ export interface DataContextType {
     addTask: (task: Task) => Promise<void>;
     removeTask: (id: string) => Promise<void>;
     updateTask: (id: string, updates: Partial<Task>) => Promise<void>;
+    loadTasks: () => Promise<void>;
 
     parts: Part[];
     addPart: (part: Part) => Promise<Part>;
     removePart: (id: string) => Promise<void>;
     updatePart: (id: string, updates: Partial<Part>) => Promise<Part>;
+    loadParts: () => Promise<void>;
 
     payments: Payment[];
     addPayment: (payment: Payment) => Promise<void>;

@@ -71,6 +71,7 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
             removeMechanic: mechanicsHook.removeMechanic,
             updateMechanic: mechanicsHook.updateMechanic,
             getMechanicById: mechanicsHook.getMechanicById,
+            loadMechanics: mechanicsHook.loadMechanics,
 
             vendors: vendorsHook.vendors,
             addVendor: vendorsHook.addVendor,
@@ -107,11 +108,13 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
             addTask: tasksHook.addTask,
             removeTask: tasksHook.removeTask,
             updateTask: tasksHook.updateTask,
+            loadTasks: tasksHook.loadTasks,
 
             parts: partsHook.parts,
             addPart: partsHook.addPart,
             removePart: partsHook.removePart,
             updatePart: partsHook.updatePart,
+            loadParts: partsHook.loadParts,
 
             payments: paymentsHook.payments,
             addPayment: paymentsHook.addPayment,
