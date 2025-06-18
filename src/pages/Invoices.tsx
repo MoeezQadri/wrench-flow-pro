@@ -54,7 +54,7 @@ const Invoices: React.FC = () => {
     };
 
     loadData();
-  }, [loadInvoices, loadCustomers]); // Add dependencies to prevent infinite loop
+  }, []); // Remove function dependencies to prevent infinite loop
 
   const calculateInvoiceTotal = (invoice: Invoice): number => {
     if (!invoice.items) return 0;
