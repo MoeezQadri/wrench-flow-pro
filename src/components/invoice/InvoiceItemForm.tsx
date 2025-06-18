@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -178,8 +177,8 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
       type: data.type,
       quantity: data.quantity,
       price: data.price,
-      part_id: data.part_id || undefined,
-      task_id: data.task_id || undefined,
+      part_id: data.part_id && data.part_id !== "custom" ? data.part_id : undefined,
+      task_id: data.task_id && data.task_id !== "custom" ? data.task_id : undefined,
       unit_of_measure: data.unit_of_measure || "piece",
       creates_inventory_part: data.creates_inventory_part || false,
       creates_task: data.creates_task || false,
@@ -196,6 +195,14 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
 
   const handlePartSelect = (partId: string) => {
     console.log('Part selected:', partId);
+    if (partId === "custom") {
+      // Clear fields for custom part
+      form.setValue("description", "");
+      form.setValue("price", 0);
+      form.setValue("unit_of_measure", "piece");
+      return;
+    }
+    
     const part = availableParts.find(p => p.id === partId);
     if (part) {
       console.log('Found part:', part);
@@ -213,6 +220,15 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
 
   const handleTaskSelect = (taskId: string) => {
     console.log('Task selected:', taskId);
+    if (taskId === "custom") {
+      // Clear fields for custom task
+      form.setValue("description", "");
+      form.setValue("price", 0);
+      form.setValue("quantity", 1);
+      form.setValue("unit_of_measure", "hour");
+      return;
+    }
+    
     const task = availableTasks.find(t => t.id === taskId);
     if (task) {
       console.log('Found task:', task);
@@ -306,7 +322,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">Custom Part (no inventory link)</SelectItem>
+                        <SelectItem value="custom">Custom Part (no inventory link)</SelectItem>
                         {filteredParts.map((part) => (
                           <SelectItem key={part.id} value={part.id}>
                             {part.name} - ${part.price.toFixed(2)} (Stock: {part.quantity})
@@ -340,7 +356,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">Custom Labor (no task link)</SelectItem>
+                        <SelectItem value="custom">Custom Labor (no task link)</SelectItem>
                         {filteredTasks.map((task) => (
                           <SelectItem key={task.id} value={task.id}>
                             {task.title} - ${(task.price || 0).toFixed(2)}
@@ -354,6 +370,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
               />
             )}
 
+            
             <FormField
               control={form.control}
               name="description"
