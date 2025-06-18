@@ -1,8 +1,11 @@
-import React, { useState, useEffect } from "react";
+
+import React, { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Pencil, Calendar, CalendarCheck, Tag, Car, MapPin, Filter, UserPlus } from "lucide-react";
+import { Plus, Pencil, Calendar, CalendarCheck, Tag, Car, MapPin, Filter, UserPlus, Search } from "lucide-react";
 import { toast } from "sonner";
 import TaskDialog from "@/components/task/TaskDialog";
 import TaskCheckInOut from "@/components/task/TaskCheckInOut";
@@ -11,7 +14,6 @@ import {
   hasPermission,
 } from "@/services/data-service";
 import { Task, TaskLocation, Invoice, Vehicle, Mechanic, Customer, TaskStatus } from "@/types";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { resolvePromiseAndSetState } from "@/utils/async-helpers";
 import { useDataContext } from "@/context/data/DataContext";
 import { useAuthContext } from "@/context/AuthContext";
@@ -24,6 +26,9 @@ const Tasks = () => {
   const [selectedTaskForAssignment, setSelectedTaskForAssignment] = useState<Task | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [locationFilter, setLocationFilter] = useState<TaskLocation | 'all'>('all');
+  const [statusFilter, setStatusFilter] = useState<TaskStatus | 'all'>('all');
+  const [mechanicFilter, setMechanicFilter] = useState<string>('all');
+  const [searchTerm, setSearchTerm] = useState<string>('');
   const {
     tasks,
     mechanics,
@@ -58,7 +63,7 @@ const Tasks = () => {
   }, []);
 
   // Apply filters to tasks
-  const filteredTasks = React.useMemo(() => {
+  const filteredTasks = useMemo(() => {
     let filtered = tasksList;
 
     // Filter by mechanic for mechanic users
@@ -66,13 +71,31 @@ const Tasks = () => {
       filtered = filtered.filter(task => task.mechanicId === currentUser?.mechanicId);
     }
 
+    // Apply search filter
+    if (searchTerm) {
+      filtered = filtered.filter(task => 
+        task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        task.description.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
     // Apply location filter if not set to 'all'
     if (locationFilter !== 'all') {
       filtered = filtered.filter(task => task.location === locationFilter);
     }
 
+    // Apply status filter if not set to 'all'
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(task => task.status === statusFilter);
+    }
+
+    // Apply mechanic filter if not set to 'all'
+    if (mechanicFilter !== 'all') {
+      filtered = filtered.filter(task => task.mechanicId === mechanicFilter);
+    }
+
     return filtered;
-  }, [tasksList, currentUser?.role, currentUser?.mechanicId, locationFilter]);
+  }, [tasksList, currentUser?.role, currentUser?.mechanicId, searchTerm, locationFilter, statusFilter, mechanicFilter]);
 
   const handleAssignmentComplete = () => {
     setSelectedTaskForAssignment(null);
@@ -86,6 +109,13 @@ const Tasks = () => {
       }
     };
     loadTasks();
+  };
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setLocationFilter('all');
+    setStatusFilter('all');
+    setMechanicFilter('all');
   };
 
   if (!canViewTasks) {
@@ -324,17 +354,22 @@ const Tasks = () => {
         />
       )}
 
-      <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2">
-          <MapPin className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-medium">Filter by location:</span>
+      {/* Search and Filter Controls */}
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 p-4 bg-gray-50 rounded-lg">
+        <div className="relative">
+          <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+          <Input
+            placeholder="Search tasks..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
         </div>
-        <Select
-          value={locationFilter}
-          onValueChange={(value) => setLocationFilter(value as TaskLocation | 'all')}
-        >
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Filter by location" />
+
+        <Select value={locationFilter} onValueChange={(value) => setLocationFilter(value as TaskLocation | 'all')}>
+          <SelectTrigger>
+            <MapPin className="h-4 w-4 mr-2" />
+            <SelectValue placeholder="Location" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Locations</SelectItem>
@@ -343,6 +378,46 @@ const Tasks = () => {
             <SelectItem value="remote">Remote</SelectItem>
           </SelectContent>
         </Select>
+
+        <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as TaskStatus | 'all')}>
+          <SelectTrigger>
+            <Filter className="h-4 w-4 mr-2" />
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Statuses</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="in-progress">In Progress</SelectItem>
+            <SelectItem value="completed">Completed</SelectItem>
+            <SelectItem value="blocked">Blocked</SelectItem>
+            <SelectItem value="canceled">Canceled</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {shouldShowAssignmentColumn && (
+          <Select value={mechanicFilter} onValueChange={setMechanicFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="Mechanic" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Mechanics</SelectItem>
+              {mechanics.map(mechanic => (
+                <SelectItem key={mechanic.id} value={mechanic.id}>
+                  {mechanic.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+
+        <Button variant="outline" onClick={clearFilters}>
+          Clear Filters
+        </Button>
+      </div>
+
+      {/* Results Summary */}
+      <div className="text-sm text-gray-600">
+        Showing {filteredTasks.length} of {tasksList.length} tasks
       </div>
 
       <Card>
@@ -479,8 +554,10 @@ const Tasks = () => {
                   <TableCell colSpan={shouldShowVehicleColumn ? 9 : 8} className="text-center py-6">
                     <div className="flex flex-col items-center justify-center text-muted-foreground">
                       <CalendarCheck className="w-12 h-12 mb-2 text-muted-foreground/60" />
-                      <p>No tasks found</p>
-                      {(canManageTasks || currentUser?.role === 'mechanic' || isForeman) && (
+                      <p>
+                        {tasksList.length === 0 ? "No tasks found" : "No tasks match your search criteria"}
+                      </p>
+                      {(canManageTasks || currentUser?.role === 'mechanic' || isForeman) && tasksList.length === 0 && (
                         <Button
                           variant="outline"
                           size="sm"

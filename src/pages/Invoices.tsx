@@ -1,12 +1,20 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Invoice, Customer } from '@/types';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 import { useDataContext } from '@/context/data/DataContext';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { Search, Filter, SortAsc, SortDesc } from 'lucide-react';
 
 const Invoices: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<string>('date');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   
   // Add error boundary for context
   let contextData;
@@ -84,6 +92,70 @@ const Invoices: React.FC = () => {
     return customer ? customer.name : 'Unknown Customer';
   };
 
+  // Filter and sort invoices
+  const filteredAndSortedInvoices = useMemo(() => {
+    let filtered = contextInvoices.filter(invoice => {
+      const customerName = getCustomerName(invoice.customer_id);
+      const invoiceId = invoice.id.substring(0, 8);
+      
+      // Search filter
+      const matchesSearch = searchTerm === '' || 
+        customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        invoiceId.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      // Status filter
+      const matchesStatus = statusFilter === 'all' || invoice.status === statusFilter;
+      
+      return matchesSearch && matchesStatus;
+    });
+
+    // Sort
+    filtered.sort((a, b) => {
+      let aValue: any, bValue: any;
+      
+      switch (sortBy) {
+        case 'date':
+          aValue = new Date(a.date || 0);
+          bValue = new Date(b.date || 0);
+          break;
+        case 'customer':
+          aValue = getCustomerName(a.customer_id);
+          bValue = getCustomerName(b.customer_id);
+          break;
+        case 'amount':
+          aValue = calculateInvoiceTotal(a);
+          bValue = calculateInvoiceTotal(b);
+          break;
+        case 'status':
+          aValue = a.status;
+          bValue = b.status;
+          break;
+        default:
+          aValue = a.id;
+          bValue = b.id;
+      }
+      
+      if (sortOrder === 'asc') {
+        return aValue > bValue ? 1 : -1;
+      } else {
+        return aValue < bValue ? 1 : -1;
+      }
+    });
+
+    return filtered;
+  }, [contextInvoices, contextCustomers, searchTerm, statusFilter, sortBy, sortOrder]);
+
+  const toggleSortOrder = () => {
+    setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+  };
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setStatusFilter('all');
+    setSortBy('date');
+    setSortOrder('desc');
+  };
+
   if (loading) {
     return <div className="p-4 text-center">Loading invoices...</div>;
   }
@@ -100,6 +172,53 @@ const Invoices: React.FC = () => {
         </Link>
       </div>
 
+      {/* Search and Filter Controls */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4 p-4 bg-gray-50 rounded-lg">
+        <div className="relative">
+          <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+          <Input
+            placeholder="Search invoices or customers..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger>
+            <Filter className="h-4 w-4 mr-2" />
+            <SelectValue placeholder="Filter by status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Statuses</SelectItem>
+            <SelectItem value="paid">Paid</SelectItem>
+            <SelectItem value="partial">Partial</SelectItem>
+            <SelectItem value="unpaid">Unpaid</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select value={sortBy} onValueChange={setSortBy}>
+          <SelectTrigger>
+            <SelectValue placeholder="Sort by" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="date">Date</SelectItem>
+            <SelectItem value="customer">Customer</SelectItem>
+            <SelectItem value="amount">Amount</SelectItem>
+            <SelectItem value="status">Status</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={toggleSortOrder} className="flex-1">
+            {sortOrder === 'asc' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />}
+          </Button>
+          <Button variant="outline" onClick={clearFilters}>
+            Clear
+          </Button>
+        </div>
+      </div>
+
       {contextCustomers.length === 0 && (
         <div className="p-4 mb-4 bg-yellow-50 border border-yellow-200 rounded-md">
           <p className="text-yellow-700">
@@ -111,9 +230,17 @@ const Invoices: React.FC = () => {
         </div>
       )}
 
-      {contextInvoices.length === 0 ? (
+      {/* Results Summary */}
+      <div className="mb-4 text-sm text-gray-600">
+        Showing {filteredAndSortedInvoices.length} of {contextInvoices.length} invoices
+      </div>
+
+      {filteredAndSortedInvoices.length === 0 ? (
         <div className="text-center py-8 text-gray-500">
-          No invoices found. Create a new invoice to get started.
+          {contextInvoices.length === 0 
+            ? "No invoices found. Create a new invoice to get started."
+            : "No invoices match your search criteria."
+          }
         </div>
       ) : (
         <div className="overflow-x-auto">
@@ -129,7 +256,7 @@ const Invoices: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {contextInvoices.map(invoice => {
+              {filteredAndSortedInvoices.map(invoice => {
                 // Calculate final total for display
                 const finalTotal = calculateInvoiceTotal(invoice);
                 const customerName = getCustomerName(invoice.customer_id);

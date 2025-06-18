@@ -1,10 +1,12 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useDataContext } from '@/context/data/DataContext';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Plus, Search, Filter, SortAsc, SortDesc } from 'lucide-react';
 import PartDialog from '@/components/part/PartDialog';
 import { Part } from '@/types';
 
@@ -13,6 +15,11 @@ const Parts: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [customerNames, setCustomerNames] = useState<Record<string, string>>({});
   const [showPartDialog, setShowPartDialog] = useState(false);
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [stockFilter, setStockFilter] = useState<string>('all');
+  const [assignmentFilter, setAssignmentFilter] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<string>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const { getCustomerById } = useDataContext();
 
   // Load customer names for all vendors at once
@@ -148,6 +155,83 @@ const Parts: React.FC = () => {
     );
   };
 
+  // Filter and sort parts
+  const filteredAndSortedParts = useMemo(() => {
+    let filtered = parts.filter(part => {
+      // Search filter
+      const matchesSearch = searchTerm === '' || 
+        part.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        part.part_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        part.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        getVendorName(part).toLowerCase().includes(searchTerm.toLowerCase());
+      
+      // Stock filter
+      const isLowStock = part.quantity <= (part.reorder_level || 5);
+      const matchesStock = stockFilter === 'all' || 
+        (stockFilter === 'low' && isLowStock) ||
+        (stockFilter === 'normal' && !isLowStock);
+      
+      // Assignment filter
+      const isAssigned = part.invoice_ids && part.invoice_ids.length > 0;
+      const matchesAssignment = assignmentFilter === 'all' ||
+        (assignmentFilter === 'assigned' && isAssigned) ||
+        (assignmentFilter === 'workshop' && !isAssigned);
+      
+      return matchesSearch && matchesStock && matchesAssignment;
+    });
+
+    // Sort
+    filtered.sort((a, b) => {
+      let aValue: any, bValue: any;
+      
+      switch (sortBy) {
+        case 'name':
+          aValue = a.name.toLowerCase();
+          bValue = b.name.toLowerCase();
+          break;
+        case 'quantity':
+          aValue = a.quantity;
+          bValue = b.quantity;
+          break;
+        case 'price':
+          aValue = a.price;
+          bValue = b.price;
+          break;
+        case 'vendor':
+          aValue = getVendorName(a).toLowerCase();
+          bValue = getVendorName(b).toLowerCase();
+          break;
+        case 'part_number':
+          aValue = a.part_number || '';
+          bValue = b.part_number || '';
+          break;
+        default:
+          aValue = a.name.toLowerCase();
+          bValue = b.name.toLowerCase();
+      }
+      
+      if (sortOrder === 'asc') {
+        return aValue > bValue ? 1 : -1;
+      } else {
+        return aValue < bValue ? 1 : -1;
+      }
+    });
+
+    return filtered;
+  }, [parts, searchTerm, stockFilter, assignmentFilter, sortBy, sortOrder, customerNames]);
+
+  const toggleSortOrder = () => {
+    setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+  };
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setStockFilter('all');
+    setAssignmentFilter('all');
+    setSortBy('name');
+    setSortOrder('asc');
+  };
+
   console.log('Current parts state:', parts);
 
   return (
@@ -160,50 +244,120 @@ const Parts: React.FC = () => {
         </Button>
       </div>
 
+      {/* Search and Filter Controls */}
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4 p-4 bg-gray-50 rounded-lg">
+        <div className="relative">
+          <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+          <Input
+            placeholder="Search parts, vendors..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        
+        <Select value={stockFilter} onValueChange={setStockFilter}>
+          <SelectTrigger>
+            <Filter className="h-4 w-4 mr-2" />
+            <SelectValue placeholder="Stock level" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Stock Levels</SelectItem>
+            <SelectItem value="low">Low Stock</SelectItem>
+            <SelectItem value="normal">Normal Stock</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select value={assignmentFilter} onValueChange={setAssignmentFilter}>
+          <SelectTrigger>
+            <SelectValue placeholder="Assignment" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Parts</SelectItem>
+            <SelectItem value="workshop">Workshop Inventory</SelectItem>
+            <SelectItem value="assigned">Assigned to Jobs</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select value={sortBy} onValueChange={setSortBy}>
+          <SelectTrigger>
+            <SelectValue placeholder="Sort by" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="name">Name</SelectItem>
+            <SelectItem value="quantity">Quantity</SelectItem>
+            <SelectItem value="price">Price</SelectItem>
+            <SelectItem value="vendor">Vendor</SelectItem>
+            <SelectItem value="part_number">Part Number</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={toggleSortOrder} className="flex-1">
+            {sortOrder === 'asc' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />}
+          </Button>
+          <Button variant="outline" onClick={clearFilters}>
+            Clear
+          </Button>
+        </div>
+      </div>
+
       {loading ? (
         <div className="text-center py-8">Loading parts inventory...</div>
-      ) : parts.length === 0 ? (
-        <div className="text-center py-8 text-gray-500">
-          No parts in inventory. Add parts to get started.
-        </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="min-w-full bg-white rounded-lg">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="py-2 px-4 text-left">Name</th>
-                <th className="py-2 px-4 text-left">Description</th>
-                <th className="py-2 px-4 text-left">Part Number</th>
-                <th className="py-2 px-4 text-right">Quantity</th>
-                <th className="py-2 px-4 text-right">Price</th>
-                <th className="py-2 px-4 text-left">Vendor</th>
-                <th className="py-2 px-4 text-left">Assignment</th>
-              </tr>
-            </thead>
-            <tbody>
-              {parts.map(part => (
-                <tr key={part.id} className="border-t border-gray-200">
-                  <td className="py-2 px-4">{part.name}</td>
-                  <td className="py-2 px-4">{part.description || 'N/A'}</td>
-                  <td className="py-2 px-4">{part.part_number || 'N/A'}</td>
-                  <td className="py-2 px-4 text-right">
-                    <span className={`${part.quantity <= (part.reorder_level || 5) ? 'text-red-600 font-medium' : ''}`}>
-                      {part.quantity}
-                    </span>
-                    {part.quantity <= (part.reorder_level || 5) && (
-                      <span className="ml-2 px-2 py-1 text-xs bg-red-100 text-red-800 rounded">
-                        Low Stock
-                      </span>
-                    )}
-                  </td>
-                  <td className="py-2 px-4 text-right">${part.price.toFixed(2)}</td>
-                  <td className="py-2 px-4">{getVendorName(part)}</td>
-                  <td className="py-2 px-4">{getAssignmentStatus(part)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <>
+          {/* Results Summary */}
+          <div className="mb-4 text-sm text-gray-600">
+            Showing {filteredAndSortedParts.length} of {parts.length} parts
+          </div>
+
+          {filteredAndSortedParts.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              {parts.length === 0 
+                ? "No parts in inventory. Add parts to get started."
+                : "No parts match your search criteria."
+              }
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full bg-white rounded-lg">
+                <thead className="bg-gray-100">
+                  <tr>
+                    <th className="py-2 px-4 text-left">Name</th>
+                    <th className="py-2 px-4 text-left">Description</th>
+                    <th className="py-2 px-4 text-left">Part Number</th>
+                    <th className="py-2 px-4 text-right">Quantity</th>
+                    <th className="py-2 px-4 text-right">Price</th>
+                    <th className="py-2 px-4 text-left">Vendor</th>
+                    <th className="py-2 px-4 text-left">Assignment</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredAndSortedParts.map(part => (
+                    <tr key={part.id} className="border-t border-gray-200">
+                      <td className="py-2 px-4">{part.name}</td>
+                      <td className="py-2 px-4">{part.description || 'N/A'}</td>
+                      <td className="py-2 px-4">{part.part_number || 'N/A'}</td>
+                      <td className="py-2 px-4 text-right">
+                        <span className={`${part.quantity <= (part.reorder_level || 5) ? 'text-red-600 font-medium' : ''}`}>
+                          {part.quantity}
+                        </span>
+                        {part.quantity <= (part.reorder_level || 5) && (
+                          <span className="ml-2 px-2 py-1 text-xs bg-red-100 text-red-800 rounded">
+                            Low Stock
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-2 px-4 text-right">${part.price.toFixed(2)}</td>
+                      <td className="py-2 px-4">{getVendorName(part)}</td>
+                      <td className="py-2 px-4">{getAssignmentStatus(part)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
       )}
 
       <PartDialog
