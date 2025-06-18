@@ -1,4 +1,3 @@
-
 export interface Customer {
   id: string;
   name: string;
@@ -103,7 +102,7 @@ export interface Part {
   price: number;
   quantity: number;
   vendor_id?: string;
-  vendor_name?: string;
+  vendor_name?: string; // Alias for compatibility
   reorder_level?: number;
   created_at?: string;
   updated_at?: string;
@@ -263,4 +262,17 @@ export interface DashboardMetrics {
   invoiceGrowth?: number;
   taskGrowth?: number;
   customerGrowth?: number;
+  // Add missing properties
+  pendingInvoices?: number;
+  activeJobs?: number;
+  mechanicEfficiency?: number;
+  completedJobs?: number;
+  monthlyRevenue?: number;
+  monthlyExpenses?: number;
+  monthlyProfit?: number;
+  averageJobValue?: number;
+  inventoryValue?: number;
+  pendingTasks?: number;
+  activeVehicles?: number;
+  lowStockItems?: number;
 }

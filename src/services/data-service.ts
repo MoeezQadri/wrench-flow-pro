@@ -29,7 +29,6 @@ export const calculateDashboardMetrics = async (): Promise<DashboardMetrics> => 
   const monthlyExpenses = 5000;
   const monthlyProfit = monthlyRevenue - monthlyExpenses;
   const activeCustomers = 50;
-  const vehicleCount = 75;
   const averageJobValue = 500;
   const inventoryValue = 25000;
   const pendingTasks = 8;
@@ -38,6 +37,9 @@ export const calculateDashboardMetrics = async (): Promise<DashboardMetrics> => 
 
   return {
     totalRevenue,
+    totalInvoices: 100,
+    completedTasks: completedJobs,
+    activeCustomers,
     pendingInvoices,
     activeJobs,
     mechanicEfficiency,
@@ -45,8 +47,6 @@ export const calculateDashboardMetrics = async (): Promise<DashboardMetrics> => 
     monthlyRevenue,
     monthlyExpenses,
     monthlyProfit,
-    activeCustomers,
-    // vehicleCount,
     averageJobValue,
     inventoryValue,
     pendingTasks,

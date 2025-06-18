@@ -11,7 +11,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Task, Invoice, Vehicle } from "@/types";
-import TaskForm, { TaskFormValues } from "./TaskForm";
+import TaskForm from "./TaskForm";
+import { TaskFormValues } from "./TaskFormValues";
 import { useDataContext } from "@/context/data/DataContext";
 
 const generateId = (prefix: string = 'id'): string => {
@@ -87,14 +88,14 @@ const TaskDialog = ({ open, onOpenChange, onSave, task, invoiceId }: TaskDialogP
         id: task?.id || generateId("task"),
         title: data.title,
         description: data.description || "",
-        status: data.status as 'open' | 'in-progress' | 'completed' | 'blocked' | 'canceled', // Cast to correct type
+        status: data.status === 'in-progress' ? 'in-progress' : 'completed',
         mechanicId: data.mechanicId === "unassigned" ? undefined : data.mechanicId,
         vehicleId: taskVehicleId,
         invoiceId: taskInvoiceId,
         hoursEstimated: data.hoursEstimated,
         hoursSpent: data.hoursSpent,
         price: data.price,
-        location: taskLocation as 'workshop' | 'roadside' | 'other', // Cast to correct type
+        location: taskLocation,
         created_at: task?.created_at || new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
@@ -125,6 +126,13 @@ const TaskDialog = ({ open, onOpenChange, onSave, task, invoiceId }: TaskDialogP
     return task.invoiceId ? "invoice" : "internal";
   };
 
+  // Convert TaskLocation to form location type
+  const convertLocationForForm = (location?: string): 'workshop' | 'roadside' | 'other' => {
+    if (location === 'onsite' || location === 'remote') return 'other';
+    if (location === 'roadside') return 'roadside';
+    return 'workshop';
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto">
@@ -146,9 +154,9 @@ const TaskDialog = ({ open, onOpenChange, onSave, task, invoiceId }: TaskDialogP
               ? {
                 title: task.title,
                 description: task.description,
-                status: task.status === 'open' ? 'in-progress' : task.status as 'in-progress' | 'completed', // Map open to in-progress
+                status: task.status === 'completed' ? 'completed' : 'in-progress',
                 price: task.price || 0,
-                location: task.location || "workshop",
+                location: convertLocationForForm(task.location),
                 taskType: getTaskType(task),
                 mechanicId: task.mechanicId || "unassigned",
                 vehicleId: task.vehicleId,

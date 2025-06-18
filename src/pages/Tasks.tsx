@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,7 +10,7 @@ import TaskMechanicAssignment from "@/components/task/TaskMechanicAssignment";
 import {
   hasPermission,
 } from "@/services/data-service";
-import { Task, TaskLocation, Invoice, Vehicle, Mechanic, Customer } from "@/types";
+import { Task, TaskLocation, Invoice, Vehicle, Mechanic, Customer, TaskStatus } from "@/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { resolvePromiseAndSetState } from "@/utils/async-helpers";
 import { useDataContext } from "@/context/data/DataContext";
@@ -144,14 +143,19 @@ const Tasks = () => {
     setSelectedTaskForTimeTracking(null);
   };
 
-  const getStatusBadgeClass = (status: 'pending' | 'in-progress' | 'completed') => {
+  const getStatusBadgeClass = (status: TaskStatus) => {
     switch (status) {
       case 'pending':
+      case 'open':
         return 'bg-yellow-100 text-yellow-800';
       case 'in-progress':
         return 'bg-blue-100 text-blue-800';
       case 'completed':
         return 'bg-green-100 text-green-800';
+      case 'blocked':
+        return 'bg-red-100 text-red-800';
+      case 'canceled':
+        return 'bg-gray-100 text-gray-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }

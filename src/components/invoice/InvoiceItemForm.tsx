@@ -448,7 +448,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
               <Checkbox
                 id="advanced-options"
                 checked={showAdvancedOptions}
-                onCheckedChange={setShowAdvancedOptions}
+                onCheckedChange={(checked) => setShowAdvancedOptions(checked === true)}
               />
               <label htmlFor="advanced-options" className="text-sm font-medium">
                 Show advanced options
@@ -527,7 +527,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
                           <FormControl>
                             <Checkbox
                               checked={field.value}
-                              onCheckedChange={field.onChange}
+                              onCheckedChange={(checked) => field.onChange(checked === true)}
                             />
                           </FormControl>
                           <div className="space-y-1 leading-none">
@@ -601,7 +601,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
                           <FormControl>
                             <Checkbox
                               checked={field.value}
-                              onCheckedChange={field.onChange}
+                              onCheckedChange={(checked) => field.onChange(checked === true)}
                             />
                           </FormControl>
                           <div className="space-y-1 leading-none">
