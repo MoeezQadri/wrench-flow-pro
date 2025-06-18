@@ -46,7 +46,7 @@ const VehicleDialog = ({ open, onOpenChange, onSave, vehicle, customerId }: Vehi
         customer_id: data.customer_id,
         make: data.make,
         model: data.model,
-        year: data.year.toString(), // Convert to string
+        year: data.year.toString(), // Ensure it's a string
         license_plate: data.license_plate,
         vin: data.vin || "",
         color: data.color || "",

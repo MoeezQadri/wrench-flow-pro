@@ -6,6 +6,12 @@ export interface Customer {
   phone?: string;
   address?: string;
   notes?: string;
+  total_visits?: number;
+  totalVisits?: number; // Alias for compatibility
+  lifetime_value?: number;
+  lifetimeValue?: number; // Alias for compatibility
+  last_visit?: string;
+  lastVisit?: string; // Alias for compatibility
   created_at?: string;
   updated_at?: string;
 }
@@ -15,10 +21,10 @@ export interface Vehicle {
   customer_id: string;
   make: string;
   model: string;
-  year: string; // Changed to string to match database
+  year: string; // Always string to match database
   license_plate: string;
   vin?: string;
-  color?: string; // Added color property
+  color?: string;
   notes?: string;
   created_at?: string;
   updated_at?: string;
@@ -27,6 +33,12 @@ export interface Vehicle {
 export type TaskStatus = 'open' | 'in-progress' | 'completed' | 'blocked' | 'canceled';
 export type TaskLocation = 'workshop' | 'roadside' | 'other';
 export type InvoiceStatus = 'open' | 'paid' | 'partial' | 'overdue' | 'draft' | 'in-progress' | 'completed';
+export type AttendanceStatus = 'present' | 'late' | 'absent' | 'half-day' | 'pending' | 'approved' | 'rejected';
+export type PaymentMethod = 'cash' | 'card' | 'bank-transfer' | 'check' | 'other';
+export type EmploymentType = 'fulltime' | 'contractor';
+
+// Define UserRole as a string union type, not an interface
+export type UserRole = 'owner' | 'manager' | 'mechanic' | 'admin';
 
 export interface Payment {
   id: string;
@@ -54,7 +66,7 @@ export interface Invoice {
   vehicleInfo?: {
     make: string;
     model: string;
-    year: string; // Changed to string
+    year: string;
     license_plate: string;
   };
 }
@@ -133,20 +145,13 @@ export interface Task {
   skill_level?: string;
 }
 
-// Adding missing type definitions
 export interface User {
   id: string;
   email: string;
   name?: string;
-  role?: string;
-  created_at?: string;
-  updated_at?: string;
-}
-
-export interface UserRole {
-  id: string;
-  user_id: string;
-  role: string;
+  role?: UserRole;
+  organization_id?: string;
+  lastLogin?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -156,10 +161,15 @@ export interface Mechanic {
   name: string;
   email?: string;
   phone?: string;
+  address?: string;
   hire_date?: string;
   hourly_rate?: number;
   specialties?: string[];
+  specialization?: string;
   status?: 'active' | 'inactive';
+  is_active?: boolean;
+  employment_type?: EmploymentType;
+  user_id?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -168,9 +178,11 @@ export interface Vendor {
   id: string;
   name: string;
   contact_person?: string;
+  contact_name?: string; // Alias for compatibility
   email?: string;
   phone?: string;
   address?: string;
+  category?: string;
   notes?: string;
   created_at?: string;
   updated_at?: string;
@@ -179,10 +191,13 @@ export interface Vendor {
 export interface Expense {
   id: string;
   vendor_id?: string;
+  vendor_name?: string;
   category: string;
-  description: string;
+  description?: string;
   amount: number;
   date: string;
+  payment_method?: PaymentMethod;
+  payment_status?: string;
   receipt_url?: string;
   notes?: string;
   created_at?: string;
@@ -198,6 +213,8 @@ export interface Attendance {
   break_start?: string;
   break_end?: string;
   total_hours?: number;
+  status?: AttendanceStatus;
+  approved_by?: string;
   notes?: string;
   created_at?: string;
   updated_at?: string;
@@ -210,6 +227,21 @@ export interface Organization {
   phone?: string;
   email?: string;
   website?: string;
+  country?: string;
+  currency?: string;
+  subscription_level?: string;
+  subscription_status?: string;
+  logo?: string;
+  trial_ends_at?: string;
   created_at?: string;
   updated_at?: string;
+}
+
+// Add missing CustomerAnalytics interface
+export interface CustomerAnalytics {
+  lifetimeValue: number;
+  totalInvoices: number;
+  averageInvoiceValue: number;
+  vehicles: Vehicle[];
+  invoiceHistory: Invoice[];
 }
