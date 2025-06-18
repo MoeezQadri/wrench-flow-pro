@@ -146,7 +146,12 @@ export const useInvoices = () => {
                         price: item.price,
                         part_id: item.part_id,
                         task_id: item.task_id,
-                        is_auto_added: item.is_auto_added || false
+                        is_auto_added: item.is_auto_added || false,
+                        unit_of_measure: item.unit_of_measure || 'piece',
+                        creates_inventory_part: item.creates_inventory_part || false,
+                        creates_task: item.creates_task || false,
+                        custom_part_data: item.custom_part_data,
+                        custom_labor_data: item.custom_labor_data
                     })) || [],
                     payments: invoice.payments?.map((payment: any) => ({
                         id: payment.id,

@@ -133,22 +133,49 @@ const InvoiceItemsSection: React.FC<InvoiceItemsSectionProps> = ({
               {items.map((item, index) => (
                 <tr key={item.id} className={index % 2 === 0 ? "bg-background" : "bg-muted/50"}>
                   <td className="p-3">
-                    <div className="flex items-center gap-2">
-                      {item.description}
-                      {item.is_auto_added && (
-                        <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">
-                          Auto-added
-                        </span>
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2">
+                        {item.description}
+                        {item.is_auto_added && (
+                          <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">
+                            Auto-added
+                          </span>
+                        )}
+                        {item.part_id && (
+                          <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded">
+                            Workshop Part
+                          </span>
+                        )}
+                        {item.creates_inventory_part && (
+                          <span className="px-2 py-1 text-xs bg-purple-100 text-purple-800 rounded">
+                            Creates Part
+                          </span>
+                        )}
+                        {item.creates_task && (
+                          <span className="px-2 py-1 text-xs bg-orange-100 text-orange-800 rounded">
+                            Creates Task
+                          </span>
+                        )}
+                      </div>
+                      {/* Show custom data if available */}
+                      {item.custom_part_data && (
+                        <div className="text-xs text-muted-foreground">
+                          {item.custom_part_data.part_number && `Part #: ${item.custom_part_data.part_number}`}
+                          {item.custom_part_data.manufacturer && ` | Mfg: ${item.custom_part_data.manufacturer}`}
+                        </div>
                       )}
-                      {item.part_id && (
-                        <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded">
-                          Workshop Part
-                        </span>
+                      {item.custom_labor_data && (
+                        <div className="text-xs text-muted-foreground">
+                          {item.custom_labor_data.labor_rate && `Rate: $${item.custom_labor_data.labor_rate}/hr`}
+                          {item.custom_labor_data.skill_level && ` | Level: ${item.custom_labor_data.skill_level}`}
+                        </div>
                       )}
                     </div>
                   </td>
                   <td className="p-3 capitalize">{item.type}</td>
-                  <td className="p-3 text-right">{item.quantity}</td>
+                  <td className="p-3 text-right">
+                    {item.quantity} {item.unit_of_measure || 'piece'}
+                  </td>
                   <td className="p-3 text-right">${item.price.toFixed(2)}</td>
                   <td className="p-3 text-right font-medium">${calculateItemTotal(item)}</td>
                   <td className="p-3 text-center">

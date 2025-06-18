@@ -219,6 +219,10 @@ export type Database = {
       invoice_items: {
         Row: {
           created_at: string | null
+          creates_inventory_part: boolean | null
+          creates_task: boolean | null
+          custom_labor_data: Json | null
+          custom_part_data: Json | null
           description: string
           id: string
           invoice_id: string
@@ -228,9 +232,14 @@ export type Database = {
           quantity: number
           task_id: string | null
           type: string
+          unit_of_measure: string | null
         }
         Insert: {
           created_at?: string | null
+          creates_inventory_part?: boolean | null
+          creates_task?: boolean | null
+          custom_labor_data?: Json | null
+          custom_part_data?: Json | null
           description: string
           id?: string
           invoice_id: string
@@ -240,9 +249,14 @@ export type Database = {
           quantity: number
           task_id?: string | null
           type: string
+          unit_of_measure?: string | null
         }
         Update: {
           created_at?: string | null
+          creates_inventory_part?: boolean | null
+          creates_task?: boolean | null
+          custom_labor_data?: Json | null
+          custom_part_data?: Json | null
           description?: string
           id?: string
           invoice_id?: string
@@ -252,6 +266,7 @@ export type Database = {
           quantity?: number
           task_id?: string | null
           type?: string
+          unit_of_measure?: string | null
         }
         Relationships: [
           {
@@ -443,43 +458,55 @@ export type Database = {
       }
       parts: {
         Row: {
+          category: string | null
           created_at: string | null
           description: string | null
           id: string
           invoice_ids: string[] | null
+          location: string | null
+          manufacturer: string | null
           name: string
           part_number: string | null
           price: number
           quantity: number
           reorder_level: number | null
+          unit: string | null
           updated_at: string | null
           vendor_id: string | null
           vendor_name: string | null
         }
         Insert: {
+          category?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
           invoice_ids?: string[] | null
+          location?: string | null
+          manufacturer?: string | null
           name: string
           part_number?: string | null
           price: number
           quantity?: number
           reorder_level?: number | null
+          unit?: string | null
           updated_at?: string | null
           vendor_id?: string | null
           vendor_name?: string | null
         }
         Update: {
+          category?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
           invoice_ids?: string[] | null
+          location?: string | null
+          manufacturer?: string | null
           name?: string
           part_number?: string | null
           price?: number
           quantity?: number
           reorder_level?: number | null
+          unit?: string | null
           updated_at?: string | null
           vendor_id?: string | null
           vendor_name?: string | null
@@ -689,9 +716,11 @@ export type Database = {
           hours_spent: number | null
           id: string
           invoice_id: string | null
+          labor_rate: number | null
           location: string | null
           mechanic_id: string | null
           price: number | null
+          skill_level: string | null
           start_time: string | null
           status: string
           title: string
@@ -708,9 +737,11 @@ export type Database = {
           hours_spent?: number | null
           id?: string
           invoice_id?: string | null
+          labor_rate?: number | null
           location?: string | null
           mechanic_id?: string | null
           price?: number | null
+          skill_level?: string | null
           start_time?: string | null
           status: string
           title: string
@@ -727,9 +758,11 @@ export type Database = {
           hours_spent?: number | null
           id?: string
           invoice_id?: string | null
+          labor_rate?: number | null
           location?: string | null
           mechanic_id?: string | null
           price?: number | null
+          skill_level?: string | null
           start_time?: string | null
           status?: string
           title?: string

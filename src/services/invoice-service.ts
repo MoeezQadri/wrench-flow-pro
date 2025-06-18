@@ -55,7 +55,12 @@ export const createInvoice = async (invoiceData: CreateInvoiceData): Promise<Inv
         price: item.price,
         part_id: item.part_id || null,
         task_id: item.task_id || null,
-        is_auto_added: item.is_auto_added || false
+        is_auto_added: item.is_auto_added || false,
+        unit_of_measure: item.unit_of_measure || 'piece',
+        creates_inventory_part: item.creates_inventory_part || false,
+        creates_task: item.creates_task || false,
+        custom_part_data: item.custom_part_data || null,
+        custom_labor_data: item.custom_labor_data || null
       }));
 
       console.log('Inserting invoice items:', itemsToInsert);
@@ -69,7 +74,7 @@ export const createInvoice = async (invoiceData: CreateInvoiceData): Promise<Inv
         throw new Error(`Failed to create invoice items: ${itemsError.message}`);
       }
 
-      // Update parts inventory and task assignments
+      // Update parts inventory and task assignments, plus handle custom item creation
       await updatePartsAndTasksForInvoice(invoiceData.items, invoiceId);
     }
 
@@ -149,7 +154,12 @@ export const updateInvoiceService = async (invoiceData: Invoice): Promise<Invoic
           price: item.price,
           part_id: item.part_id || null,
           task_id: item.task_id || null,
-          is_auto_added: item.is_auto_added || false
+          is_auto_added: item.is_auto_added || false,
+          unit_of_measure: item.unit_of_measure || 'piece',
+          creates_inventory_part: item.creates_inventory_part || false,
+          creates_task: item.creates_task || false,
+          custom_part_data: item.custom_part_data || null,
+          custom_labor_data: item.custom_labor_data || null
         }));
 
         console.log('Inserting updated invoice items:', itemsToInsert);
@@ -223,6 +233,76 @@ const updatePartsAndTasksForInvoice = async (items: InvoiceItem[], invoiceId: st
   console.log('Updating parts and tasks for invoice:', invoiceId, 'items:', items);
 
   for (const item of items) {
+    // Handle custom part creation
+    if (item.type === 'part' && item.creates_inventory_part && item.custom_part_data) {
+      try {
+        console.log('Creating new inventory part from custom item:', item);
+        
+        const newPartId = crypto.randomUUID();
+        const { error: partCreationError } = await supabase
+          .from('parts')
+          .insert({
+            id: newPartId,
+            name: item.description,
+            description: item.description,
+            price: item.price,
+            quantity: 0, // Start with 0 since it's consumed immediately
+            part_number: item.custom_part_data.part_number,
+            manufacturer: item.custom_part_data.manufacturer,
+            category: item.custom_part_data.category,
+            location: item.custom_part_data.location,
+            unit: item.unit_of_measure || 'piece',
+            invoice_ids: [invoiceId],
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+
+        if (partCreationError) {
+          console.error('Error creating part from custom item:', partCreationError);
+        } else {
+          console.log('Successfully created part from custom item');
+        }
+      } catch (error) {
+        console.error('Error processing custom part creation:', error);
+      }
+    }
+
+    // Handle custom task creation
+    if (item.type === 'labor' && item.creates_task && item.custom_labor_data) {
+      try {
+        console.log('Creating new task template from custom item:', item);
+        
+        const newTaskId = crypto.randomUUID();
+        const { error: taskCreationError } = await supabase
+          .from('tasks')
+          .insert({
+            id: newTaskId,
+            title: item.description,
+            description: item.description,
+            status: 'completed',
+            location: 'workshop',
+            hours_estimated: item.quantity,
+            hours_spent: item.quantity,
+            price: item.price * item.quantity,
+            labor_rate: item.custom_labor_data.labor_rate,
+            skill_level: item.custom_labor_data.skill_level,
+            invoice_id: invoiceId,
+            completed_at: new Date().toISOString(),
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+
+        if (taskCreationError) {
+          console.error('Error creating task from custom item:', taskCreationError);
+        } else {
+          console.log('Successfully created task from custom item');
+        }
+      } catch (error) {
+        console.error('Error processing custom task creation:', error);
+      }
+    }
+
+    // Handle existing part inventory updates
     if (item.type === 'part' && item.part_id) {
       try {
         console.log('Processing part item:', item);
@@ -270,6 +350,7 @@ const updatePartsAndTasksForInvoice = async (items: InvoiceItem[], invoiceId: st
       }
     }
 
+    // Handle existing task updates
     if (item.type === 'labor' && item.task_id) {
       try {
         console.log('Processing labor item:', item);

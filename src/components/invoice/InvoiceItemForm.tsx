@@ -1,5 +1,5 @@
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -28,6 +29,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import { InvoiceItem, Part, Task } from "@/types";
 
@@ -38,6 +40,17 @@ const invoiceItemSchema = z.object({
   price: z.coerce.number().min(0, "Price must be at least 0"),
   part_id: z.string().optional(),
   task_id: z.string().optional(),
+  unit_of_measure: z.string().optional(),
+  creates_inventory_part: z.boolean().optional(),
+  creates_task: z.boolean().optional(),
+  // Custom part fields
+  part_number: z.string().optional(),
+  manufacturer: z.string().optional(),
+  category: z.string().optional(),
+  location: z.string().optional(),
+  // Custom labor fields
+  labor_rate: z.coerce.number().min(0).optional(),
+  skill_level: z.string().optional(),
 });
 
 type InvoiceItemFormData = z.infer<typeof invoiceItemSchema>;
@@ -61,6 +74,8 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
   vehicleId,
   editingItem
 }) => {
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
+
   const form = useForm<InvoiceItemFormData>({
     resolver: zodResolver(invoiceItemSchema),
     defaultValues: {
@@ -70,6 +85,15 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
       price: 0,
       part_id: "",
       task_id: "",
+      unit_of_measure: "piece",
+      creates_inventory_part: false,
+      creates_task: false,
+      part_number: "",
+      manufacturer: "",
+      category: "",
+      location: "",
+      labor_rate: 50.00,
+      skill_level: "standard",
     },
   });
 
@@ -78,6 +102,11 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
   useEffect(() => {
     if (editingItem) {
       console.log('Editing item:', editingItem);
+      
+      // Parse custom data if it exists
+      const customPartData = editingItem.custom_part_data || {};
+      const customLaborData = editingItem.custom_labor_data || {};
+      
       form.reset({
         description: editingItem.description,
         type: editingItem.type,
@@ -85,7 +114,23 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
         price: editingItem.price,
         part_id: editingItem.part_id || "",
         task_id: editingItem.task_id || "",
+        unit_of_measure: editingItem.unit_of_measure || "piece",
+        creates_inventory_part: editingItem.creates_inventory_part || false,
+        creates_task: editingItem.creates_task || false,
+        // Custom part fields
+        part_number: customPartData.part_number || "",
+        manufacturer: customPartData.manufacturer || "",
+        category: customPartData.category || "",
+        location: customPartData.location || "",
+        // Custom labor fields
+        labor_rate: customLaborData.labor_rate || 50.00,
+        skill_level: customLaborData.skill_level || "standard",
       });
+      
+      // Show advanced options if editing and has custom data
+      if (Object.keys(customPartData).length > 0 || Object.keys(customLaborData).length > 0) {
+        setShowAdvancedOptions(true);
+      }
     } else {
       form.reset({
         description: "",
@@ -94,12 +139,39 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
         price: 0,
         part_id: "",
         task_id: "",
+        unit_of_measure: "piece",
+        creates_inventory_part: false,
+        creates_task: false,
+        part_number: "",
+        manufacturer: "",
+        category: "",
+        location: "",
+        labor_rate: 50.00,
+        skill_level: "standard",
       });
+      setShowAdvancedOptions(false);
     }
   }, [editingItem, form, open]);
 
   const handleSubmit = (data: InvoiceItemFormData) => {
     console.log("InvoiceItemForm submit called with:", data);
+    
+    // Build custom data objects
+    const customPartData: any = {};
+    const customLaborData: any = {};
+    
+    if (data.type === "part") {
+      if (data.part_number) customPartData.part_number = data.part_number;
+      if (data.manufacturer) customPartData.manufacturer = data.manufacturer;
+      if (data.category) customPartData.category = data.category;
+      if (data.location) customPartData.location = data.location;
+    }
+    
+    if (data.type === "labor") {
+      if (data.labor_rate) customLaborData.labor_rate = data.labor_rate;
+      if (data.skill_level) customLaborData.skill_level = data.skill_level;
+    }
+
     const item: InvoiceItem = {
       id: editingItem?.id || `item-${Date.now()}`,
       description: data.description,
@@ -108,12 +180,18 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
       price: data.price,
       part_id: data.part_id || undefined,
       task_id: data.task_id || undefined,
+      unit_of_measure: data.unit_of_measure || "piece",
+      creates_inventory_part: data.creates_inventory_part || false,
+      creates_task: data.creates_task || false,
+      custom_part_data: Object.keys(customPartData).length > 0 ? customPartData : undefined,
+      custom_labor_data: Object.keys(customLaborData).length > 0 ? customLaborData : undefined,
       is_auto_added: false,
     };
 
     console.log('Saving item:', item);
     onSave(item);
     form.reset();
+    setShowAdvancedOptions(false);
   };
 
   const handlePartSelect = (partId: string) => {
@@ -123,6 +201,13 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
       console.log('Found part:', part);
       form.setValue("description", part.name);
       form.setValue("price", part.price);
+      form.setValue("unit_of_measure", part.unit || "piece");
+      
+      // Populate custom fields if available
+      if (part.part_number) form.setValue("part_number", part.part_number);
+      if (part.manufacturer) form.setValue("manufacturer", part.manufacturer);
+      if (part.category) form.setValue("category", part.category);
+      if (part.location) form.setValue("location", part.location);
     }
   };
 
@@ -134,6 +219,11 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
       form.setValue("description", task.title);
       form.setValue("price", task.price || 0);
       form.setValue("quantity", task.hoursEstimated || 1);
+      form.setValue("unit_of_measure", "hour");
+      
+      // Populate custom labor fields if available
+      if (task.labor_rate) form.setValue("labor_rate", task.labor_rate);
+      if (task.skill_level) form.setValue("skill_level", task.skill_level);
     }
   };
 
@@ -142,6 +232,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
     event.stopPropagation();
     console.log("Cancel button clicked");
     form.reset();
+    setShowAdvancedOptions(false);
     onOpenChange(false);
   };
 
@@ -160,7 +251,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {editingItem ? "Edit Invoice Item" : "Add Custom Invoice Item"}
@@ -281,7 +372,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
               )}
             />
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <FormField
                 control={form.control}
                 name="quantity"
@@ -297,6 +388,35 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
                         {...field}
                       />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="unit_of_measure"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Unit</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Unit" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="piece">Piece</SelectItem>
+                        <SelectItem value="hour">Hour</SelectItem>
+                        <SelectItem value="set">Set</SelectItem>
+                        <SelectItem value="gallon">Gallon</SelectItem>
+                        <SelectItem value="liter">Liter</SelectItem>
+                        <SelectItem value="meter">Meter</SelectItem>
+                        <SelectItem value="foot">Foot</SelectItem>
+                        <SelectItem value="kg">Kilogram</SelectItem>
+                        <SelectItem value="lb">Pound</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -322,6 +442,183 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
                 )}
               />
             </div>
+
+            {/* Advanced Options Toggle */}
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="advanced-options"
+                checked={showAdvancedOptions}
+                onCheckedChange={setShowAdvancedOptions}
+              />
+              <label htmlFor="advanced-options" className="text-sm font-medium">
+                Show advanced options
+              </label>
+            </div>
+
+            {/* Advanced Options */}
+            {showAdvancedOptions && (
+              <div className="space-y-4 border-t pt-4">
+                {watchedType === "part" && (
+                  <>
+                    <h4 className="font-medium text-sm">Part Details</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="part_number"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Part Number</FormLabel>
+                            <FormControl>
+                              <Input placeholder="ABC123" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="manufacturer"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Manufacturer</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Acme Corp" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="category"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Category</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Engine Parts" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="location"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Storage Location</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Shelf A-1" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <FormField
+                      control={form.control}
+                      name="creates_inventory_part"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                          <div className="space-y-1 leading-none">
+                            <FormLabel>
+                              Create inventory part
+                            </FormLabel>
+                            <FormDescription>
+                              Add this custom part to your parts inventory for future use
+                            </FormDescription>
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+                  </>
+                )}
+
+                {watchedType === "labor" && (
+                  <>
+                    <h4 className="font-medium text-sm">Labor Details</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="labor_rate"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Labor Rate ($/hour)</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                placeholder="50.00"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="skill_level"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Skill Level</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select skill level" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="basic">Basic</SelectItem>
+                                <SelectItem value="standard">Standard</SelectItem>
+                                <SelectItem value="advanced">Advanced</SelectItem>
+                                <SelectItem value="expert">Expert</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <FormField
+                      control={form.control}
+                      name="creates_task"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                          <div className="space-y-1 leading-none">
+                            <FormLabel>
+                              Create task template
+                            </FormLabel>
+                            <FormDescription>
+                              Save this custom labor as a task template for future use
+                            </FormDescription>
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+                  </>
+                )}
+              </div>
+            )}
 
             <DialogFooter>
               <Button 
