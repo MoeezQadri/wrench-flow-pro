@@ -82,7 +82,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
     });
   }, [status, discountType]);
 
-  // Fetch parts and tasks - show workshop inventory parts
+  // Fetch parts and tasks - separate workshop parts from invoice-assigned parts
   useEffect(() => {
     console.log('Parts filtering debug:', {
       totalParts: parts.length,
@@ -99,21 +99,24 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
       });
     });
 
-    // For workshop parts selector - show parts that have inventory available
-    // This includes parts with no invoice assignments AND parts with quantity > 0
-    const availableParts = parts.filter(part => {
-      // If editing, include parts already assigned to this invoice
+    // Workshop parts: parts that are available in inventory and not assigned to any invoice
+    // OR parts assigned to the current invoice being edited
+    const workshopParts = parts.filter(part => {
+      // If editing, include parts already assigned to this specific invoice
       if (isEditing && part.invoice_ids && part.invoice_ids.includes(invoiceData?.id || '')) {
         return true;
       }
       
-      // Show parts that have quantity available (workshop inventory)
-      return part.quantity > 0;
+      // Workshop parts: have inventory quantity AND either no invoice assignments or empty invoice_ids
+      const hasInventory = part.quantity > 0;
+      const notAssignedToInvoices = !part.invoice_ids || part.invoice_ids.length === 0;
+      
+      return hasInventory && notAssignedToInvoices;
     });
     
-    console.log('Filtered available parts (workshop inventory):', {
-      count: availableParts.length,
-      parts: availableParts.map(p => ({ 
+    console.log('Workshop parts (available for selection):', {
+      count: workshopParts.length,
+      parts: workshopParts.map(p => ({ 
         id: p.id, 
         name: p.name, 
         invoice_ids: p.invoice_ids,
@@ -121,7 +124,25 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
       }))
     });
     
-    setAvailableParts(availableParts);
+    setAvailableParts(workshopParts);
+
+    // Invoice-assigned parts: parts specifically tagged to this invoice (for auto-assignment)
+    const invoiceAssignedParts = parts.filter(part => 
+      part.invoice_ids && 
+      part.invoice_ids.includes(invoiceData?.id || selectedVehicleId) && 
+      !isEditing
+    );
+    
+    console.log('Invoice-assigned parts (for auto-assignment):', {
+      count: invoiceAssignedParts.length,
+      parts: invoiceAssignedParts.map(p => ({ 
+        id: p.id, 
+        name: p.name, 
+        invoice_ids: p.invoice_ids 
+      }))
+    });
+
+    setAssignedParts(invoiceAssignedParts);
 
     const availableTasks = tasks.filter(task => 
       task.status === 'completed' && (
@@ -136,7 +157,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
     });
     
     setAvailableTasks(availableTasks);
-  }, [parts, tasks, isEditing, invoiceData]);
+  }, [parts, tasks, isEditing, invoiceData, selectedVehicleId]);
 
   // Initialize form values when editing - only run once and before other effects
   useEffect(() => {

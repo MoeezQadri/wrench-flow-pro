@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import {
   Dialog,
@@ -30,10 +29,8 @@ const WorkshopPartsSelector: React.FC<WorkshopPartsSelectorProps> = ({
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedParts, setSelectedParts] = useState<Record<string, number>>({});
 
-  // Filter parts that are in workshop inventory (not assigned to invoices)
-  const workshopParts = availableParts.filter(part => 
-    !part.invoice_ids || part.invoice_ids.length === 0
-  );
+  // Use the already filtered availableParts (these are workshop parts)
+  const workshopParts = availableParts;
 
   const filteredParts = workshopParts.filter(part =>
     part.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -126,8 +123,8 @@ const WorkshopPartsSelector: React.FC<WorkshopPartsSelectorProps> = ({
             <div className="p-8 text-center text-muted-foreground">
               {workshopParts.length === 0 ? (
                 <>
-                  <p>No parts available in workshop inventory.</p>
-                  <p className="text-sm mt-2">Parts that are already assigned to invoices are not shown here.</p>
+                  <p>No workshop parts available.</p>
+                  <p className="text-sm mt-2">Parts with inventory quantity > 0 and not assigned to invoices will appear here.</p>
                 </>
               ) : (
                 <p>No parts found matching your search.</p>

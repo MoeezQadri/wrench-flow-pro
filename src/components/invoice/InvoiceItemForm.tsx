@@ -252,10 +252,8 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
     onOpenChange(false);
   };
 
-  // Filter available parts - exclude those already assigned to other invoices
-  const filteredParts = availableParts.filter(part => 
-    !part.invoice_ids || part.invoice_ids.length === 0
-  );
+  // Use the already filtered availableParts (these are workshop parts)
+  const filteredParts = availableParts;
 
   // Filter available tasks - exclude those already assigned to invoices
   const filteredTasks = availableTasks.filter(task => 
@@ -318,7 +316,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Choose from available parts" />
+                          <SelectValue placeholder="Choose from workshop parts" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
