@@ -1,7 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+
+import React, { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -12,8 +10,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -21,38 +19,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-  FormDescription,
-} from "@/components/ui/form";
+import { Checkbox } from "@/components/ui/checkbox";
 import { InvoiceItem, Part, Task } from "@/types";
-
-const invoiceItemSchema = z.object({
-  description: z.string().min(1, "Description is required"),
-  type: z.enum(["part", "labor", "other"]),
-  quantity: z.coerce.number().min(0.01, "Quantity must be at least 0.01"),
-  price: z.coerce.number().min(0, "Price must be at least 0"),
-  part_id: z.string().optional(),
-  task_id: z.string().optional(),
-  unit_of_measure: z.string().optional(),
-  creates_inventory_part: z.boolean().optional(),
-  creates_task: z.boolean().optional(),
-  // Custom part fields
-  part_number: z.string().optional(),
-  manufacturer: z.string().optional(),
-  category: z.string().optional(),
-  location: z.string().optional(),
-  // Custom labor fields
-  labor_rate: z.coerce.number().min(0).optional(),
-  skill_level: z.string().optional(),
-});
-
-type InvoiceItemFormData = z.infer<typeof invoiceItemSchema>;
+import { useDataContext } from "@/context/data/DataContext";
 
 interface InvoiceItemFormProps {
   open: boolean;
@@ -73,582 +42,418 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
   vehicleId,
   editingItem
 }) => {
-  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
+  // Form state
+  const [description, setDescription] = useState("");
+  const [type, setType] = useState<'part' | 'labor' | 'other'>('part');
+  const [quantity, setQuantity] = useState(1);
+  const [price, setPrice] = useState(0);
+  const [unitOfMeasure, setUnitOfMeasure] = useState("piece");
+  const [selectedPartId, setSelectedPartId] = useState("");
+  const [selectedTaskId, setSelectedTaskId] = useState("");
+  
+  // Custom creation flags
+  const [createsInventoryPart, setCreatesInventoryPart] = useState(false);
+  const [createsTask, setCreatesTask] = useState(false);
+  
+  // Custom part data
+  const [partNumber, setPartNumber] = useState("");
+  const [manufacturer, setManufacturer] = useState("");
+  const [category, setCategory] = useState("");
+  const [location, setLocation] = useState("");
+  
+  // Custom labor data
+  const [laborRate, setLaborRate] = useState(50);
+  const [skillLevel, setSkillLevel] = useState("standard");
 
-  const form = useForm<InvoiceItemFormData>({
-    resolver: zodResolver(invoiceItemSchema),
-    defaultValues: {
-      description: "",
-      type: "other",
-      quantity: 1,
-      price: 0,
-      part_id: "",
-      task_id: "",
-      unit_of_measure: "piece",
-      creates_inventory_part: false,
-      creates_task: false,
-      part_number: "",
-      manufacturer: "",
-      category: "",
-      location: "",
-      labor_rate: 50.00,
-      skill_level: "standard",
-    },
-  });
+  const { mechanics } = useDataContext();
 
-  const watchedType = form.watch("type");
+  // Debug logging for available data
+  useEffect(() => {
+    console.log('InvoiceItemForm debug:', {
+      availableParts: availableParts?.length || 0,
+      availableTasks: availableTasks?.length || 0,
+      mechanics: mechanics?.length || 0,
+      partsPreview: availableParts?.slice(0, 2),
+      tasksPreview: availableTasks?.slice(0, 2),
+      mechanicsPreview: mechanics?.slice(0, 2)
+    });
+  }, [availableParts, availableTasks, mechanics]);
+
+  // Reset form when dialog opens/closes
+  useEffect(() => {
+    if (open) {
+      if (editingItem) {
+        // Populate form with editing item data
+        setDescription(editingItem.description);
+        setType(editingItem.type as 'part' | 'labor' | 'other');
+        setQuantity(editingItem.quantity);
+        setPrice(editingItem.price);
+        setUnitOfMeasure(editingItem.unit_of_measure || "piece");
+        setSelectedPartId(editingItem.part_id || "");
+        setSelectedTaskId(editingItem.task_id || "");
+        setCreatesInventoryPart(editingItem.creates_inventory_part || false);
+        setCreatesTask(editingItem.creates_task || false);
+        
+        // Populate custom data if available
+        if (editingItem.custom_part_data) {
+          setPartNumber(editingItem.custom_part_data.part_number || "");
+          setManufacturer(editingItem.custom_part_data.manufacturer || "");
+          setCategory(editingItem.custom_part_data.category || "");
+          setLocation(editingItem.custom_part_data.location || "");
+        }
+        
+        if (editingItem.custom_labor_data) {
+          setLaborRate(editingItem.custom_labor_data.labor_rate || 50);
+          setSkillLevel(editingItem.custom_labor_data.skill_level || "standard");
+        }
+      } else {
+        // Reset form for new item
+        setDescription("");
+        setType('part');
+        setQuantity(1);
+        setPrice(0);
+        setUnitOfMeasure("piece");
+        setSelectedPartId("");
+        setSelectedTaskId("");
+        setCreatesInventoryPart(false);
+        setCreatesTask(false);
+        setPartNumber("");
+        setManufacturer("");
+        setCategory("");
+        setLocation("");
+        setLaborRate(50);
+        setSkillLevel("standard");
+      }
+    }
+  }, [open, editingItem]);
+
+  // Auto-fill description and price when selecting parts or tasks
+  useEffect(() => {
+    if (selectedPartId && availableParts) {
+      const selectedPart = availableParts.find(p => p.id === selectedPartId);
+      if (selectedPart) {
+        setDescription(selectedPart.name);
+        setPrice(selectedPart.price);
+        setUnitOfMeasure(selectedPart.unit || "piece");
+      }
+    }
+  }, [selectedPartId, availableParts]);
 
   useEffect(() => {
-    if (editingItem) {
-      console.log('Editing item:', editingItem);
-      
-      // Parse custom data if it exists
-      const customPartData = editingItem.custom_part_data || {};
-      const customLaborData = editingItem.custom_labor_data || {};
-      
-      form.reset({
-        description: editingItem.description,
-        type: editingItem.type,
-        quantity: editingItem.quantity,
-        price: editingItem.price,
-        part_id: editingItem.part_id || "",
-        task_id: editingItem.task_id || "",
-        unit_of_measure: editingItem.unit_of_measure || "piece",
-        creates_inventory_part: editingItem.creates_inventory_part || false,
-        creates_task: editingItem.creates_task || false,
-        // Custom part fields
-        part_number: customPartData.part_number || "",
-        manufacturer: customPartData.manufacturer || "",
-        category: customPartData.category || "",
-        location: customPartData.location || "",
-        // Custom labor fields
-        labor_rate: customLaborData.labor_rate || 50.00,
-        skill_level: customLaborData.skill_level || "standard",
-      });
-      
-      // Show advanced options if editing and has custom data
-      if (Object.keys(customPartData).length > 0 || Object.keys(customLaborData).length > 0) {
-        setShowAdvancedOptions(true);
+    if (selectedTaskId && availableTasks) {
+      const selectedTask = availableTasks.find(t => t.id === selectedTaskId);
+      if (selectedTask) {
+        setDescription(selectedTask.title);
+        setPrice(selectedTask.price || 0);
+        setQuantity(selectedTask.hoursEstimated || 1);
+        setUnitOfMeasure("hour");
       }
-    } else {
-      form.reset({
-        description: "",
-        type: "other",
-        quantity: 1,
-        price: 0,
-        part_id: "",
-        task_id: "",
-        unit_of_measure: "piece",
-        creates_inventory_part: false,
-        creates_task: false,
-        part_number: "",
-        manufacturer: "",
-        category: "",
-        location: "",
-        labor_rate: 50.00,
-        skill_level: "standard",
-      });
-      setShowAdvancedOptions(false);
     }
-  }, [editingItem, form, open]);
+  }, [selectedTaskId, availableTasks]);
 
-  const handleSubmit = (data: InvoiceItemFormData) => {
-    console.log("InvoiceItemForm submit called with:", data);
-    
-    // Build custom data objects
-    const customPartData: any = {};
-    const customLaborData: any = {};
-    
-    if (data.type === "part") {
-      if (data.part_number) customPartData.part_number = data.part_number;
-      if (data.manufacturer) customPartData.manufacturer = data.manufacturer;
-      if (data.category) customPartData.category = data.category;
-      if (data.location) customPartData.location = data.location;
-    }
-    
-    if (data.type === "labor") {
-      if (data.labor_rate) customLaborData.labor_rate = data.labor_rate;
-      if (data.skill_level) customLaborData.skill_level = data.skill_level;
+  const handleSave = () => {
+    if (!description.trim()) {
+      return;
     }
 
-    const item: InvoiceItem = {
+    const newItem: InvoiceItem = {
       id: editingItem?.id || `item-${Date.now()}`,
-      description: data.description,
-      type: data.type,
-      quantity: data.quantity,
-      price: data.price,
-      part_id: data.part_id && data.part_id !== "custom" ? data.part_id : undefined,
-      task_id: data.task_id && data.task_id !== "custom" ? data.task_id : undefined,
-      unit_of_measure: data.unit_of_measure || "piece",
-      creates_inventory_part: data.creates_inventory_part || false,
-      creates_task: data.creates_task || false,
-      custom_part_data: Object.keys(customPartData).length > 0 ? customPartData : undefined,
-      custom_labor_data: Object.keys(customLaborData).length > 0 ? customLaborData : undefined,
-      is_auto_added: false,
+      description: description.trim(),
+      type,
+      quantity,
+      price,
+      unit_of_measure: unitOfMeasure,
+      part_id: selectedPartId || undefined,
+      task_id: selectedTaskId || undefined,
+      creates_inventory_part: createsInventoryPart,
+      creates_task: createsTask,
+      is_auto_added: false
     };
 
-    console.log('Saving item:', item);
-    onSave(item);
-    form.reset();
-    setShowAdvancedOptions(false);
-  };
+    // Add custom part data if creating inventory part
+    if (createsInventoryPart && type === 'part') {
+      newItem.custom_part_data = {
+        part_number: partNumber,
+        manufacturer: manufacturer,
+        category: category,
+        location: location
+      };
+    }
 
-  const handlePartSelect = (partId: string) => {
-    console.log('Part selected:', partId);
-    if (partId === "custom") {
-      // Clear fields for custom part
-      form.setValue("description", "");
-      form.setValue("price", 0);
-      form.setValue("unit_of_measure", "piece");
-      return;
+    // Add custom labor data if creating task
+    if (createsTask && type === 'labor') {
+      newItem.custom_labor_data = {
+        labor_rate: laborRate,
+        skill_level: skillLevel
+      };
     }
-    
-    const part = availableParts.find(p => p.id === partId);
-    if (part) {
-      console.log('Found part:', part);
-      form.setValue("description", part.name);
-      form.setValue("price", part.price);
-      form.setValue("unit_of_measure", part.unit || "piece");
-      
-      // Populate custom fields if available
-      if (part.part_number) form.setValue("part_number", part.part_number);
-      if (part.manufacturer) form.setValue("manufacturer", part.manufacturer);
-      if (part.category) form.setValue("category", part.category);
-      if (part.location) form.setValue("location", part.location);
-    }
-  };
 
-  const handleTaskSelect = (taskId: string) => {
-    console.log('Task selected:', taskId);
-    if (taskId === "custom") {
-      // Clear fields for custom task
-      form.setValue("description", "");
-      form.setValue("price", 0);
-      form.setValue("quantity", 1);
-      form.setValue("unit_of_measure", "hour");
-      return;
-    }
-    
-    const task = availableTasks.find(t => t.id === taskId);
-    if (task) {
-      console.log('Found task:', task);
-      form.setValue("description", task.title);
-      form.setValue("price", task.price || 0);
-      form.setValue("quantity", task.hoursEstimated || 1);
-      form.setValue("unit_of_measure", "hour");
-      
-      // Populate custom labor fields if available
-      if (task.labor_rate) form.setValue("labor_rate", task.labor_rate);
-      if (task.skill_level) form.setValue("skill_level", task.skill_level);
-    }
-  };
-
-  const handleCancel = (event: React.MouseEvent<HTMLButtonElement>) => {
-    event.preventDefault();
-    event.stopPropagation();
-    console.log("Cancel button clicked");
-    form.reset();
-    setShowAdvancedOptions(false);
+    onSave(newItem);
     onOpenChange(false);
   };
-
-  // Use the already filtered availableParts (these are workshop parts)
-  const filteredParts = availableParts;
-
-  // Filter available tasks - exclude those already assigned to invoices
-  const filteredTasks = availableTasks.filter(task => 
-    task.status === 'completed' && !task.invoiceId
-  );
-
-  console.log('Available parts for custom items:', filteredParts);
-  console.log('Available tasks for custom items:', filteredTasks);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {editingItem ? "Edit Invoice Item" : "Add Custom Invoice Item"}
+            {editingItem ? 'Edit Invoice Item' : 'Add Invoice Item'}
           </DialogTitle>
           <DialogDescription>
-            Add a custom item or select from available parts and tasks.
+            Add or edit an item for this invoice. You can select from existing parts/tasks or create custom items.
           </DialogDescription>
         </DialogHeader>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="type"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Type</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select item type" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="part">Parts</SelectItem>
-                      <SelectItem value="labor">Labor</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
+        <div className="space-y-4">
+          {/* Item Type */}
+          <div>
+            <Label>Item Type</Label>
+            <Select value={type} onValueChange={(value: 'part' | 'labor' | 'other') => setType(value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select item type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="part">Part</SelectItem>
+                <SelectItem value="labor">Labor</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Part Selection */}
+          {type === 'part' && (
+            <div>
+              <Label>Select Part (Optional)</Label>
+              <Select value={selectedPartId} onValueChange={setSelectedPartId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select from workshop inventory or leave blank for custom" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Custom Part (not from inventory)</SelectItem>
+                  {availableParts && availableParts.length > 0 ? (
+                    availableParts.map((part) => (
+                      <SelectItem key={part.id} value={part.id}>
+                        {part.name} - ${part.price.toFixed(2)} (Stock: {part.quantity})
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="" disabled>No parts available in workshop inventory</SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+              {availableParts?.length === 0 && (
+                <p className="text-sm text-muted-foreground mt-1">
+                  No parts available from workshop inventory. You can still create custom parts.
+                </p>
               )}
-            />
+            </div>
+          )}
 
-            {watchedType === "part" && (
-              <FormField
-                control={form.control}
-                name="part_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Select Part (Optional)</FormLabel>
-                    <Select 
-                      onValueChange={(value) => {
-                        field.onChange(value);
-                        if (value) handlePartSelect(value);
-                      }} 
-                      value={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Choose from workshop parts" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="custom">Custom Part (no inventory link)</SelectItem>
-                        {filteredParts.map((part) => (
-                          <SelectItem key={part.id} value={part.id}>
-                            {part.name} - ${part.price.toFixed(2)} (Stock: {part.quantity})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-
-            {watchedType === "labor" && (
-              <FormField
-                control={form.control}
-                name="task_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Select Task (Optional)</FormLabel>
-                    <Select 
-                      onValueChange={(value) => {
-                        field.onChange(value);
-                        if (value) handleTaskSelect(value);
-                      }} 
-                      value={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Choose from available tasks" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="custom">Custom Labor (no task link)</SelectItem>
-                        {filteredTasks.map((task) => (
-                          <SelectItem key={task.id} value={task.id}>
-                            {task.title} - ${(task.price || 0).toFixed(2)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-
-            
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Textarea 
-                      placeholder="Item description" 
-                      {...field} 
-                      rows={2}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+          {/* Task Selection */}
+          {type === 'labor' && (
+            <div>
+              <Label>Select Task (Optional)</Label>
+              <Select value={selectedTaskId} onValueChange={setSelectedTaskId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select from completed tasks or leave blank for custom" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Custom Labor (not from completed tasks)</SelectItem>
+                  {availableTasks && availableTasks.length > 0 ? (
+                    availableTasks.map((task) => (
+                      <SelectItem key={task.id} value={task.id}>
+                        {task.title} - ${task.price?.toFixed(2) || '0.00'} ({task.hoursEstimated || 1}h)
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="" disabled>No completed tasks available</SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+              {availableTasks?.length === 0 && (
+                <p className="text-sm text-muted-foreground mt-1">
+                  No completed tasks available. You can still create custom labor items.
+                </p>
               )}
+            </div>
+          )}
+
+          {/* Description */}
+          <div>
+            <Label htmlFor="description">Description *</Label>
+            <Textarea
+              id="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Enter item description"
+              required
             />
+          </div>
 
-            <div className="grid grid-cols-3 gap-4">
-              <FormField
-                control={form.control}
-                name="quantity"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Quantity</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        min="0.01"
-                        placeholder="1"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="unit_of_measure"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Unit</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Unit" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="piece">Piece</SelectItem>
-                        <SelectItem value="hour">Hour</SelectItem>
-                        <SelectItem value="set">Set</SelectItem>
-                        <SelectItem value="gallon">Gallon</SelectItem>
-                        <SelectItem value="liter">Liter</SelectItem>
-                        <SelectItem value="meter">Meter</SelectItem>
-                        <SelectItem value="foot">Foot</SelectItem>
-                        <SelectItem value="kg">Kilogram</SelectItem>
-                        <SelectItem value="lb">Pound</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="price"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Unit Price ($)</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        placeholder="0.00"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+          {/* Quantity and Price */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label htmlFor="quantity">Quantity *</Label>
+              <Input
+                id="quantity"
+                type="number"
+                min="0.01"
+                step="0.01"
+                value={quantity}
+                onChange={(e) => setQuantity(parseFloat(e.target.value) || 1)}
+                required
               />
             </div>
-
-            {/* Advanced Options Toggle */}
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="advanced-options"
-                checked={showAdvancedOptions}
-                onCheckedChange={(checked) => setShowAdvancedOptions(checked === true)}
+            <div>
+              <Label htmlFor="price">Unit Price ($) *</Label>
+              <Input
+                id="price"
+                type="number"
+                min="0"
+                step="0.01"
+                value={price}
+                onChange={(e) => setPrice(parseFloat(e.target.value) || 0)}
+                required
               />
-              <label htmlFor="advanced-options" className="text-sm font-medium">
-                Show advanced options
-              </label>
             </div>
+            <div>
+              <Label htmlFor="unitOfMeasure">Unit</Label>
+              <Select value={unitOfMeasure} onValueChange={setUnitOfMeasure}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="piece">Piece</SelectItem>
+                  <SelectItem value="hour">Hour</SelectItem>
+                  <SelectItem value="liter">Liter</SelectItem>
+                  <SelectItem value="meter">Meter</SelectItem>
+                  <SelectItem value="kg">Kilogram</SelectItem>
+                  <SelectItem value="set">Set</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
 
-            {/* Advanced Options */}
-            {showAdvancedOptions && (
-              <div className="space-y-4 border-t pt-4">
-                {watchedType === "part" && (
-                  <>
-                    <h4 className="font-medium text-sm">Part Details</h4>
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="part_number"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Part Number</FormLabel>
-                            <FormControl>
-                              <Input placeholder="ABC123" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="manufacturer"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Manufacturer</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Acme Corp" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="category"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Category</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Engine Parts" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="location"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Storage Location</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Shelf A-1" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <FormField
-                      control={form.control}
-                      name="creates_inventory_part"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                          <FormControl>
-                            <Checkbox
-                              checked={field.value}
-                              onCheckedChange={(checked) => field.onChange(checked === true)}
-                            />
-                          </FormControl>
-                          <div className="space-y-1 leading-none">
-                            <FormLabel>
-                              Create inventory part
-                            </FormLabel>
-                            <FormDescription>
-                              Add this custom part to your parts inventory for future use
-                            </FormDescription>
-                          </div>
-                        </FormItem>
-                      )}
-                    />
-                  </>
-                )}
-
-                {watchedType === "labor" && (
-                  <>
-                    <h4 className="font-medium text-sm">Labor Details</h4>
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="labor_rate"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Labor Rate ($/hour)</FormLabel>
-                            <FormControl>
-                              <Input
-                                type="number"
-                                step="0.01"
-                                min="0"
-                                placeholder="50.00"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="skill_level"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Skill Level</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select skill level" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="basic">Basic</SelectItem>
-                                <SelectItem value="standard">Standard</SelectItem>
-                                <SelectItem value="advanced">Advanced</SelectItem>
-                                <SelectItem value="expert">Expert</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <FormField
-                      control={form.control}
-                      name="creates_task"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                          <FormControl>
-                            <Checkbox
-                              checked={field.value}
-                              onCheckedChange={(checked) => field.onChange(checked === true)}
-                            />
-                          </FormControl>
-                          <div className="space-y-1 leading-none">
-                            <FormLabel>
-                              Create task template
-                            </FormLabel>
-                            <FormDescription>
-                              Save this custom labor as a task template for future use
-                            </FormDescription>
-                          </div>
-                        </FormItem>
-                      )}
-                    />
-                  </>
-                )}
+          {/* Custom Part Creation */}
+          {type === 'part' && !selectedPartId && (
+            <div className="space-y-4 border-t pt-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="createsInventoryPart"
+                  checked={createsInventoryPart}
+                  onCheckedChange={(checked) => setCreatesInventoryPart(checked as boolean)}
+                />
+                <Label htmlFor="createsInventoryPart" className="text-sm">
+                  Create this as a new inventory part
+                </Label>
               </div>
-            )}
 
-            <DialogFooter>
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={handleCancel}
-              >
-                Cancel
-              </Button>
-              <Button type="submit">
-                {editingItem ? "Update" : "Add"} Item
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+              {createsInventoryPart && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-muted p-4 rounded-lg">
+                  <div>
+                    <Label htmlFor="partNumber">Part Number</Label>
+                    <Input
+                      id="partNumber"
+                      value={partNumber}
+                      onChange={(e) => setPartNumber(e.target.value)}
+                      placeholder="P-12345"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="manufacturer">Manufacturer</Label>
+                    <Input
+                      id="manufacturer"
+                      value={manufacturer}
+                      onChange={(e) => setManufacturer(e.target.value)}
+                      placeholder="Brand Name"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="category">Category</Label>
+                    <Input
+                      id="category"
+                      value={category}
+                      onChange={(e) => setCategory(e.target.value)}
+                      placeholder="Engine, Brakes, etc."
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="location">Storage Location</Label>
+                    <Input
+                      id="location"
+                      value={location}
+                      onChange={(e) => setLocation(e.target.value)}
+                      placeholder="Shelf A-1"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Custom Task Creation */}
+          {type === 'labor' && !selectedTaskId && (
+            <div className="space-y-4 border-t pt-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="createsTask"
+                  checked={createsTask}
+                  onCheckedChange={(checked) => setCreatesTask(checked as boolean)}
+                />
+                <Label htmlFor="createsTask" className="text-sm">
+                  Create this as a task template
+                </Label>
+              </div>
+
+              {createsTask && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-muted p-4 rounded-lg">
+                  <div>
+                    <Label htmlFor="laborRate">Labor Rate ($/hour)</Label>
+                    <Input
+                      id="laborRate"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={laborRate}
+                      onChange={(e) => setLaborRate(parseFloat(e.target.value) || 50)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="skillLevel">Skill Level</Label>
+                    <Select value={skillLevel} onValueChange={setSkillLevel}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="basic">Basic</SelectItem>
+                        <SelectItem value="standard">Standard</SelectItem>
+                        <SelectItem value="advanced">Advanced</SelectItem>
+                        <SelectItem value="expert">Expert</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Total Calculation */}
+          <div className="bg-muted p-3 rounded-lg">
+            <div className="flex justify-between items-center">
+              <span className="font-medium">Total:</span>
+              <span className="font-bold text-lg">${(price * quantity).toFixed(2)}</span>
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button onClick={handleSave} disabled={!description.trim()}>
+            {editingItem ? 'Update Item' : 'Add Item'}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
