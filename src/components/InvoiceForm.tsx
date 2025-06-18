@@ -50,10 +50,14 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
   // Add a ref to track if initial data has been loaded to prevent conflicts
   const initialDataLoaded = useRef(false);
 
-  // Initialize react-hook-form for PaymentsSection
+  // Initialize react-hook-form with proper default values
   const form = useForm({
     defaultValues: {
-      status: 'open' as InvoiceStatus
+      status: 'open' as InvoiceStatus,
+      discountType: 'none' as 'none' | 'percentage' | 'fixed',
+      discountValue: 0,
+      taxRate: 7.5,
+      date: new Date()
     }
   });
 

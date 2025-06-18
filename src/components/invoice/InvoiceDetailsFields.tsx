@@ -11,8 +11,10 @@ import { Calendar } from "@/components/ui/calendar";
 
 const InvoiceDetailsFields = () => {
   const form = useFormContext();
-  const discountType = form.watch("discountType");
-  const status = form.watch("status");
+  
+  // Get values with safe defaults
+  const discountType = form.watch("discountType") || "none";
+  const status = form.watch("status") || "open";
   
   // Define which statuses allow editing discount
   const canEditDiscount = ['open', 'in-progress', 'completed', 'partial'].includes(status);
