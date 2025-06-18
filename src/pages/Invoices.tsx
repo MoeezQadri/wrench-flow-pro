@@ -170,6 +170,8 @@ const Invoices: React.FC = () => {
                         <Link
                           to={`/invoices/${invoice.id}/edit`}
                           className="text-green-600 hover:text-green-800 underline"
+                        >
+                          Edit
                         </Link>
                       </div>
                     </td>
