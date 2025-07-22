@@ -111,11 +111,13 @@ const InvoiceDetails: React.FC = () => {
             }`}>
               {invoice.status.toUpperCase()}
             </span>
-            <Button variant="outline" size="sm" asChild>
-              <Link to={`/invoices/${invoice.id}/edit`}>
-                Edit Invoice
-              </Link>
-            </Button>
+            {invoice.status !== 'paid' && invoice.status !== 'completed' && (
+              <Button variant="outline" size="sm" asChild>
+                <Link to={`/invoices/${invoice.id}/edit`}>
+                  Edit Invoice
+                </Link>
+              </Button>
+            )}
           </div>
         </div>
 
