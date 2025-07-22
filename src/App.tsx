@@ -16,6 +16,7 @@ import Register from '@/pages/auth/Register';
 
 // Non-lazy loaded reports
 import FinanceReport from '@/pages/reports/FinanceReport';
+import FinancialReport from '@/pages/reports/FinancialReport';
 import TasksReport from '@/pages/reports/TasksReport';
 import InvoicingReport from '@/pages/reports/InvoicingReport';
 import AttendanceReport from '@/pages/reports/AttendanceReport';
@@ -45,8 +46,6 @@ const NotFound = lazy(() => import('@/pages/NotFound'));
 // Add Users and Finance pages
 const Users = lazy(() => import('@/pages/Users'));
 const Finance = lazy(() => import('@/pages/Finance'));
-const Vendors = lazy(() => import('@/pages/Vendors'));
-const Payables = lazy(() => import('@/pages/Payables'));
 
 // Super Admin pages
 const SuperAdminDashboard = lazy(() => import('@/pages/superadmin/SuperAdminDashboard'));
@@ -91,6 +90,7 @@ function App() {
                     <Route path="expenses" element={<Expenses />} />
                     <Route path="reports" element={<Reports />} />
                     <Route path="reports/finance" element={<FinanceReport />} />
+                    <Route path="reports/financial" element={<FinancialReport />} />
                     <Route path="reports/tasks" element={<TasksReport />} />
                     <Route path="reports/invoicing" element={<InvoicingReport />} />
                     <Route path="reports/attendance" element={<AttendanceReport />} />
@@ -99,8 +99,6 @@ function App() {
                     <Route path="vehicles" element={<Vehicles />} />
                     <Route path="users" element={<Users />} />
                     <Route path="finance" element={<Finance />} />
-                    <Route path="vendors" element={<Vendors />} />
-                    <Route path="payables" element={<Payables />} />
                   </Route>
                 </Route>
 

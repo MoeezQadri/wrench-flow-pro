@@ -2,7 +2,7 @@
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, DollarSign, FileText } from "lucide-react";
+import { Calendar, Clock, DollarSign, FileText, CreditCard, TrendingUp } from "lucide-react";
 
 const Reports = () => {
   const reports = [
@@ -23,6 +23,12 @@ const Reports = () => {
       description: "Daily financial summary with cash in hand",
       icon: <DollarSign className="h-8 w-8 text-primary" />,
       path: "/reports/finance"
+    },
+    {
+      title: "Receivables & Payables",
+      description: "Outstanding receivables and payables management",
+      icon: <CreditCard className="h-8 w-8 text-primary" />,
+      path: "/reports/financial"
     },
     {
       title: "Invoicing Summary",

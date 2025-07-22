@@ -77,16 +77,6 @@ const navItems = [
     icon: ShoppingCart,
   },
   {
-    title: "Vendors",
-    href: "/vendors",
-    icon: Building,
-  },
-  {
-    title: "Payables",
-    href: "/payables",
-    icon: CreditCard,
-  },
-  {
     title: "Reports",
     href: "/reports",
     icon: BarChart3,
