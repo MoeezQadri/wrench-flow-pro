@@ -12,6 +12,7 @@ interface InvoiceItemsSectionProps {
   availableParts: Part[];
   availableTasks: Task[];
   vehicleId: string;
+  invoiceId?: string;
 }
 
 const InvoiceItemsSection: React.FC<InvoiceItemsSectionProps> = ({
@@ -19,7 +20,8 @@ const InvoiceItemsSection: React.FC<InvoiceItemsSectionProps> = ({
   onItemsChange,
   availableParts,
   availableTasks,
-  vehicleId
+  vehicleId,
+  invoiceId
 }) => {
   const [showItemForm, setShowItemForm] = useState(false);
   const [showPartsSelector, setShowPartsSelector] = useState(false);
@@ -43,6 +45,21 @@ const InvoiceItemsSection: React.FC<InvoiceItemsSectionProps> = ({
       quantity: quantity,
       price: part.price,
       part_id: part.id,
+      is_auto_added: false
+    }));
+
+    onItemsChange(prev => [...prev, ...newItems]);
+    setShowPartsSelector(false);
+  };
+
+  const handleAddTasksFromWorkshop = (selectedTasks: { task: Task; quantity: number }[]) => {
+    const newItems: InvoiceItem[] = selectedTasks.map(({ task, quantity }) => ({
+      id: `workshop-task-${task.id}-${Date.now()}`,
+      description: task.title,
+      type: 'labor' as const,
+      quantity: quantity,
+      price: task.price || 0,
+      task_id: task.id,
       is_auto_added: false
     }));
 
@@ -102,7 +119,7 @@ const InvoiceItemsSection: React.FC<InvoiceItemsSectionProps> = ({
             className="flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
-            Add Parts from Workshop
+            Add from Workshop
           </Button>
           <Button
             type="button"
@@ -212,7 +229,7 @@ const InvoiceItemsSection: React.FC<InvoiceItemsSectionProps> = ({
               variant="outline"
               onClick={handleShowPartsSelector}
             >
-              Add Parts from Workshop
+              Add from Workshop
             </Button>
             <Button
               type="button"
@@ -224,12 +241,14 @@ const InvoiceItemsSection: React.FC<InvoiceItemsSectionProps> = ({
         </div>
       )}
 
-      {/* Workshop Parts Selector Dialog */}
+      {/* Workshop Items Selector Dialog */}
       <WorkshopPartsSelector
         open={showPartsSelector}
         onOpenChange={setShowPartsSelector}
         availableParts={availableParts}
+        availableTasks={availableTasks}
         onAddParts={handleAddPartsFromWorkshop}
+        onAddTasks={handleAddTasksFromWorkshop}
       />
 
       {/* Item Form Dialog */}
@@ -241,6 +260,7 @@ const InvoiceItemsSection: React.FC<InvoiceItemsSectionProps> = ({
         availableTasks={availableTasks}
         vehicleId={vehicleId}
         editingItem={editingItem}
+        invoiceId={invoiceId}
       />
     </div>
   );

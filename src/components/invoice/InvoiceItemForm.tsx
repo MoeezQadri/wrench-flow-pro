@@ -30,6 +30,7 @@ interface InvoiceItemFormProps {
   availableTasks: Task[];
   vehicleId: string;
   editingItem?: InvoiceItem | null;
+  invoiceId?: string;
 }
 
 const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
@@ -39,7 +40,8 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
   availableParts,
   availableTasks,
   vehicleId,
-  editingItem
+  editingItem,
+  invoiceId
 }) => {
   // Form state
   const [description, setDescription] = useState("");
@@ -64,7 +66,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
   const [laborRate, setLaborRate] = useState(50);
   const [skillLevel, setSkillLevel] = useState("standard");
 
-  const { mechanics } = useDataContext();
+  const { mechanics, addPart, addTask } = useDataContext();
 
   // Debug logging for available data
   useEffect(() => {
@@ -150,7 +152,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
     }
   }, [selectedTaskId, availableTasks]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!description.trim()) {
       return;
     }
@@ -169,8 +171,43 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
       is_auto_added: false
     };
 
-    // Add custom part data if creating inventory part
-    if (createsInventoryPart && type === 'part') {
+    // Handle custom part creation - save to database if creating inventory part
+    if (createsInventoryPart && type === 'part' && addPart && invoiceId) {
+      try {
+        const customPart: Part = {
+          id: crypto.randomUUID(),
+          name: description.trim(),
+          description: `Custom part created from invoice ${invoiceId.substring(0, 8)}`,
+          price,
+          quantity: 0, // Start with 0 since it's being used immediately
+          part_number: partNumber || undefined,
+          manufacturer: manufacturer || undefined,
+          category: category || undefined,
+          location: location || undefined,
+          vendor_id: undefined,
+          vendor_name: undefined,
+          invoice_ids: [invoiceId],
+          reorder_level: 5,
+          unit: unitOfMeasure,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+        
+        const savedPart = await addPart(customPart);
+        newItem.part_id = savedPart.id;
+        newItem.custom_part_data = {
+          part_number: partNumber,
+          manufacturer: manufacturer,
+          category: category,
+          location: location
+        };
+        console.log('Created custom part in database:', savedPart);
+      } catch (error) {
+        console.error('Failed to create custom part:', error);
+        // Still proceed with invoice item creation
+      }
+    } else if (type === 'part' && !selectedPartId) {
+      // For custom parts not being saved to inventory
       newItem.custom_part_data = {
         part_number: partNumber,
         manufacturer: manufacturer,
@@ -179,8 +216,38 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
       };
     }
 
-    // Add custom labor data if creating task
-    if (createsTask && type === 'labor') {
+    // Handle custom task creation - save to database if creating task
+    if (createsTask && type === 'labor' && addTask && invoiceId) {
+      try {
+        const customTask: Task = {
+          id: crypto.randomUUID(),
+          title: description.trim(),
+          description: `Custom labor task created from invoice ${invoiceId.substring(0, 8)}`,
+          mechanicId: undefined,
+          vehicleId: vehicleId,
+          status: 'completed', // Mark as completed since it's being invoiced
+          location: 'workshop',
+          hoursEstimated: quantity,
+          hoursSpent: quantity,
+          price: price * quantity,
+          invoiceId: invoiceId,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+
+        await addTask(customTask);
+        newItem.task_id = customTask.id;
+        newItem.custom_labor_data = {
+          labor_rate: laborRate,
+          skill_level: skillLevel
+        };
+        console.log('Created custom task in database:', customTask);
+      } catch (error) {
+        console.error('Failed to create custom task:', error);
+        // Still proceed with invoice item creation
+      }
+    } else if (type === 'labor' && !selectedTaskId) {
+      // For custom labor not being saved as task
       newItem.custom_labor_data = {
         labor_rate: laborRate,
         skill_level: skillLevel
@@ -343,7 +410,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
                   onCheckedChange={(checked) => setCreatesInventoryPart(checked as boolean)}
                 />
                 <Label htmlFor="createsInventoryPart" className="text-sm">
-                  Create this as a new inventory part
+                  Save to parts database {invoiceId ? `(tagged with this invoice)` : '(no invoice ID available)'}
                 </Label>
               </div>
 
@@ -400,7 +467,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
                   onCheckedChange={(checked) => setCreatesTask(checked as boolean)}
                 />
                 <Label htmlFor="createsTask" className="text-sm">
-                  Create this as a task template
+                  Save to tasks database {invoiceId ? `(tagged with this invoice)` : '(no invoice ID available)'}
                 </Label>
               </div>
 

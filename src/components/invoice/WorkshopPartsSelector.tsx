@@ -11,27 +11,34 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Part } from "@/types";
-import { Plus, Minus, Search } from "lucide-react";
+import { Part, Task } from "@/types";
+import { Plus, Minus, Search, Package, Wrench } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface WorkshopPartsSelectorProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   availableParts: Part[];
+  availableTasks: Task[];
   onAddParts: (selectedParts: { part: Part; quantity: number }[]) => void;
+  onAddTasks: (selectedTasks: { task: Task; quantity: number }[]) => void;
 }
 
 const WorkshopPartsSelector: React.FC<WorkshopPartsSelectorProps> = ({
   open,
   onOpenChange,
   availableParts,
-  onAddParts
+  availableTasks,
+  onAddParts,
+  onAddTasks
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedParts, setSelectedParts] = useState<Record<string, number>>({});
+  const [selectedTasks, setSelectedTasks] = useState<Record<string, number>>({});
 
-  // Use the already filtered availableParts (these are workshop parts)
+  // Use the already filtered availableParts (these are workshop parts) and availableTasks
   const workshopParts = availableParts;
+  const workshopTasks = availableTasks;
 
   const filteredParts = workshopParts.filter(part =>
     part.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -39,7 +46,12 @@ const WorkshopPartsSelector: React.FC<WorkshopPartsSelectorProps> = ({
     part.part_number?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleQuantityChange = (partId: string, delta: number) => {
+  const filteredTasks = workshopTasks.filter(task =>
+    task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    task.description?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handlePartQuantityChange = (partId: string, delta: number) => {
     setSelectedParts(prev => {
       const currentQuantity = prev[partId] || 0;
       const newQuantity = Math.max(0, currentQuantity + delta);
@@ -56,6 +68,23 @@ const WorkshopPartsSelector: React.FC<WorkshopPartsSelectorProps> = ({
     });
   };
 
+  const handleTaskQuantityChange = (taskId: string, delta: number) => {
+    setSelectedTasks(prev => {
+      const currentQuantity = prev[taskId] || 0;
+      const newQuantity = Math.max(0, currentQuantity + delta);
+      
+      if (newQuantity === 0) {
+        const { [taskId]: removed, ...rest } = prev;
+        return rest;
+      }
+      
+      return {
+        ...prev,
+        [taskId]: newQuantity
+      };
+    });
+  };
+
   const handleAddSelectedParts = () => {
     const partsToAdd = Object.entries(selectedParts)
       .map(([partId, quantity]) => {
@@ -66,26 +95,48 @@ const WorkshopPartsSelector: React.FC<WorkshopPartsSelectorProps> = ({
 
     if (partsToAdd.length > 0) {
       onAddParts(partsToAdd);
-      setSelectedParts({});
-      setSearchTerm("");
     }
   };
 
-  const getSelectedCount = () => {
-    return Object.keys(selectedParts).length;
+  const handleAddSelectedTasks = () => {
+    const tasksToAdd = Object.entries(selectedTasks)
+      .map(([taskId, quantity]) => {
+        const task = workshopTasks.find(t => t.id === taskId);
+        return task ? { task, quantity } : null;
+      })
+      .filter(Boolean) as { task: Task; quantity: number }[];
+
+    if (tasksToAdd.length > 0) {
+      onAddTasks(tasksToAdd);
+    }
   };
 
-  const getTotalItems = () => {
-    return Object.values(selectedParts).reduce((sum, qty) => sum + qty, 0);
+  const handleAddAllSelected = () => {
+    handleAddSelectedParts();
+    handleAddSelectedTasks();
+    setSelectedParts({});
+    setSelectedTasks({});
+    setSearchTerm("");
   };
+
+  const getPartsSelectedCount = () => Object.keys(selectedParts).length;
+  const getTasksSelectedCount = () => Object.keys(selectedTasks).length;
+  const getTotalSelectedCount = () => getPartsSelectedCount() + getTasksSelectedCount();
+  
+  const getTotalPartsItems = () => Object.values(selectedParts).reduce((sum, qty) => sum + qty, 0);
+  const getTotalTasksItems = () => Object.values(selectedTasks).reduce((sum, qty) => sum + qty, 0);
+  const getTotalItems = () => getTotalPartsItems() + getTotalTasksItems();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-5xl max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader>
-          <DialogTitle>Add Parts from Workshop Inventory</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <Package className="h-5 w-5" />
+            Add Items from Workshop
+          </DialogTitle>
           <DialogDescription>
-            Select parts from your workshop inventory to add to this invoice.
+            Select parts from inventory and completed labor tasks to add to this invoice.
           </DialogDescription>
         </DialogHeader>
 
@@ -100,17 +151,22 @@ const WorkshopPartsSelector: React.FC<WorkshopPartsSelectorProps> = ({
           />
         </div>
 
-        {/* Selected Parts Summary */}
-        {getSelectedCount() > 0 && (
+        {/* Selected Items Summary */}
+        {getTotalSelectedCount() > 0 && (
           <div className="bg-muted p-3 rounded-lg">
             <div className="flex justify-between items-center">
               <span className="font-medium">
-                {getSelectedCount()} part types selected ({getTotalItems()} total items)
+                {getTotalSelectedCount()} item types selected ({getTotalItems()} total items)
+                {getPartsSelectedCount() > 0 && ` - ${getPartsSelectedCount()} parts`}
+                {getTasksSelectedCount() > 0 && ` - ${getTasksSelectedCount()} tasks`}
               </span>
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setSelectedParts({})}
+                onClick={() => {
+                  setSelectedParts({});
+                  setSelectedTasks({});
+                }}
               >
                 Clear All
               </Button>
@@ -118,104 +174,206 @@ const WorkshopPartsSelector: React.FC<WorkshopPartsSelectorProps> = ({
           </div>
         )}
 
-        {/* Parts List */}
-        <div className="flex-1 overflow-y-auto border rounded-lg">
-          {filteredParts.length === 0 ? (
-            <div className="p-8 text-center text-muted-foreground">
-              {workshopParts.length === 0 ? (
-                <>
-                  <p>No workshop parts available.</p>
-                  <p className="text-sm mt-2">Parts with inventory quantity {"> 0"} and not assigned to invoices will appear here.</p>
-                </>
+        {/* Tabs for Parts and Tasks */}
+        <Tabs defaultValue="parts" className="flex-1 overflow-hidden flex flex-col">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="parts" className="flex items-center gap-2">
+              <Package className="h-4 w-4" />
+              Parts ({workshopParts.length})
+            </TabsTrigger>
+            <TabsTrigger value="tasks" className="flex items-center gap-2">
+              <Wrench className="h-4 w-4" />
+              Labor Tasks ({workshopTasks.length})
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Parts Tab */}
+          <TabsContent value="parts" className="flex-1 overflow-hidden flex flex-col">
+            <div className="flex-1 overflow-y-auto border rounded-lg">
+              {filteredParts.length === 0 ? (
+                <div className="p-8 text-center text-muted-foreground">
+                  {workshopParts.length === 0 ? (
+                    <>
+                      <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>No workshop parts available.</p>
+                      <p className="text-sm mt-2">Parts with inventory quantity {"> 0"} and not assigned to invoices will appear here.</p>
+                    </>
+                  ) : (
+                    <>
+                      <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>No parts found matching your search.</p>
+                    </>
+                  )}
+                </div>
               ) : (
-                <p>No parts found matching your search.</p>
+                <table className="w-full">
+                  <thead className="bg-muted sticky top-0">
+                    <tr>
+                      <th className="text-left p-3">Part Name</th>
+                      <th className="text-left p-3">Description</th>
+                      <th className="text-right p-3">Stock</th>
+                      <th className="text-right p-3">Price</th>
+                      <th className="text-center p-3">Quantity</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredParts.map((part, index) => {
+                      const selectedQuantity = selectedParts[part.id] || 0;
+                      const maxQuantity = part.quantity;
+                      
+                      return (
+                        <tr key={part.id} className={index % 2 === 0 ? "bg-background" : "bg-muted/50"}>
+                          <td className="p-3">
+                            <div>
+                              <div className="font-medium">{part.name}</div>
+                              {part.part_number && (
+                                <div className="text-sm text-muted-foreground">
+                                  Part #: {part.part_number}
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                          <td className="p-3 text-sm">{part.description || 'N/A'}</td>
+                          <td className="p-3 text-right">
+                            <span className={`${part.quantity <= 5 ? 'text-red-600 font-medium' : ''}`}>
+                              {part.quantity}
+                            </span>
+                            {part.quantity <= 5 && (
+                              <Badge variant="destructive" className="ml-2 text-xs">
+                                Low Stock
+                              </Badge>
+                            )}
+                          </td>
+                          <td className="p-3 text-right font-medium">${part.price.toFixed(2)}</td>
+                          <td className="p-3">
+                            <div className="flex items-center justify-center gap-2">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handlePartQuantityChange(part.id, -1)}
+                                disabled={selectedQuantity === 0}
+                              >
+                                <Minus className="w-3 h-3" />
+                              </Button>
+                              <span className="min-w-[2rem] text-center">{selectedQuantity}</span>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handlePartQuantityChange(part.id, 1)}
+                                disabled={selectedQuantity >= maxQuantity}
+                              >
+                                <Plus className="w-3 h-3" />
+                              </Button>
+                            </div>
+                            {selectedQuantity > 0 && (
+                              <div className="text-center text-sm text-muted-foreground mt-1">
+                                Total: ${(part.price * selectedQuantity).toFixed(2)}
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               )}
             </div>
-          ) : (
-            <table className="w-full">
-              <thead className="bg-muted sticky top-0">
-                <tr>
-                  <th className="text-left p-3">Part Name</th>
-                  <th className="text-left p-3">Description</th>
-                  <th className="text-right p-3">Stock</th>
-                  <th className="text-right p-3">Price</th>
-                  <th className="text-center p-3">Quantity</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredParts.map((part, index) => {
-                  const selectedQuantity = selectedParts[part.id] || 0;
-                  const maxQuantity = part.quantity;
-                  
-                  return (
-                    <tr key={part.id} className={index % 2 === 0 ? "bg-background" : "bg-muted/50"}>
-                      <td className="p-3">
-                        <div>
-                          <div className="font-medium">{part.name}</div>
-                          {part.part_number && (
-                            <div className="text-sm text-muted-foreground">
-                              Part #: {part.part_number}
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="p-3 text-sm">{part.description || 'N/A'}</td>
-                      <td className="p-3 text-right">
-                        <span className={`${part.quantity <= 5 ? 'text-red-600 font-medium' : ''}`}>
-                          {part.quantity}
-                        </span>
-                        {part.quantity <= 5 && (
-                          <Badge variant="destructive" className="ml-2 text-xs">
-                            Low Stock
-                          </Badge>
-                        )}
-                      </td>
-                      <td className="p-3 text-right font-medium">${part.price.toFixed(2)}</td>
-                      <td className="p-3">
-                        <div className="flex items-center justify-center gap-2">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleQuantityChange(part.id, -1)}
-                            disabled={selectedQuantity === 0}
-                          >
-                            <Minus className="w-3 h-3" />
-                          </Button>
-                          <span className="min-w-[2rem] text-center">{selectedQuantity}</span>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleQuantityChange(part.id, 1)}
-                            disabled={selectedQuantity >= maxQuantity}
-                          >
-                            <Plus className="w-3 h-3" />
-                          </Button>
-                        </div>
-                        {selectedQuantity > 0 && (
-                          <div className="text-center text-sm text-muted-foreground mt-1">
-                            Total: ${(part.price * selectedQuantity).toFixed(2)}
-                          </div>
-                        )}
-                      </td>
+          </TabsContent>
+
+          {/* Tasks Tab */}
+          <TabsContent value="tasks" className="flex-1 overflow-hidden flex flex-col">
+            <div className="flex-1 overflow-y-auto border rounded-lg">
+              {filteredTasks.length === 0 ? (
+                <div className="p-8 text-center text-muted-foreground">
+                  {workshopTasks.length === 0 ? (
+                    <>
+                      <Wrench className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>No completed labor tasks available.</p>
+                      <p className="text-sm mt-2">Completed tasks not assigned to invoices will appear here.</p>
+                    </>
+                  ) : (
+                    <>
+                      <Wrench className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>No tasks found matching your search.</p>
+                    </>
+                  )}
+                </div>
+              ) : (
+                <table className="w-full">
+                  <thead className="bg-muted sticky top-0">
+                    <tr>
+                      <th className="text-left p-3">Task Title</th>
+                      <th className="text-left p-3">Description</th>
+                      <th className="text-right p-3">Hours</th>
+                      <th className="text-right p-3">Price</th>
+                      <th className="text-center p-3">Quantity</th>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
-        </div>
+                  </thead>
+                  <tbody>
+                    {filteredTasks.map((task, index) => {
+                      const selectedQuantity = selectedTasks[task.id] || 0;
+                      
+                      return (
+                        <tr key={task.id} className={index % 2 === 0 ? "bg-background" : "bg-muted/50"}>
+                          <td className="p-3">
+                            <div>
+                              <div className="font-medium">{task.title}</div>
+                              <div className="text-sm text-muted-foreground">
+                                Status: {task.status}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="p-3 text-sm">{task.description || 'N/A'}</td>
+                          <td className="p-3 text-right">{task.hoursEstimated || task.hoursSpent || 1}h</td>
+                          <td className="p-3 text-right font-medium">${(task.price || 0).toFixed(2)}</td>
+                          <td className="p-3">
+                            <div className="flex items-center justify-center gap-2">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleTaskQuantityChange(task.id, -1)}
+                                disabled={selectedQuantity === 0}
+                              >
+                                <Minus className="w-3 h-3" />
+                              </Button>
+                              <span className="min-w-[2rem] text-center">{selectedQuantity}</span>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleTaskQuantityChange(task.id, 1)}
+                              >
+                                <Plus className="w-3 h-3" />
+                              </Button>
+                            </div>
+                            {selectedQuantity > 0 && (
+                              <div className="text-center text-sm text-muted-foreground mt-1">
+                                Total: ${((task.price || 0) * selectedQuantity).toFixed(2)}
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </TabsContent>
+        </Tabs>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
           <Button 
-            onClick={handleAddSelectedParts}
-            disabled={getSelectedCount() === 0}
+            onClick={handleAddAllSelected}
+            disabled={getTotalSelectedCount() === 0}
           >
-            Add {getSelectedCount() > 0 ? `${getTotalItems()} Items` : 'Selected Parts'}
+            Add {getTotalSelectedCount() > 0 ? `${getTotalItems()} Items` : 'Selected Items'}
           </Button>
         </DialogFooter>
       </DialogContent>
