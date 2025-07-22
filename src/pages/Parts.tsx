@@ -6,8 +6,9 @@ import { useDataContext } from '@/context/data/DataContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Search, Filter, SortAsc, SortDesc } from 'lucide-react';
+import { Plus, Search, Filter, SortAsc, SortDesc, FileText } from 'lucide-react';
 import PartDialog from '@/components/part/PartDialog';
+import AssignToInvoiceDialog from '@/components/part/AssignToInvoiceDialog';
 import { Part } from '@/types';
 
 const Parts: React.FC = () => {
@@ -15,6 +16,8 @@ const Parts: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [customerNames, setCustomerNames] = useState<Record<string, string>>({});
   const [showPartDialog, setShowPartDialog] = useState(false);
+  const [showAssignDialog, setShowAssignDialog] = useState(false);
+  const [selectedPartForAssignment, setSelectedPartForAssignment] = useState<Part | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [stockFilter, setStockFilter] = useState<string>('all');
   const [assignmentFilter, setAssignmentFilter] = useState<string>('all');
@@ -131,6 +134,35 @@ const Parts: React.FC = () => {
       toast.error('Failed to save part');
       throw error;
     }
+  };
+
+  const handleAssignToInvoice = (part: Part) => {
+    setSelectedPartForAssignment(part);
+    setShowAssignDialog(true);
+  };
+
+  const handleAssignmentComplete = () => {
+    // Refresh the parts list
+    const fetchParts = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('parts')
+          .select('*');
+
+        if (error) {
+          throw error;
+        }
+
+        setParts(data || []);
+      } catch (error) {
+        console.error('Error refreshing parts:', error);
+        toast.error('Failed to refresh parts list');
+      }
+    };
+
+    fetchParts();
+    setShowAssignDialog(false);
+    setSelectedPartForAssignment(null);
   };
 
   const getVendorName = (part: any) => {
@@ -330,6 +362,7 @@ const Parts: React.FC = () => {
                     <th className="py-2 px-4 text-right">Price</th>
                     <th className="py-2 px-4 text-left">Vendor</th>
                     <th className="py-2 px-4 text-left">Assignment</th>
+                    <th className="py-2 px-4 text-center">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -351,6 +384,17 @@ const Parts: React.FC = () => {
                       <td className="py-2 px-4 text-right">${part.price.toFixed(2)}</td>
                       <td className="py-2 px-4">{getVendorName(part)}</td>
                       <td className="py-2 px-4">{getAssignmentStatus(part)}</td>
+                      <td className="py-2 px-4 text-center">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleAssignToInvoice(part as Part)}
+                          className="flex items-center gap-1"
+                        >
+                          <FileText className="h-3 w-3" />
+                          Assign
+                        </Button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -364,6 +408,13 @@ const Parts: React.FC = () => {
         open={showPartDialog}
         onOpenChange={setShowPartDialog}
         onSave={handleSavePart}
+      />
+
+      <AssignToInvoiceDialog
+        open={showAssignDialog}
+        onOpenChange={setShowAssignDialog}
+        part={selectedPartForAssignment}
+        onAssignmentComplete={handleAssignmentComplete}
       />
     </div>
   );

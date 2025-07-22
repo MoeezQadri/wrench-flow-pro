@@ -5,11 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Pencil, Calendar, CalendarCheck, Tag, Car, MapPin, Filter, UserPlus, Search } from "lucide-react";
+import { Plus, Pencil, Calendar, CalendarCheck, Tag, Car, MapPin, Filter, UserPlus, Search, FileText } from "lucide-react";
 import { toast } from "sonner";
 import TaskDialog from "@/components/task/TaskDialog";
 import TaskCheckInOut from "@/components/task/TaskCheckInOut";
 import TaskMechanicAssignment from "@/components/task/TaskMechanicAssignment";
+import AssignToInvoiceDialog from "@/components/task/AssignToInvoiceDialog";
 import {
   hasPermission,
 } from "@/services/data-service";
@@ -24,6 +25,8 @@ const Tasks = () => {
   const [tasksList, setTasksList] = useState<Task[]>([]);
   const [selectedTaskForTimeTracking, setSelectedTaskForTimeTracking] = useState<Task | null>(null);
   const [selectedTaskForAssignment, setSelectedTaskForAssignment] = useState<Task | null>(null);
+  const [selectedTaskForInvoiceAssignment, setSelectedTaskForInvoiceAssignment] = useState<Task | null>(null);
+  const [showInvoiceAssignDialog, setShowInvoiceAssignDialog] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [locationFilter, setLocationFilter] = useState<TaskLocation | 'all'>('all');
   const [statusFilter, setStatusFilter] = useState<TaskStatus | 'all'>('all');
@@ -171,6 +174,27 @@ const Tasks = () => {
       prev.map(task => task.id === updatedTask.id ? updatedTask : task)
     );
     setSelectedTaskForTimeTracking(null);
+  };
+
+  const handleAssignToInvoice = (task: Task) => {
+    setSelectedTaskForInvoiceAssignment(task);
+    setShowInvoiceAssignDialog(true);
+  };
+
+  const handleInvoiceAssignmentComplete = () => {
+    // Refresh the tasks list
+    const loadTasks = async () => {
+      try {
+        setTasksList(tasks);
+      } catch (error) {
+        console.error("Error reloading tasks:", error);
+        toast.error("Failed to reload tasks");
+      }
+    };
+    
+    loadTasks();
+    setShowInvoiceAssignDialog(false);
+    setSelectedTaskForInvoiceAssignment(null);
   };
 
   const getStatusBadgeClass = (status: TaskStatus) => {
@@ -512,6 +536,18 @@ const Tasks = () => {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end space-x-1">
+                        {/* Invoice assignment button for completed tasks */}
+                        {task.status === 'completed' && (canManageTasks || isForeman) && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleAssignToInvoice(task)}
+                            className="flex items-center gap-1"
+                          >
+                            <FileText className="h-3 w-3" />
+                          </Button>
+                        )}
+
                         {/* Mechanic assignment button for managers/foremen */}
                         {shouldShowAssignmentColumn && !task.mechanicId && (
                           <Button
@@ -581,6 +617,13 @@ const Tasks = () => {
         onOpenChange={setIsDialogOpen}
         onSave={handleSaveTask}
         task={selectedTask}
+      />
+
+      <AssignToInvoiceDialog
+        open={showInvoiceAssignDialog}
+        onOpenChange={setShowInvoiceAssignDialog}
+        task={selectedTaskForInvoiceAssignment}
+        onAssignmentComplete={handleInvoiceAssignmentComplete}
       />
     </div>
   );
