@@ -13,6 +13,8 @@ import {
   UserRound,
   BarChart3,
   Package,
+  Building,
+  CreditCard,
 } from 'lucide-react';
 import { useAuthContext } from '@/context/AuthContext';
 import {
@@ -73,6 +75,16 @@ const navItems = [
     title: "Expenses",
     href: "/expenses",
     icon: ShoppingCart,
+  },
+  {
+    title: "Vendors",
+    href: "/vendors",
+    icon: Building,
+  },
+  {
+    title: "Payables",
+    href: "/payables",
+    icon: CreditCard,
   },
   {
     title: "Reports",

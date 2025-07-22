@@ -189,9 +189,37 @@ export interface Vendor {
   phone?: string;
   address?: string;
   category?: string;
+  vendor_type?: string;
+  payment_terms?: number;
+  credit_limit?: number;
+  tax_id?: string;
+  is_active?: boolean;
   notes?: string;
   created_at?: string;
   updated_at?: string;
+}
+
+export interface Payable {
+  id: string;
+  vendor_id?: string;
+  expense_id?: string;
+  reference_number?: string;
+  description: string;
+  amount: number;
+  due_date?: string;
+  status: 'pending' | 'paid' | 'overdue' | 'cancelled';
+  paid_amount?: number;
+  payment_date?: string;
+  payment_method?: string;
+  notes?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface FinancialSummary {
+  total_payables: number;
+  total_receivables: number;
+  net_position: number;
 }
 
 export interface Expense {

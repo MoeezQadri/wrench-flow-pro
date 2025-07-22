@@ -45,6 +45,8 @@ const NotFound = lazy(() => import('@/pages/NotFound'));
 // Add Users and Finance pages
 const Users = lazy(() => import('@/pages/Users'));
 const Finance = lazy(() => import('@/pages/Finance'));
+const Vendors = lazy(() => import('@/pages/Vendors'));
+const Payables = lazy(() => import('@/pages/Payables'));
 
 // Super Admin pages
 const SuperAdminDashboard = lazy(() => import('@/pages/superadmin/SuperAdminDashboard'));
@@ -97,6 +99,8 @@ function App() {
                     <Route path="vehicles" element={<Vehicles />} />
                     <Route path="users" element={<Users />} />
                     <Route path="finance" element={<Finance />} />
+                    <Route path="vendors" element={<Vendors />} />
+                    <Route path="payables" element={<Payables />} />
                   </Route>
                 </Route>
 
