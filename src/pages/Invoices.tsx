@@ -294,12 +294,14 @@ const Invoices: React.FC = () => {
                         >
                           View
                         </Link>
-                        <Link
-                          to={`/invoices/${invoice.id}/edit`}
-                          className="text-green-600 hover:text-green-800 underline"
-                        >
-                          Edit
-                        </Link>
+                        {invoice.status !== 'paid' && (
+                          <Link
+                            to={`/invoices/${invoice.id}/edit`}
+                            className="text-green-600 hover:text-green-800 underline"
+                          >
+                            Edit
+                          </Link>
+                        )}
                       </div>
                     </td>
                   </tr>
