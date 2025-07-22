@@ -140,10 +140,7 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
           <Label htmlFor="vehicle">Vehicle *</Label>
           <div className="flex gap-2">
             {selectedCustomerId && !isEditing && <Link to={`/vehicles/new?customerId=${selectedCustomerId}`}>
-                <Button type="button" variant="ghost" size="sm" className="h-8">
-                  <PlusCircle className="h-4 w-4 mr-1" />
-                  Add New
-                </Button>
+                
               </Link>}
           </div>
         </div>
