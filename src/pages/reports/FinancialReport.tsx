@@ -23,6 +23,14 @@ const FinancialReport = () => {
     startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
     endDate: new Date()
   });
+  
+  // Separate state for the actual applied filters
+  const [appliedDateRange, setAppliedDateRange] = useState({
+    startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+    endDate: new Date()
+  });
+  
+  const [isLoading, setIsLoading] = useState(false);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -36,8 +44,17 @@ const FinancialReport = () => {
     return new Date(dateString).toLocaleDateString();
   };
 
-  // Calculate receivables (unpaid invoices)
-  const receivables = invoices.filter(inv => inv.status !== 'paid');
+  // Filter data based on applied date range
+  const filterByDateRange = (items: any[], dateField: string) => {
+    return items.filter(item => {
+      const itemDate = new Date(item[dateField]);
+      return itemDate >= appliedDateRange.startDate && itemDate <= appliedDateRange.endDate;
+    });
+  };
+
+  // Calculate receivables (unpaid invoices) within date range
+  const filteredInvoices = filterByDateRange(invoices, 'date');
+  const receivables = filteredInvoices.filter(inv => inv.status !== 'paid');
   const totalReceivables = receivables.reduce((sum, inv) => {
     // Use a default calculation or existing amount field
     const amount = 1000; // Placeholder - would normally calculate from invoice items
@@ -50,8 +67,9 @@ const FinancialReport = () => {
     return new Date(inv.due_date) < new Date();
   });
 
-  // Calculate payables from expenses (unpaid expenses)
-  const payables = expenses.filter(exp => exp.payment_status !== 'paid');
+  // Calculate payables from expenses (unpaid expenses) within date range
+  const filteredExpenses = filterByDateRange(expenses, 'date');
+  const payables = filteredExpenses.filter(exp => exp.payment_status !== 'paid');
   const totalPayables = payables.reduce((sum, exp) => sum + exp.amount, 0);
 
   // Calculate overdue payables (expenses past 30 days)
@@ -68,25 +86,71 @@ const FinancialReport = () => {
     setDateRange({ startDate, endDate });
   };
 
+  const handleApplyFilters = async () => {
+    setIsLoading(true);
+    // Simulate loading time
+    setTimeout(() => {
+      setAppliedDateRange(dateRange);
+      setIsLoading(false);
+    }, 500);
+  };
+
+  const hasUnappliedChanges = 
+    dateRange.startDate.getTime() !== appliedDateRange.startDate.getTime() ||
+    dateRange.endDate.getTime() !== appliedDateRange.endDate.getTime();
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">Financial Report</h1>
           <p className="text-muted-foreground">Receivables, payables and cash flow analysis</p>
+          <div className="text-sm text-muted-foreground mt-1">
+            Period: {appliedDateRange.startDate.toLocaleDateString()} - {appliedDateRange.endDate.toLocaleDateString()}
+          </div>
         </div>
         <div className="flex items-center space-x-2">
-          <DateRangePicker
-            startDate={dateRange.startDate}
-            endDate={dateRange.endDate}
-            onRangeChange={handleDateRangeChange}
-          />
           <Button variant="outline">
             <Download className="w-4 h-4 mr-2" />
             Export
           </Button>
         </div>
       </div>
+
+      {/* Date Filter Section */}
+      <Card className="bg-muted/30">
+        <CardContent className="pt-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <span className="text-sm font-medium">Filter by date range:</span>
+              <DateRangePicker
+                startDate={dateRange.startDate}
+                endDate={dateRange.endDate}
+                onRangeChange={handleDateRangeChange}
+              />
+              <Button 
+                onClick={handleApplyFilters} 
+                disabled={!hasUnappliedChanges || isLoading}
+                className="bg-primary hover:bg-primary/90"
+              >
+                {isLoading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                    Applying...
+                  </>
+                ) : (
+                  'Apply Filters'
+                )}
+              </Button>
+            </div>
+            {hasUnappliedChanges && (
+              <div className="text-sm text-amber-600 font-medium">
+                Click "Apply Filters" to update the report
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
