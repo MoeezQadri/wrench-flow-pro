@@ -12,7 +12,7 @@ import { useExpenses } from './hooks/useExpenses';
 import { useTasks } from './hooks/useTasks';
 import { useParts } from './hooks/useParts';
 import { usePayments } from './hooks/usePayments';
-import { usePayables } from './hooks/usePayables';
+// import { usePayables } from './hooks/usePayables'; // Temporarily disabled
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
@@ -30,7 +30,7 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     const tasksHook = useTasks();
     const partsHook = useParts();
     const paymentsHook = usePayments();
-    const payablesHook = usePayables();
+    // const payablesHook = usePayables(); // Temporarily disabled
 
     useEffect(() => {
         const fetchAllData = async () => {
@@ -44,8 +44,8 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
                 expensesHook.loadExpenses(),
                 tasksHook.loadTasks(),
                 partsHook.loadParts(),
-                paymentsHook.loadPayments(),
-                payablesHook.loadPayables()
+                paymentsHook.loadPayments()
+                // payablesHook.loadPayables() // Temporarily disabled
             ]);
             console.log("All data loaded, customers:", customersHook.customers);
         };
@@ -124,11 +124,7 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
             removePayment: paymentsHook.removePayment,
             updatePayment: paymentsHook.updatePayment,
 
-            payables: payablesHook.payables,
-            addPayable: payablesHook.addPayable,
-            removePayable: payablesHook.removePayable,
-            updatePayable: payablesHook.updatePayable,
-
+            
             getCustomerAnalytics
         }}>
             {children}
