@@ -3,6 +3,8 @@ import { Outlet, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Settings } from 'lucide-react';
 import { useAuthContext } from '@/context/AuthContext';
+import { useOrganizationContext } from '@/hooks/useOrganizationContext';
+import { OrganizationSelector } from '@/components/layout/OrganizationSelector';
 import Logo from './Logo';
 import { AppSidebar } from './AppSidebar';
 import {
@@ -13,6 +15,12 @@ import {
 
 const Layout = () => {
   const { currentUser } = useAuthContext();
+  const { 
+    selectedOrganizationId, 
+    organizations, 
+    isSuperAdmin, 
+    handleOrganizationChange 
+  } = useOrganizationContext();
   const navigate = useNavigate();
 
   return (
@@ -32,6 +40,24 @@ const Layout = () => {
                   | {currentUser.role === 'owner' && 'Admin'} Dashboard
                 </span>
               )}
+            </div>
+
+            <div className="flex items-center gap-4">
+              {isSuperAdmin && (
+                <OrganizationSelector
+                  organizations={organizations}
+                  selectedOrgId={selectedOrganizationId}
+                  onOrganizationChange={handleOrganizationChange}
+                />
+              )}
+              
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => navigate('/settings')}
+              >
+                <Settings className="h-4 w-4" />
+              </Button>
             </div>
           </header>
           

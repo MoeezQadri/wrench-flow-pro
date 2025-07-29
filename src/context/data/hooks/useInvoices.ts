@@ -4,8 +4,10 @@ import type { Invoice } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { createInvoice, updateInvoiceService, CreateInvoiceData } from '@/services/invoice-service';
+import { useOrganizationAwareQuery } from '@/hooks/useOrganizationAwareQuery';
 
 export const useInvoices = () => {
+    const { applyOrganizationFilter } = useOrganizationAwareQuery();
     const [invoices, setInvoices] = useState<Invoice[]>([]);
 
     const addInvoice = async (invoiceData: CreateInvoiceData) => {
@@ -123,7 +125,7 @@ export const useInvoices = () => {
     const loadInvoices = async () => {
         try {
             console.log('Loading invoices from database...');
-            const { data: invoicesData, error: invoicesError } = await supabase
+            let query = supabase
                 .from('invoices')
                 .select(`
                     *,
@@ -131,6 +133,11 @@ export const useInvoices = () => {
                     payments(*),
                     vehicles(make, model, year, license_plate)
                 `);
+            
+            // Apply organization filter
+            query = applyOrganizationFilter(query);
+            
+            const { data: invoicesData, error: invoicesError } = await query;
 
             if (invoicesError) {
                 console.error('Error fetching invoices:', invoicesError);
