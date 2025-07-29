@@ -3,6 +3,7 @@ import { useState } from 'react';
 import type { Customer } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useOrganizationFilter } from '@/hooks/useOrganizationFilter';
 import { fetchCustomerById } from '@/services/supabase-service';
 
 export const useCustomers = () => {

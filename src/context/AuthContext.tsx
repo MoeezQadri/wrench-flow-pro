@@ -4,8 +4,16 @@ import { Session, User as SupabaseUser } from '@supabase/supabase-js';
 import { User, UserRole } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 
+interface Organization {
+  id: string;
+  name: string;
+  subscription_level: string;
+  subscription_status: string;
+}
+
 interface AuthContextType {
   currentUser: User | null;
+  organization: Organization | null;
   setCurrentUser: React.Dispatch<React.SetStateAction<User | null>>;
   loading: boolean;
   login: () => Promise<void>;
@@ -23,6 +31,7 @@ interface AuthContextType {
     data: User | null;
   }>;
   signOut: () => Promise<{ error: Error | null }>;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -33,6 +42,7 @@ interface AuthProviderProps {
 
 const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [organization, setOrganization] = useState<Organization | null>(null);
   const [loading, setLoading] = useState(true);
   const [session, setSession] = useState<any>(null);
 
@@ -110,10 +120,41 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       };
 
       setCurrentUser(userDetails);
+      
+      // Fetch organization if user has one
+      if (profile?.organization_id) {
+        await fetchOrganization(profile.organization_id);
+      }
     } catch (error: any) {
       console.log("Error fetching user details:", error.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchOrganization = async (organizationId: string) => {
+    try {
+      const { data: org, error } = await supabase
+        .from('organizations')
+        .select('*')
+        .eq('id', organizationId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching organization:', error);
+        setOrganization(null);
+      } else {
+        setOrganization(org);
+      }
+    } catch (error) {
+      console.error('Error fetching organization:', error);
+      setOrganization(null);
+    }
+  };
+
+  const refreshProfile = async () => {
+    if (session?.user) {
+      await fetchUser(session.user);
     }
   };
 
@@ -199,6 +240,7 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const value: AuthContextType = {
     currentUser,
+    organization,
     setCurrentUser,
     loading,
     login,
@@ -210,6 +252,7 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signIn,
     signUp,
     signOut,
+    refreshProfile,
   };
 
   return (
