@@ -22,7 +22,7 @@ export interface AuthContextValue {
   signOut?: () => Promise<{error: Error | null}>;
   analyticsConfig?: AnalyticsConfig;
   updateAnalyticsConfig?: (config: Partial<AnalyticsConfig>) => void;
-  verifySuperAdminToken?: (token: string) => Promise<boolean>;
+  
   loading?: boolean;
 }
 

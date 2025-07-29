@@ -6,11 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import {
-  fetchOrganizations,
-  fetchUsers,
-  updateUserStatus,
+  getOrganizations,
+  getAllUsers,
   deleteOrganization as deleteOrganizationService
-} from '@/services/superadmin-service';
+} from '@/utils/supabase-helpers';
 import AdminUserManagement from '@/components/admin/AdminUserManagement';
 import OrganizationManagement from '@/components/admin/OrganizationManagement';
 import { OrganizationCard } from '@/components/superadmin/OrganizationCard';
@@ -48,8 +47,8 @@ const SuperAdminDashboard: React.FC = () => {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const organizationsData = await fetchOrganizations();
-      const usersData = await fetchUsers();
+      const organizationsData = await getOrganizations();
+      const usersData = await getAllUsers();
       
       const convertedOrgs = (organizationsData || []).map(org => ({
         id: org.id,

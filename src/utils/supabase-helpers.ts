@@ -10,10 +10,7 @@ export const getOrganizations = async () => {
     
     const { data, error } = await supabase.functions.invoke('admin-utils', {
       body: {
-        action: 'get_organizations',
-        params: {
-          superadmin_token: localStorage.getItem('superadminToken') ?? ''
-        }
+        action: 'get_organizations'
        }
     });
     console.log(`--- getOrganizations response received: ${data} \n ${error} ---`);

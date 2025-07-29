@@ -32,14 +32,6 @@ const AdminUserManagement: React.FC<UserManagementProps> = ({
     setError(null);
     
     try {
-      // Set auth token for functions if superadmin
-      if (currentUser?.role === 'superuser' && retryAuth) {
-        const superAdminToken = localStorage.getItem('superadminToken');
-        if (superAdminToken) {
-          console.log('Setting SuperAdmin token for API calls');
-          supabase.functions.setAuth(superAdminToken);
-        }
-      }
       
       // Log what session we're using
       console.log('AdminUserManagement: Fetching data with auth token:', 
