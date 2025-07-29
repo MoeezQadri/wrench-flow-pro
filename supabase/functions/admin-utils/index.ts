@@ -37,7 +37,7 @@ serve(async (req) => {
     const { action, params } = await req.json();
     
     console.log(`--- admin-utils called action: ${action} ---`);
-    console.log(`--- admin-utils called params: ${params.toString()} ---`);
+    console.log({ params });
     
     // Validate input
     if (!action) {
@@ -90,34 +90,20 @@ serve(async (req) => {
       const token = authHeader.split(' ')[1];
       console.log(`--- token ${token} ---`)
       
-      let isValid;
-      // First try to verify as a superadmin token
-      if (params.superadmin_token){
-        
-        isValid = await verifyJWT(params.superadmin_token);
-      }
+      // Verify the user token using standard Supabase authentication
+      const userVerification = await verifyUserJWT(token);
       
-      console.log(`--- isValid:  ${isValid} ---`)
-    
-      // If not a valid superadmin token, check if it's a valid user token
-      if (!isValid) {
-        const userVerification = await verifyUserJWT(token);
-        
-        if (userVerification) {
-          // For user tokens, we need to further check if they have the right permissions
-          // depending on the action they're trying to perform
+      let isValid = false;
+      if (userVerification) {
+        // Check if the user has the necessary role
+        // For now, we'll allow users with 'owner', 'superuser', or 'superadmin' roles
+        const userRole = userVerification.user_metadata?.role;
+        if (userRole && ['owner', 'superuser', 'superadmin'].includes(userRole)) {
           isValid = true;
-          
-          // Here we would check the user's role for specific actions
-          // For example, if they're trying to perform an admin action
-          if (action.startsWith('admin_')) {
-            const user = userVerification;
-            // Check if the user has admin permissions
-            // This would depend on your application's permission model
-            isValid = false;
-          }
         }
       }
+      
+      console.log(`--- isValid: ${isValid} ---`)
       
       if (!isValid) {
         return new Response(
