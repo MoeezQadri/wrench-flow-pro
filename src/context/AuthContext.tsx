@@ -223,11 +223,21 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
           if (orgError) {
             console.error('Error with organization assignment:', orgError);
-            // Still return success if user was created, organization assignment can be fixed later
+            return { data: null, error: new Error('Failed to process organization assignment') };
           }
 
           // Type guard for organization result
           const orgData = orgResult as any;
+          
+          // Check if organization already exists
+          if (orgData?.success === false && orgData?.error === 'organization_exists') {
+            return { data: null, error: new Error(orgData.message) };
+          }
+          
+          if (!orgData?.success) {
+            return { data: null, error: new Error('Failed to create organization') };
+          }
+          
           const userRole = (orgData?.role === 'admin' ? 'admin' : 'member') as UserRole;
           
           const customUser: User = {
@@ -245,19 +255,7 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           return { data: customUser, error: null };
         } catch (orgError) {
           console.error('Error handling organization:', orgError);
-          // Return user anyway, organization can be assigned later
-          const customUser: User = {
-            id: data.user.id,
-            email: data.user.email || email,
-            name: name,
-            role: 'member' as UserRole,
-            organization_id: null,
-            is_active: true,
-            lastLogin: undefined,
-            created_at: data.user.created_at,
-            updated_at: data.user.updated_at,
-          };
-          return { data: customUser, error: null };
+          return { data: null, error: new Error('Failed to process signup') };
         }
       }
 
