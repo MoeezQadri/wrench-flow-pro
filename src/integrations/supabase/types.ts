@@ -526,6 +526,72 @@ export type Database = {
           },
         ]
       }
+      payables: {
+        Row: {
+          amount: number
+          created_at: string | null
+          description: string
+          due_date: string | null
+          expense_id: string | null
+          id: string
+          notes: string | null
+          paid_amount: number | null
+          payment_date: string | null
+          payment_method: string | null
+          reference_number: string | null
+          status: string
+          updated_at: string | null
+          vendor_id: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          description: string
+          due_date?: string | null
+          expense_id?: string | null
+          id?: string
+          notes?: string | null
+          paid_amount?: number | null
+          payment_date?: string | null
+          payment_method?: string | null
+          reference_number?: string | null
+          status?: string
+          updated_at?: string | null
+          vendor_id?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          description?: string
+          due_date?: string | null
+          expense_id?: string | null
+          id?: string
+          notes?: string | null
+          paid_amount?: number | null
+          payment_date?: string | null
+          payment_method?: string | null
+          reference_number?: string | null
+          status?: string
+          updated_at?: string | null
+          vendor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payables_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payables_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payments: {
         Row: {
           amount: number
@@ -571,7 +637,7 @@ export type Database = {
           is_active: boolean | null
           lastLogin: string | null
           name: string | null
-          organization_id: string | null
+          organization_id: string
           role: string | null
           updated_at: string | null
         }
@@ -581,7 +647,7 @@ export type Database = {
           is_active?: boolean | null
           lastLogin?: string | null
           name?: string | null
-          organization_id?: string | null
+          organization_id: string
           role?: string | null
           updated_at?: string | null
         }
@@ -591,7 +657,7 @@ export type Database = {
           is_active?: boolean | null
           lastLogin?: string | null
           name?: string | null
-          organization_id?: string | null
+          organization_id?: string
           role?: string | null
           updated_at?: string | null
         }
@@ -851,30 +917,51 @@ export type Database = {
           category: string | null
           contact_name: string
           created_at: string | null
+          credit_limit: number | null
           email: string | null
           id: string
+          is_active: boolean | null
           name: string
+          notes: string | null
+          payment_terms: number | null
           phone: string
+          tax_id: string | null
+          updated_at: string | null
+          vendor_type: string | null
         }
         Insert: {
           address?: string | null
           category?: string | null
           contact_name: string
           created_at?: string | null
+          credit_limit?: number | null
           email?: string | null
           id?: string
+          is_active?: boolean | null
           name: string
+          notes?: string | null
+          payment_terms?: number | null
           phone: string
+          tax_id?: string | null
+          updated_at?: string | null
+          vendor_type?: string | null
         }
         Update: {
           address?: string | null
           category?: string | null
           contact_name?: string
           created_at?: string | null
+          credit_limit?: number | null
           email?: string | null
           id?: string
+          is_active?: boolean | null
           name?: string
+          notes?: string | null
+          payment_terms?: number | null
           phone?: string
+          tax_id?: string | null
+          updated_at?: string | null
+          vendor_type?: string | null
         }
         Relationships: []
       }
@@ -913,6 +1000,15 @@ export type Database = {
       column_exists: {
         Args: { p_table_name: string; p_column_name: string }
         Returns: boolean
+      }
+      create_organization_and_assign_user: {
+        Args: {
+          p_user_id: string
+          p_organization_name: string
+          p_user_name: string
+          p_user_role?: string
+        }
+        Returns: Json
       }
       get_inactive_users: {
         Args: { days_inactive?: number }
