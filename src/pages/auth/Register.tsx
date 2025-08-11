@@ -88,7 +88,7 @@ const Register: React.FC = () => {
                 required
               />
               <p className="text-sm text-gray-500 mt-1">
-                If your organization already exists, you'll be added as a member. Otherwise, you'll be the admin of a new organization.
+                Enter your organization name. If it doesn't exist, you'll become the admin of a new organization. If it already exists, contact your admin to be added.
               </p>
             </div>
             
