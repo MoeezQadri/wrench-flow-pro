@@ -36,10 +36,9 @@ const Profile = () => {
 
       // If we have a profiles table, update that as well
       try {
-        await supabase.from('profiles').upsert({
-          id: currentUser.id,
-          name
-        });
+        await supabase.from('profiles')
+          .update({ name })
+          .eq('id', currentUser.id);
       } catch (profileError) {
         console.error("Error updating profile:", profileError);
         // Continue anyway, since the auth metadata was updated

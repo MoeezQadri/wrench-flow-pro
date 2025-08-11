@@ -26,7 +26,7 @@ interface AuthContextType {
     error: Error | null;
     data: Session | null;
   }>;
-  signUp: (email: string, password: string, name: string) => Promise<{
+  signUp: (email: string, password: string, name: string, organizationName: string) => Promise<{
     error: Error | null;
     data: User | null;
   }>;
@@ -191,12 +191,13 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const signUp = async (email: string, password: string, name: string) => {
+  const signUp = async (email: string, password: string, name: string, organizationName: string) => {
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
+          emailRedirectTo: `${window.location.origin}/`,
           data: {
             name,
           },
@@ -207,20 +208,57 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return { data: null, error };
       }
 
-      // Convert Supabase user to our custom User type
+      // If user was created successfully, handle organization assignment
       if (data.user) {
-        const customUser: User = {
-          id: data.user.id,
-          email: data.user.email || email, // Use provided email as fallback
-          name: name,
-          role: 'owner', // Default role for new signups
-          organization_id: undefined,
-          is_active: true,
-          lastLogin: undefined,
-          created_at: data.user.created_at,
-          updated_at: data.user.updated_at,
-        };
-        return { data: customUser, error: null };
+        try {
+          // Call our database function to handle organization creation/assignment
+          const { data: orgResult, error: orgError } = await supabase.rpc(
+            'create_organization_and_assign_user',
+            {
+              p_user_id: data.user.id,
+              p_organization_name: organizationName.trim(),
+              p_user_name: name,
+            }
+          );
+
+          if (orgError) {
+            console.error('Error with organization assignment:', orgError);
+            // Still return success if user was created, organization assignment can be fixed later
+          }
+
+          // Type guard for organization result
+          const orgData = orgResult as any;
+          const userRole = (orgData?.role === 'admin' ? 'admin' : 'member') as UserRole;
+          
+          const customUser: User = {
+            id: data.user.id,
+            email: data.user.email || email,
+            name: name,
+            role: userRole,
+            organization_id: orgData?.organization_id || null,
+            is_active: true,
+            lastLogin: undefined,
+            created_at: data.user.created_at,
+            updated_at: data.user.updated_at,
+          };
+          
+          return { data: customUser, error: null };
+        } catch (orgError) {
+          console.error('Error handling organization:', orgError);
+          // Return user anyway, organization can be assigned later
+          const customUser: User = {
+            id: data.user.id,
+            email: data.user.email || email,
+            name: name,
+            role: 'member' as UserRole,
+            organization_id: null,
+            is_active: true,
+            lastLogin: undefined,
+            created_at: data.user.created_at,
+            updated_at: data.user.updated_at,
+          };
+          return { data: customUser, error: null };
+        }
       }
 
       return { data: null, error: null };
