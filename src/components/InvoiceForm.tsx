@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Invoice, InvoiceItem, Vehicle, Part, Task, TaskLocation, InvoiceStatus, Payment } from "@/types";
+import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
 
 import InvoiceItemsSection from "./invoice/InvoiceItemsSection";
 import PaymentsSection from "./invoice/PaymentsSection";
@@ -29,6 +30,7 @@ interface InvoiceFormProps {
 
 const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceData = null }) => {
   const navigate = useNavigate();
+  const { formatCurrency, getCurrencySymbol } = useOrganizationSettings();
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
   const [selectedVehicleId, setSelectedVehicleId] = useState("");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
@@ -698,7 +700,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
                 <SelectContent>
                   <SelectItem value="none">No Discount</SelectItem>
                   <SelectItem value="percentage">Percentage (%)</SelectItem>
-                  <SelectItem value="fixed">Fixed Amount ($)</SelectItem>
+                  <SelectItem value="fixed">Fixed Amount ({getCurrencySymbol()})</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -706,7 +708,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
             {discountType !== 'none' && (
               <div>
                 <Label htmlFor="discountValue">
-                  {discountType === 'percentage' ? 'Discount Percentage (%)' : 'Discount Amount ($)'}
+                  {discountType === 'percentage' ? 'Discount Percentage (%)' : `Discount Amount (${getCurrencySymbol()})`}
                 </Label>
                 <Input
                   id="discountValue"
@@ -737,21 +739,21 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span>Subtotal:</span>
-                <span>${totals.subtotal.toFixed(2)}</span>
+                <span>{formatCurrency(totals.subtotal)}</span>
               </div>
               {totals.discount > 0 && (
                 <div className="flex justify-between text-red-600">
                   <span>Discount:</span>
-                  <span>-${totals.discount.toFixed(2)}</span>
+                  <span>-{formatCurrency(totals.discount)}</span>
                 </div>
               )}
               <div className="flex justify-between">
                 <span>Tax ({taxRate}%):</span>
-                <span>${totals.tax.toFixed(2)}</span>
+                <span>{formatCurrency(totals.tax)}</span>
               </div>
               <div className="flex justify-between font-bold text-lg">
                 <span>Total:</span>
-                <span>${totals.total.toFixed(2)}</span>
+                <span>{formatCurrency(totals.total)}</span>
               </div>
             </div>
           </div>

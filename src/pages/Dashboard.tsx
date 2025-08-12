@@ -15,9 +15,12 @@ import { DateRangePicker } from '@/components/dashboard/DateRangePicker';
 import { DashboardMetrics } from '@/components/dashboard/DashboardMetrics';
 import { RevenueChart } from '@/components/dashboard/RevenueChart';
 import { fetchDashboardData, fetchChartData, DashboardData, ChartData } from '@/services/dashboard-service';
+import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
+import { OrganizationDisplay } from '@/components/organization/OrganizationDisplay';
 import { toast } from "sonner";
 
 const Dashboard = () => {
+  const { formatCurrency, organizationInfo } = useOrganizationSettings();
   const [startDate, setStartDate] = useState<Date>(subDays(new Date(), 30));
   const [endDate, setEndDate] = useState<Date>(new Date());
   const [dashboardData, setDashboardData] = useState<DashboardData>({

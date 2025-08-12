@@ -91,7 +91,7 @@ const OrganizationSettingsTab = () => {
         toast.error('Failed to update organization');
       } else {
         toast.success('Organization settings saved successfully');
-        // Refresh the organization data in auth context
+        // Refresh the organization data in auth context to update across the app
         await refreshProfile();
       }
     } catch (error) {

@@ -9,6 +9,14 @@ interface Organization {
   name: string;
   subscription_level: string;
   subscription_status: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  country?: string;
+  currency?: string;
+  logo?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 interface AuthContextType {
