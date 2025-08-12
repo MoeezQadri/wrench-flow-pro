@@ -3,9 +3,11 @@ import { useState } from 'react';
 import type { Payment } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useOrganizationAwareQuery } from '@/hooks/useOrganizationAwareQuery';
 
 export const usePayments = () => {
     const [payments, setPayments] = useState<Payment[]>([]);
+    const { applyOrganizationFilter } = useOrganizationAwareQuery();
 
     const addPayment = async (payment: Payment) => {
         try {
@@ -72,7 +74,8 @@ export const usePayments = () => {
 
     const loadPayments = async () => {
         try {
-            const { data: paymentsData, error: paymentsError } = await supabase.from('payments').select('*');
+            const query = supabase.from('payments').select('*');
+            const { data: paymentsData, error: paymentsError } = await applyOrganizationFilter(query);
             if (paymentsError) {
                 console.error('Error fetching payments:', paymentsError);
                 toast.error('Failed to load payments');

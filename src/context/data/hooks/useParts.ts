@@ -3,9 +3,11 @@ import { useState } from 'react';
 import type { Part } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useOrganizationAwareQuery } from '@/hooks/useOrganizationAwareQuery';
 
 export const useParts = () => {
     const [parts, setParts] = useState<Part[]>([]);
+    const { applyOrganizationFilter } = useOrganizationAwareQuery();
 
     const addPart = async (part: Part) => {
         try {
@@ -95,7 +97,8 @@ export const useParts = () => {
     const loadParts = async () => {
         try {
             console.log('Loading parts from database...');
-            const { data: partsData, error: partsError } = await supabase.from('parts').select('*');
+            const query = supabase.from('parts').select('*');
+            const { data: partsData, error: partsError } = await applyOrganizationFilter(query);
             if (partsError) {
                 console.error('Error fetching parts:', partsError);
                 toast.error('Failed to load parts');

@@ -3,9 +3,11 @@ import { useState } from 'react';
 import type { Task } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useOrganizationAwareQuery } from '@/hooks/useOrganizationAwareQuery';
 
 export const useTasks = () => {
     const [tasks, setTasks] = useState<Task[]>([]);
+    const { applyOrganizationFilter } = useOrganizationAwareQuery();
 
     const transformTask = (dbTask: any): Task => {
         return {
@@ -127,7 +129,8 @@ export const useTasks = () => {
 
     const loadTasks = async () => {
         try {
-            const { data: tasksData, error: tasksError } = await supabase.from('tasks').select('*');
+            const query = supabase.from('tasks').select('*');
+            const { data: tasksData, error: tasksError } = await applyOrganizationFilter(query);
             if (tasksError) {
                 console.error('Error fetching tasks:', tasksError);
                 toast.error('Failed to load tasks');

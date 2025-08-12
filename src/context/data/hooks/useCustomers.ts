@@ -4,10 +4,12 @@ import type { Customer } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useOrganizationFilter } from '@/hooks/useOrganizationFilter';
+import { useOrganizationAwareQuery } from '@/hooks/useOrganizationAwareQuery';
 import { fetchCustomerById } from '@/services/supabase-service';
 
 export const useCustomers = () => {
     const [customers, setCustomers] = useState<Customer[]>([]);
+    const { applyOrganizationFilter } = useOrganizationAwareQuery();
 
     const addCustomer = async (customer: Customer) => {
         try {
@@ -94,9 +96,8 @@ export const useCustomers = () => {
     const loadCustomers = async () => {
         try {
             console.log("Loading customers from Supabase...");
-            const { data: customersData, error: customersError } = await supabase
-                .from('customers')
-                .select('*');
+            const query = supabase.from('customers').select('*');
+            const { data: customersData, error: customersError } = await applyOrganizationFilter(query);
             
             if (customersError) {
                 console.error('Error fetching customers:', customersError);

@@ -3,9 +3,11 @@ import { useState } from 'react';
 import type { Vehicle } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useOrganizationAwareQuery } from '@/hooks/useOrganizationAwareQuery';
 
 export const useVehicles = () => {
     const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+    const { applyOrganizationFilter } = useOrganizationAwareQuery();
 
     const addVehicle = async (vehicle: Vehicle) => {
         try {
@@ -79,10 +81,11 @@ export const useVehicles = () => {
     const getVehiclesByCustomerId = async (customerId: string): Promise<Vehicle[]> => {
         try {
             console.log("Fetching vehicles for customer:", customerId);
-            const { data, error } = await supabase
+            const query = supabase
                 .from('vehicles')
                 .select('*')
                 .eq('customer_id', customerId);
+            const { data, error } = await applyOrganizationFilter(query);
             
             if (error) {
                 console.error('Error fetching vehicles:', error);
@@ -114,7 +117,8 @@ export const useVehicles = () => {
 
     const loadVehicles = async () => {
         try {
-            const { data: vehiclesData, error: vehiclesError } = await supabase.from('vehicles').select('*');
+            const query = supabase.from('vehicles').select('*');
+            const { data: vehiclesData, error: vehiclesError } = await applyOrganizationFilter(query);
             if (vehiclesError) {
                 console.error('Error fetching vehicles:', vehiclesError);
                 toast.error('Failed to load vehicles');

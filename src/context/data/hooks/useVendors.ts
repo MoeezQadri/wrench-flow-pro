@@ -3,9 +3,11 @@ import { useState } from 'react';
 import type { Vendor } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useOrganizationAwareQuery } from '@/hooks/useOrganizationAwareQuery';
 
 export const useVendors = () => {
     const [vendors, setVendors] = useState<Vendor[]>([]);
+    const { applyOrganizationFilter } = useOrganizationAwareQuery();
 
     const generateUUID = () => crypto.randomUUID();
 
@@ -84,7 +86,8 @@ export const useVendors = () => {
 
     const loadVendors = async () => {
         try {
-            const { data: vendorsData, error: vendorsError } = await supabase.from('vendors').select('*');
+            const query = supabase.from('vendors').select('*');
+            const { data: vendorsData, error: vendorsError } = await applyOrganizationFilter(query);
             if (vendorsError) {
                 console.error('Error fetching vendors:', vendorsError);
                 toast.error('Failed to load vendors');

@@ -3,9 +3,11 @@ import { useState } from 'react';
 import type { Mechanic } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useOrganizationAwareQuery } from '@/hooks/useOrganizationAwareQuery';
 
 export const useMechanics = () => {
     const [mechanics, setMechanics] = useState<Mechanic[]>([]);
+    const { applyOrganizationFilter } = useOrganizationAwareQuery();
 
     const generateUUID = () => crypto.randomUUID();
 
@@ -94,7 +96,8 @@ export const useMechanics = () => {
 
     const loadMechanics = async () => {
         try {
-            const { data: mechanicsData, error: mechanicsError } = await supabase.from('mechanics').select('*');
+            const query = supabase.from('mechanics').select('*');
+            const { data: mechanicsData, error: mechanicsError } = await applyOrganizationFilter(query);
             if (mechanicsError) {
                 console.error('Error fetching mechanics:', mechanicsError);
                 toast.error('Failed to load mechanics');
