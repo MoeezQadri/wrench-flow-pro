@@ -24,6 +24,7 @@ export type Database = {
           id: string
           mechanic_id: string
           notes: string | null
+          organization_id: string | null
           status: Database["public"]["Enums"]["attendance_status_enum"] | null
         }
         Insert: {
@@ -35,6 +36,7 @@ export type Database = {
           id?: string
           mechanic_id: string
           notes?: string | null
+          organization_id?: string | null
           status?: Database["public"]["Enums"]["attendance_status_enum"] | null
         }
         Update: {
@@ -46,6 +48,7 @@ export type Database = {
           id?: string
           mechanic_id?: string
           notes?: string | null
+          organization_id?: string | null
           status?: Database["public"]["Enums"]["attendance_status_enum"] | null
         }
         Relationships: [
@@ -143,6 +146,7 @@ export type Database = {
           last_visit: string | null
           lifetime_value: number | null
           name: string
+          organization_id: string | null
           phone: string | null
           total_visits: number | null
           updated_at: string | null
@@ -155,6 +159,7 @@ export type Database = {
           last_visit?: string | null
           lifetime_value?: number | null
           name: string
+          organization_id?: string | null
           phone?: string | null
           total_visits?: number | null
           updated_at?: string | null
@@ -167,6 +172,7 @@ export type Database = {
           last_visit?: string | null
           lifetime_value?: number | null
           name?: string
+          organization_id?: string | null
           phone?: string | null
           total_visits?: number | null
           updated_at?: string | null
@@ -181,6 +187,7 @@ export type Database = {
           date: string | null
           description: string | null
           id: string
+          organization_id: string | null
           payment_method:
             | Database["public"]["Enums"]["payment_method_enum"]
             | null
@@ -196,6 +203,7 @@ export type Database = {
           date?: string | null
           description?: string | null
           id?: string
+          organization_id?: string | null
           payment_method?:
             | Database["public"]["Enums"]["payment_method_enum"]
             | null
@@ -211,6 +219,7 @@ export type Database = {
           date?: string | null
           description?: string | null
           id?: string
+          organization_id?: string | null
           payment_method?:
             | Database["public"]["Enums"]["payment_method_enum"]
             | null
@@ -232,6 +241,7 @@ export type Database = {
           id: string
           invoice_id: string
           is_auto_added: boolean | null
+          organization_id: string | null
           part_id: string | null
           price: number
           quantity: number
@@ -249,6 +259,7 @@ export type Database = {
           id?: string
           invoice_id: string
           is_auto_added?: boolean | null
+          organization_id?: string | null
           part_id?: string | null
           price: number
           quantity: number
@@ -266,6 +277,7 @@ export type Database = {
           id?: string
           invoice_id?: string
           is_auto_added?: boolean | null
+          organization_id?: string | null
           part_id?: string | null
           price?: number
           quantity?: number
@@ -307,6 +319,7 @@ export type Database = {
           due_date: string | null
           id: string
           notes: string | null
+          organization_id: string | null
           status: string
           tax_rate: number | null
           updated_at: string | null
@@ -321,6 +334,7 @@ export type Database = {
           due_date?: string | null
           id?: string
           notes?: string | null
+          organization_id?: string | null
           status: string
           tax_rate?: number | null
           updated_at?: string | null
@@ -335,6 +349,7 @@ export type Database = {
           due_date?: string | null
           id?: string
           notes?: string | null
+          organization_id?: string | null
           status?: string
           tax_rate?: number | null
           updated_at?: string | null
@@ -368,6 +383,7 @@ export type Database = {
           id_card_image: string | null
           is_active: boolean | null
           name: string
+          organization_id: string | null
           phone: string | null
           specialization: string | null
           updated_at: string | null
@@ -383,6 +399,7 @@ export type Database = {
           id_card_image?: string | null
           is_active?: boolean | null
           name: string
+          organization_id?: string | null
           phone?: string | null
           specialization?: string | null
           updated_at?: string | null
@@ -398,6 +415,7 @@ export type Database = {
           id_card_image?: string | null
           is_active?: boolean | null
           name?: string
+          organization_id?: string | null
           phone?: string | null
           specialization?: string | null
           updated_at?: string | null
@@ -471,6 +489,7 @@ export type Database = {
           location: string | null
           manufacturer: string | null
           name: string
+          organization_id: string | null
           part_number: string | null
           price: number
           quantity: number
@@ -489,6 +508,7 @@ export type Database = {
           location?: string | null
           manufacturer?: string | null
           name: string
+          organization_id?: string | null
           part_number?: string | null
           price: number
           quantity?: number
@@ -507,6 +527,7 @@ export type Database = {
           location?: string | null
           manufacturer?: string | null
           name?: string
+          organization_id?: string | null
           part_number?: string | null
           price?: number
           quantity?: number
@@ -535,6 +556,7 @@ export type Database = {
           expense_id: string | null
           id: string
           notes: string | null
+          organization_id: string | null
           paid_amount: number | null
           payment_date: string | null
           payment_method: string | null
@@ -551,6 +573,7 @@ export type Database = {
           expense_id?: string | null
           id?: string
           notes?: string | null
+          organization_id?: string | null
           paid_amount?: number | null
           payment_date?: string | null
           payment_method?: string | null
@@ -567,6 +590,7 @@ export type Database = {
           expense_id?: string | null
           id?: string
           notes?: string | null
+          organization_id?: string | null
           paid_amount?: number | null
           payment_date?: string | null
           payment_method?: string | null
@@ -601,6 +625,7 @@ export type Database = {
           invoice_id: string
           method: string
           notes: string | null
+          organization_id: string | null
         }
         Insert: {
           amount: number
@@ -610,6 +635,7 @@ export type Database = {
           invoice_id: string
           method: string
           notes?: string | null
+          organization_id?: string | null
         }
         Update: {
           amount?: number
@@ -619,6 +645,7 @@ export type Database = {
           invoice_id?: string
           method?: string
           notes?: string | null
+          organization_id?: string | null
         }
         Relationships: [
           {
@@ -790,6 +817,7 @@ export type Database = {
           labor_rate: number | null
           location: string | null
           mechanic_id: string | null
+          organization_id: string | null
           price: number | null
           skill_level: string | null
           start_time: string | null
@@ -811,6 +839,7 @@ export type Database = {
           labor_rate?: number | null
           location?: string | null
           mechanic_id?: string | null
+          organization_id?: string | null
           price?: number | null
           skill_level?: string | null
           start_time?: string | null
@@ -832,6 +861,7 @@ export type Database = {
           labor_rate?: number | null
           location?: string | null
           mechanic_id?: string | null
+          organization_id?: string | null
           price?: number | null
           skill_level?: string | null
           start_time?: string | null
@@ -873,6 +903,7 @@ export type Database = {
           license_plate: string
           make: string
           model: string
+          organization_id: string | null
           updated_at: string | null
           vin: string | null
           year: string
@@ -885,6 +916,7 @@ export type Database = {
           license_plate: string
           make: string
           model: string
+          organization_id?: string | null
           updated_at?: string | null
           vin?: string | null
           year: string
@@ -897,6 +929,7 @@ export type Database = {
           license_plate?: string
           make?: string
           model?: string
+          organization_id?: string | null
           updated_at?: string | null
           vin?: string | null
           year?: string
@@ -923,6 +956,7 @@ export type Database = {
           is_active: boolean | null
           name: string
           notes: string | null
+          organization_id: string | null
           payment_terms: number | null
           phone: string
           tax_id: string | null
@@ -940,6 +974,7 @@ export type Database = {
           is_active?: boolean | null
           name: string
           notes?: string | null
+          organization_id?: string | null
           payment_terms?: number | null
           phone: string
           tax_id?: string | null
@@ -957,6 +992,7 @@ export type Database = {
           is_active?: boolean | null
           name?: string
           notes?: string | null
+          organization_id?: string | null
           payment_terms?: number | null
           phone?: string
           tax_id?: string | null
@@ -1010,6 +1046,10 @@ export type Database = {
         }
         Returns: Json
       }
+      current_user_org: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_inactive_users: {
         Args: { days_inactive?: number }
         Returns: {
@@ -1037,6 +1077,10 @@ export type Database = {
       superadmin_login_new: {
         Args: { userid: string }
         Returns: Json
+      }
+      user_is_superadmin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
       }
       verify_superadmin_token: {
         Args: { token: string }
