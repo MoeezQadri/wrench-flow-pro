@@ -14,9 +14,10 @@ const Settings = () => {
   const [activeTab, setActiveTab] = useState('organization');
   const { currentUser } = useAuthContext();
   
-  // Check if current user has permission to manage users
+  // Check if current user has permission to manage users and roles
   const canManageUsers = currentUser?.role === 'owner' || currentUser?.role === 'admin';
   const canManageRoles = currentUser?.role === 'owner';
+  const canManageSubscription = currentUser?.role === 'owner' || currentUser?.role === 'admin';
 
   return (
     <div className="space-y-6">
@@ -30,10 +31,12 @@ const Settings = () => {
             <Building className="w-4 h-4 mr-2" />
             Organization
           </TabsTrigger>
-          <TabsTrigger value="subscription" className="data-[state=active]:bg-muted">
-            <CreditCard className="w-4 h-4 mr-2" />
-            Subscription
-          </TabsTrigger>
+          {canManageSubscription && (
+            <TabsTrigger value="subscription" className="data-[state=active]:bg-muted">
+              <CreditCard className="w-4 h-4 mr-2" />
+              Subscription
+            </TabsTrigger>
+          )}
           <TabsTrigger value="account" className="data-[state=active]:bg-muted">
             <User className="w-4 h-4 mr-2" />
             Account
@@ -61,10 +64,12 @@ const Settings = () => {
           <OrganizationSettingsTab />
         </TabsContent>
         
-        {/* Subscription Settings Tab */}
-        <TabsContent value="subscription" className="space-y-6">
-          <SubscriptionSettingsTab />
-        </TabsContent>
+        {/* Subscription Settings Tab - Only for admins/owners */}
+        {canManageSubscription && (
+          <TabsContent value="subscription" className="space-y-6">
+            <SubscriptionSettingsTab />
+          </TabsContent>
+        )}
         
         {/* Account Settings Tab (including password reset) */}
         <TabsContent value="account" className="space-y-6">

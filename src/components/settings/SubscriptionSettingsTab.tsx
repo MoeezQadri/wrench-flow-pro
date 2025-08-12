@@ -25,7 +25,8 @@ interface SubscriptionPlan {
 
 const SubscriptionSettingsTab = () => {
   const { currentUser, organization } = useAuthContext();
-  const canManageSubscription = hasPermission(currentUser, 'settings', 'edit');
+  // Only owners and admins can manage subscriptions organization-wide
+  const canManageSubscription = currentUser?.role === 'owner' || currentUser?.role === 'admin';
   const [additionalSeats, setAdditionalSeats] = useState(0);
   const [selectedPlan, setSelectedPlan] = useState(''); 
   const [availablePlans, setAvailablePlans] = useState<SubscriptionPlan[]>([]);
@@ -159,6 +160,25 @@ const SubscriptionSettingsTab = () => {
     }
   };
   
+  if (!canManageSubscription) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Subscription Information</CardTitle>
+          <CardDescription>
+            Only organization owners and administrators can view and manage subscription settings.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center text-muted-foreground py-8">
+            <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <p>Contact your organization administrator to view subscription details.</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-48">
@@ -169,13 +189,13 @@ const SubscriptionSettingsTab = () => {
 
   return (
     <div className="space-y-6">
-      {/* Available Plans Card - Only visible for users with permission */}
-      {canManageSubscription && availablePlans.length > 0 && (
+      {/* Available Plans Card - Only visible for admins/owners */}
+      {availablePlans.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Available Subscription Plans</CardTitle>
+            <CardTitle>Organization Subscription Plans</CardTitle>
             <CardDescription>
-              Choose the subscription plan that fits your business needs
+              Choose the subscription plan for your entire organization. This affects all users in your organization.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -258,12 +278,12 @@ const SubscriptionSettingsTab = () => {
         </Card>
       )}
       
-      {/* Current Subscription Card */}
+      {/* Current Organization Subscription */}
       <Card>
         <CardHeader>
-          <CardTitle>Current Subscription</CardTitle>
+          <CardTitle>Current Organization Subscription</CardTitle>
           <CardDescription>
-            Information about your current subscription plan
+            Information about your organization's current subscription plan. This plan applies to all users in your organization.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -321,8 +341,8 @@ const SubscriptionSettingsTab = () => {
             </div>
           </div>
           
-          {canManageSubscription && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Subscription Management - Only for admins/owners */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="additional-seats">Add More Seats</Label>
                 <div className="flex mt-1">
@@ -357,9 +377,8 @@ const SubscriptionSettingsTab = () => {
                     </Button>
                   </div>
                 </div>
-              </div>
             </div>
-          )}
+          </div>
         </CardContent>
       </Card>
       
