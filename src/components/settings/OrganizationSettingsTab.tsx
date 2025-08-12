@@ -9,19 +9,7 @@ import { toast } from 'sonner';
 import { Building } from 'lucide-react';
 import { useAuthContext } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-
-const availableCountries = [
-  'United States', 'Canada', 'United Kingdom', 'Germany', 'France', 'Australia', 'Japan', 'Singapore'
-];
-
-const availableCurrencies = [
-  { code: 'USD', symbol: '$', name: 'US Dollar' },
-  { code: 'EUR', symbol: '€', name: 'Euro' },
-  { code: 'GBP', symbol: '£', name: 'British Pound' },
-  { code: 'CAD', symbol: 'C$', name: 'Canadian Dollar' },
-  { code: 'AUD', symbol: 'A$', name: 'Australian Dollar' },
-  { code: 'JPY', symbol: '¥', name: 'Japanese Yen' },
-];
+import { GLOBAL_COUNTRIES, GLOBAL_CURRENCIES } from '@/utils/global-data';
 
 const OrganizationSettingsTab = () => {
   const { currentUser, organization, refreshProfile } = useAuthContext();
@@ -199,9 +187,9 @@ const OrganizationSettingsTab = () => {
                   <SelectValue placeholder="Select country" />
                 </SelectTrigger>
                 <SelectContent>
-                  {availableCountries.map((countryName) => (
-                    <SelectItem key={countryName} value={countryName}>
-                      {countryName}
+                  {GLOBAL_COUNTRIES.map((country) => (
+                    <SelectItem key={country.code} value={country.name}>
+                      {country.flag} {country.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -218,7 +206,7 @@ const OrganizationSettingsTab = () => {
                   <SelectValue placeholder="Select currency" />
                 </SelectTrigger>
                 <SelectContent>
-                  {availableCurrencies.map((curr) => (
+                  {GLOBAL_CURRENCIES.map((curr) => (
                     <SelectItem key={curr.code} value={curr.code}>
                       {curr.code} ({curr.symbol}) - {curr.name}
                     </SelectItem>
