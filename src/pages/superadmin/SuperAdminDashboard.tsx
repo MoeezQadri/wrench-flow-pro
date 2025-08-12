@@ -29,6 +29,8 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { IsolationTest } from '@/components/debug/IsolationTest';
+import { Phase3Summary } from '@/components/debug/Phase3Summary';
 
 const SuperAdminDashboard: React.FC = () => {
   const { toast } = useToast();
@@ -268,16 +270,28 @@ const SuperAdminDashboard: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="settings">
-          <Card>
-            <CardHeader>
-              <CardTitle>System Settings</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                System configuration and maintenance tools will be available here.
-              </p>
-            </CardContent>
-          </Card>
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>System Settings</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">
+                  System configuration and maintenance tools will be available here.
+                </p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle>Website Data Test</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Phase3Summary />
+                <IsolationTest />
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
 

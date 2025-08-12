@@ -9,8 +9,6 @@ import { Badge } from "@/components/ui/badge";
 import { useDataContext } from "@/context/data/DataContext";
 import { useAuthContext } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { IsolationTest } from "@/components/debug/IsolationTest";
-import { Phase3Summary } from "@/components/debug/Phase3Summary";
 
 const Mechanics = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -56,8 +54,6 @@ const Mechanics = () => {
 
   return (
     <div className="space-y-6">
-      <Phase3Summary />
-      <IsolationTest />
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold tracking-tight">Mechanics</h1>
         {canManageMechanics && (
