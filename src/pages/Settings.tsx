@@ -1,11 +1,10 @@
 
 import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Building, CreditCard, User, FileText, Users, ShieldCheck } from 'lucide-react';
+import { Building, CreditCard, User, Users, ShieldCheck } from 'lucide-react';
 import OrganizationSettingsTab from '@/components/settings/OrganizationSettingsTab';
 import SubscriptionSettingsTab from '@/components/settings/SubscriptionSettingsTab';
 import AccountSettingsTab from '@/components/settings/AccountSettingsTab';
-import InvoiceSettingsTab from '@/components/settings/InvoiceSettingsTab';
 import UserManagementTab from '@/components/settings/UserManagementTab';
 import RolesManagementTab from '@/components/settings/RolesManagementTab';
 import { useAuthContext } from '@/context/AuthContext';
@@ -41,10 +40,6 @@ const Settings = () => {
             <User className="w-4 h-4 mr-2" />
             Account
           </TabsTrigger>
-          <TabsTrigger value="invoicing" className="data-[state=active]:bg-muted">
-            <FileText className="w-4 h-4 mr-2" />
-            Invoicing
-          </TabsTrigger>
           {canManageUsers && (
             <TabsTrigger value="users" className="data-[state=active]:bg-muted">
               <Users className="w-4 h-4 mr-2" />
@@ -74,11 +69,6 @@ const Settings = () => {
         {/* Account Settings Tab (including password reset) */}
         <TabsContent value="account" className="space-y-6">
           <AccountSettingsTab />
-        </TabsContent>
-        
-        {/* Invoicing Settings Tab */}
-        <TabsContent value="invoicing" className="space-y-6">
-          <InvoiceSettingsTab />
         </TabsContent>
         
         {/* User Management Tab */}
