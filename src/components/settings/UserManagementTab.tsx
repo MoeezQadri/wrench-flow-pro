@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { UserPlus, Mail, Pencil, Trash2, Users } from 'lucide-react';
+import { UserPlus, Mail, Pencil, Trash2, Users, KeyRound } from 'lucide-react';
 import { useAuthContext } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -19,6 +19,7 @@ interface OrganizationUser {
   is_active: boolean;
   created_at: string;
   lastLogin?: string;
+  email?: string; // Add email field for password resets
 }
 
 const predefinedRoles = [
@@ -29,7 +30,7 @@ const predefinedRoles = [
 ];
 
 const UserManagementTab = () => {
-  const { currentUser } = useAuthContext();
+  const { currentUser, session } = useAuthContext();
   const [users, setUsers] = useState<OrganizationUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -53,6 +54,9 @@ const UserManagementTab = () => {
     }
 
     try {
+      // For now, we'll just get the basic profile data
+      // In a production app, you'd want to create a proper view or function
+      // that joins profiles with auth.users to get email addresses
       const { data: usersData, error } = await supabase
         .from('profiles')
         .select('*')
@@ -63,7 +67,13 @@ const UserManagementTab = () => {
         console.error('Error loading users:', error);
         toast.error('Failed to load users');
       } else {
-        setUsers(usersData || []);
+        // For now, we'll use the current user's email for demonstration
+        // In production, you'd get each user's email from the join
+        const transformedUsers = (usersData || []).map(user => ({
+          ...user,
+          email: user.id === currentUser?.id ? session?.user?.email : `user-${user.id.slice(0,8)}@example.com`
+        }));
+        setUsers(transformedUsers);
       }
     } catch (error) {
       console.error('Error loading users:', error);
@@ -82,12 +92,30 @@ const UserManagementTab = () => {
     }
 
     try {
-      // Here you would typically send an invitation email
-      // For now, we'll show a success message
-      toast.success(`Invitation sent to ${newUserEmail}`);
-      setNewUserEmail('');
-      setNewUserRole('member');
-      setInviteDialogOpen(false);
+      // Create user invitation (this would typically be handled by a backend service)
+      // For now, we'll just show a success message
+      // In a real implementation, you would:
+      // 1. Send an invitation email with a secure token
+      // 2. Create a pending user record
+      // 3. Handle the invitation acceptance flow
+      
+      const { error } = await supabase.auth.admin.inviteUserByEmail(newUserEmail, {
+        data: {
+          role: newUserRole,
+          organization_id: currentUser.organization_id,
+          invited_by: currentUser.id
+        }
+      });
+
+      if (error) {
+        console.error('Error inviting user:', error);
+        toast.error('Failed to send invitation: ' + error.message);
+      } else {
+        toast.success(`Invitation sent to ${newUserEmail}`);
+        setNewUserEmail('');
+        setNewUserRole('member');
+        setInviteDialogOpen(false);
+      }
     } catch (error) {
       console.error('Error inviting user:', error);
       toast.error('Failed to send invitation');
@@ -144,6 +172,26 @@ const UserManagementTab = () => {
     } catch (error) {
       console.error('Error deactivating user:', error);
       toast.error('Failed to deactivate user');
+    }
+  };
+
+  const handleResetPassword = async (userEmail: string) => {
+    if (!confirm('Send password reset email to this user?')) return;
+    
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(userEmail, {
+        redirectTo: `${window.location.origin}/auth/reset-password`
+      });
+
+      if (error) {
+        console.error('Error sending password reset:', error);
+        toast.error('Failed to send password reset email');
+      } else {
+        toast.success('Password reset email sent successfully');
+      }
+    } catch (error) {
+      console.error('Error sending password reset:', error);
+      toast.error('Failed to send password reset email');
     }
   };
 
@@ -276,15 +324,26 @@ const UserManagementTab = () => {
                         variant="outline"
                         size="sm"
                         onClick={() => openEditDialog(user)}
-                        disabled={user.id === currentUser?.id} // Can't edit yourself
+                        disabled={user.id === currentUser?.id && user.role === 'owner'} // Owner can't edit their own role
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      {user.id !== currentUser?.id && user.is_active && (
+                      {user.id !== currentUser?.id && user.email && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleResetPassword(user.email!)}
+                          title="Send password reset email"
+                        >
+                          <KeyRound className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {user.id !== currentUser?.id && user.is_active && user.role !== 'owner' && (
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => handleDeactivateUser(user.id)}
+                          className="text-destructive hover:text-destructive"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>

@@ -698,6 +698,51 @@ export type Database = {
           },
         ]
       }
+      subscription_plans: {
+        Row: {
+          created_at: string
+          description: string | null
+          features: Json | null
+          id: string
+          included_seats: number
+          is_active: boolean
+          name: string
+          price_monthly: number
+          price_per_additional_seat: number
+          price_yearly: number | null
+          sort_order: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          features?: Json | null
+          id?: string
+          included_seats?: number
+          is_active?: boolean
+          name: string
+          price_monthly?: number
+          price_per_additional_seat?: number
+          price_yearly?: number | null
+          sort_order?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          features?: Json | null
+          id?: string
+          included_seats?: number
+          is_active?: boolean
+          name?: string
+          price_monthly?: number
+          price_per_additional_seat?: number
+          price_yearly?: number | null
+          sort_order?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       superadmin_activity: {
         Row: {
           action_type: string
