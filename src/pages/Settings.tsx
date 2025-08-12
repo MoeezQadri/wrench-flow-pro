@@ -1,23 +1,22 @@
 
 import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Building, CreditCard, User, FileText, Lock, ShieldCheck } from 'lucide-react';
+import { Building, CreditCard, User, FileText, Users, ShieldCheck } from 'lucide-react';
 import OrganizationSettingsTab from '@/components/settings/OrganizationSettingsTab';
 import SubscriptionSettingsTab from '@/components/settings/SubscriptionSettingsTab';
 import AccountSettingsTab from '@/components/settings/AccountSettingsTab';
 import InvoiceSettingsTab from '@/components/settings/InvoiceSettingsTab';
+import UserManagementTab from '@/components/settings/UserManagementTab';
 import RolesManagementTab from '@/components/settings/RolesManagementTab';
 import { useAuthContext } from '@/context/AuthContext';
-import { hasPermission } from '@/services/data-service';
 
 const Settings = () => {
   const [activeTab, setActiveTab] = useState('organization');
   const { currentUser } = useAuthContext();
   
-  // Check if current user has permission to manage users or settings
-  // Using 'users' instead of 'roles' since it's defined in RolePermissionMap
-  const canManageRoles = hasPermission(currentUser, 'users', 'manage');
+  // Check if current user has permission to manage users
+  const canManageUsers = currentUser?.role === 'owner' || currentUser?.role === 'admin';
+  const canManageRoles = currentUser?.role === 'owner';
 
   return (
     <div className="space-y-6">
@@ -43,6 +42,12 @@ const Settings = () => {
             <FileText className="w-4 h-4 mr-2" />
             Invoicing
           </TabsTrigger>
+          {canManageUsers && (
+            <TabsTrigger value="users" className="data-[state=active]:bg-muted">
+              <Users className="w-4 h-4 mr-2" />
+              Users
+            </TabsTrigger>
+          )}
           {canManageRoles && (
             <TabsTrigger value="roles" className="data-[state=active]:bg-muted">
               <ShieldCheck className="w-4 h-4 mr-2" />
@@ -70,6 +75,13 @@ const Settings = () => {
         <TabsContent value="invoicing" className="space-y-6">
           <InvoiceSettingsTab />
         </TabsContent>
+        
+        {/* User Management Tab */}
+        {canManageUsers && (
+          <TabsContent value="users" className="space-y-6">
+            <UserManagementTab />
+          </TabsContent>
+        )}
         
         {/* Roles Management Tab */}
         {canManageRoles && (

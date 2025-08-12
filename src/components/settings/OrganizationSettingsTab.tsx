@@ -7,37 +7,72 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Building } from 'lucide-react';
-import { availableCountries, availableCurrencies, getOrganizationById, updateOrganization } from '@/services/auth-service';
-import { Organization } from '@/types';
 import { useAuthContext } from '@/context/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+
+const availableCountries = [
+  'United States', 'Canada', 'United Kingdom', 'Germany', 'France', 'Australia', 'Japan', 'Singapore'
+];
+
+const availableCurrencies = [
+  { code: 'USD', symbol: '$', name: 'US Dollar' },
+  { code: 'EUR', symbol: '€', name: 'Euro' },
+  { code: 'GBP', symbol: '£', name: 'British Pound' },
+  { code: 'CAD', symbol: 'C$', name: 'Canadian Dollar' },
+  { code: 'AUD', symbol: 'A$', name: 'Australian Dollar' },
+  { code: 'JPY', symbol: '¥', name: 'Japanese Yen' },
+];
 
 const OrganizationSettingsTab = () => {
-  const { currentUser } = useAuthContext();
-  const [organization, setOrganization] = useState<Organization | null>(null);
+  const { currentUser, organization, refreshProfile } = useAuthContext();
   const [loading, setLoading] = useState(true);
-  const [name, setName] = useState('');
-  const [country, setCountry] = useState('');
-  const [currency, setCurrency] = useState('');
-  const [address, setAddress] = useState('');
-  const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
   const [saving, setSaving] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    country: '',
+    currency: '',
+    address: '',
+    phone: '',
+    email: '',
+  });
 
   useEffect(() => {
-    if (currentUser?.organization_id) {
-      const org = getOrganizationById(currentUser.organization_id);
-      if (org) {
-        setOrganization(org);
-        setName(org.name || '');
-        setCountry(org.country || '');
-        setCurrency(org.currency || '');
-        setAddress(org.address || '');
-        setPhone(org.phone || '');
-        setEmail(org.email || '');
+    loadOrganizationData();
+  }, [currentUser?.organization_id]);
+
+  const loadOrganizationData = async () => {
+    if (!currentUser?.organization_id) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const { data: orgData, error } = await supabase
+        .from('organizations')
+        .select('*')
+        .eq('id', currentUser.organization_id)
+        .single();
+
+      if (error) {
+        console.error('Error loading organization:', error);
+        toast.error('Failed to load organization data');
+      } else if (orgData) {
+        setFormData({
+          name: orgData.name || '',
+          country: orgData.country || '',
+          currency: orgData.currency || '',
+          address: orgData.address || '',
+          phone: orgData.phone || '',
+          email: orgData.email || '',
+        });
       }
+    } catch (error) {
+      console.error('Error loading organization:', error);
+      toast.error('Failed to load organization data');
+    } finally {
       setLoading(false);
     }
-  }, [currentUser]);
+  };
 
   const handleSaveGeneral = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,26 +85,40 @@ const OrganizationSettingsTab = () => {
     setSaving(true);
     
     try {
-      const updatedOrg = updateOrganization(currentUser.organization_id, {
-        name,
-        country,
-        currency,
-        address,
-        phone,
-        email
-      });
-      
-      if (updatedOrg) {
-        setOrganization(updatedOrg);
-        toast.success('Organization settings saved');
-      } else {
+      const { error } = await supabase
+        .from('organizations')
+        .update({
+          name: formData.name,
+          country: formData.country,
+          currency: formData.currency,
+          address: formData.address,
+          phone: formData.phone,
+          email: formData.email,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', currentUser.organization_id);
+
+      if (error) {
+        console.error('Error updating organization:', error);
         toast.error('Failed to update organization');
+      } else {
+        toast.success('Organization settings saved successfully');
+        // Refresh the organization data in auth context
+        await refreshProfile();
       }
     } catch (error) {
-      toast.error('An error occurred');
+      console.error('Error updating organization:', error);
+      toast.error('An error occurred while saving');
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
   if (loading) {
@@ -80,10 +129,10 @@ const OrganizationSettingsTab = () => {
     );
   }
 
-  if (!organization) {
+  if (!currentUser?.organization_id) {
     return (
       <div className="flex justify-center items-center h-48">
-        <div className="text-center text-muted-foreground">Organization not found</div>
+        <div className="text-center text-muted-foreground">No organization found</div>
       </div>
     );
   }
@@ -106,8 +155,8 @@ const OrganizationSettingsTab = () => {
               <Label htmlFor="name">Organization Name</Label>
               <Input 
                 id="name" 
-                value={name} 
-                onChange={(e) => setName(e.target.value)}
+                value={formData.name} 
+                onChange={(e) => handleInputChange('name', e.target.value)}
                 required
               />
             </div>
@@ -117,8 +166,8 @@ const OrganizationSettingsTab = () => {
               <Input 
                 id="email" 
                 type="email" 
-                value={email} 
-                onChange={(e) => setEmail(e.target.value)}
+                value={formData.email} 
+                onChange={(e) => handleInputChange('email', e.target.value)}
               />
             </div>
             
@@ -126,8 +175,8 @@ const OrganizationSettingsTab = () => {
               <Label htmlFor="phone">Phone</Label>
               <Input 
                 id="phone" 
-                value={phone} 
-                onChange={(e) => setPhone(e.target.value)}
+                value={formData.phone} 
+                onChange={(e) => handleInputChange('phone', e.target.value)}
               />
             </div>
             
@@ -135,16 +184,16 @@ const OrganizationSettingsTab = () => {
               <Label htmlFor="address">Address</Label>
               <Input 
                 id="address" 
-                value={address} 
-                onChange={(e) => setAddress(e.target.value)}
+                value={formData.address} 
+                onChange={(e) => handleInputChange('address', e.target.value)}
               />
             </div>
             
             <div className="space-y-2">
               <Label htmlFor="country">Country</Label>
               <Select 
-                value={country} 
-                onValueChange={setCountry}
+                value={formData.country} 
+                onValueChange={(value) => handleInputChange('country', value)}
               >
                 <SelectTrigger id="country">
                   <SelectValue placeholder="Select country" />
@@ -162,8 +211,8 @@ const OrganizationSettingsTab = () => {
             <div className="space-y-2">
               <Label htmlFor="currency">Currency</Label>
               <Select 
-                value={currency} 
-                onValueChange={setCurrency}
+                value={formData.currency} 
+                onValueChange={(value) => handleInputChange('currency', value)}
               >
                 <SelectTrigger id="currency">
                   <SelectValue placeholder="Select currency" />
