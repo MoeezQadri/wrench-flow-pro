@@ -26,8 +26,6 @@ interface OrganizationUser {
 const useAvailableRoles = () => {
   const [roles, setRoles] = useState([
     { value: 'owner', label: 'Owner', description: 'Full access to all features' },
-    { value: 'admin', label: 'Admin', description: 'Can manage users and settings' },
-    { value: 'manager', label: 'Manager', description: 'Can manage operations and view reports' },
     { value: 'member', label: 'Member', description: 'Basic access to core features' },
   ]);
 
@@ -41,23 +39,29 @@ const useAvailableRoles = () => {
         
         if (!error && data) {
           const uniqueRoles = [...new Set(data.map(item => item.role))];
-          const predefinedRoles = [
-            { value: 'owner', label: 'Owner', description: 'Full access to all features' },
-            { value: 'admin', label: 'Admin', description: 'Can manage users and settings' },
-            { value: 'manager', label: 'Manager', description: 'Can manage operations and view reports' },
-            { value: 'member', label: 'Member', description: 'Basic access to core features' },
-          ];
+          console.log('Available roles from database:', uniqueRoles);
           
-          // Add any additional roles found in database that aren't predefined
-          const additionalRoles = uniqueRoles
-            .filter(role => !predefinedRoles.some(pr => pr.value === role))
-            .map(role => ({ 
-              value: role, 
-              label: role.charAt(0).toUpperCase() + role.slice(1), 
-              description: `${role.charAt(0).toUpperCase() + role.slice(1)} role` 
-            }));
+          // Create role definitions based on what's actually in the database
+          const roleDefinitions = uniqueRoles.map(role => {
+            switch (role) {
+              case 'owner':
+                return { value: 'owner', label: 'Owner', description: 'Full access to all features' };
+              case 'admin':
+                return { value: 'admin', label: 'Admin', description: 'Can manage users and settings' };
+              case 'manager':
+                return { value: 'manager', label: 'Manager', description: 'Can manage operations and view reports' };
+              case 'member':
+                return { value: 'member', label: 'Member', description: 'Basic access to core features' };
+              default:
+                return { 
+                  value: role, 
+                  label: role.charAt(0).toUpperCase() + role.slice(1), 
+                  description: `${role.charAt(0).toUpperCase() + role.slice(1)} role` 
+                };
+            }
+          });
           
-          setRoles([...predefinedRoles, ...additionalRoles]);
+          setRoles(roleDefinitions);
         }
       } catch (error) {
         console.error('Error loading roles:', error);
