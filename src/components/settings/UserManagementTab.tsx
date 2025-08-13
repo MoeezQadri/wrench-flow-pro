@@ -22,66 +22,16 @@ interface OrganizationUser {
   email?: string; // Add email field for password resets
 }
 
-// Load roles dynamically from database
+// Predefined roles for invitations (exclude superuser/superadmin)
 const useAvailableRoles = () => {
-  const [roles, setRoles] = useState([
+  const roles = [
     { value: 'owner', label: 'Owner', description: 'Full access to all features' },
     { value: 'admin', label: 'Admin', description: 'Can manage users and settings' },
     { value: 'manager', label: 'Manager', description: 'Can manage operations and view reports' },
     { value: 'foreman', label: 'Foreman', description: 'Can manage workshop operations' },
     { value: 'mechanic', label: 'Mechanic', description: 'Basic access to workshop tools' },
     { value: 'member', label: 'Member', description: 'Basic access to core features' },
-  ]);
-
-  useEffect(() => {
-    const loadRoles = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('role')
-          .not('role', 'is', null);
-        
-        if (!error && data) {
-          const uniqueRoles = [...new Set(data.map(item => item.role))];
-          console.log('Available roles from database:', uniqueRoles);
-          
-          // Only allow business roles (exclude superuser/superadmin from invitations)
-          const allowedRoles = ['owner', 'admin', 'manager', 'foreman', 'mechanic', 'member'];
-          const filteredRoles = uniqueRoles.filter(role => allowedRoles.includes(role));
-          
-          // Create role definitions based on allowed roles
-          const roleDefinitions = filteredRoles.map(role => {
-            switch (role) {
-              case 'owner':
-                return { value: 'owner', label: 'Owner', description: 'Full access to all features' };
-              case 'admin':
-                return { value: 'admin', label: 'Admin', description: 'Can manage users and settings' };
-              case 'manager':
-                return { value: 'manager', label: 'Manager', description: 'Can manage operations and view reports' };
-              case 'foreman':
-                return { value: 'foreman', label: 'Foreman', description: 'Can manage workshop operations' };
-              case 'mechanic':
-                return { value: 'mechanic', label: 'Mechanic', description: 'Basic access to workshop tools' };
-              case 'member':
-                return { value: 'member', label: 'Member', description: 'Basic access to core features' };
-              default:
-                return { 
-                  value: role, 
-                  label: role.charAt(0).toUpperCase() + role.slice(1), 
-                  description: `${role.charAt(0).toUpperCase() + role.slice(1)} role` 
-                };
-            }
-          });
-          
-          setRoles(roleDefinitions);
-        }
-      } catch (error) {
-        console.error('Error loading roles:', error);
-      }
-    };
-    
-    loadRoles();
-  }, []);
+  ];
 
   return roles;
 };
