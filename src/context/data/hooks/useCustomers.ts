@@ -21,9 +21,12 @@ export const useCustomers = () => {
             return;
         }
 
-        console.log("Setting up real-time subscription for customers");
+        console.log("Setting up real-time subscription for customers in org:", organizationId);
+        
+        // Create a unique channel name to avoid conflicts
+        const channelName = `customers-changes-${organizationId}`;
         const channel = supabase
-            .channel('customers-changes')
+            .channel(channelName)
             .on(
                 'postgres_changes',
                 {
@@ -33,27 +36,55 @@ export const useCustomers = () => {
                     filter: `organization_id=eq.${organizationId}`
                 },
                 (payload) => {
-                    console.log('Customer real-time update:', payload);
+                    console.log('Customer real-time update received:', payload);
                     
                     try {
                         if (payload.eventType === 'INSERT' && payload.new) {
+                            const newCustomer = payload.new as Customer;
                             setCustomers(prev => {
-                                const exists = prev.some(c => c.id === payload.new.id);
-                                return exists ? prev : [...prev, payload.new as Customer];
+                                const exists = (prev || []).some(c => c.id === newCustomer.id);
+                                if (exists) {
+                                    console.log("Customer already exists, skipping insert");
+                                    return prev || [];
+                                }
+                                console.log("Adding new customer from real-time:", newCustomer.name);
+                                return [...(prev || []), newCustomer];
                             });
                         } else if (payload.eventType === 'UPDATE' && payload.new) {
-                            setCustomers(prev => prev.map(customer => 
-                                customer.id === payload.new.id ? payload.new as Customer : customer
-                            ));
+                            const updatedCustomer = payload.new as Customer;
+                            setCustomers(prev => {
+                                const updated = (prev || []).map(customer => 
+                                    customer.id === updatedCustomer.id ? updatedCustomer : customer
+                                );
+                                console.log("Updated customer from real-time:", updatedCustomer.name);
+                                return updated;
+                            });
                         } else if (payload.eventType === 'DELETE' && payload.old) {
-                            setCustomers(prev => prev.filter(customer => customer.id !== payload.old.id));
+                            const deletedId = payload.old.id;
+                            setCustomers(prev => {
+                                const filtered = (prev || []).filter(customer => customer.id !== deletedId);
+                                console.log("Removed customer from real-time:", deletedId);
+                                return filtered;
+                            });
                         }
                     } catch (error) {
                         console.error('Error handling real-time customer update:', error);
+                        // Don't show toast for real-time errors to avoid spam
                     }
                 }
             )
-            .subscribe();
+            .subscribe((status) => {
+                console.log("Real-time subscription status:", status);
+                if (status === 'SUBSCRIBED') {
+                    console.log("Successfully subscribed to customer changes");
+                } else if (status === 'CHANNEL_ERROR') {
+                    console.error("Error in real-time channel");
+                    setError("Real-time sync error - data may not be current");
+                } else if (status === 'TIMED_OUT') {
+                    console.warn("Real-time subscription timed out");
+                    setError("Connection timeout - data may not be current");
+                }
+            });
 
         return () => {
             console.log("Cleaning up customer real-time subscription");
@@ -76,23 +107,34 @@ export const useCustomers = () => {
             throw new Error(errorMsg);
         }
 
+        const tempId = crypto.randomUUID();
+        const customerData = {
+            ...customer,
+            id: tempId,
+            name: customer.name.trim(),
+            email: customer.email?.trim() || null,
+            phone: customer.phone?.trim() || null,
+            address: customer.address?.trim() || null,
+            organization_id: organizationId,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+        };
+
+        // Optimistic update - add to UI immediately
+        setCustomers((prev) => [...(prev || []), customerData as Customer]);
         setLoading(true);
         setError(null);
 
         try {
-            console.log("Adding customer:", customer);
-            const customerData = {
-                ...customer,
-                name: customer.name.trim(),
-                email: customer.email?.trim() || null,
-                phone: customer.phone?.trim() || null,
-                address: customer.address?.trim() || null,
-                organization_id: organizationId
-            };
-
-            const { data, error } = await supabase.from('customers').insert(customerData).select();
+            console.log("Adding customer:", customerData);
+            const { data, error } = await supabase
+                .from('customers')
+                .insert(customerData)
+                .select();
             
             if (error) {
+                // Rollback optimistic update
+                setCustomers((prev) => (prev || []).filter(c => c.id !== tempId));
                 console.error('Error adding customer:', error);
                 const errorMsg = error.message?.includes('duplicate') ? 'Customer already exists' : 'Failed to add customer';
                 setError(errorMsg);
@@ -102,17 +144,19 @@ export const useCustomers = () => {
             
             if (data && data.length > 0) {
                 const result = data[0] as Customer;
-                setCustomers((prev) => [...(prev || []), result]);
+                // Replace optimistic entry with real data
+                setCustomers((prev) => (prev || []).map(c => c.id === tempId ? result : c));
                 toast.success('Customer added successfully');
                 console.log("Customer added successfully:", result);
                 return result;
             }
             
-            // Fallback: add to local state if database operation succeeded but no data returned
-            setCustomers((prev) => [...(prev || []), customerData as Customer]);
-            console.log("Customer added to local state as fallback");
+            // Keep optimistic update if no data returned but no error
+            console.log("Customer added (optimistic update kept)");
             return customerData as Customer;
         } catch (error: any) {
+            // Rollback optimistic update on error
+            setCustomers((prev) => (prev || []).filter(c => c.id !== tempId));
             console.error('Error adding customer:', error);
             const errorMsg = error?.message?.includes('organization_id') 
                 ? 'Organization access error - please refresh and try again'
@@ -167,6 +211,36 @@ export const useCustomers = () => {
     };
 
     const updateCustomer = async (id: string, updates: Partial<Customer>) => {
+        if (!id?.trim()) {
+            const errorMsg = 'Customer ID is required for update';
+            console.error(errorMsg);
+            toast.error(errorMsg);
+            throw new Error(errorMsg);
+        }
+
+        if (!updates || Object.keys(updates).length === 0) {
+            console.log("No updates provided");
+            return;
+        }
+
+        // Store original customer for rollback
+        const originalCustomer = customers.find(c => c.id === id);
+        if (!originalCustomer) {
+            const errorMsg = 'Customer not found for update';
+            toast.error(errorMsg);
+            throw new Error(errorMsg);
+        }
+
+        // Optimistic update
+        const optimisticCustomer = {
+            ...originalCustomer,
+            ...updates,
+            updated_at: new Date().toISOString()
+        };
+        setCustomers((prev) => (prev || []).map((item) => item.id === id ? optimisticCustomer : item));
+        setLoading(true);
+        setError(null);
+
         try {
             console.log("Updating customer:", id, updates);
             const { data, error } = await supabase
@@ -176,29 +250,38 @@ export const useCustomers = () => {
                 .select();
 
             if (error) {
+                // Rollback optimistic update
+                setCustomers((prev) => (prev || []).map((item) => item.id === id ? originalCustomer : item));
                 console.error('Error updating customer:', error);
                 const errorMsg = error.message?.includes('duplicate') 
                     ? 'Customer with this information already exists'
                     : 'Failed to update customer';
+                setError(errorMsg);
                 toast.error(errorMsg);
                 throw error;
             }
 
             if (data && data.length > 0) {
                 const result = data[0] as Customer;
-                setCustomers((prev) => prev.map((item) => item.id === id ? result : item));
+                // Replace optimistic update with real data
+                setCustomers((prev) => (prev || []).map((item) => item.id === id ? result : item));
                 toast.success('Customer updated successfully');
                 console.log("Customer updated successfully:", result);
             } else {
-                console.warn("No data returned from customer update");
+                console.warn("No data returned from customer update, keeping optimistic update");
             }
         } catch (error: any) {
+            // Rollback optimistic update
+            setCustomers((prev) => (prev || []).map((item) => item.id === id ? originalCustomer : item));
             console.error('Error updating customer:', error);
             const errorMsg = error?.message?.includes('organization_id') 
                 ? 'Organization access error - please refresh and try again'
-                : 'Failed to update customer';
+                : error?.message || 'Failed to update customer';
+            setError(errorMsg);
             toast.error(errorMsg);
             throw error;
+        } finally {
+            setLoading(false);
         }
     };
 

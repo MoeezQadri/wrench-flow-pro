@@ -13,7 +13,9 @@ import {
   DollarSign,
   Download,
   X,
-  RefreshCw
+  RefreshCw,
+  Wifi,
+  WifiOff
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -103,12 +105,28 @@ type CustomerFormValues = {
 const Customers = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [realtimeStatus, setRealtimeStatus] = useState<'connected' | 'disconnected' | 'connecting'>('connecting');
   const { toast } = useToast();
   const {
     customers, customersLoading, customersError, getCustomerAnalytics, getVehiclesByCustomerId, 
     addCustomer, addVehicle, refreshAllData
   } = useDataContext();
-
+  
+  // Monitor real-time connection status
+  useEffect(() => {
+    const checkRealtimeStatus = () => {
+      // Simple check - if we have customers error, assume disconnected
+      if (customersError?.includes('Real-time') || customersError?.includes('Connection')) {
+        setRealtimeStatus('disconnected');
+      } else if (customersLoading) {
+        setRealtimeStatus('connecting');
+      } else {
+        setRealtimeStatus('connected');
+      }
+    };
+    
+    checkRealtimeStatus();
+  }, [customersError, customersLoading]);
   // Initialize the form
   const form = useForm<CustomerFormValues>({
     resolver: zodResolver(formSchema),
@@ -234,7 +252,26 @@ const Customers = () => {
     <div className="space-y-6 animate-fade-in">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Customers</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-3xl font-bold">Customers</h1>
+            {/* Real-time status indicator */}
+            <div className="flex items-center gap-1 text-xs">
+              {realtimeStatus === 'connected' ? (
+                <Wifi className="h-3 w-3 text-green-500" />
+              ) : realtimeStatus === 'disconnected' ? (
+                <WifiOff className="h-3 w-3 text-red-500" />
+              ) : (
+                <div className="h-3 w-3 rounded-full bg-yellow-500 animate-pulse" />
+              )}
+              <span className={`text-xs ${
+                realtimeStatus === 'connected' ? 'text-green-600' : 
+                realtimeStatus === 'disconnected' ? 'text-red-600' : 'text-yellow-600'
+              }`}>
+                {realtimeStatus === 'connected' ? 'Live' : 
+                 realtimeStatus === 'disconnected' ? 'Offline' : 'Connecting...'}
+              </span>
+            </div>
+          </div>
           <p className="text-muted-foreground">Manage workshop customers</p>
         </div>
         <div className="flex gap-2">
