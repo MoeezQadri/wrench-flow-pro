@@ -246,7 +246,7 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             return { data: null, error: new Error('Failed to create organization') };
           }
           
-          const userRole = (orgData?.role === 'admin' ? 'admin' : 'member') as UserRole;
+          const userRole = (orgData?.role === 'owner' ? 'owner' : orgData?.role === 'admin' ? 'admin' : 'member') as UserRole;
           
           const customUser: User = {
             id: data.user.id,

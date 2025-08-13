@@ -20,7 +20,7 @@ const Mechanics = () => {
     updateMechanic,
   } = useDataContext();
   const { currentUser } = useAuthContext();
-  const canManageMechanics = currentUser.role === 'manager' || currentUser.role === 'owner' || currentUser.role === 'foreman';
+  const canManageMechanics = currentUser?.role === 'manager' || currentUser?.role === 'owner' || currentUser?.role === 'admin' || currentUser?.role === 'foreman';
 
   const handleAddMechanic = () => {
     setSelectedMechanic(null);
