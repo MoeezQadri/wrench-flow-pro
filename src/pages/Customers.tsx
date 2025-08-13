@@ -249,7 +249,10 @@ const Customers = () => {
             <Download className="mr-2 h-4 w-4" />
             Export CSV
           </Button>
-          
+          <Button variant="outline" onClick={handleRefreshData}>
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Refresh
+          </Button>
           {userCanManageCustomers && <Button onClick={() => setIsDialogOpen(true)}>
               <PlusCircle className="mr-2 h-4 w-4" />
               New Customer
