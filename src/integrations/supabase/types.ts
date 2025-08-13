@@ -53,13 +53,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "attendance_approved_by_fkey"
-            columns: ["approved_by"]
-            isOneToOne: false
-            referencedRelation: "user_profiles"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "attendance_mechanic_id_fkey"
             columns: ["mechanic_id"]
             isOneToOne: false
@@ -421,15 +414,7 @@ export type Database = {
           updated_at?: string | null
           user_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "mechanics_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user_profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       organizations: {
         Row: {
@@ -688,15 +673,7 @@ export type Database = {
           role?: string | null
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "profiles_id_fkey"
-            columns: ["id"]
-            isOneToOne: true
-            referencedRelation: "user_profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       subscription_plans: {
         Row: {
@@ -838,15 +815,7 @@ export type Database = {
           password_hash?: string
           username?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "superadmins__id_fkey"
-            columns: ["_id"]
-            isOneToOne: false
-            referencedRelation: "user_profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       tasks: {
         Row: {
@@ -1048,22 +1017,7 @@ export type Database = {
       }
     }
     Views: {
-      user_profiles: {
-        Row: {
-          created_at: string | null
-          email: string | null
-          email_confirmed_at: string | null
-          id: string | null
-          is_active: boolean | null
-          last_sign_in_at: string | null
-          lastLogin: string | null
-          name: string | null
-          organization_id: string | null
-          role: string | null
-          updated_at: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       add_column_if_not_exists: {
@@ -1103,6 +1057,20 @@ export type Database = {
           email: string
           last_login: string
           days_since_login: number
+        }[]
+      }
+      get_user_profile: {
+        Args: { user_id?: string }
+        Returns: {
+          id: string
+          email: string
+          name: string
+          organization_id: string
+          role: string
+          is_active: boolean
+          last_login: string
+          created_at: string
+          updated_at: string
         }[]
       }
       log_superadmin_activity: {
