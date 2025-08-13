@@ -19,9 +19,6 @@ const OrganizationSettingsTab = () => {
     name: '',
     country: '',
     currency: '',
-    address: '',
-    phone: '',
-    email: '',
   });
 
   useEffect(() => {
@@ -49,9 +46,6 @@ const OrganizationSettingsTab = () => {
           name: orgData.name || '',
           country: orgData.country || '',
           currency: orgData.currency || '',
-          address: orgData.address || '',
-          phone: orgData.phone || '',
-          email: orgData.email || '',
         });
       }
     } catch (error) {
@@ -79,9 +73,6 @@ const OrganizationSettingsTab = () => {
           name: formData.name,
           country: formData.country,
           currency: formData.currency,
-          address: formData.address,
-          phone: formData.phone,
-          email: formData.email,
           updated_at: new Date().toISOString(),
         })
         .eq('id', currentUser.organization_id);
@@ -146,34 +137,6 @@ const OrganizationSettingsTab = () => {
                 value={formData.name} 
                 onChange={(e) => handleInputChange('name', e.target.value)}
                 required
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input 
-                id="email" 
-                type="email" 
-                value={formData.email} 
-                onChange={(e) => handleInputChange('email', e.target.value)}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone</Label>
-              <Input 
-                id="phone" 
-                value={formData.phone} 
-                onChange={(e) => handleInputChange('phone', e.target.value)}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="address">Address</Label>
-              <Input 
-                id="address" 
-                value={formData.address} 
-                onChange={(e) => handleInputChange('address', e.target.value)}
               />
             </div>
             
