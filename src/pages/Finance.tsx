@@ -1,8 +1,11 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DollarSign, TrendingUp, TrendingDown, Building } from 'lucide-react';
+import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
 
 const Finance = () => {
+  const { formatCurrency } = useOrganizationSettings();
+  
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
@@ -19,7 +22,7 @@ const Finance = () => {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">$0.00</div>
+            <div className="text-2xl font-bold">{formatCurrency(0)}</div>
             <p className="text-xs text-muted-foreground">This month</p>
           </CardContent>
         </Card>
@@ -29,7 +32,7 @@ const Finance = () => {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">$0.00</div>
+            <div className="text-2xl font-bold">{formatCurrency(0)}</div>
             <p className="text-xs text-muted-foreground">Outstanding</p>
           </CardContent>
         </Card>
@@ -39,7 +42,7 @@ const Finance = () => {
             <TrendingDown className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">$0.00</div>
+            <div className="text-2xl font-bold">{formatCurrency(0)}</div>
             <p className="text-xs text-muted-foreground">Owed</p>
           </CardContent>
         </Card>

@@ -6,6 +6,7 @@ import { calculateInvoiceTotal } from '@/services/data-service';
 import { Invoice } from '@/types';
 import { useDataContext } from '@/context/data/DataContext';
 import { toast } from 'sonner';
+import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
 
 const InvoiceDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -20,6 +21,7 @@ const InvoiceDetails: React.FC = () => {
   } = useDataContext();
   const [customerName, setCustomerName] = useState<string>('');
   const [vehicleInfo, setVehicleInfo] = useState<any>(null);
+  const { formatCurrency } = useOrganizationSettings();
 
   useEffect(() => {
     const loadInvoice = async () => {
@@ -184,8 +186,8 @@ const InvoiceDetails: React.FC = () => {
                       </td>
                       <td className="px-4 py-2 whitespace-nowrap text-sm capitalize">{item.type}</td>
                       <td className="px-4 py-2 whitespace-nowrap text-sm text-right">{item.quantity}</td>
-                      <td className="px-4 py-2 whitespace-nowrap text-sm text-right">${item.price.toFixed(2)}</td>
-                      <td className="px-4 py-2 whitespace-nowrap text-sm text-right">${(item.quantity * item.price).toFixed(2)}</td>
+                      <td className="px-4 py-2 whitespace-nowrap text-sm text-right">{formatCurrency(item.price)}</td>
+                      <td className="px-4 py-2 whitespace-nowrap text-sm text-right">{formatCurrency(item.quantity * item.price)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -199,29 +201,29 @@ const InvoiceDetails: React.FC = () => {
             <div className="w-64">
               <div className="flex justify-between py-2 border-b">
                 <span>Subtotal:</span>
-                <span>${subtotal.toFixed(2)}</span>
+                <span>{formatCurrency(subtotal)}</span>
               </div>
               {invoice.discount_value && invoice.discount_value > 0 && (
                 <div className="flex justify-between py-2 border-b text-red-600">
                   <span>Discount:</span>
-                  <span>-${invoice.discount_value.toFixed(2)}</span>
+                  <span>-{formatCurrency(invoice.discount_value)}</span>
                 </div>
               )}
               <div className="flex justify-between py-2 border-b">
                 <span>Tax ({(invoice.tax_rate).toFixed(1)}%):</span>
-                <span>${tax.toFixed(2)}</span>
+                <span>{formatCurrency(tax)}</span>
               </div>
               <div className="flex justify-between py-2 border-b font-medium">
                 <span>Total:</span>
-                <span>${total.toFixed(2)}</span>
+                <span>{formatCurrency(total)}</span>
               </div>
               <div className="flex justify-between py-2 border-b text-green-600">
                 <span>Paid:</span>
-                <span>${paidAmount.toFixed(2)}</span>
+                <span>{formatCurrency(paidAmount)}</span>
               </div>
               <div className="flex justify-between py-2 font-bold">
                 <span>Balance Due:</span>
-                <span>${balanceDue.toFixed(2)}</span>
+                <span>{formatCurrency(balanceDue)}</span>
               </div>
             </div>
           </div>

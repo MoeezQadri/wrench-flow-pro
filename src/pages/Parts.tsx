@@ -12,6 +12,7 @@ import { Plus, Search, Filter, SortAsc, SortDesc, FileText } from 'lucide-react'
 import PartDialog from '@/components/part/PartDialog';
 import AssignToInvoiceDialog from '@/components/part/AssignToInvoiceDialog';
 import { Part } from '@/types';
+import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
 
 const Parts: React.FC = () => {
   const [parts, setParts] = useState<any[]>([]);
@@ -27,6 +28,7 @@ const Parts: React.FC = () => {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const { getCustomerById } = useDataContext();
   const { currentUser } = useAuthContext();
+  const { formatCurrency } = useOrganizationSettings();
   
   // Check permissions
   const userCanManageParts = hasPermission(currentUser, 'parts', 'manage') || hasPermission(currentUser, 'parts', 'create');
@@ -390,7 +392,7 @@ const Parts: React.FC = () => {
                           </span>
                         )}
                       </td>
-                      <td className="py-2 px-4 text-right">${part.price.toFixed(2)}</td>
+                      <td className="py-2 px-4 text-right">{formatCurrency(part.price)}</td>
                       <td className="py-2 px-4">{getVendorName(part)}</td>
                       <td className="py-2 px-4">{getAssignmentStatus(part)}</td>
                       <td className="py-2 px-4 text-center">

@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Search, Filter, SortAsc, SortDesc, Plus } from 'lucide-react';
 import { useAuthContext } from '@/context/AuthContext';
 import { hasPermission } from '@/utils/permissions';
+import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
 
 const Invoices: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
@@ -40,6 +41,7 @@ const Invoices: React.FC = () => {
     loadCustomers
   } = contextData;
   const { currentUser } = useAuthContext();
+  const { formatCurrency } = useOrganizationSettings();
   
   // Check permissions
   const userCanManageInvoices = hasPermission(currentUser, 'invoices', 'manage') || hasPermission(currentUser, 'invoices', 'create');
@@ -293,7 +295,7 @@ const Invoices: React.FC = () => {
                       </span>
                     </td>
                     <td className="py-2 px-4 border-b">
-                      ${finalTotal.toFixed(2)}
+                      {formatCurrency(finalTotal)}
                     </td>
                     <td className="py-2 px-4 border-b">
                       <div className="flex space-x-2">

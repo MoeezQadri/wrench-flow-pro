@@ -28,6 +28,7 @@ import {
 import { toast } from "sonner";
 import ExpenseDialog from "@/components/expense/ExpenseDialog";
 import { Expense } from "@/types";
+import { useOrganizationSettings } from "@/hooks/useOrganizationSettings";
 import { format, isThisMonth, isToday, parseISO } from "date-fns";
 import { useAuthContext } from '@/context/AuthContext';
 import { hasPermission } from '@/utils/permissions';
@@ -37,6 +38,7 @@ const Expenses = () => {
   const [selectedExpense, setSelectedExpense] = useState<Expense | undefined>(undefined);
   const [expensesList, setExpensesList] = useState<Expense[]>([]);
   const { currentUser } = useAuthContext();
+  const { formatCurrency } = useOrganizationSettings();
   
   // Check permissions
   const userCanManageExpenses = hasPermission(currentUser, 'expenses', 'manage') || hasPermission(currentUser, 'expenses', 'create');
@@ -127,7 +129,7 @@ const Expenses = () => {
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${totalToday.toFixed(2)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(totalToday)}</div>
             <p className="text-xs text-muted-foreground">
               {todayExpenses.length} transactions today
             </p>
@@ -139,7 +141,7 @@ const Expenses = () => {
             <ArrowUpCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${totalMonth.toFixed(2)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(totalMonth)}</div>
             <p className="text-xs text-muted-foreground">
               {monthExpenses.length} transactions this month
             </p>
@@ -151,7 +153,7 @@ const Expenses = () => {
             <Wrench className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${totalWorkshop.toFixed(2)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(totalWorkshop)}</div>
             <p className="text-xs text-muted-foreground">
               {workshopExpenses.length} workshop expenses
             </p>
@@ -163,7 +165,7 @@ const Expenses = () => {
             <Receipt className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${totalInvoice.toFixed(2)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(totalInvoice)}</div>
             <p className="text-xs text-muted-foreground">
               {invoiceExpenses.length} invoice expenses
             </p>
@@ -214,7 +216,7 @@ const Expenses = () => {
                       </div>
                     </TableCell>
                     <TableCell>{expense.vendor_name || "—"}</TableCell>
-                    <TableCell className="font-medium">${expense.amount.toFixed(2)}</TableCell>
+                    <TableCell className="font-medium">{formatCurrency(expense.amount)}</TableCell>
                     <TableCell className="text-right">
                       {userCanEditExpenses && (
                         <Button

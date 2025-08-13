@@ -5,9 +5,11 @@ import { Customer } from '@/types';
 import { resolvePromiseAndSetState } from '@/utils/async-helpers';
 import { useAsyncData } from '@/hooks/useAsyncData';
 import { useDataContext } from '@/context/data/DataContext';
+import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
 
 const CustomerDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const { formatCurrency } = useOrganizationSettings();
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const {
@@ -45,7 +47,7 @@ const CustomerDetails: React.FC = () => {
           <p><span className="font-medium">Phone:</span> {customer.phone}</p>
           <p><span className="font-medium">Address:</span> {customer.address}</p>
           <p><span className="font-medium">Total Visits:</span> {customer.totalVisits}</p>
-          <p><span className="font-medium">Lifetime Value:</span> ${customer.lifetimeValue?.toFixed(2)}</p>
+          <p><span className="font-medium">Lifetime Value:</span> {formatCurrency(customer.lifetimeValue || 0)}</p>
           <p><span className="font-medium">Last Visit:</span> {customer.lastVisit ? new Date(customer.lastVisit).toLocaleDateString() : 'N/A'}</p>
         </div>
 

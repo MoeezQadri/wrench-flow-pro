@@ -29,6 +29,7 @@ import {
   TableRow
 } from "@/components/ui/table";
 import { Badge } from '@/components/ui/badge';
+import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -114,6 +115,7 @@ const Customers = () => {
     addCustomer, addVehicle, refreshAllData
   } = useDataContext();
   const { currentUser } = useAuthContext();
+  const { formatCurrency } = useOrganizationSettings();
   
   // Check permissions
   const userCanManageCustomers = canManageCustomers(currentUser);
@@ -219,7 +221,7 @@ const Customers = () => {
         Address: customer.address,
         LastVisit: customer.lastVisit || 'N/A',
         TotalVisits: analytics.totalInvoices,
-        LifetimeValue: `$${analytics.lifetimeValue.toFixed(2)}`,
+        LifetimeValue: formatCurrency(analytics.lifetimeValue),
         Vehicles: vehicles.length
       };
     }));
@@ -590,6 +592,7 @@ const CustomerCard = ({ customer }: { customer: any }) => {
     lifetimeValue: 0
   });
   const [vehicles, setVehicles] = useState<any[]>([]);
+  const { formatCurrency } = useOrganizationSettings();
   const {
     getCustomerAnalytics,
     getVehiclesByCustomerId
@@ -633,7 +636,7 @@ const CustomerCard = ({ customer }: { customer: any }) => {
             </div>
             <div className="flex flex-col items-center">
               <DollarSign className="h-4 w-4 mb-1 text-muted-foreground" />
-              <p className="text-sm font-medium">${analytics.lifetimeValue.toFixed(0)}</p>
+              <p className="text-sm font-medium">{formatCurrency(analytics.lifetimeValue)}</p>
               <p className="text-xs text-muted-foreground">Value</p>
             </div>
           </div>

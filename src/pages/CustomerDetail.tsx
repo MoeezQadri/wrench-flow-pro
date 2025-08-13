@@ -30,6 +30,7 @@ import StatusBadge from '@/components/StatusBadge';
 import { Customer, CustomerAnalytics } from '@/types';
 import { resolvePromiseAndSetState } from '@/utils/async-helpers';
 import { useDataContext } from '@/context/data/DataContext';
+import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
 
 const CustomerDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -41,6 +42,7 @@ const CustomerDetail = () => {
     getCustomerById,
     getCustomerAnalytics,
   } = useDataContext();
+  const { formatCurrency } = useOrganizationSettings();
 
   // Load customer data
   useEffect(() => {
@@ -172,7 +174,7 @@ const CustomerDetail = () => {
           <CardContent className="space-y-4">
             <div>
               <p className="text-sm font-medium">Lifetime Value</p>
-              <p className="text-2xl font-bold">${analytics.lifetimeValue.toFixed(2)}</p>
+              <p className="text-2xl font-bold">{formatCurrency(analytics.lifetimeValue)}</p>
             </div>
             <div>
               <p className="text-sm font-medium">Total Visits</p>
@@ -180,7 +182,7 @@ const CustomerDetail = () => {
             </div>
             <div>
               <p className="text-sm font-medium">Average Service</p>
-              <p className="text-2xl font-bold">${analytics.averageInvoiceValue.toFixed(2)}</p>
+              <p className="text-2xl font-bold">{formatCurrency(analytics.averageInvoiceValue)}</p>
             </div>
           </CardContent>
         </Card>
@@ -277,7 +279,7 @@ const CustomerDetail = () => {
                           <TableCell>
                             {vehicle?.make} {vehicle?.model} ({vehicle?.year})
                           </TableCell>
-                          <TableCell>${total.toFixed(2)}</TableCell>
+                          <TableCell>{formatCurrency(total)}</TableCell>
                           <TableCell>
                             <StatusBadge status={invoice.status} />
                           </TableCell>
