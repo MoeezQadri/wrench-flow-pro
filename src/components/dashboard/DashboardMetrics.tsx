@@ -2,6 +2,7 @@
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, FileText, Wrench, Users, Calendar, TrendingUp } from "lucide-react";
+import { useOrganizationSettings } from "@/hooks/useOrganizationSettings";
 
 interface MetricsData {
   totalRevenue: number;
@@ -24,10 +25,12 @@ interface DashboardMetricsProps {
 }
 
 export function DashboardMetrics({ data, isLoading }: DashboardMetricsProps) {
+  const { formatCurrency } = useOrganizationSettings();
+  
   const metrics = [
     {
       title: "Total Revenue",
-      value: `$${data.totalRevenue.toLocaleString()}`,
+      value: formatCurrency(data.totalRevenue),
       change: data.revenueChange,
       icon: DollarSign,
       description: "Revenue for selected period"
@@ -62,7 +65,7 @@ export function DashboardMetrics({ data, isLoading }: DashboardMetricsProps) {
     },
     {
       title: "Avg Job Value",
-      value: `$${data.averageJobValue.toLocaleString()}`,
+      value: formatCurrency(data.averageJobValue),
       change: data.jobValueChange,
       icon: TrendingUp,
       description: "Average revenue per job"

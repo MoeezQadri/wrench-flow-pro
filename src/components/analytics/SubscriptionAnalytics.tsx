@@ -3,6 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 import { Users, CreditCard, TrendingUp, Package } from 'lucide-react';
+import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
 
 // Mock data for subscription metrics
 const subscriptionData = [
@@ -49,6 +50,8 @@ const userGrowth = ((currentMonthUsers - previousMonthUsers) / previousMonthUser
 const averageRevenuePerUser = currentMonthRevenue / currentMonthUsers;
 
 const SubscriptionAnalytics = () => {
+  const { formatCurrency } = useOrganizationSettings();
+  
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       {/* Total Subscribers Card */}
@@ -79,7 +82,7 @@ const SubscriptionAnalytics = () => {
           <CreditCard className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">${currentMonthRevenue}</div>
+          <div className="text-2xl font-bold">{formatCurrency(currentMonthRevenue)}</div>
           <p className="text-xs text-muted-foreground">
             <span className={revenueGrowth >= 0 ? "text-green-500" : "text-red-500"}>
               {revenueGrowth >= 0 ? "+" : ""}{revenueGrowth.toFixed(1)}%
@@ -98,7 +101,7 @@ const SubscriptionAnalytics = () => {
           <TrendingUp className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">${averageRevenuePerUser.toFixed(2)}</div>
+          <div className="text-2xl font-bold">{formatCurrency(averageRevenuePerUser)}</div>
           <p className="text-xs text-muted-foreground">
             Per subscriber per month
           </p>

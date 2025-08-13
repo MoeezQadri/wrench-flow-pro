@@ -59,6 +59,7 @@ export function formatDate(dateString: string | undefined): string {
 }
 
 // Function to format currency values
+// @deprecated Use useOrganizationSettings().formatCurrency instead
 export function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',

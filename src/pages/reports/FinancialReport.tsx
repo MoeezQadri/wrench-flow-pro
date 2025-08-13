@@ -16,9 +16,11 @@ import {
 } from 'lucide-react';
 import { useDataContext } from '@/context/data/DataContext';
 import { DateRangePicker } from '@/components/dashboard/DateRangePicker';
+import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
 
 const FinancialReport = () => {
   const { invoices, expenses, vendors } = useDataContext();
+  const { formatCurrency } = useOrganizationSettings();
   const [dateRange, setDateRange] = useState({
     startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
     endDate: new Date()
@@ -31,13 +33,6 @@ const FinancialReport = () => {
   });
   
   const [isLoading, setIsLoading] = useState(false);
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(amount);
-  };
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A';

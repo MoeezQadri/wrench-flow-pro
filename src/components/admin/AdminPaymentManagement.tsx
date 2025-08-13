@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Search, FileText, Eye, ArrowUpDown, CreditCard, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
 
 // Sample data - in a real app, this would come from your API
 const paymentsData = [
@@ -20,6 +21,7 @@ const paymentsData = [
 ];
 
 const AdminPaymentManagement = () => {
+  const { formatCurrency } = useOrganizationSettings();
   const [payments, setPayments] = useState(paymentsData);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -177,7 +179,7 @@ const AdminPaymentManagement = () => {
                         <span className="text-sm text-muted-foreground">{payment.email}</span>
                       </div>
                     </TableCell>
-                    <TableCell>${payment.amount.toFixed(2)}</TableCell>
+                    <TableCell>{formatCurrency(payment.amount)}</TableCell>
                     <TableCell>
                       <Badge variant={statusBadge.variant as any} className="flex items-center w-fit">
                         {statusBadge.icon}
@@ -236,7 +238,7 @@ const AdminPaymentManagement = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm font-medium mb-1">Amount</p>
-                  <p className="text-xl font-bold">${selectedPayment.amount.toFixed(2)}</p>
+                  <p className="text-xl font-bold">{formatCurrency(selectedPayment.amount)}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium mb-1">Status</p>

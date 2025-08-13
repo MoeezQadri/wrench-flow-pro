@@ -12,6 +12,7 @@ import {
   BarChart,
   Bar
 } from "recharts";
+import { useOrganizationSettings } from "@/hooks/useOrganizationSettings";
 
 interface ChartData {
   date: string;
@@ -26,6 +27,8 @@ interface RevenueChartProps {
 }
 
 export function RevenueChart({ data, isLoading }: RevenueChartProps) {
+  const { formatCurrency } = useOrganizationSettings();
+  
   if (isLoading) {
     return (
       <Card className="col-span-full">
@@ -62,7 +65,7 @@ export function RevenueChart({ data, isLoading }: RevenueChartProps) {
               <YAxis tick={{ fontSize: 12 }} />
               <Tooltip 
                 formatter={(value, name) => [
-                  `$${Number(value).toLocaleString()}`, 
+                  formatCurrency(Number(value)), 
                   name === 'revenue' ? 'Revenue' : 'Expenses'
                 ]}
                 labelFormatter={(label) => {
