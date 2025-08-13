@@ -55,6 +55,41 @@ export const RESOURCE_PERMISSIONS: Record<string, PermissionConfig[]> = {
     { resource: 'subscription', action: 'view', allowedRoles: ['owner', 'admin'] },
     { resource: 'subscription', action: 'manage', allowedRoles: ['owner', 'admin'] },
   ],
+  parts: [
+    { resource: 'parts', action: 'view', allowedRoles: ['owner', 'admin', 'manager', 'foreman', 'mechanic'] },
+    { resource: 'parts', action: 'create', allowedRoles: ['owner', 'admin', 'manager', 'foreman'] },
+    { resource: 'parts', action: 'edit', allowedRoles: ['owner', 'admin', 'manager', 'foreman'] },
+    { resource: 'parts', action: 'delete', allowedRoles: ['owner', 'admin', 'manager'] },
+    { resource: 'parts', action: 'manage', allowedRoles: ['owner', 'admin', 'manager'] },
+  ],
+  vehicles: [
+    { resource: 'vehicles', action: 'view', allowedRoles: ['owner', 'admin', 'manager', 'foreman', 'mechanic'] },
+    { resource: 'vehicles', action: 'create', allowedRoles: ['owner', 'admin', 'manager', 'foreman'] },
+    { resource: 'vehicles', action: 'edit', allowedRoles: ['owner', 'admin', 'manager', 'foreman'] },
+    { resource: 'vehicles', action: 'delete', allowedRoles: ['owner', 'admin', 'manager'] },
+    { resource: 'vehicles', action: 'manage', allowedRoles: ['owner', 'admin', 'manager'] },
+  ],
+  expenses: [
+    { resource: 'expenses', action: 'view', allowedRoles: ['owner', 'admin', 'manager', 'foreman'] },
+    { resource: 'expenses', action: 'create', allowedRoles: ['owner', 'admin', 'manager', 'foreman'] },
+    { resource: 'expenses', action: 'edit', allowedRoles: ['owner', 'admin', 'manager', 'foreman'] },
+    { resource: 'expenses', action: 'delete', allowedRoles: ['owner', 'admin', 'manager'] },
+    { resource: 'expenses', action: 'manage', allowedRoles: ['owner', 'admin', 'manager'] },
+  ],
+  invoices: [
+    { resource: 'invoices', action: 'view', allowedRoles: ['owner', 'admin', 'manager', 'foreman', 'mechanic'] },
+    { resource: 'invoices', action: 'create', allowedRoles: ['owner', 'admin', 'manager', 'foreman'] },
+    { resource: 'invoices', action: 'edit', allowedRoles: ['owner', 'admin', 'manager', 'foreman'] },
+    { resource: 'invoices', action: 'delete', allowedRoles: ['owner', 'admin', 'manager'] },
+    { resource: 'invoices', action: 'manage', allowedRoles: ['owner', 'admin', 'manager'] },
+  ],
+  attendance: [
+    { resource: 'attendance', action: 'view', allowedRoles: ['owner', 'admin', 'manager', 'foreman', 'mechanic'] },
+    { resource: 'attendance', action: 'create', allowedRoles: ['owner', 'admin', 'manager', 'foreman', 'mechanic'] },
+    { resource: 'attendance', action: 'edit', allowedRoles: ['owner', 'admin', 'manager', 'foreman'] },
+    { resource: 'attendance', action: 'delete', allowedRoles: ['owner', 'admin', 'manager'] },
+    { resource: 'attendance', action: 'manage', allowedRoles: ['owner', 'admin', 'manager'] },
+  ],
 };
 
 /**

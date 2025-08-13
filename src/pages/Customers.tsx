@@ -58,6 +58,8 @@ import { Separator } from "@/components/ui/separator";
 import { objectsToCSV, downloadCSV } from '@/utils/csv-export';
 import { Vehicle } from '@/types';
 import { useDataContext } from '@/context/data/DataContext';
+import { useAuthContext } from '@/context/AuthContext';
+import { canManageCustomers, hasPermission } from '@/utils/permissions';
 
 // Define the form validation schema using Zod
 const customerSchema = z.object({
@@ -111,6 +113,11 @@ const Customers = () => {
     customers, customersLoading, customersError, getCustomerAnalytics, getVehiclesByCustomerId, 
     addCustomer, addVehicle, refreshAllData
   } = useDataContext();
+  const { currentUser } = useAuthContext();
+  
+  // Check permissions
+  const userCanManageCustomers = canManageCustomers(currentUser);
+  const userCanViewCustomers = hasPermission(currentUser, 'customers', 'view');
   
   // Monitor real-time connection status
   useEffect(() => {
@@ -283,10 +290,12 @@ const Customers = () => {
             <RefreshCw className="mr-2 h-4 w-4" />
             Refresh
           </Button>
-          <Button onClick={() => setIsDialogOpen(true)}>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            New Customer
-          </Button>
+          {userCanManageCustomers && (
+            <Button onClick={() => setIsDialogOpen(true)}>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              New Customer
+            </Button>
+          )}
         </div>
       </div>
 
@@ -346,7 +355,7 @@ const Customers = () => {
               : "Get started by adding your first customer."
             }
           </p>
-          {!searchQuery && (
+          {!searchQuery && userCanManageCustomers && (
             <Button onClick={() => setIsDialogOpen(true)} className="mt-4">
               <PlusCircle className="mr-2 h-4 w-4" />
               Add Customer

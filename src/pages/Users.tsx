@@ -7,7 +7,7 @@ import { Plus, Pencil, Users as UsersIcon, ShieldCheck, ShieldAlert } from "luci
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { User, UserRole } from "@/types";
-import { hasPermission } from "@/services/data-service";
+import { canManageUsers, hasPermission } from "@/utils/permissions";
 import {
   Dialog,
   DialogContent,
@@ -36,10 +36,10 @@ const UsersPage = () => {
   const { currentUser } = useAuthContext();
 
   // Check if current user has permission to manage users
-  const canManageUsers = hasPermission(currentUser, 'users', 'manage');
-  const canViewUsers = hasPermission(currentUser, 'users', 'view');
+  const userCanManageUsers = canManageUsers(currentUser);
+  const userCanViewUsers = hasPermission(currentUser, 'users', 'view');
 
-  if (!canViewUsers) {
+  if (!userCanViewUsers) {
     return (
       <div className="flex justify-center items-center h-96">
         <p className="text-muted-foreground">You don't have permission to view users.</p>
@@ -58,7 +58,7 @@ const UsersPage = () => {
   };
 
   const handleToggleActive = (userId: string, active: boolean) => {
-    if (!canManageUsers) {
+    if (!userCanManageUsers) {
       toast.error("You don't have permission to manage users");
       return;
     }
@@ -73,7 +73,7 @@ const UsersPage = () => {
   const handleSaveUser = (formData: React.FormEvent<HTMLFormElement>) => {
     formData.preventDefault();
 
-    if (!canManageUsers) {
+    if (!userCanManageUsers) {
       toast.error("You don't have permission to manage users");
       return;
     }
@@ -114,7 +114,7 @@ const UsersPage = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
-        {canManageUsers && (
+        {userCanManageUsers && (
           <Button onClick={handleAddUser}>
             <Plus className="mr-1 h-4 w-4" />
             Add User
@@ -135,7 +135,7 @@ const UsersPage = () => {
                 <TableHead>Role</TableHead>
                 <TableHead>Last Login</TableHead>
                 <TableHead>Status</TableHead>
-                {canManageUsers && <TableHead className="text-right">Actions</TableHead>}
+                {userCanManageUsers && <TableHead className="text-right">Actions</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -157,7 +157,7 @@ const UsersPage = () => {
                   </TableCell>
                   <TableCell>{user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : "Never"}</TableCell>
                   <TableCell>
-                    {canManageUsers ? (
+                    {userCanManageUsers ? (
                       <div className="flex items-center">
                         <Switch
                           checked={user.is_active}
@@ -172,7 +172,7 @@ const UsersPage = () => {
                       </span>
                     )}
                   </TableCell>
-                  {canManageUsers && (
+                  {userCanManageUsers && (
                     <TableCell className="text-right">
                       <Button
                         variant="ghost"
@@ -188,11 +188,11 @@ const UsersPage = () => {
               ))}
               {usersList.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={canManageUsers ? 6 : 5} className="text-center py-6">
+                  <TableCell colSpan={userCanManageUsers ? 6 : 5} className="text-center py-6">
                     <div className="flex flex-col items-center justify-center text-muted-foreground">
                       <UsersIcon className="w-12 h-12 mb-2 text-muted-foreground/60" />
                       <p>No users found</p>
-                      {canManageUsers && (
+                      {userCanManageUsers && (
                         <Button
                           variant="outline"
                           size="sm"

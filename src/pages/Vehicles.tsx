@@ -5,6 +5,8 @@ import { Vehicle } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useDataContext } from '@/context/data/DataContext';
+import { useAuthContext } from '@/context/AuthContext';
+import { hasPermission } from '@/utils/permissions';
 import { Button } from '@/components/ui/button';
 import { Plus, Edit, Trash2 } from 'lucide-react';
 import VehicleDialog from '@/components/VehicleDialog';
@@ -16,6 +18,12 @@ const Vehicles: React.FC = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<Vehicle | undefined>(undefined);
   const { getCustomerById } = useDataContext();
+  const { currentUser } = useAuthContext();
+  
+  // Check permissions
+  const userCanManageVehicles = hasPermission(currentUser, 'vehicles', 'manage') || hasPermission(currentUser, 'vehicles', 'create');
+  const userCanEditVehicles = hasPermission(currentUser, 'vehicles', 'edit');
+  const userCanDeleteVehicles = hasPermission(currentUser, 'vehicles', 'delete');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -148,10 +156,12 @@ const Vehicles: React.FC = () => {
     <div className="p-4">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Vehicles</h1>
-        <Button onClick={handleAddNewVehicle} className="flex items-center gap-2">
-          <Plus className="h-4 w-4" />
-          Add New Vehicle
-        </Button>
+        {userCanManageVehicles && (
+          <Button onClick={handleAddNewVehicle} className="flex items-center gap-2">
+            <Plus className="h-4 w-4" />
+            Add New Vehicle
+          </Button>
+        )}
       </div>
 
       {vehicles.length === 0 ? (
@@ -187,20 +197,24 @@ const Vehicles: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap">{vehicle.vin || 'N/A'}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex space-x-2">
-                      <button 
-                        onClick={() => handleEditVehicle(vehicle)}
-                        className="text-green-600 hover:underline flex items-center gap-1"
-                      >
-                        <Edit className="h-3 w-3" />
-                        Edit
-                      </button>
-                      <button 
-                        onClick={() => handleDeleteVehicle(vehicle.id)}
-                        className="text-red-600 hover:underline flex items-center gap-1"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                        Delete
-                      </button>
+                      {userCanEditVehicles && (
+                        <button 
+                          onClick={() => handleEditVehicle(vehicle)}
+                          className="text-green-600 hover:underline flex items-center gap-1"
+                        >
+                          <Edit className="h-3 w-3" />
+                          Edit
+                        </button>
+                      )}
+                      {userCanDeleteVehicles && (
+                        <button 
+                          onClick={() => handleDeleteVehicle(vehicle.id)}
+                          className="text-red-600 hover:underline flex items-center gap-1"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                          Delete
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

@@ -29,11 +29,18 @@ import { toast } from "sonner";
 import ExpenseDialog from "@/components/expense/ExpenseDialog";
 import { Expense } from "@/types";
 import { format, isThisMonth, isToday, parseISO } from "date-fns";
+import { useAuthContext } from '@/context/AuthContext';
+import { hasPermission } from '@/utils/permissions';
 
 const Expenses = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState<Expense | undefined>(undefined);
   const [expensesList, setExpensesList] = useState<Expense[]>([]);
+  const { currentUser } = useAuthContext();
+  
+  // Check permissions
+  const userCanManageExpenses = hasPermission(currentUser, 'expenses', 'manage') || hasPermission(currentUser, 'expenses', 'create');
+  const userCanEditExpenses = hasPermission(currentUser, 'expenses', 'edit');
 
   const handleAddExpense = () => {
     setSelectedExpense(undefined);
@@ -104,10 +111,12 @@ const Expenses = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold tracking-tight">Expenses</h1>
-        <Button onClick={handleAddExpense}>
-          <Plus className="mr-1 h-4 w-4" />
-          Add Expense
-        </Button>
+        {userCanManageExpenses && (
+          <Button onClick={handleAddExpense}>
+            <Plus className="mr-1 h-4 w-4" />
+            Add Expense
+          </Button>
+        )}
       </div>
 
       {/* Summary Cards */}
@@ -207,13 +216,15 @@ const Expenses = () => {
                     <TableCell>{expense.vendor_name || "—"}</TableCell>
                     <TableCell className="font-medium">${expense.amount.toFixed(2)}</TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEditExpense(expense)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
+                      {userCanEditExpenses && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEditExpense(expense)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 );
@@ -224,14 +235,16 @@ const Expenses = () => {
                     <div className="flex flex-col items-center justify-center text-muted-foreground">
                       <DollarSign className="w-12 h-12 mb-2 text-muted-foreground/60" />
                       <p>No expenses found</p>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="mt-2"
-                        onClick={handleAddExpense}
-                      >
-                        Add your first expense
-                      </Button>
+                      {userCanManageExpenses && (
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="mt-2"
+                          onClick={handleAddExpense}
+                        >
+                          Add your first expense
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>

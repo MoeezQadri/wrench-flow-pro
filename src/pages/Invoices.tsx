@@ -7,7 +7,9 @@ import { useDataContext } from '@/context/data/DataContext';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Search, Filter, SortAsc, SortDesc } from 'lucide-react';
+import { Search, Filter, SortAsc, SortDesc, Plus } from 'lucide-react';
+import { useAuthContext } from '@/context/AuthContext';
+import { hasPermission } from '@/utils/permissions';
 
 const Invoices: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
@@ -37,6 +39,11 @@ const Invoices: React.FC = () => {
     loadInvoices,
     loadCustomers
   } = contextData;
+  const { currentUser } = useAuthContext();
+  
+  // Check permissions
+  const userCanManageInvoices = hasPermission(currentUser, 'invoices', 'manage') || hasPermission(currentUser, 'invoices', 'create');
+  const userCanEditInvoices = hasPermission(currentUser, 'invoices', 'edit');
 
   useEffect(() => {
     const loadData = async () => {
@@ -164,12 +171,14 @@ const Invoices: React.FC = () => {
     <div className="p-4">
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">Invoices</h1>
-        <Link
-          to="/invoices/new"
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-        >
-          New Invoice
-        </Link>
+        {userCanManageInvoices && (
+          <Button asChild>
+            <Link to="/invoices/new">
+              <Plus className="h-4 w-4 mr-2" />
+              New Invoice
+            </Link>
+          </Button>
+        )}
       </div>
 
       {/* Search and Filter Controls */}
@@ -294,7 +303,7 @@ const Invoices: React.FC = () => {
                         >
                           View
                         </Link>
-                        {invoice.status !== 'paid' && invoice.status !== 'completed' && (
+                        {userCanEditInvoices && invoice.status !== 'paid' && invoice.status !== 'completed' && (
                           <Link
                             to={`/invoices/${invoice.id}/edit`}
                             className="text-green-600 hover:text-green-800 underline"

@@ -3,6 +3,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useDataContext } from '@/context/data/DataContext';
+import { useAuthContext } from '@/context/AuthContext';
+import { hasPermission } from '@/utils/permissions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -24,6 +26,11 @@ const Parts: React.FC = () => {
   const [sortBy, setSortBy] = useState<string>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const { getCustomerById } = useDataContext();
+  const { currentUser } = useAuthContext();
+  
+  // Check permissions
+  const userCanManageParts = hasPermission(currentUser, 'parts', 'manage') || hasPermission(currentUser, 'parts', 'create');
+  const userCanViewParts = hasPermission(currentUser, 'parts', 'view');
 
   // Load customer names for all vendors at once
   const loadCustomerNames = async (vendorIds: string[]) => {
@@ -270,10 +277,12 @@ const Parts: React.FC = () => {
     <div className="container p-4">
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">Parts Inventory</h1>
-        <Button onClick={() => setShowPartDialog(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Add Part
-        </Button>
+        {userCanManageParts && (
+          <Button onClick={() => setShowPartDialog(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Add Part
+          </Button>
+        )}
       </div>
 
       {/* Search and Filter Controls */}
@@ -385,15 +394,17 @@ const Parts: React.FC = () => {
                       <td className="py-2 px-4">{getVendorName(part)}</td>
                       <td className="py-2 px-4">{getAssignmentStatus(part)}</td>
                       <td className="py-2 px-4 text-center">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleAssignToInvoice(part as Part)}
-                          className="flex items-center gap-1"
-                        >
-                          <FileText className="h-3 w-3" />
-                          Assign
-                        </Button>
+                        {userCanManageParts && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleAssignToInvoice(part as Part)}
+                            className="flex items-center gap-1"
+                          >
+                            <FileText className="h-3 w-3" />
+                            Assign
+                          </Button>
+                        )}
                       </td>
                     </tr>
                   ))}

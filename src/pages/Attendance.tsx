@@ -11,6 +11,7 @@ import { AttendanceDialog } from '@/components/attendance/AttendanceDialog';
 import AttendanceListItem from '@/components/attendance/AttendanceListItem';
 import AttendanceSummary from '@/components/attendance/AttendanceSummary';
 import AttendanceFilters from '@/components/attendance/AttendanceFilters';
+import { hasPermission } from '@/utils/permissions';
 
 const AttendancePage: React.FC = () => {
   const [attendanceRecords, setAttendanceRecords] = useState<Attendance[]>([]);
@@ -25,10 +26,12 @@ const AttendancePage: React.FC = () => {
   const { mechanics } = useDataContext();
   const { currentUser } = useAuthContext();
 
-  // Check if user can approve attendance
+  // Check permissions
   const canApprove = currentUser?.role === 'owner' || 
                     currentUser?.role === 'manager' || 
                     currentUser?.role === 'foreman';
+  const userCanManageAttendance = hasPermission(currentUser, 'attendance', 'manage') || hasPermission(currentUser, 'attendance', 'create');
+  const userCanViewAttendance = hasPermission(currentUser, 'attendance', 'view');
 
   useEffect(() => {
     const loadData = async () => {
@@ -129,10 +132,12 @@ const AttendancePage: React.FC = () => {
             </div>
           )}
         </div>
-        <Button onClick={() => setIsDialogOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Record Attendance
-        </Button>
+        {userCanManageAttendance && (
+          <Button onClick={() => setIsDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Record Attendance
+          </Button>
+        )}
       </div>
 
       <AttendanceSummary records={filteredRecords} />
@@ -154,7 +159,7 @@ const AttendancePage: React.FC = () => {
                 : "No records match the current filters"
               }
             </p>
-            {attendanceRecords.length === 0 && (
+            {attendanceRecords.length === 0 && userCanManageAttendance && (
               <Button onClick={() => setIsDialogOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Record First Attendance
