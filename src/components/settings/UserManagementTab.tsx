@@ -204,10 +204,13 @@ const UserManagementTab = () => {
   };
 
   const openEditDialog = (user: OrganizationUser) => {
+    console.log('Edit button clicked for user:', user);
+    console.log('Setting dialog state...');
     setEditingUser(user);
     setEditUserName(user.name);
     setEditUserRole(user.role);
     setDialogOpen(true);
+    console.log('Dialog should now be open:', true);
   };
 
   const getRoleBadgeColor = (role: string) => {
@@ -331,7 +334,12 @@ const UserManagementTab = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => openEditDialog(user)}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          console.log('Edit button clicked, calling openEditDialog');
+                          openEditDialog(user);
+                        }}
                         disabled={user.id === currentUser?.id && user.role === 'owner'} // Owner can't edit their own role
                       >
                         <Pencil className="h-4 w-4" />
@@ -366,8 +374,11 @@ const UserManagementTab = () => {
       </Card>
 
       {/* Edit User Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
+      <Dialog open={dialogOpen} onOpenChange={(open) => {
+        console.log('Dialog open state changed:', open);
+        setDialogOpen(open);
+      }}>
+        <DialogContent className="bg-background border">
           <DialogHeader>
             <DialogTitle>Edit User</DialogTitle>
           </DialogHeader>
