@@ -134,37 +134,28 @@ const UserManagementTab = () => {
     }
 
     try {
-      // Note: supabase.auth.admin.inviteUserByEmail requires service role key
-      // For now, we'll create a mock invitation and notify the user
-      // In production, this should be handled by an edge function with proper permissions
-      
-      // Create a pending invitation record (you might want to create a separate invitations table)
-      const invitationData = {
-        email: newUserEmail,
-        role: newUserRole,
-        organization_id: currentUser.organization_id,
-        invited_by: currentUser.id,
-        invited_at: new Date().toISOString(),
-        status: 'pending'
-      };
+      const { data, error } = await supabase.functions.invoke('invite-user', {
+        body: {
+          email: newUserEmail,
+          role: newUserRole,
+          organizationId: currentUser.organization_id
+        }
+      });
 
-      // For now, just show success - in production you'd save this to an invitations table
-      console.log('Invitation would be sent:', invitationData);
-      
-      toast.success(`Invitation prepared for ${newUserEmail}. In production, this would send an email invitation.`);
-      setNewUserEmail('');
-      setNewUserRole('member');
-      setInviteDialogOpen(false);
-      
-      // Note: To implement real invitations, you would need:
-      // 1. An edge function that uses the service role key
-      // 2. Email sending capability
-      // 3. An invitations table to track pending invitations
-      // 4. A signup flow that accepts invitation tokens
-      
+      if (error) {
+        console.error('Error inviting user:', error);
+        toast.error(error.message || 'Failed to send invitation');
+      } else if (data?.success) {
+        toast.success(`Invitation sent to ${newUserEmail}`);
+        setNewUserEmail('');
+        setNewUserRole('member');
+        setInviteDialogOpen(false);
+      } else {
+        toast.error(data?.error || 'Failed to send invitation');
+      }
     } catch (error) {
-      console.error('Error creating invitation:', error);
-      toast.error('Failed to create invitation');
+      console.error('Error inviting user:', error);
+      toast.error('Failed to send invitation');
     }
   };
 
