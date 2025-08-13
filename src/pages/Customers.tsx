@@ -12,7 +12,8 @@ import {
   FileText,
   DollarSign,
   Download,
-  X
+  X,
+  RefreshCw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -104,7 +105,7 @@ const Customers = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
   const {
-    customers, getCustomerAnalytics, getVehiclesByCustomerId, addCustomer, addVehicle
+    customers, getCustomerAnalytics, getVehiclesByCustomerId, addCustomer, addVehicle, refreshAllData
   } = useDataContext();
 
   // Initialize the form
@@ -207,6 +208,27 @@ const Customers = () => {
     });
   };
 
+  const handleRefreshData = async () => {
+    toast({
+      title: "Refreshing data...",
+      description: "Loading latest customer information",
+    });
+    
+    try {
+      await refreshAllData();
+      toast({
+        title: "Data refreshed",
+        description: "Customer data has been updated",
+      });
+    } catch (error) {
+      toast({
+        title: "Refresh failed",
+        description: "Could not refresh customer data",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex justify-between items-center">
@@ -218,6 +240,10 @@ const Customers = () => {
           <Button variant="outline" onClick={handleExportCSV}>
             <Download className="mr-2 h-4 w-4" />
             Export CSV
+          </Button>
+          <Button variant="outline" onClick={handleRefreshData}>
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Refresh
           </Button>
           <Button onClick={() => setIsDialogOpen(true)}>
             <PlusCircle className="mr-2 h-4 w-4" />

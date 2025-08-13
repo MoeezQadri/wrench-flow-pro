@@ -59,4 +59,5 @@ export interface DataContextType {
     updatePayment: (id: string, updates: Partial<Payment>) => Promise<void>;
 
     getCustomerAnalytics: (customerId: string) => Promise<{ lifetimeValue: number; totalInvoices: number; averageInvoiceValue: number; vehicles: Vehicle[]; invoiceHistory: Invoice[] }>;
+    refreshAllData: () => Promise<void>;
 }
