@@ -3,58 +3,18 @@ import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import {
-  PlusCircle,
-  Search,
-  SortDesc,
-  Users,
-  Car,
-  FileText,
-  DollarSign,
-  Download,
-  X,
-  RefreshCw,
-  Wifi,
-  WifiOff
-} from 'lucide-react';
+import { PlusCircle, Search, SortDesc, Users, Car, FileText, DollarSign, Download, X, RefreshCw, Wifi, WifiOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from '@/components/ui/badge';
 import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
 import { useToast } from "@/hooks/use-toast";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-  DialogClose
-} from '@/components/ui/dialog';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger
-} from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { objectsToCSV, downloadCSV } from '@/utils/csv-export';
 import { Vehicle } from '@/types';
@@ -64,26 +24,41 @@ import { canManageCustomers, hasPermission } from '@/utils/permissions';
 
 // Define the form validation schema using Zod
 const customerSchema = z.object({
-  name: z.string().min(2, { message: "Name must be at least 2 characters long" }),
-  email: z.string().email({ message: "Please enter a valid email address" }),
-  phone: z.string().min(7, { message: "Phone number must be at least 7 characters long" }),
-  address: z.string().min(5, { message: "Address must be at least 5 characters long" }),
+  name: z.string().min(2, {
+    message: "Name must be at least 2 characters long"
+  }),
+  email: z.string().email({
+    message: "Please enter a valid email address"
+  }),
+  phone: z.string().min(7, {
+    message: "Phone number must be at least 7 characters long"
+  }),
+  address: z.string().min(5, {
+    message: "Address must be at least 5 characters long"
+  })
 });
-
 const vehicleSchema = z.object({
-  make: z.string().min(1, { message: "Make is required" }),
-  model: z.string().min(1, { message: "Model is required" }),
-  year: z.string().min(4, { message: "Valid year is required" }),
-  license_plate: z.string().min(1, { message: "License plate is required" }),
+  make: z.string().min(1, {
+    message: "Make is required"
+  }),
+  model: z.string().min(1, {
+    message: "Model is required"
+  }),
+  year: z.string().min(4, {
+    message: "Valid year is required"
+  }),
+  license_plate: z.string().min(1, {
+    message: "License plate is required"
+  }),
   vin: z.string().optional(),
-  color: z.string().optional(),
+  color: z.string().optional()
 });
 
 // Combined schema for customer with vehicle
 const formSchema = z.object({
   customer: customerSchema,
   addVehicle: z.boolean().default(false),
-  vehicle: vehicleSchema.optional(),
+  vehicle: vehicleSchema.optional()
 });
 
 // Define type for form values ensuring all fields are required
@@ -104,23 +79,34 @@ type CustomerFormValues = {
     color?: string;
   };
 };
-
 const Customers = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [realtimeStatus, setRealtimeStatus] = useState<'connected' | 'disconnected' | 'connecting'>('connecting');
-  const { toast } = useToast();
   const {
-    customers, customersLoading, customersError, getCustomerAnalytics, getVehiclesByCustomerId, 
-    addCustomer, addVehicle, refreshAllData
+    toast
+  } = useToast();
+  const {
+    customers,
+    customersLoading,
+    customersError,
+    getCustomerAnalytics,
+    getVehiclesByCustomerId,
+    addCustomer,
+    addVehicle,
+    refreshAllData
   } = useDataContext();
-  const { currentUser } = useAuthContext();
-  const { formatCurrency } = useOrganizationSettings();
-  
+  const {
+    currentUser
+  } = useAuthContext();
+  const {
+    formatCurrency
+  } = useOrganizationSettings();
+
   // Check permissions
   const userCanManageCustomers = canManageCustomers(currentUser);
   const userCanViewCustomers = hasPermission(currentUser, 'customers', 'view');
-  
+
   // Monitor real-time connection status
   useEffect(() => {
     const checkRealtimeStatus = () => {
@@ -133,7 +119,6 @@ const Customers = () => {
         setRealtimeStatus('connected');
       }
     };
-    
     checkRealtimeStatus();
   }, [customersError, customersLoading]);
   // Initialize the form
@@ -144,7 +129,7 @@ const Customers = () => {
         name: "",
         email: "",
         phone: "",
-        address: "",
+        address: ""
       },
       addVehicle: false,
       vehicle: {
@@ -153,9 +138,9 @@ const Customers = () => {
         year: "",
         license_plate: "",
         vin: "",
-        color: "",
-      },
-    },
+        color: ""
+      }
+    }
   });
 
   // Watch the addVehicle checkbox to conditionally show vehicle fields
@@ -165,30 +150,31 @@ const Customers = () => {
   const onSubmit = async (values: CustomerFormValues) => {
     // Add the new customer to the data service
     const id = crypto.randomUUID();
-    const newCustomer = await addCustomer({ ...values.customer, id });
+    const newCustomer = await addCustomer({
+      ...values.customer,
+      id
+    });
 
     // Add vehicle if the checkbox is checked and vehicle data is provided
     const vehicleId = crypto.randomUUID();
-
     if (values.addVehicle && values.vehicle) {
       const vehicleData: Vehicle = {
         ...values.vehicle,
         customer_id: newCustomer.id,
         id: vehicleId
       };
-
       const newVehicle = await addVehicle(vehicleData);
 
       // Display success message including vehicle
       toast({
         title: "Customer and Vehicle Added",
-        description: `${newCustomer.name} and their ${values.vehicle.make} ${values.vehicle.model} have been added successfully.`,
+        description: `${newCustomer.name} and their ${values.vehicle.make} ${values.vehicle.model} have been added successfully.`
       });
     } else {
       // Display success message for customer only
       toast({
         title: "Customer Added",
-        description: `${newCustomer.name} has been added successfully.`,
+        description: `${newCustomer.name} has been added successfully.`
       });
     }
 
@@ -200,12 +186,7 @@ const Customers = () => {
   // Filter customers based on search query - use customers from context directly
   const filteredCustomers = customers.filter(customer => {
     const searchLower = searchQuery.toLowerCase();
-    return (
-      customer.name.toLowerCase().includes(searchLower) ||
-      customer.email.toLowerCase().includes(searchLower) ||
-      customer.phone.includes(searchQuery) ||
-      customer.address.toLowerCase().includes(searchLower)
-    );
+    return customer.name.toLowerCase().includes(searchLower) || customer.email.toLowerCase().includes(searchLower) || customer.phone.includes(searchQuery) || customer.address.toLowerCase().includes(searchLower);
   });
 
   // Handle CSV export
@@ -229,57 +210,37 @@ const Customers = () => {
     // Convert to CSV and download
     const csv = objectsToCSV(exportData);
     downloadCSV(csv, 'customers.csv');
-
     toast({
       title: "Export Successful",
-      description: `${exportData.length} customers exported to CSV`,
+      description: `${exportData.length} customers exported to CSV`
     });
   };
-
   const handleRefreshData = async () => {
     toast({
       title: "Refreshing data...",
-      description: "Loading latest customer information",
+      description: "Loading latest customer information"
     });
-    
     try {
       await refreshAllData();
       toast({
         title: "Data refreshed",
-        description: "Customer data has been updated",
+        description: "Customer data has been updated"
       });
     } catch (error) {
       toast({
         title: "Refresh failed",
         description: "Could not refresh customer data",
-        variant: "destructive",
+        variant: "destructive"
       });
     }
   };
-
-  return (
-    <div className="space-y-6 animate-fade-in">
+  return <div className="space-y-6 animate-fade-in">
       <div className="flex justify-between items-center">
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-3xl font-bold">Customers</h1>
             {/* Real-time status indicator */}
-            <div className="flex items-center gap-1 text-xs">
-              {realtimeStatus === 'connected' ? (
-                <Wifi className="h-3 w-3 text-green-500" />
-              ) : realtimeStatus === 'disconnected' ? (
-                <WifiOff className="h-3 w-3 text-red-500" />
-              ) : (
-                <div className="h-3 w-3 rounded-full bg-yellow-500 animate-pulse" />
-              )}
-              <span className={`text-xs ${
-                realtimeStatus === 'connected' ? 'text-green-600' : 
-                realtimeStatus === 'disconnected' ? 'text-red-600' : 'text-yellow-600'
-              }`}>
-                {realtimeStatus === 'connected' ? 'Live' : 
-                 realtimeStatus === 'disconnected' ? 'Offline' : 'Connecting...'}
-              </span>
-            </div>
+            
           </div>
           <p className="text-muted-foreground">Manage workshop customers</p>
         </div>
@@ -292,24 +253,17 @@ const Customers = () => {
             <RefreshCw className="mr-2 h-4 w-4" />
             Refresh
           </Button>
-          {userCanManageCustomers && (
-            <Button onClick={() => setIsDialogOpen(true)}>
+          {userCanManageCustomers && <Button onClick={() => setIsDialogOpen(true)}>
               <PlusCircle className="mr-2 h-4 w-4" />
               New Customer
-            </Button>
-          )}
+            </Button>}
         </div>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search customers..."
-            className="pl-8"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+          <Input placeholder="Search customers..." className="pl-8" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
         </div>
 
         <Button variant="outline">
@@ -319,19 +273,16 @@ const Customers = () => {
       </div>
 
       {/* Loading State */}
-      {customersLoading && (
-        <Card className="p-12 text-center">
+      {customersLoading && <Card className="p-12 text-center">
           <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
           <h3 className="mt-4 text-lg font-medium">Loading customers...</h3>
           <p className="mt-2 text-sm text-muted-foreground">
             Please wait while we fetch your customer data.
           </p>
-        </Card>
-      )}
+        </Card>}
 
       {/* Error State */}
-      {customersError && !customersLoading && (
-        <Card className="p-12 text-center border-destructive/50 bg-destructive/5">
+      {customersError && !customersLoading && <Card className="p-12 text-center border-destructive/50 bg-destructive/5">
           <div className="mx-auto h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center text-destructive">
             <X className="h-6 w-6" />
           </div>
@@ -343,37 +294,25 @@ const Customers = () => {
             <RefreshCw className="mr-2 h-4 w-4" />
             Try Again
           </Button>
-        </Card>
-      )}
+        </Card>}
 
       {/* Empty State */}
-      {!customersLoading && !customersError && filteredCustomers.length === 0 && (
-        <Card className="p-12 text-center">
+      {!customersLoading && !customersError && filteredCustomers.length === 0 && <Card className="p-12 text-center">
           <Users className="mx-auto h-12 w-12 text-muted-foreground/60" />
           <h3 className="mt-4 text-lg font-medium">No customers found</h3>
           <p className="mt-2 text-sm text-muted-foreground">
-            {searchQuery 
-              ? "Try adjusting your search to find what you're looking for."
-              : "Get started by adding your first customer."
-            }
+            {searchQuery ? "Try adjusting your search to find what you're looking for." : "Get started by adding your first customer."}
           </p>
-          {!searchQuery && userCanManageCustomers && (
-            <Button onClick={() => setIsDialogOpen(true)} className="mt-4">
+          {!searchQuery && userCanManageCustomers && <Button onClick={() => setIsDialogOpen(true)} className="mt-4">
               <PlusCircle className="mr-2 h-4 w-4" />
               Add Customer
-            </Button>
-          )}
-        </Card>
-      )}
+            </Button>}
+        </Card>}
 
       {/* Customer Grid */}
-      {!customersLoading && !customersError && filteredCustomers.length > 0 && (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {filteredCustomers.map((customer) => (
-            <CustomerCard key={customer.id} customer={customer} />
-          ))}
-        </div>
-      )}
+      {!customersLoading && !customersError && filteredCustomers.length > 0 && <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {filteredCustomers.map(customer => <CustomerCard key={customer.id} customer={customer} />)}
+        </div>}
 
       {/* New Customer Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -394,76 +333,53 @@ const Customers = () => {
                 </TabsList>
 
                 <TabsContent value="customer" className="space-y-4 mt-4">
-                  <FormField
-                    control={form.control}
-                    name="customer.name"
-                    render={({ field }) => (
-                      <FormItem>
+                  <FormField control={form.control} name="customer.name" render={({
+                  field
+                }) => <FormItem>
                         <FormLabel>Name</FormLabel>
                         <FormControl>
                           <Input placeholder="John Doe" {...field} />
                         </FormControl>
                         <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                      </FormItem>} />
 
-                  <FormField
-                    control={form.control}
-                    name="customer.email"
-                    render={({ field }) => (
-                      <FormItem>
+                  <FormField control={form.control} name="customer.email" render={({
+                  field
+                }) => <FormItem>
                         <FormLabel>Email</FormLabel>
                         <FormControl>
                           <Input placeholder="customer@example.com" {...field} />
                         </FormControl>
                         <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                      </FormItem>} />
 
-                  <FormField
-                    control={form.control}
-                    name="customer.phone"
-                    render={({ field }) => (
-                      <FormItem>
+                  <FormField control={form.control} name="customer.phone" render={({
+                  field
+                }) => <FormItem>
                         <FormLabel>Phone</FormLabel>
                         <FormControl>
                           <Input placeholder="555-123-4567" {...field} />
                         </FormControl>
                         <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                      </FormItem>} />
 
-                  <FormField
-                    control={form.control}
-                    name="customer.address"
-                    render={({ field }) => (
-                      <FormItem>
+                  <FormField control={form.control} name="customer.address" render={({
+                  field
+                }) => <FormItem>
                         <FormLabel>Address</FormLabel>
                         <FormControl>
                           <Textarea placeholder="123 Main St, Anytown" {...field} />
                         </FormControl>
                         <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                      </FormItem>} />
                 </TabsContent>
 
                 <TabsContent value="vehicle" className="space-y-4 mt-4">
-                  <FormField
-                    control={form.control}
-                    name="addVehicle"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                  <FormField control={form.control} name="addVehicle" render={({
+                  field
+                }) => <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                         <FormControl>
-                          <input
-                            type="checkbox"
-                            checked={field.value}
-                            onChange={field.onChange}
-                            className="h-4 w-4 mt-1"
-                          />
+                          <input type="checkbox" checked={field.value} onChange={field.onChange} className="h-4 w-4 mt-1" />
                         </FormControl>
                         <div className="space-y-1 leading-none">
                           <FormLabel>Add a vehicle for this customer</FormLabel>
@@ -471,103 +387,75 @@ const Customers = () => {
                             Check this box to add vehicle information
                           </p>
                         </div>
-                      </FormItem>
-                    )}
-                  />
+                      </FormItem>} />
 
-                  {showVehicleFields && (
-                    <>
+                  {showVehicleFields && <>
                       <div className="grid grid-cols-2 gap-4">
-                        <FormField
-                          control={form.control}
-                          name="vehicle.make"
-                          render={({ field }) => (
-                            <FormItem>
+                        <FormField control={form.control} name="vehicle.make" render={({
+                      field
+                    }) => <FormItem>
                               <FormLabel>Make</FormLabel>
                               <FormControl>
                                 <Input placeholder="Toyota" {...field} />
                               </FormControl>
                               <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                            </FormItem>} />
 
-                        <FormField
-                          control={form.control}
-                          name="vehicle.model"
-                          render={({ field }) => (
-                            <FormItem>
+                        <FormField control={form.control} name="vehicle.model" render={({
+                      field
+                    }) => <FormItem>
                               <FormLabel>Model</FormLabel>
                               <FormControl>
                                 <Input placeholder="Camry" {...field} />
                               </FormControl>
                               <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                            </FormItem>} />
                       </div>
 
                       <div className="grid grid-cols-2 gap-4">
-                        <FormField
-                          control={form.control}
-                          name="vehicle.year"
-                          render={({ field }) => (
-                            <FormItem>
+                        <FormField control={form.control} name="vehicle.year" render={({
+                      field
+                    }) => <FormItem>
                               <FormLabel>Year</FormLabel>
                               <FormControl>
                                 <Input placeholder="2023" {...field} />
                               </FormControl>
                               <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                            </FormItem>} />
 
-                        <FormField
-                          control={form.control}
-                          name="vehicle.license_plate"
-                          render={({ field }) => (
-                            <FormItem>
+                        <FormField control={form.control} name="vehicle.license_plate" render={({
+                      field
+                    }) => <FormItem>
                               <FormLabel>License Plate</FormLabel>
                               <FormControl>
                                 <Input placeholder="ABC-123" {...field} />
                               </FormControl>
                               <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                            </FormItem>} />
                       </div>
 
                       <div className="grid grid-cols-2 gap-4">
-                        <FormField
-                          control={form.control}
-                          name="vehicle.vin"
-                          render={({ field }) => (
-                            <FormItem>
+                        <FormField control={form.control} name="vehicle.vin" render={({
+                      field
+                    }) => <FormItem>
                               <FormLabel>VIN (Optional)</FormLabel>
                               <FormControl>
                                 <Input placeholder="1HGBH41JXMN109186" {...field} />
                               </FormControl>
                               <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                            </FormItem>} />
 
-                        <FormField
-                          control={form.control}
-                          name="vehicle.color"
-                          render={({ field }) => (
-                            <FormItem>
+                        <FormField control={form.control} name="vehicle.color" render={({
+                      field
+                    }) => <FormItem>
                               <FormLabel>Color (Optional)</FormLabel>
                               <FormControl>
                                 <Input placeholder="Silver" {...field} />
                               </FormControl>
                               <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                            </FormItem>} />
                       </div>
-                    </>
-                  )}
+                    </>}
                 </TabsContent>
               </Tabs>
 
@@ -581,18 +469,23 @@ const Customers = () => {
           </Form>
         </DialogContent>
       </Dialog>
-    </div>
-  );
+    </div>;
 };
 
 // Extracted component for customer card
-const CustomerCard = ({ customer }: { customer: any }) => {
+const CustomerCard = ({
+  customer
+}: {
+  customer: any;
+}) => {
   const [analytics, setAnalytics] = useState<any>({
     totalInvoices: 0,
     lifetimeValue: 0
   });
   const [vehicles, setVehicles] = useState<any[]>([]);
-  const { formatCurrency } = useOrganizationSettings();
+  const {
+    formatCurrency
+  } = useOrganizationSettings();
   const {
     getCustomerAnalytics,
     getVehiclesByCustomerId
@@ -601,16 +494,12 @@ const CustomerCard = ({ customer }: { customer: any }) => {
     const loadData = async () => {
       const analyticsData = await getCustomerAnalytics(customer.id);
       const vehiclesData = await getVehiclesByCustomerId(customer.id);
-
       setAnalytics(analyticsData);
       setVehicles(vehiclesData);
     };
-
     loadData();
   }, [customer.id]);
-
-  return (
-    <Link to={`/customers/${customer.id}`}>
+  return <Link to={`/customers/${customer.id}`}>
       <Card className="h-full hover:shadow-md transition-shadow duration-200">
         <CardContent className="p-6">
           <div className="flex justify-between items-start">
@@ -648,8 +537,6 @@ const CustomerCard = ({ customer }: { customer: any }) => {
           </div>
         </CardContent>
       </Card>
-    </Link>
-  );
+    </Link>;
 };
-
 export default Customers;
