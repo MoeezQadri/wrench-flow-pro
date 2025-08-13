@@ -96,6 +96,8 @@ const UserManagementTab = () => {
     }
 
     try {
+      console.log('Loading users for organization:', currentUser.organization_id);
+      
       // For now, we'll just get the basic profile data
       // In a production app, you'd want to create a proper view or function
       // that joins profiles with auth.users to get email addresses
@@ -104,6 +106,8 @@ const UserManagementTab = () => {
         .select('*')
         .eq('organization_id', currentUser.organization_id)
         .order('created_at', { ascending: false });
+
+      console.log('Users query result:', { usersData, error });
 
       if (error) {
         console.error('Error loading users:', error);
@@ -115,6 +119,7 @@ const UserManagementTab = () => {
           ...user,
           email: user.id === currentUser?.id ? session?.user?.email : `user-${user.id.slice(0,8)}@example.com`
         }));
+        console.log('Transformed users:', transformedUsers);
         setUsers(transformedUsers);
       }
     } catch (error) {
