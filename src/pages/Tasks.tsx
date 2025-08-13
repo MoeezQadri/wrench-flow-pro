@@ -45,7 +45,7 @@ const Tasks = () => {
   
   // Check permissions
   const canViewTasks = hasPermission(currentUser, 'tasks', 'view');
-  const canManageTasks = currentUser?.role === 'manager' || currentUser?.role === 'owner';
+  const canManageTasks = currentUser?.role === 'manager' || currentUser?.role === 'owner' || currentUser?.role === 'admin';
   const isForeman = currentUser?.role === 'foreman';
 
   // Load tasks

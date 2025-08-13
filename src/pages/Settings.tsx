@@ -1,5 +1,4 @@
-
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Building, CreditCard, User, Users, ShieldCheck } from 'lucide-react';
 import OrganizationSettingsTab from '@/components/settings/OrganizationSettingsTab';
@@ -8,15 +7,16 @@ import AccountSettingsTab from '@/components/settings/AccountSettingsTab';
 import UserManagementTab from '@/components/settings/UserManagementTab';
 import RolesManagementTab from '@/components/settings/RolesManagementTab';
 import { useAuthContext } from '@/context/AuthContext';
+import { canManageUsers, canManageSettings, canManageSubscription } from '@/utils/permissions';
 
 const Settings = () => {
   const [activeTab, setActiveTab] = useState('organization');
   const { currentUser } = useAuthContext();
   
   // Check if current user has permission to manage users and roles
-  const canManageUsers = currentUser?.role === 'owner' || currentUser?.role === 'admin';
-  const canManageRoles = currentUser?.role === 'owner';
-  const canManageSubscription = currentUser?.role === 'owner' || currentUser?.role === 'admin';
+  const userCanManageUsers = canManageUsers(currentUser);
+  const userCanManageSettings = canManageSettings(currentUser);
+  const userCanManageSubscription = canManageSubscription(currentUser);
 
   return (
     <div className="space-y-6">
@@ -30,7 +30,7 @@ const Settings = () => {
             <Building className="w-4 h-4 mr-2" />
             Organization
           </TabsTrigger>
-          {canManageSubscription && (
+          {userCanManageSubscription && (
             <TabsTrigger value="subscription" className="data-[state=active]:bg-muted">
               <CreditCard className="w-4 h-4 mr-2" />
               Subscription
@@ -40,13 +40,13 @@ const Settings = () => {
             <User className="w-4 h-4 mr-2" />
             Account
           </TabsTrigger>
-          {canManageUsers && (
+          {userCanManageUsers && (
             <TabsTrigger value="users" className="data-[state=active]:bg-muted">
               <Users className="w-4 h-4 mr-2" />
               Users
             </TabsTrigger>
           )}
-          {canManageRoles && (
+          {userCanManageSettings && (
             <TabsTrigger value="roles" className="data-[state=active]:bg-muted">
               <ShieldCheck className="w-4 h-4 mr-2" />
               Roles
@@ -60,7 +60,7 @@ const Settings = () => {
         </TabsContent>
         
         {/* Subscription Settings Tab - Only for admins/owners */}
-        {canManageSubscription && (
+        {userCanManageSubscription && (
           <TabsContent value="subscription" className="space-y-6">
             <SubscriptionSettingsTab />
           </TabsContent>
@@ -72,14 +72,14 @@ const Settings = () => {
         </TabsContent>
         
         {/* User Management Tab */}
-        {canManageUsers && (
+        {userCanManageUsers && (
           <TabsContent value="users" className="space-y-6">
             <UserManagementTab />
           </TabsContent>
         )}
         
         {/* Roles Management Tab */}
-        {canManageRoles && (
+        {userCanManageSettings && (
           <TabsContent value="roles" className="space-y-6">
             <RolesManagementTab />
           </TabsContent>

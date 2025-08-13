@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { useDataContext } from "@/context/data/DataContext";
 import { useAuthContext } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { canManageMechanics } from "@/utils/permissions";
 
 const Mechanics = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -20,7 +21,7 @@ const Mechanics = () => {
     updateMechanic,
   } = useDataContext();
   const { currentUser } = useAuthContext();
-  const canManageMechanics = currentUser?.role === 'manager' || currentUser?.role === 'owner' || currentUser?.role === 'admin' || currentUser?.role === 'foreman';
+  const userCanManageMechanics = canManageMechanics(currentUser);
 
   const handleAddMechanic = () => {
     setSelectedMechanic(null);
@@ -56,7 +57,7 @@ const Mechanics = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold tracking-tight">Mechanics</h1>
-        {canManageMechanics && (
+        {userCanManageMechanics && (
           <Button onClick={handleAddMechanic}>
             <Plus className="h-4 w-4 mr-2" /> Add Mechanic
           </Button>
@@ -88,7 +89,7 @@ const Mechanics = () => {
                   <span className="font-medium">{mechanic.phone}</span>
                 </div>
                 <div className="mt-4 flex justify-between">
-                  {canManageMechanics && (
+                  {userCanManageMechanics && (
                     <Button
                       variant="outline"
                       size="sm"
@@ -116,7 +117,7 @@ const Mechanics = () => {
           <div className="col-span-full flex items-center justify-center h-64 border rounded-lg">
             <div className="text-center">
               <p className="text-muted-foreground">No mechanics found</p>
-              {canManageMechanics && (
+              {userCanManageMechanics && (
                 <Button
                   variant="outline"
                   size="sm"
