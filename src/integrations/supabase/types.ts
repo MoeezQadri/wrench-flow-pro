@@ -1073,6 +1073,10 @@ export type Database = {
           updated_at: string
         }[]
       }
+      is_current_user_superadmin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       log_superadmin_activity: {
         Args: {
           p_superadmin_id: string
