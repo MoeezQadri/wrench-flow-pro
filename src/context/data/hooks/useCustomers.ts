@@ -7,12 +7,53 @@ import { useOrganizationFilter } from '@/hooks/useOrganizationFilter';
 import { useOrganizationAwareQuery } from '@/hooks/useOrganizationAwareQuery';
 import { fetchCustomerById } from '@/services/supabase-service';
 
+// Enhanced error logging utility
+const logCustomerOperation = (operation: string, data?: any, error?: any) => {
+  const timestamp = new Date().toISOString();
+  const logEntry = {
+    timestamp,
+    operation,
+    data: data ? JSON.stringify(data, null, 2) : null,
+    error: error ? {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+      hint: error.hint,
+      stack: error.stack
+    } : null,
+    userAgent: navigator.userAgent,
+    url: window.location.href
+  };
+  
+  console.log(`[CustomerHook] ${operation}:`, logEntry);
+  
+  // Store in sessionStorage for debugging (keep last 50 entries)
+  try {
+    const existingLogs = JSON.parse(sessionStorage.getItem('customerOperationLogs') || '[]');
+    const updatedLogs = [...existingLogs, logEntry].slice(-50);
+    sessionStorage.setItem('customerOperationLogs', JSON.stringify(updatedLogs));
+  } catch (storageError) {
+    console.warn('Failed to store customer operation log:', storageError);
+  }
+  
+  return logEntry;
+};
+
 export const useCustomers = () => {
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const { applyOrganizationFilter } = useOrganizationAwareQuery();
-    const { organizationId } = useOrganizationFilter();
+    const { organizationId, isSuperAdmin, canAccessAllOrganizations } = useOrganizationFilter();
+
+    // Log initialization
+    useEffect(() => {
+        logCustomerOperation('HOOK_INITIALIZED', { 
+            organizationId, 
+            isSuperAdmin, 
+            canAccessAllOrganizations 
+        });
+    }, [organizationId, isSuperAdmin, canAccessAllOrganizations]);
 
     // Set up real-time subscription for customer data
     useEffect(() => {
@@ -93,8 +134,11 @@ export const useCustomers = () => {
     }, [organizationId]);
 
     const addCustomer = async (customer: Customer) => {
+        logCustomerOperation('ADD_CUSTOMER_STARTED', { customerName: customer.name });
+        
         if (!customer || typeof customer !== 'object') {
             const errorMsg = 'Invalid customer data provided';
+            logCustomerOperation('ADD_CUSTOMER_VALIDATION_FAILED', customer, new Error(errorMsg));
             console.error(errorMsg, customer);
             toast.error(errorMsg);
             throw new Error(errorMsg);
@@ -103,6 +147,7 @@ export const useCustomers = () => {
         // Validate required fields
         if (!customer.name?.trim()) {
             const errorMsg = 'Customer name is required';
+            logCustomerOperation('ADD_CUSTOMER_VALIDATION_FAILED', customer, new Error(errorMsg));
             toast.error(errorMsg);
             throw new Error(errorMsg);
         }
@@ -135,6 +180,7 @@ export const useCustomers = () => {
             if (error) {
                 // Rollback optimistic update
                 setCustomers((prev) => (prev || []).filter(c => c.id !== tempId));
+                logCustomerOperation('ADD_CUSTOMER_FAILED', customerData, error);
                 console.error('Error adding customer:', error);
                 const errorMsg = error.message?.includes('duplicate') ? 'Customer already exists' : 'Failed to add customer';
                 setError(errorMsg);
@@ -146,17 +192,20 @@ export const useCustomers = () => {
                 const result = data[0] as Customer;
                 // Replace optimistic entry with real data
                 setCustomers((prev) => (prev || []).map(c => c.id === tempId ? result : c));
+                logCustomerOperation('ADD_CUSTOMER_SUCCESS', result);
                 toast.success('Customer added successfully');
                 console.log("Customer added successfully:", result);
                 return result;
             }
             
             // Keep optimistic update if no data returned but no error
+            logCustomerOperation('ADD_CUSTOMER_SUCCESS_OPTIMISTIC', customerData);
             console.log("Customer added (optimistic update kept)");
             return customerData as Customer;
         } catch (error: any) {
             // Rollback optimistic update on error
             setCustomers((prev) => (prev || []).filter(c => c.id !== tempId));
+            logCustomerOperation('ADD_CUSTOMER_EXCEPTION', customerData, error);
             console.error('Error adding customer:', error);
             const errorMsg = error?.message?.includes('organization_id') 
                 ? 'Organization access error - please refresh and try again'
@@ -313,6 +362,7 @@ export const useCustomers = () => {
     };
 
     const loadCustomers = async (retryCount = 0) => {
+        logCustomerOperation('LOAD_CUSTOMERS_STARTED', { retryCount, organizationId });
         setLoading(true);
         setError(null);
 
@@ -321,6 +371,7 @@ export const useCustomers = () => {
             
             // Check if organization context is available
             if (!organizationId) {
+                logCustomerOperation('LOAD_CUSTOMERS_NO_ORG', { organizationId });
                 console.warn("No organization ID available, skipping customer load");
                 setCustomers([]);
                 return;
@@ -375,6 +426,10 @@ export const useCustomers = () => {
                 throw customersError;
             } else {
                 const safeCustomersData = Array.isArray(customersData) ? customersData : [];
+                logCustomerOperation('LOAD_CUSTOMERS_SUCCESS', { 
+                    customerCount: safeCustomersData.length, 
+                    organizationId 
+                });
                 console.log("Customers loaded successfully:", safeCustomersData.length, "customers found");
                 setCustomers(safeCustomersData);
                 
@@ -404,9 +459,27 @@ export const useCustomers = () => {
     };
 
     const refreshCustomers = async () => {
+        logCustomerOperation('MANUAL_REFRESH_TRIGGERED');
         console.log("Manual refresh of customers triggered");
         setError(null);
         await loadCustomers();
+    };
+
+    // Expose debugging utilities
+    const getDebugInfo = () => {
+        const logs = JSON.parse(sessionStorage.getItem('customerOperationLogs') || '[]');
+        return {
+            currentState: {
+                customerCount: customers.length,
+                loading,
+                error,
+                organizationId,
+                isSuperAdmin,
+                canAccessAllOrganizations
+            },
+            recentLogs: logs.slice(-10),
+            allLogs: logs
+        };
     };
 
     return {
@@ -419,6 +492,7 @@ export const useCustomers = () => {
         updateCustomer,
         getCustomerById,
         loadCustomers,
-        refreshCustomers
+        refreshCustomers,
+        getDebugInfo
     };
 };

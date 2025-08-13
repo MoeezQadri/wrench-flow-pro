@@ -15,7 +15,8 @@ import {
   X,
   RefreshCw,
   Wifi,
-  WifiOff
+  WifiOff,
+  Bug
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -58,6 +59,7 @@ import { Separator } from "@/components/ui/separator";
 import { objectsToCSV, downloadCSV } from '@/utils/csv-export';
 import { Vehicle } from '@/types';
 import { useDataContext } from '@/context/data/DataContext';
+import { CustomerValidationPanel } from '@/components/debug/CustomerValidationPanel';
 
 // Define the form validation schema using Zod
 const customerSchema = z.object({
@@ -106,6 +108,7 @@ const Customers = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [realtimeStatus, setRealtimeStatus] = useState<'connected' | 'disconnected' | 'connecting'>('connecting');
+  const [debugPanelOpen, setDebugPanelOpen] = useState(false);
   const { toast } = useToast();
   const {
     customers, customersLoading, customersError, getCustomerAnalytics, getVehiclesByCustomerId, 
@@ -282,6 +285,10 @@ const Customers = () => {
           <Button variant="outline" onClick={handleRefreshData}>
             <RefreshCw className="mr-2 h-4 w-4" />
             Refresh
+          </Button>
+          <Button variant="outline" onClick={() => setDebugPanelOpen(!debugPanelOpen)}>
+            <Bug className="mr-2 h-4 w-4" />
+            Debug
           </Button>
           <Button onClick={() => setIsDialogOpen(true)}>
             <PlusCircle className="mr-2 h-4 w-4" />
@@ -570,6 +577,12 @@ const Customers = () => {
           </Form>
         </DialogContent>
       </Dialog>
+
+      {/* Debug Validation Panel */}
+      <CustomerValidationPanel 
+        isOpen={debugPanelOpen} 
+        onToggle={() => setDebugPanelOpen(!debugPanelOpen)} 
+      />
     </div>
   );
 };
