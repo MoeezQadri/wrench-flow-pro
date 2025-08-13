@@ -50,6 +50,7 @@ const Finance = lazy(() => import('@/pages/Finance'));
 // Super Admin pages
 const SuperAdminDashboard = lazy(() => import('@/pages/superadmin/SuperAdminDashboard'));
 const SuperAdminLogin = lazy(() => import('@/pages/superadmin/SuperAdminLogin'));
+const SuperAdminDataDebug = lazy(() => import('@/pages/superadmin/SuperAdminDataDebug'));
 
 function App() {
   return (
@@ -70,6 +71,7 @@ function App() {
                 <Route path="/superadmin/login" element={<SuperAdminLogin />} />
                 <Route path="/superadmin" element={<PrivateRoute />}>
                   <Route path="dashboard" element={<SuperAdminDashboard />} />
+                  <Route path="data-debug" element={<SuperAdminDataDebug />} />
                   <Route path="*" element={<Navigate to="/superadmin/dashboard" replace />} />
                 </Route>
 

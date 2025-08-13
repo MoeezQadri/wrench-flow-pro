@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -134,10 +135,18 @@ const SuperAdminDashboard: React.FC = () => {
             Manage organizations, users, and subscriptions
           </p>
         </div>
-        <Button onClick={() => setCreateOrgOpen(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Create Organization
-        </Button>
+        <div className="flex gap-2">
+          <Link to="/superadmin/data-debug">
+            <Button variant="outline">
+              <BarChart3 className="w-4 h-4 mr-2" />
+              Data Debug
+            </Button>
+          </Link>
+          <Button onClick={() => setCreateOrgOpen(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Create Organization
+          </Button>
+        </div>
       </div>
 
       {/* Overview Cards */}
