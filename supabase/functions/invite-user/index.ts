@@ -82,7 +82,20 @@ serve(async (req) => {
     const { data: existingUser } = await supabaseAdmin.auth.admin.getUserByEmail(email);
     
     if (existingUser.user) {
-      throw new Error("User with this email already exists");
+      // Check if user already has a profile/organization
+      const { data: existingProfile } = await supabaseAdmin
+        .from("profiles")
+        .select("organization_id, role")
+        .eq("id", existingUser.user.id)
+        .single();
+
+      if (existingProfile) {
+        if (existingProfile.organization_id === organizationId) {
+          throw new Error("User is already a member of this organization");
+        } else {
+          throw new Error("User is already a member of another organization");
+        }
+      }
     }
 
     // Create invitation using Supabase's built-in invitation system
