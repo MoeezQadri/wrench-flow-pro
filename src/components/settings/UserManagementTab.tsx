@@ -22,15 +22,57 @@ interface OrganizationUser {
   email?: string; // Add email field for password resets
 }
 
-const predefinedRoles = [
-  { value: 'owner', label: 'Owner', description: 'Full access to all features' },
-  { value: 'admin', label: 'Admin', description: 'Can manage users and settings' },
-  { value: 'manager', label: 'Manager', description: 'Can manage operations and view reports' },
-  { value: 'member', label: 'Member', description: 'Basic access to core features' },
-];
+// Load roles dynamically from database
+const useAvailableRoles = () => {
+  const [roles, setRoles] = useState([
+    { value: 'owner', label: 'Owner', description: 'Full access to all features' },
+    { value: 'admin', label: 'Admin', description: 'Can manage users and settings' },
+    { value: 'manager', label: 'Manager', description: 'Can manage operations and view reports' },
+    { value: 'member', label: 'Member', description: 'Basic access to core features' },
+  ]);
+
+  useEffect(() => {
+    const loadRoles = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('role')
+          .not('role', 'is', null);
+        
+        if (!error && data) {
+          const uniqueRoles = [...new Set(data.map(item => item.role))];
+          const predefinedRoles = [
+            { value: 'owner', label: 'Owner', description: 'Full access to all features' },
+            { value: 'admin', label: 'Admin', description: 'Can manage users and settings' },
+            { value: 'manager', label: 'Manager', description: 'Can manage operations and view reports' },
+            { value: 'member', label: 'Member', description: 'Basic access to core features' },
+          ];
+          
+          // Add any additional roles found in database that aren't predefined
+          const additionalRoles = uniqueRoles
+            .filter(role => !predefinedRoles.some(pr => pr.value === role))
+            .map(role => ({ 
+              value: role, 
+              label: role.charAt(0).toUpperCase() + role.slice(1), 
+              description: `${role.charAt(0).toUpperCase() + role.slice(1)} role` 
+            }));
+          
+          setRoles([...predefinedRoles, ...additionalRoles]);
+        }
+      } catch (error) {
+        console.error('Error loading roles:', error);
+      }
+    };
+    
+    loadRoles();
+  }, []);
+
+  return roles;
+};
 
 const UserManagementTab = () => {
   const { currentUser, session } = useAuthContext();
+  const availableRoles = useAvailableRoles();
   const [users, setUsers] = useState<OrganizationUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -92,33 +134,37 @@ const UserManagementTab = () => {
     }
 
     try {
-      // Create user invitation (this would typically be handled by a backend service)
-      // For now, we'll just show a success message
-      // In a real implementation, you would:
-      // 1. Send an invitation email with a secure token
-      // 2. Create a pending user record
-      // 3. Handle the invitation acceptance flow
+      // Note: supabase.auth.admin.inviteUserByEmail requires service role key
+      // For now, we'll create a mock invitation and notify the user
+      // In production, this should be handled by an edge function with proper permissions
       
-      const { error } = await supabase.auth.admin.inviteUserByEmail(newUserEmail, {
-        data: {
-          role: newUserRole,
-          organization_id: currentUser.organization_id,
-          invited_by: currentUser.id
-        }
-      });
+      // Create a pending invitation record (you might want to create a separate invitations table)
+      const invitationData = {
+        email: newUserEmail,
+        role: newUserRole,
+        organization_id: currentUser.organization_id,
+        invited_by: currentUser.id,
+        invited_at: new Date().toISOString(),
+        status: 'pending'
+      };
 
-      if (error) {
-        console.error('Error inviting user:', error);
-        toast.error('Failed to send invitation: ' + error.message);
-      } else {
-        toast.success(`Invitation sent to ${newUserEmail}`);
-        setNewUserEmail('');
-        setNewUserRole('member');
-        setInviteDialogOpen(false);
-      }
+      // For now, just show success - in production you'd save this to an invitations table
+      console.log('Invitation would be sent:', invitationData);
+      
+      toast.success(`Invitation prepared for ${newUserEmail}. In production, this would send an email invitation.`);
+      setNewUserEmail('');
+      setNewUserRole('member');
+      setInviteDialogOpen(false);
+      
+      // Note: To implement real invitations, you would need:
+      // 1. An edge function that uses the service role key
+      // 2. Email sending capability
+      // 3. An invitations table to track pending invitations
+      // 4. A signup flow that accepts invitation tokens
+      
     } catch (error) {
-      console.error('Error inviting user:', error);
-      toast.error('Failed to send invitation');
+      console.error('Error creating invitation:', error);
+      toast.error('Failed to create invitation');
     }
   };
 
@@ -265,7 +311,7 @@ const UserManagementTab = () => {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {predefinedRoles.map((role) => (
+                        {availableRoles.map((role) => (
                           <SelectItem key={role.value} value={role.value}>
                             <div>
                               <div className="font-medium">{role.label}</div>
@@ -307,7 +353,7 @@ const UserManagementTab = () => {
                   <TableCell className="font-medium">{user.name}</TableCell>
                   <TableCell>
                     <Badge className={getRoleBadgeColor(user.role)}>
-                      {predefinedRoles.find(r => r.value === user.role)?.label || user.role}
+                      {availableRoles.find(r => r.value === user.role)?.label || user.role}
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -380,7 +426,7 @@ const UserManagementTab = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {predefinedRoles.map((role) => (
+                  {availableRoles.map((role) => (
                     <SelectItem key={role.value} value={role.value}>
                       <div>
                         <div className="font-medium">{role.label}</div>
