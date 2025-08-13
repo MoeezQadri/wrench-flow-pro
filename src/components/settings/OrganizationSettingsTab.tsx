@@ -17,8 +17,8 @@ const OrganizationSettingsTab = () => {
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
-    country: '',
-    currency: '',
+    country: 'United States',
+    currency: 'USD',
   });
 
   useEffect(() => {
@@ -44,8 +44,8 @@ const OrganizationSettingsTab = () => {
       } else if (orgData) {
         setFormData({
           name: orgData.name || '',
-          country: orgData.country || '',
-          currency: orgData.currency || '',
+          country: orgData.country || 'United States',
+          currency: orgData.currency || 'USD',
         });
       }
     } catch (error) {
