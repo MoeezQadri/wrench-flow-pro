@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Building, CreditCard, User, Users, ShieldCheck } from 'lucide-react';
+import { Building, CreditCard, User, Users } from 'lucide-react';
 import OrganizationSettingsTab from '@/components/settings/OrganizationSettingsTab';
 import SubscriptionSettingsTab from '@/components/settings/SubscriptionSettingsTab';
 import AccountSettingsTab from '@/components/settings/AccountSettingsTab';
 import UserManagementTab from '@/components/settings/UserManagementTab';
-import RolesManagementTab from '@/components/settings/RolesManagementTab';
 import { useAuthContext } from '@/context/AuthContext';
 import { canManageUsers, canManageSettings, canManageSubscription } from '@/utils/permissions';
 
@@ -46,12 +45,6 @@ const Settings = () => {
               Users
             </TabsTrigger>
           )}
-          {userCanManageSettings && (
-            <TabsTrigger value="roles" className="data-[state=active]:bg-muted">
-              <ShieldCheck className="w-4 h-4 mr-2" />
-              Roles
-            </TabsTrigger>
-          )}
         </TabsList>
         
         {/* Organization Settings Tab */}
@@ -75,13 +68,6 @@ const Settings = () => {
         {userCanManageUsers && (
           <TabsContent value="users" className="space-y-6">
             <UserManagementTab />
-          </TabsContent>
-        )}
-        
-        {/* Roles Management Tab */}
-        {userCanManageSettings && (
-          <TabsContent value="roles" className="space-y-6">
-            <RolesManagementTab />
           </TabsContent>
         )}
       </Tabs>
