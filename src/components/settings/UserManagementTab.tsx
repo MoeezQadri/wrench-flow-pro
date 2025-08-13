@@ -26,6 +26,10 @@ interface OrganizationUser {
 const useAvailableRoles = () => {
   const [roles, setRoles] = useState([
     { value: 'owner', label: 'Owner', description: 'Full access to all features' },
+    { value: 'admin', label: 'Admin', description: 'Can manage users and settings' },
+    { value: 'manager', label: 'Manager', description: 'Can manage operations and view reports' },
+    { value: 'foreman', label: 'Foreman', description: 'Can manage workshop operations' },
+    { value: 'mechanic', label: 'Mechanic', description: 'Basic access to workshop tools' },
     { value: 'member', label: 'Member', description: 'Basic access to core features' },
   ]);
 
@@ -41,8 +45,12 @@ const useAvailableRoles = () => {
           const uniqueRoles = [...new Set(data.map(item => item.role))];
           console.log('Available roles from database:', uniqueRoles);
           
-          // Create role definitions based on what's actually in the database
-          const roleDefinitions = uniqueRoles.map(role => {
+          // Only allow business roles (exclude superuser/superadmin from invitations)
+          const allowedRoles = ['owner', 'admin', 'manager', 'foreman', 'mechanic', 'member'];
+          const filteredRoles = uniqueRoles.filter(role => allowedRoles.includes(role));
+          
+          // Create role definitions based on allowed roles
+          const roleDefinitions = filteredRoles.map(role => {
             switch (role) {
               case 'owner':
                 return { value: 'owner', label: 'Owner', description: 'Full access to all features' };
@@ -50,6 +58,10 @@ const useAvailableRoles = () => {
                 return { value: 'admin', label: 'Admin', description: 'Can manage users and settings' };
               case 'manager':
                 return { value: 'manager', label: 'Manager', description: 'Can manage operations and view reports' };
+              case 'foreman':
+                return { value: 'foreman', label: 'Foreman', description: 'Can manage workshop operations' };
+              case 'mechanic':
+                return { value: 'mechanic', label: 'Mechanic', description: 'Basic access to workshop tools' };
               case 'member':
                 return { value: 'member', label: 'Member', description: 'Basic access to core features' };
               default:
