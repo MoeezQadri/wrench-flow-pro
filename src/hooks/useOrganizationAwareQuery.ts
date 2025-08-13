@@ -7,11 +7,14 @@ export const useOrganizationAwareQuery = () => {
   const applyOrganizationFilter = (query: any) => {
     const orgFilter = getOrganizationQuery();
     
+    console.log("Applying organization filter:", orgFilter);
+    
     if (orgFilter) {
       return query.eq('organization_id', orgFilter.organization_id);
     }
     
-    return query; // No filter for super admins viewing all organizations
+    // No filter for super admins viewing all organizations
+    return query;
   };
 
   return { applyOrganizationFilter };

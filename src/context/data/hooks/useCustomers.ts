@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { Customer } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -10,6 +10,44 @@ import { fetchCustomerById } from '@/services/supabase-service';
 export const useCustomers = () => {
     const [customers, setCustomers] = useState<Customer[]>([]);
     const { applyOrganizationFilter } = useOrganizationAwareQuery();
+    const { organizationId } = useOrganizationFilter();
+
+    // Set up real-time subscription for customer data
+    useEffect(() => {
+        if (!organizationId) return;
+
+        console.log("Setting up real-time subscription for customers");
+        const channel = supabase
+            .channel('customers-changes')
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'customers',
+                    filter: `organization_id=eq.${organizationId}`
+                },
+                (payload) => {
+                    console.log('Customer real-time update:', payload);
+                    
+                    if (payload.eventType === 'INSERT') {
+                        setCustomers(prev => [...prev, payload.new as Customer]);
+                    } else if (payload.eventType === 'UPDATE') {
+                        setCustomers(prev => prev.map(customer => 
+                            customer.id === payload.new.id ? payload.new as Customer : customer
+                        ));
+                    } else if (payload.eventType === 'DELETE') {
+                        setCustomers(prev => prev.filter(customer => customer.id !== payload.old.id));
+                    }
+                }
+            )
+            .subscribe();
+
+        return () => {
+            console.log("Cleaning up customer real-time subscription");
+            supabase.removeChannel(channel);
+        };
+    }, [organizationId]);
 
     const addCustomer = async (customer: Customer) => {
         try {
@@ -93,7 +131,7 @@ export const useCustomers = () => {
         }
     };
 
-    const loadCustomers = async () => {
+    const loadCustomers = async (retryCount = 0) => {
         try {
             console.log("Loading customers from Supabase...");
             const query = supabase.from('customers').select('*');
@@ -101,6 +139,14 @@ export const useCustomers = () => {
             
             if (customersError) {
                 console.error('Error fetching customers:', customersError);
+                
+                // Retry logic for transient errors
+                if (retryCount < 2 && (customersError.message?.includes('timeout') || customersError.message?.includes('network'))) {
+                    console.log(`Retrying customer load (attempt ${retryCount + 1})`);
+                    setTimeout(() => loadCustomers(retryCount + 1), 1000 * (retryCount + 1));
+                    return;
+                }
+                
                 toast.error('Failed to load customers');
             } else {
                 console.log("Customers loaded:", customersData ? customersData.length : 0, "customers found");
@@ -108,8 +154,21 @@ export const useCustomers = () => {
             }
         } catch (error) {
             console.error('Error fetching customers:', error);
+            
+            // Retry logic for unexpected errors
+            if (retryCount < 2) {
+                console.log(`Retrying customer load after error (attempt ${retryCount + 1})`);
+                setTimeout(() => loadCustomers(retryCount + 1), 1000 * (retryCount + 1));
+                return;
+            }
+            
             toast.error('Failed to load customers');
         }
+    };
+
+    const refreshCustomers = async () => {
+        console.log("Manual refresh of customers triggered");
+        await loadCustomers();
     };
 
     return {
@@ -119,6 +178,7 @@ export const useCustomers = () => {
         removeCustomer,
         updateCustomer,
         getCustomerById,
-        loadCustomers
+        loadCustomers,
+        refreshCustomers
     };
 };

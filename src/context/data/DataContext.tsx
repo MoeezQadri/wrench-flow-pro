@@ -12,6 +12,7 @@ import { useExpenses } from './hooks/useExpenses';
 import { useTasks } from './hooks/useTasks';
 import { useParts } from './hooks/useParts';
 import { usePayments } from './hooks/usePayments';
+import { useAuthContext } from '@/context/AuthContext';
 // import { usePayables } from './hooks/usePayables'; // Temporarily disabled
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -21,6 +22,7 @@ interface DataProviderProps {
 }
 
 const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
+    const { currentUser, loading: authLoading, isAuthenticated } = useAuthContext();
     const mechanicsHook = useMechanics();
     const customersHook = useCustomers();
     const vehiclesHook = useVehicles();
@@ -34,24 +36,34 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
 
     useEffect(() => {
         const fetchAllData = async () => {
-            console.log("Starting to load all data...");
-            await Promise.all([
-                mechanicsHook.loadMechanics(),
-                vendorsHook.loadVendors(),
-                customersHook.loadCustomers(),
-                vehiclesHook.loadVehicles(),
-                invoicesHook.loadInvoices(),
-                expensesHook.loadExpenses(),
-                tasksHook.loadTasks(),
-                partsHook.loadParts(),
-                paymentsHook.loadPayments()
-                // payablesHook.loadPayables() // Temporarily disabled
-            ]);
-            console.log("All data loaded, customers:", customersHook.customers);
+            // Wait for authentication to be ready and user to be loaded
+            if (authLoading || !isAuthenticated || !currentUser?.organization_id) {
+                console.log("Skipping data load - auth not ready:", { authLoading, isAuthenticated, hasOrgId: !!currentUser?.organization_id });
+                return;
+            }
+
+            console.log("Starting to load all data for org:", currentUser.organization_id);
+            try {
+                await Promise.all([
+                    mechanicsHook.loadMechanics(),
+                    vendorsHook.loadVendors(),
+                    customersHook.loadCustomers(),
+                    vehiclesHook.loadVehicles(),
+                    invoicesHook.loadInvoices(),
+                    expensesHook.loadExpenses(),
+                    tasksHook.loadTasks(),
+                    partsHook.loadParts(),
+                    paymentsHook.loadPayments()
+                    // payablesHook.loadPayables() // Temporarily disabled
+                ]);
+                console.log("All data loaded successfully, customers:", customersHook.customers);
+            } catch (error) {
+                console.error("Error loading data:", error);
+            }
         };
 
         fetchAllData();
-    }, []);
+    }, [authLoading, isAuthenticated, currentUser?.organization_id]);
 
     const getCustomerAnalytics = async (customerId: string): Promise<{ lifetimeValue: number; totalInvoices: number; averageInvoiceValue: number; vehicles: Vehicle[]; invoiceHistory: Invoice[] }> => {
         const vehicles: Vehicle[] = await vehiclesHook.getVehiclesByCustomerId(customerId);
@@ -87,6 +99,7 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
             updateCustomer: customersHook.updateCustomer,
             getCustomerById: customersHook.getCustomerById,
             loadCustomers: customersHook.loadCustomers,
+            refreshCustomers: customersHook.refreshCustomers,
 
             vehicles: vehiclesHook.vehicles,
             addVehicle: vehiclesHook.addVehicle,
