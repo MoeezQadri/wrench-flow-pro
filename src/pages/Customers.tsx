@@ -105,7 +105,8 @@ const Customers = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
   const {
-    customers, getCustomerAnalytics, getVehiclesByCustomerId, addCustomer, addVehicle, refreshAllData
+    customers, customersLoading, customersError, getCustomerAnalytics, getVehiclesByCustomerId, 
+    addCustomer, addVehicle, refreshAllData
   } = useDataContext();
 
   // Initialize the form
@@ -269,15 +270,56 @@ const Customers = () => {
         </Button>
       </div>
 
-      {filteredCustomers.length === 0 ? (
+      {/* Loading State */}
+      {customersLoading && (
+        <Card className="p-12 text-center">
+          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+          <h3 className="mt-4 text-lg font-medium">Loading customers...</h3>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Please wait while we fetch your customer data.
+          </p>
+        </Card>
+      )}
+
+      {/* Error State */}
+      {customersError && !customersLoading && (
+        <Card className="p-12 text-center border-destructive/50 bg-destructive/5">
+          <div className="mx-auto h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center text-destructive">
+            <X className="h-6 w-6" />
+          </div>
+          <h3 className="mt-4 text-lg font-medium text-destructive">Error loading customers</h3>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {customersError}
+          </p>
+          <Button variant="outline" onClick={handleRefreshData} className="mt-4">
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Try Again
+          </Button>
+        </Card>
+      )}
+
+      {/* Empty State */}
+      {!customersLoading && !customersError && filteredCustomers.length === 0 && (
         <Card className="p-12 text-center">
           <Users className="mx-auto h-12 w-12 text-muted-foreground/60" />
           <h3 className="mt-4 text-lg font-medium">No customers found</h3>
           <p className="mt-2 text-sm text-muted-foreground">
-            Try adjusting your search to find what you're looking for.
+            {searchQuery 
+              ? "Try adjusting your search to find what you're looking for."
+              : "Get started by adding your first customer."
+            }
           </p>
+          {!searchQuery && (
+            <Button onClick={() => setIsDialogOpen(true)} className="mt-4">
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Add Customer
+            </Button>
+          )}
         </Card>
-      ) : (
+      )}
+
+      {/* Customer Grid */}
+      {!customersLoading && !customersError && filteredCustomers.length > 0 && (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {filteredCustomers.map((customer) => (
             <CustomerCard key={customer.id} customer={customer} />

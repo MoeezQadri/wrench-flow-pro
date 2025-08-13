@@ -9,12 +9,17 @@ import { fetchCustomerById } from '@/services/supabase-service';
 
 export const useCustomers = () => {
     const [customers, setCustomers] = useState<Customer[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
     const { applyOrganizationFilter } = useOrganizationAwareQuery();
     const { organizationId } = useOrganizationFilter();
 
     // Set up real-time subscription for customer data
     useEffect(() => {
-        if (!organizationId) return;
+        if (!organizationId) {
+            console.log("No organization ID available for real-time subscription");
+            return;
+        }
 
         console.log("Setting up real-time subscription for customers");
         const channel = supabase
@@ -30,14 +35,21 @@ export const useCustomers = () => {
                 (payload) => {
                     console.log('Customer real-time update:', payload);
                     
-                    if (payload.eventType === 'INSERT') {
-                        setCustomers(prev => [...prev, payload.new as Customer]);
-                    } else if (payload.eventType === 'UPDATE') {
-                        setCustomers(prev => prev.map(customer => 
-                            customer.id === payload.new.id ? payload.new as Customer : customer
-                        ));
-                    } else if (payload.eventType === 'DELETE') {
-                        setCustomers(prev => prev.filter(customer => customer.id !== payload.old.id));
+                    try {
+                        if (payload.eventType === 'INSERT' && payload.new) {
+                            setCustomers(prev => {
+                                const exists = prev.some(c => c.id === payload.new.id);
+                                return exists ? prev : [...prev, payload.new as Customer];
+                            });
+                        } else if (payload.eventType === 'UPDATE' && payload.new) {
+                            setCustomers(prev => prev.map(customer => 
+                                customer.id === payload.new.id ? payload.new as Customer : customer
+                            ));
+                        } else if (payload.eventType === 'DELETE' && payload.old) {
+                            setCustomers(prev => prev.filter(customer => customer.id !== payload.old.id));
+                        }
+                    } catch (error) {
+                        console.error('Error handling real-time customer update:', error);
                     }
                 }
             )
@@ -50,58 +62,107 @@ export const useCustomers = () => {
     }, [organizationId]);
 
     const addCustomer = async (customer: Customer) => {
+        if (!customer || typeof customer !== 'object') {
+            const errorMsg = 'Invalid customer data provided';
+            console.error(errorMsg, customer);
+            toast.error(errorMsg);
+            throw new Error(errorMsg);
+        }
+
+        // Validate required fields
+        if (!customer.name?.trim()) {
+            const errorMsg = 'Customer name is required';
+            toast.error(errorMsg);
+            throw new Error(errorMsg);
+        }
+
+        setLoading(true);
+        setError(null);
+
         try {
             console.log("Adding customer:", customer);
-            const { data, error } = await supabase.from('customers').insert(customer).select();
+            const customerData = {
+                ...customer,
+                name: customer.name.trim(),
+                email: customer.email?.trim() || null,
+                phone: customer.phone?.trim() || null,
+                address: customer.address?.trim() || null,
+                organization_id: organizationId
+            };
+
+            const { data, error } = await supabase.from('customers').insert(customerData).select();
+            
             if (error) {
                 console.error('Error adding customer:', error);
                 const errorMsg = error.message?.includes('duplicate') ? 'Customer already exists' : 'Failed to add customer';
+                setError(errorMsg);
                 toast.error(errorMsg);
                 throw error;
             }
+            
             if (data && data.length > 0) {
                 const result = data[0] as Customer;
-                setCustomers((prev) => [...prev, result]);
+                setCustomers((prev) => [...(prev || []), result]);
                 toast.success('Customer added successfully');
                 console.log("Customer added successfully:", result);
                 return result;
             }
+            
             // Fallback: add to local state if database operation succeeded but no data returned
-            setCustomers((prev) => [...prev, customer]);
+            setCustomers((prev) => [...(prev || []), customerData as Customer]);
             console.log("Customer added to local state as fallback");
-            return customer;
+            return customerData as Customer;
         } catch (error: any) {
             console.error('Error adding customer:', error);
             const errorMsg = error?.message?.includes('organization_id') 
                 ? 'Organization access error - please refresh and try again'
-                : 'Failed to add customer';
+                : error?.message || 'Failed to add customer';
+            setError(errorMsg);
             toast.error(errorMsg);
             throw error;
+        } finally {
+            setLoading(false);
         }
     };
 
     const removeCustomer = async (id: string) => {
+        if (!id?.trim()) {
+            const errorMsg = 'Customer ID is required for deletion';
+            console.error(errorMsg);
+            toast.error(errorMsg);
+            throw new Error(errorMsg);
+        }
+
+        setLoading(true);
+        setError(null);
+
         try {
             console.log("Removing customer:", id);
             const { error } = await supabase.from('customers').delete().eq('id', id);
+            
             if (error) {
                 console.error('Error removing customer:', error);
                 const errorMsg = error.message?.includes('violates foreign key') 
-                    ? 'Cannot delete customer - they have associated records'
+                    ? 'Cannot delete customer - they have associated records (vehicles, invoices, etc.)'
                     : 'Failed to delete customer';
+                setError(errorMsg);
                 toast.error(errorMsg);
                 throw error;
             }
-            setCustomers((prev) => prev.filter((item) => item.id !== id));
+            
+            setCustomers((prev) => (prev || []).filter((item) => item.id !== id));
             toast.success('Customer deleted successfully');
             console.log("Customer removed successfully:", id);
         } catch (error: any) {
             console.error('Error removing customer:', error);
             const errorMsg = error?.message?.includes('organization_id') 
                 ? 'Organization access error - please refresh and try again'
-                : 'Failed to delete customer';
+                : error?.message || 'Failed to delete customer';
+            setError(errorMsg);
             toast.error(errorMsg);
             throw error;
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -169,29 +230,47 @@ export const useCustomers = () => {
     };
 
     const loadCustomers = async (retryCount = 0) => {
+        setLoading(true);
+        setError(null);
+
         try {
             console.log("Loading customers from Supabase...", { retryCount, organizationId });
             
             // Check if organization context is available
             if (!organizationId) {
                 console.warn("No organization ID available, skipping customer load");
+                setCustomers([]);
                 return;
             }
 
             const query = supabase.from('customers').select('*');
-            const { data: customersData, error: customersError } = await applyOrganizationFilter(query);
+            
+            // Apply organization filter with error handling
+            let result;
+            try {
+                result = await applyOrganizationFilter(query);
+            } catch (filterError: any) {
+                console.error('Error applying organization filter:', filterError);
+                throw new Error(`Filter error: ${filterError.message}`);
+            }
+
+            const { data: customersData, error: customersError } = result;
             
             if (customersError) {
                 console.error('Error fetching customers:', customersError);
                 
                 // Specific error handling
                 if (customersError.message?.includes('JWT')) {
-                    toast.error('Authentication expired - please refresh the page');
+                    const errorMsg = 'Authentication expired - please refresh the page';
+                    setError(errorMsg);
+                    toast.error(errorMsg);
                     return;
                 }
                 
                 if (customersError.message?.includes('permission')) {
-                    toast.error('No permission to access customer data');
+                    const errorMsg = 'No permission to access customer data';
+                    setError(errorMsg);
+                    toast.error(errorMsg);
                     return;
                 }
                 
@@ -207,10 +286,18 @@ export const useCustomers = () => {
                     return;
                 }
                 
+                const errorMsg = `Failed to load customers: ${customersError.message}`;
+                setError(errorMsg);
                 toast.error('Failed to load customers');
+                throw customersError;
             } else {
-                console.log("Customers loaded successfully:", customersData ? customersData.length : 0, "customers found");
-                setCustomers(customersData || []);
+                const safeCustomersData = Array.isArray(customersData) ? customersData : [];
+                console.log("Customers loaded successfully:", safeCustomersData.length, "customers found");
+                setCustomers(safeCustomersData);
+                
+                if (safeCustomersData.length === 0) {
+                    console.log("No customers found for organization:", organizationId);
+                }
             }
         } catch (error: any) {
             console.error('Unexpected error fetching customers:', error);
@@ -225,18 +312,24 @@ export const useCustomers = () => {
             
             const errorMsg = error?.name === 'AbortError' 
                 ? 'Request cancelled - please try again'
-                : 'Unexpected error loading customers';
-            toast.error(errorMsg);
+                : error?.message || 'Unexpected error loading customers';
+            setError(errorMsg);
+            toast.error('Failed to load customers - please try refreshing');
+        } finally {
+            setLoading(false);
         }
     };
 
     const refreshCustomers = async () => {
         console.log("Manual refresh of customers triggered");
+        setError(null);
         await loadCustomers();
     };
 
     return {
-        customers,
+        customers: customers || [],
+        loading,
+        error,
         setCustomers,
         addCustomer,
         removeCustomer,

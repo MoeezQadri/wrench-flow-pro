@@ -100,6 +100,8 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
             updateVendor: vendorsHook.updateVendor,
 
             customers: customersHook.customers,
+            customersLoading: customersHook.loading,
+            customersError: customersHook.error,
             addCustomer: customersHook.addCustomer,
             removeCustomer: customersHook.removeCustomer,
             updateCustomer: customersHook.updateCustomer,
