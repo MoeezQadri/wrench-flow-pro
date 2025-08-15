@@ -6,21 +6,7 @@ import { Separator } from '@/components/ui/separator';
 import { useAuthContext } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { 
-  Users, 
-  CreditCard, 
-  RefreshCw, 
-  Settings, 
-  CheckCircle, 
-  AlertCircle,
-  Star,
-  Crown,
-  Zap,
-  Building2,
-  Calendar,
-  ExternalLink
-} from 'lucide-react';
-
+import { Users, CreditCard, RefreshCw, Settings, CheckCircle, AlertCircle, Star, Crown, Zap, Building2, Calendar, ExternalLink } from 'lucide-react';
 interface SubscriptionPlan {
   id: string;
   name: string;
@@ -31,16 +17,14 @@ interface SubscriptionPlan {
   is_active: boolean;
   sort_order: number;
 }
-
 const SubscriptionSettingsTab = () => {
-  const { 
-    currentUser, 
-    subscribed, 
-    subscriptionTier, 
-    subscriptionEnd, 
-    refreshSubscription 
+  const {
+    currentUser,
+    subscribed,
+    subscriptionTier,
+    subscriptionEnd,
+    refreshSubscription
   } = useAuthContext();
-  
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -49,19 +33,15 @@ const SubscriptionSettingsTab = () => {
 
   // Only owners and admins can manage subscriptions organization-wide
   const canManageSubscription = currentUser?.role === 'owner' || currentUser?.role === 'admin';
-
   useEffect(() => {
     loadPlans();
   }, []);
-
   const loadPlans = async () => {
     try {
-      const { data, error } = await supabase
-        .from('subscription_plans')
-        .select('*')
-        .eq('is_active', true)
-        .order('sort_order');
-
+      const {
+        data,
+        error
+      } = await supabase.from('subscription_plans').select('*').eq('is_active', true).order('sort_order');
       if (error) throw error;
       setPlans(data || []);
     } catch (error) {
@@ -71,7 +51,6 @@ const SubscriptionSettingsTab = () => {
       setLoading(false);
     }
   };
-
   const handleRefreshSubscription = async () => {
     setRefreshing(true);
     try {
@@ -84,19 +63,21 @@ const SubscriptionSettingsTab = () => {
       setRefreshing(false);
     }
   };
-
   const handleSubscribe = async (planId: string) => {
     if (!currentUser) {
       toast.error('Please log in to subscribe');
       return;
     }
-
     setCheckoutLoading(planId);
     try {
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { planId }
+      const {
+        data,
+        error
+      } = await supabase.functions.invoke('create-checkout', {
+        body: {
+          planId
+        }
       });
-
       if (error) throw error;
 
       // Open Stripe checkout in a new tab
@@ -108,12 +89,13 @@ const SubscriptionSettingsTab = () => {
       setCheckoutLoading(null);
     }
   };
-
   const handleManageSubscription = async () => {
     setManagingSubscription(true);
     try {
-      const { data, error } = await supabase.functions.invoke('customer-portal');
-
+      const {
+        data,
+        error
+      } = await supabase.functions.invoke('customer-portal');
       if (error) throw error;
 
       // Open customer portal in a new tab
@@ -125,7 +107,6 @@ const SubscriptionSettingsTab = () => {
       setManagingSubscription(false);
     }
   };
-
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -133,7 +114,6 @@ const SubscriptionSettingsTab = () => {
       day: 'numeric'
     });
   };
-
   const getStatusColor = (): "default" | "secondary" | "destructive" | "outline" => {
     if (!subscribed) return 'destructive';
     if (subscriptionEnd) {
@@ -142,7 +122,6 @@ const SubscriptionSettingsTab = () => {
     }
     return 'default';
   };
-
   const getPlanIcon = (planName: string) => {
     switch (planName.toLowerCase()) {
       case 'trial':
@@ -157,10 +136,8 @@ const SubscriptionSettingsTab = () => {
         return <Users className="h-5 w-5" />;
     }
   };
-
   if (!canManageSubscription) {
-    return (
-      <Card>
+    return <Card>
         <CardHeader>
           <CardTitle>Subscription Information</CardTitle>
           <CardDescription>
@@ -173,13 +150,10 @@ const SubscriptionSettingsTab = () => {
             <p>Contact your organization administrator to view subscription details.</p>
           </div>
         </CardContent>
-      </Card>
-    );
+      </Card>;
   }
-
   if (loading) {
-    return (
-      <div className="space-y-6">
+    return <div className="space-y-6">
         <div className="animate-pulse space-y-4">
           <div className="h-8 bg-muted rounded w-1/3"></div>
           <div className="h-4 bg-muted rounded w-2/3"></div>
@@ -188,35 +162,23 @@ const SubscriptionSettingsTab = () => {
             <div className="h-32 bg-muted rounded"></div>
           </div>
         </div>
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div className="space-y-6">
+  return <div className="space-y-6">
       {/* Current Subscription Status */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="flex items-center gap-2">
-                {subscribed ? (
-                  <CheckCircle className="w-5 h-5 text-green-500" />
-                ) : (
-                  <AlertCircle className="w-5 h-5 text-orange-500" />
-                )}
+                {subscribed ? <CheckCircle className="w-5 h-5 text-green-500" /> : <AlertCircle className="w-5 h-5 text-orange-500" />}
                 Current Subscription
               </CardTitle>
               <CardDescription>
                 Your organization's current subscription status and plan details.
               </CardDescription>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleRefreshSubscription}
-              disabled={refreshing}
-            >
+            <Button variant="outline" size="sm" onClick={handleRefreshSubscription} disabled={refreshing}>
               <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
@@ -231,41 +193,30 @@ const SubscriptionSettingsTab = () => {
                   {subscribed ? 'Active' : 'No Active Subscription'}
                 </Badge>
               </div>
-              {subscriptionTier && (
-                <div className="flex items-center gap-2">
+              {subscriptionTier && <div className="flex items-center gap-2">
                   <span className="text-sm font-medium">Plan:</span>
                   <div className="flex items-center gap-2">
                     {getPlanIcon(subscriptionTier)}
                     <Badge variant="outline">{subscriptionTier}</Badge>
                   </div>
-                </div>
-              )}
+                </div>}
             </div>
 
-            {subscriptionEnd && (
-              <div className="space-y-2">
+            {subscriptionEnd && <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Calendar className="w-4 h-4 text-muted-foreground" />
                   <span className="text-sm font-medium">Next Billing:</span>
                 </div>
                 <p className="text-sm text-muted-foreground">{formatDate(subscriptionEnd)}</p>
-              </div>
-            )}
+              </div>}
 
-            {subscribed && (
-              <div className="flex items-end">
-                <Button
-                  variant="outline"
-                  onClick={handleManageSubscription}
-                  disabled={managingSubscription}
-                  className="w-full"
-                >
+            {subscribed && <div className="flex items-end">
+                <Button variant="outline" onClick={handleManageSubscription} disabled={managingSubscription} className="w-full">
                   <Settings className="w-4 h-4 mr-2" />
                   {managingSubscription ? "Loading..." : "Manage Subscription"}
                   <ExternalLink className="w-3 h-3 ml-2" />
                 </Button>
-              </div>
-            )}
+              </div>}
           </div>
         </CardContent>
       </Card>
@@ -279,39 +230,29 @@ const SubscriptionSettingsTab = () => {
             {subscribed ? "Upgrade or Change Plan" : "Choose Your Plan"}
           </h3>
           <p className="text-sm text-muted-foreground">
-            {subscribed 
-              ? "Upgrade or downgrade your current subscription plan." 
-              : "Select a subscription plan that works best for your garage management needs."
-            }
+            {subscribed ? "Upgrade or downgrade your current subscription plan." : "Select a subscription plan that works best for your garage management needs."}
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {plans.map((plan) => {
-            const isCurrentPlan = subscriptionTier === plan.name;
-            const isPopular = plan.name === 'Professional';
-            const features = Array.isArray(plan.features) ? plan.features : 
-                           typeof plan.features === 'string' ? JSON.parse(plan.features) : [];
-
-            return (
-              <Card key={plan.id} className={`relative ${isCurrentPlan ? 'ring-2 ring-primary' : ''}`}>
-                {isPopular && (
-                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+          {plans.map(plan => {
+          const isCurrentPlan = subscriptionTier === plan.name;
+          const isPopular = plan.name === 'Professional';
+          const features = Array.isArray(plan.features) ? plan.features : typeof plan.features === 'string' ? JSON.parse(plan.features) : [];
+          return <Card key={plan.id} className={`relative ${isCurrentPlan ? 'ring-2 ring-primary' : ''}`}>
+                {isPopular && <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                     <Badge className="bg-primary text-primary-foreground">
                       <Star className="w-3 h-3 mr-1" />
                       Popular
                     </Badge>
-                  </div>
-                )}
+                  </div>}
                 
-                {isCurrentPlan && (
-                  <div className="absolute -top-3 right-4">
+                {isCurrentPlan && <div className="absolute -top-3 right-4">
                     <Badge variant="secondary">
                       <CheckCircle className="w-3 h-3 mr-1" />
                       Current
                     </Badge>
-                  </div>
-                )}
+                  </div>}
 
                 <CardHeader className="pb-4">
                   <div className="flex items-center gap-2">
@@ -327,34 +268,19 @@ const SubscriptionSettingsTab = () => {
 
                 <CardContent className="pt-0">
                   <ul className="space-y-2 mb-4">
-                    {features.slice(0, 4).map((feature: string, index: number) => (
-                      <li key={index} className="flex items-center gap-2 text-xs">
+                    {features.slice(0, 4).map((feature: string, index: number) => <li key={index} className="flex items-center gap-2 text-xs">
                         <CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" />
                         <span>{feature}</span>
-                      </li>
-                    ))}
-                    {features.length > 4 && (
-                      <li className="text-xs text-muted-foreground">
+                      </li>)}
+                    {features.length > 4 && <li className="text-xs text-muted-foreground">
                         +{features.length - 4} more features
-                      </li>
-                    )}
+                      </li>}
                   </ul>
 
-                  <Button
-                    className="w-full"
-                    onClick={() => handleSubscribe(plan.id)}
-                    disabled={checkoutLoading === plan.id || isCurrentPlan}
-                    variant={isCurrentPlan ? "secondary" : "default"}
-                    size="sm"
-                  >
-                    {checkoutLoading === plan.id ? "Loading..." : 
-                     isCurrentPlan ? "Current Plan" : 
-                     subscribed ? "Switch Plan" : "Subscribe"}
-                  </Button>
+                  
                 </CardContent>
-              </Card>
-            );
-          })}
+              </Card>;
+        })}
         </div>
       </div>
 
@@ -418,8 +344,6 @@ const SubscriptionSettingsTab = () => {
           </div>
         </div>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default SubscriptionSettingsTab;
