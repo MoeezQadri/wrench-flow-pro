@@ -90,9 +90,8 @@ const SubscriptionSettingsTab = () => {
 
       if (data?.url) {
         console.log('Opening checkout URL:', data.url);
-        // Open Stripe checkout in a new tab
-        window.open(data.url, '_blank');
-        toast.success('Redirecting to checkout...');
+        // Open Stripe checkout in the same window
+        window.location.href = data.url;
       } else {
         throw new Error('No checkout URL received');
       }
