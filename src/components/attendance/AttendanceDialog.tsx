@@ -33,7 +33,9 @@ export function AttendanceDialog({
   onOpenChange,
 }: AttendanceDialogProps) {
   const handleSave = async (data: Omit<Attendance, "id">) => {
+    console.log("AttendanceDialog handleSave called with:", data);
     await onSave(data);
+    console.log("AttendanceDialog onSave completed");
   };
 
   return (

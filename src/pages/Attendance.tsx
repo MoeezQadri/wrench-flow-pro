@@ -48,11 +48,14 @@ const AttendancePage: React.FC = () => {
   }, [attendanceRecords, filters]);
 
   const handleSaveAttendance = async (attendanceData: Omit<Attendance, 'id'>) => {
+    console.log("Attendance page handleSaveAttendance called with:", attendanceData);
     try {
+      console.log("Calling addAttendance...");
       await addAttendance(attendanceData);
+      console.log("addAttendance completed successfully, closing dialog");
       setIsDialogOpen(false);
     } catch (error) {
-      console.error('Error saving attendance:', error);
+      console.error('Error saving attendance in page:', error);
     }
   };
 

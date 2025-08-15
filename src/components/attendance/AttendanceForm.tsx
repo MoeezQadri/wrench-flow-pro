@@ -55,6 +55,7 @@ const AttendanceForm: React.FC<AttendanceFormProps> = ({ onSubmit, initialData }
   });
 
   const handleSubmit = async (data: AttendanceFormValues) => {
+    console.log("AttendanceForm handleSubmit called with data:", data);
     try {
       const attendanceData: Omit<Attendance, 'id'> = {
         mechanic_id: data.mechanicId,
@@ -67,11 +68,13 @@ const AttendanceForm: React.FC<AttendanceFormProps> = ({ onSubmit, initialData }
         approved_by: data.approved_by
       };
 
+      console.log("AttendanceForm calling onSubmit with:", attendanceData);
       await onSubmit(attendanceData);
+      console.log("AttendanceForm onSubmit completed successfully");
       form.reset();
       toast.success("Attendance recorded successfully!");
     } catch (error) {
-      console.error("Error submitting attendance:", error);
+      console.error("Error submitting attendance in form:", error);
       toast.error("Failed to record attendance. Please try again.");
     }
   };

@@ -89,6 +89,7 @@ export const useAttendance = () => {
     }, [organizationId]);
 
     const addAttendance = async (attendanceData: Omit<Attendance, 'id'>) => {
+        console.log("useAttendance addAttendance called with:", attendanceData);
         if (!attendanceData || typeof attendanceData !== 'object') {
             const errorMsg = 'Invalid attendance data provided';
             console.error(errorMsg, attendanceData);
@@ -111,6 +112,14 @@ export const useAttendance = () => {
 
         if (!attendanceData.check_in) {
             const errorMsg = 'Check-in time is required';
+            toast.error(errorMsg);
+            throw new Error(errorMsg);
+        }
+
+        console.log("Organization ID check:", { organizationId });
+        if (!organizationId) {
+            const errorMsg = 'No organization ID available for attendance creation';
+            console.error(errorMsg);
             toast.error(errorMsg);
             throw new Error(errorMsg);
         }
