@@ -281,7 +281,7 @@ const SubscriptionSettingsTab = () => {
                     <Button 
                       onClick={() => handleSubscribe(plan.id)}
                       disabled={checkoutLoading === plan.id || isCurrentPlan}
-                      className="w-full"
+                      className="w-full text-sm"
                       variant={isCurrentPlan ? "outline" : "default"}
                     >
                       {checkoutLoading === plan.id ? (
@@ -292,7 +292,7 @@ const SubscriptionSettingsTab = () => {
                       ) : isCurrentPlan ? (
                         "Current Plan"
                       ) : (
-                        `Subscribe to ${plan.name}`
+                        "Subscribe"
                       )}
                     </Button>
                   )}
