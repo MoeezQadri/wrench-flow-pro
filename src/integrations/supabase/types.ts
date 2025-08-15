@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.12 (cd3cf9e)"
@@ -675,6 +675,42 @@ export type Database = {
         }
         Relationships: []
       }
+      subscribers: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          stripe_customer_id: string | null
+          subscribed: boolean
+          subscription_end: string | null
+          subscription_tier: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          stripe_customer_id?: string | null
+          subscribed?: boolean
+          subscription_end?: string | null
+          subscription_tier?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          stripe_customer_id?: string | null
+          subscribed?: boolean
+          subscription_end?: string | null
+          subscription_tier?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       subscription_plans: {
         Row: {
           created_at: string
@@ -1022,9 +1058,9 @@ export type Database = {
     Functions: {
       add_column_if_not_exists: {
         Args: {
-          p_table_name: string
           p_column_name: string
           p_column_type: string
+          p_table_name: string
         }
         Returns: undefined
       }
@@ -1033,13 +1069,13 @@ export type Database = {
         Returns: undefined
       }
       column_exists: {
-        Args: { p_table_name: string; p_column_name: string }
+        Args: { p_column_name: string; p_table_name: string }
         Returns: boolean
       }
       create_organization_and_assign_user: {
         Args: {
-          p_user_id: string
           p_organization_name: string
+          p_user_id: string
           p_user_name: string
           p_user_role?: string
         }
@@ -1052,24 +1088,24 @@ export type Database = {
       get_inactive_users: {
         Args: { days_inactive?: number }
         Returns: {
-          id: string
-          name: string
-          email: string
-          last_login: string
           days_since_login: number
+          email: string
+          id: string
+          last_login: string
+          name: string
         }[]
       }
       get_user_profile: {
         Args: { user_id?: string }
         Returns: {
-          id: string
+          created_at: string
           email: string
+          id: string
+          is_active: boolean
+          last_login: string
           name: string
           organization_id: string
           role: string
-          is_active: boolean
-          last_login: string
-          created_at: string
           updated_at: string
         }[]
       }
@@ -1079,16 +1115,16 @@ export type Database = {
       }
       log_superadmin_activity: {
         Args: {
-          p_superadmin_id: string
           p_action_type: string
-          p_resource_type: string
-          p_resource_id: string
           p_details: Json
+          p_resource_id: string
+          p_resource_type: string
+          p_superadmin_id: string
         }
         Returns: string
       }
       superadmin_login: {
-        Args: { username: string; password_hash: string }
+        Args: { password_hash: string; username: string }
         Returns: Json
       }
       superadmin_login_new: {
