@@ -15,6 +15,7 @@ export async function createTestData() {
         email: 'test@example.com',
         phone: '555-123-4567',
         address: '123 Test St',
+        organization_id: '00000000-0000-0000-0000-000000000001'
       }])
       .select()
       .single();

@@ -11,6 +11,7 @@ export interface Customer {
   lifetimeValue?: number; // Alias for compatibility
   last_visit?: string;
   lastVisit?: string; // Alias for compatibility
+  organization_id: string;
   created_at?: string;
   updated_at?: string;
 }

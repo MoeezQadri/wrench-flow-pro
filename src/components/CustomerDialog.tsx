@@ -48,6 +48,7 @@ const CustomerDialog = ({ open, onOpenChange, onSave, customer }: CustomerDialog
         email: data.email,
         phone: data.phone,
         address: data.address,
+        organization_id: customer?.organization_id || "00000000-0000-0000-0000-000000000001",
         created_at: customer?.created_at || new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };

@@ -152,6 +152,7 @@ const Customers = () => {
     const id = crypto.randomUUID();
     const newCustomer = await addCustomer({
       ...values.customer,
+      organization_id: "00000000-0000-0000-0000-000000000001",
       id
     });
 

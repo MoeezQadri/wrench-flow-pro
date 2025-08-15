@@ -10,6 +10,7 @@ export const createTestCustomers = async (): Promise<void> => {
       email: "john.smith@email.com",
       phone: "(555) 123-4567",
       address: "123 Main St, Anytown, ST 12345",
+      organization_id: "00000000-0000-0000-0000-000000000001",
       totalVisits: 0,
       lifetimeValue: 0,
       lastVisit: null
@@ -19,6 +20,7 @@ export const createTestCustomers = async (): Promise<void> => {
       email: "sarah.johnson@email.com",
       phone: "(555) 987-6543",
       address: "456 Oak Ave, Somewhere, ST 67890",
+      organization_id: "00000000-0000-0000-0000-000000000001",
       totalVisits: 0,
       lifetimeValue: 0,
       lastVisit: null
@@ -28,6 +30,7 @@ export const createTestCustomers = async (): Promise<void> => {
       email: "mike.davis@email.com", 
       phone: "(555) 456-7890",
       address: "789 Pine Rd, Elsewhere, ST 54321",
+      organization_id: "00000000-0000-0000-0000-000000000001",
       totalVisits: 0,
       lifetimeValue: 0,
       lastVisit: null

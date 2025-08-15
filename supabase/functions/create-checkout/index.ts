@@ -42,9 +42,9 @@ serve(async (req) => {
     logStep("User authenticated", { userId: user.id, email: user.email });
 
     // Get request body
-    const { planId } = await req.json();
+    const { planId, billingFrequency = 'monthly' } = await req.json();
     if (!planId) throw new Error("Plan ID is required");
-    logStep("Plan ID received", { planId });
+    logStep("Plan ID and billing frequency received", { planId, billingFrequency });
 
     // Fetch the subscription plan from database
     const { data: plan, error: planError } = await supabaseClient
@@ -57,7 +57,22 @@ serve(async (req) => {
     if (planError || !plan) {
       throw new Error("Invalid subscription plan");
     }
-    logStep("Plan found", { planName: plan.name, priceMonthly: plan.price_monthly });
+    
+    // Determine price based on billing frequency
+    const isYearly = billingFrequency === 'yearly';
+    const price = isYearly ? plan.price_yearly : plan.price_monthly;
+    const interval = isYearly ? 'year' : 'month';
+    
+    if (!price || price <= 0) {
+      throw new Error(`${billingFrequency} pricing not available for this plan`);
+    }
+    
+    logStep("Plan found", { 
+      planName: plan.name, 
+      billingFrequency, 
+      price, 
+      interval 
+    });
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
@@ -69,6 +84,10 @@ serve(async (req) => {
       logStep("No existing customer found, will create new customer");
     }
 
+    // Calculate any discount for yearly billing
+    const discount = isYearly && plan.price_monthly ? 
+      Math.round(((plan.price_monthly * 12 - plan.price_yearly) / (plan.price_monthly * 12)) * 100) : 0;
+
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
@@ -77,18 +96,23 @@ serve(async (req) => {
           price_data: {
             currency: "usd",
             product_data: { 
-              name: plan.name,
-              description: plan.description || `${plan.name} subscription plan`
+              name: `${plan.name} - ${isYearly ? 'Yearly' : 'Monthly'}`,
+              description: plan.description + (discount > 0 ? ` (Save ${discount}% with yearly billing)` : '')
             },
-            unit_amount: Math.round(plan.price_monthly * 100), // Convert to cents
-            recurring: { interval: "month" },
+            unit_amount: Math.round(price * 100), // Convert to cents
+            recurring: { interval },
           },
           quantity: 1,
         },
       ],
       mode: "subscription",
-      success_url: `${req.headers.get("origin")}/dashboard?success=true`,
+      success_url: `${req.headers.get("origin")}/settings?success=true&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${req.headers.get("origin")}/settings?canceled=true`,
+      metadata: {
+        plan_id: planId,
+        billing_frequency: billingFrequency,
+        user_id: user.id
+      }
     });
 
     logStep("Checkout session created", { sessionId: session.id, url: session.url });

@@ -63,7 +63,7 @@ const SubscriptionSettingsTab = () => {
       setRefreshing(false);
     }
   };
-  const handleSubscribe = async (planId: string) => {
+  const handleSubscribe = async (planId: string, billingFrequency: 'monthly' | 'yearly' = 'monthly') => {
     if (!currentUser) {
       toast.error('Please log in to subscribe');
       return;
@@ -75,7 +75,8 @@ const SubscriptionSettingsTab = () => {
         error
       } = await supabase.functions.invoke('create-checkout', {
         body: {
-          planId
+          planId,
+          billingFrequency
         }
       });
       if (error) throw error;
@@ -263,6 +264,17 @@ const SubscriptionSettingsTab = () => {
                     ${plan.price_monthly}
                     <span className="text-sm font-normal text-muted-foreground">/month</span>
                   </div>
+                  {plan.price_yearly && plan.price_yearly > 0 && (
+                    <div className="text-lg text-muted-foreground">
+                      ${plan.price_yearly}
+                      <span className="text-sm">/year</span>
+                      {plan.price_monthly && (
+                        <span className="text-xs text-green-600 ml-1">
+                          (Save {Math.round(((plan.price_monthly * 12 - plan.price_yearly) / (plan.price_monthly * 12)) * 100)}%)
+                        </span>
+                      )}
+                    </div>
+                  )}
                   <CardDescription className="text-xs">{plan.description}</CardDescription>
                 </CardHeader>
 
@@ -278,23 +290,50 @@ const SubscriptionSettingsTab = () => {
                   </ul>
 
                   {plan.name.toLowerCase() !== 'trial' && (
-                    <Button 
-                      onClick={() => handleSubscribe(plan.id)}
-                      disabled={checkoutLoading === plan.id || isCurrentPlan}
-                      className="w-full text-sm"
-                      variant={isCurrentPlan ? "outline" : "default"}
-                    >
-                      {checkoutLoading === plan.id ? (
-                        <>
-                          <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                          Loading...
-                        </>
-                      ) : isCurrentPlan ? (
-                        "Current Plan"
-                      ) : (
-                        "Subscribe"
+                    <div className="space-y-2">
+                      <Button 
+                        onClick={() => handleSubscribe(plan.id, 'monthly')}
+                        disabled={checkoutLoading === plan.id || isCurrentPlan}
+                        className="w-full text-sm"
+                        variant={isCurrentPlan ? "outline" : "default"}
+                      >
+                        {checkoutLoading === plan.id ? (
+                          <>
+                            <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                            Loading...
+                          </>
+                        ) : isCurrentPlan ? (
+                          "Current Plan"
+                        ) : (
+                          `$${plan.price_monthly}/month`
+                        )}
+                      </Button>
+                      
+                      {plan.price_yearly && plan.price_yearly > 0 && (
+                        <Button 
+                          onClick={() => handleSubscribe(plan.id, 'yearly')}
+                          disabled={checkoutLoading === plan.id || isCurrentPlan}
+                          className="w-full text-sm"
+                          variant="outline"
+                        >
+                          {checkoutLoading === plan.id ? (
+                            <>
+                              <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                              Loading...
+                            </>
+                          ) : (
+                            <div className="flex flex-col">
+                              <span>${plan.price_yearly}/year</span>
+                              {plan.price_monthly && (
+                                <span className="text-xs text-green-600">
+                                  Save {Math.round(((plan.price_monthly * 12 - plan.price_yearly) / (plan.price_monthly * 12)) * 100)}%
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </Button>
                       )}
-                    </Button>
+                    </div>
                   )}
                 </CardContent>
               </Card>;
