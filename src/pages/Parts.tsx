@@ -6,8 +6,9 @@ import { hasPermission } from '@/utils/permissions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Search, Filter, SortAsc, SortDesc, FileText } from 'lucide-react';
+import { Plus, Search, Filter, SortAsc, SortDesc, FileText, Users } from 'lucide-react';
 import PartDialog from '@/components/part/PartDialog';
+import VendorDialog from '@/components/part/VendorDialog';
 import AssignToInvoiceDialog from '@/components/part/AssignToInvoiceDialog';
 import { Part } from '@/types';
 import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
@@ -15,6 +16,7 @@ import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
 const Parts: React.FC = () => {
   const [customerNames, setCustomerNames] = useState<Record<string, string>>({});
   const [showPartDialog, setShowPartDialog] = useState(false);
+  const [showVendorDialog, setShowVendorDialog] = useState(false);
   const [showAssignDialog, setShowAssignDialog] = useState(false);
   const [selectedPartForAssignment, setSelectedPartForAssignment] = useState<Part | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -23,7 +25,7 @@ const Parts: React.FC = () => {
   const [sortBy, setSortBy] = useState<string>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   
-  const { parts, addPart, getCustomerById, refreshAllData } = useDataContext();
+  const { parts, addPart, getCustomerById, refreshAllData, vendors } = useDataContext();
   const { currentUser } = useAuthContext();
   const { formatCurrency } = useOrganizationSettings();
   
@@ -83,6 +85,12 @@ const Parts: React.FC = () => {
     refreshAllData();
     setShowAssignDialog(false);
     setSelectedPartForAssignment(null);
+  };
+
+  const handleVendorAdded = () => {
+    // Refresh all data to get updated vendor list
+    refreshAllData();
+    setShowVendorDialog(false);
   };
 
   const getVendorName = (part: any) => {
@@ -191,10 +199,16 @@ const Parts: React.FC = () => {
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">Parts Inventory</h1>
         {userCanManageParts && (
-          <Button onClick={() => setShowPartDialog(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Add Part
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setShowVendorDialog(true)}>
+              <Users className="w-4 h-4 mr-2" />
+              Manage Vendors
+            </Button>
+            <Button onClick={() => setShowPartDialog(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Part
+            </Button>
+          </div>
         )}
       </div>
 
@@ -332,6 +346,12 @@ const Parts: React.FC = () => {
         open={showPartDialog}
         onOpenChange={setShowPartDialog}
         onSave={handleSavePart}
+      />
+
+      <VendorDialog
+        open={showVendorDialog}
+        onOpenChange={setShowVendorDialog}
+        onVendorAdded={handleVendorAdded}
       />
 
       <AssignToInvoiceDialog

@@ -27,6 +27,7 @@ import { useDataContext } from "@/context/data/DataContext";
 interface VendorDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onVendorAdded?: () => void;
 }
 
 const vendorSchema = z.object({
@@ -40,7 +41,7 @@ const vendorSchema = z.object({
 
 type VendorFormValues = z.infer<typeof vendorSchema>;
 
-const VendorDialog = ({ open, onOpenChange }: VendorDialogProps) => {
+const VendorDialog = ({ open, onOpenChange, onVendorAdded }: VendorDialogProps) => {
   const {
     addVendor
   } = useDataContext();
@@ -71,6 +72,9 @@ const VendorDialog = ({ open, onOpenChange }: VendorDialogProps) => {
       toast.success("Vendor added successfully!");
       form.reset();
       onOpenChange(false);
+      if (onVendorAdded) {
+        onVendorAdded();
+      }
     } catch (error) {
       console.error("Error adding vendor:", error);
       toast.error("Failed to add vendor. Please try again.");
