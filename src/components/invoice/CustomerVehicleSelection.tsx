@@ -50,17 +50,23 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
   // Load vehicles when customer is selected - optimized to prevent unnecessary calls
   useEffect(() => {
     const loadVehicles = async () => {
-      // Always load vehicles if customer is selected and we haven't loaded for this customer yet
-      // OR if we're editing and haven't initially loaded vehicles yet
-      if (selectedCustomerId && (
+      // Load vehicles when:
+      // 1. Customer is selected AND we haven't loaded for this customer yet
+      // 2. OR we're editing and haven't initially loaded vehicles yet
+      // 3. OR the selected vehicle ID doesn't exist in current vehicles (editing case)
+      const needsLoading = selectedCustomerId && (
         selectedCustomerId !== loadedCustomerRef.current || 
-        (isEditing && !hasInitiallyLoaded.current)
-      )) {
+        (isEditing && !hasInitiallyLoaded.current) ||
+        (selectedVehicleId && !vehicles.find(v => v.id === selectedVehicleId))
+      );
+      
+      if (needsLoading) {
         setIsLoadingVehicles(true);
         try {
           console.log("Loading vehicles for customer:", selectedCustomerId);
           const fetchedVehicles = await getVehiclesByCustomerId(selectedCustomerId);
           console.log("Vehicles loaded:", fetchedVehicles);
+          console.log("Selected vehicle ID:", selectedVehicleId);
           setVehicles(fetchedVehicles);
           loadedCustomerRef.current = selectedCustomerId;
           hasInitiallyLoaded.current = true;
@@ -77,7 +83,7 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
       }
     };
     loadVehicles();
-  }, [selectedCustomerId, getVehiclesByCustomerId, isEditing]);
+  }, [selectedCustomerId, selectedVehicleId, getVehiclesByCustomerId, isEditing, vehicles]);
   const handleRefreshCustomers = async () => {
     setIsLoadingCustomers(true);
     try {
