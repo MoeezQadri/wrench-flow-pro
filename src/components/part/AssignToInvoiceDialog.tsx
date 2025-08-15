@@ -30,11 +30,13 @@ const AssignToInvoiceDialog: React.FC<AssignToInvoiceDialogProps> = ({
   onAssignmentComplete
 }) => {
   const [invoiceNumber, setInvoiceNumber] = useState('');
+  const [quantity, setQuantity] = useState(1);
   const [isAssigning, setIsAssigning] = useState(false);
 
   useEffect(() => {
     if (open) {
       setInvoiceNumber('');
+      setQuantity(1);
     }
   }, [open]);
 
@@ -44,12 +46,22 @@ const AssignToInvoiceDialog: React.FC<AssignToInvoiceDialogProps> = ({
       return;
     }
 
+    if (quantity <= 0) {
+      toast.error('Quantity must be greater than 0');
+      return;
+    }
+
+    if (quantity > part.quantity) {
+      toast.error(`Cannot assign ${quantity} pieces. Only ${part.quantity} available in stock.`);
+      return;
+    }
+
     setIsAssigning(true);
     try {
       // Check if invoice exists
       const { data: invoice, error: invoiceError } = await supabase
         .from('invoices')
-        .select('id, status')
+        .select('id, status, organization_id')
         .eq('id', invoiceNumber.trim())
         .single();
 
@@ -63,18 +75,48 @@ const AssignToInvoiceDialog: React.FC<AssignToInvoiceDialogProps> = ({
         return;
       }
 
-      // Update part's invoice assignments
-      const currentInvoiceIds = part.invoice_ids || [];
-      if (currentInvoiceIds.includes(invoiceNumber.trim())) {
+      // Check if part is already assigned to this invoice
+      const { data: existingItem } = await supabase
+        .from('invoice_items')
+        .select('id')
+        .eq('invoice_id', invoiceNumber.trim())
+        .eq('part_id', part.id)
+        .single();
+
+      if (existingItem) {
         toast.error('Part is already assigned to this invoice');
         return;
       }
 
-      const updatedInvoiceIds = [...currentInvoiceIds, invoiceNumber.trim()];
+      // Create invoice item
+      const { error: invoiceItemError } = await supabase
+        .from('invoice_items')
+        .insert({
+          invoice_id: invoiceNumber.trim(),
+          part_id: part.id,
+          type: 'part',
+          description: part.name,
+          quantity: quantity,
+          price: part.price,
+          unit_of_measure: part.unit || 'piece',
+          organization_id: invoice.organization_id,
+          is_auto_added: true
+        });
+
+      if (invoiceItemError) {
+        throw invoiceItemError;
+      }
+
+      // Update part inventory and invoice assignments
+      const currentInvoiceIds = part.invoice_ids || [];
+      const updatedInvoiceIds = currentInvoiceIds.includes(invoiceNumber.trim()) 
+        ? currentInvoiceIds 
+        : [...currentInvoiceIds, invoiceNumber.trim()];
 
       const { error: updateError } = await supabase
         .from('parts')
         .update({ 
+          quantity: part.quantity - quantity,
           invoice_ids: updatedInvoiceIds,
           updated_at: new Date().toISOString()
         })
@@ -84,7 +126,7 @@ const AssignToInvoiceDialog: React.FC<AssignToInvoiceDialogProps> = ({
         throw updateError;
       }
 
-      toast.success(`Part "${part.name}" assigned to invoice #${invoiceNumber.trim().substring(0, 8)}`);
+      toast.success(`${quantity} pieces of "${part.name}" assigned to invoice #${invoiceNumber.trim().substring(0, 8)}`);
       onAssignmentComplete();
       onOpenChange(false);
     } catch (error) {
@@ -100,12 +142,41 @@ const AssignToInvoiceDialog: React.FC<AssignToInvoiceDialogProps> = ({
 
     setIsAssigning(true);
     try {
+      // Get the invoice item to restore the quantity
+      const { data: invoiceItem, error: itemError } = await supabase
+        .from('invoice_items')
+        .select('quantity')
+        .eq('invoice_id', invoiceId)
+        .eq('part_id', part.id)
+        .single();
+
+      if (itemError && itemError.code !== 'PGRST116') { // PGRST116 is "not found"
+        throw itemError;
+      }
+
+      const quantityToRestore = invoiceItem?.quantity || 0;
+
+      // Remove the invoice item
+      if (invoiceItem) {
+        const { error: deleteItemError } = await supabase
+          .from('invoice_items')
+          .delete()
+          .eq('invoice_id', invoiceId)
+          .eq('part_id', part.id);
+
+        if (deleteItemError) {
+          throw deleteItemError;
+        }
+      }
+
+      // Update part inventory and invoice assignments
       const currentInvoiceIds = part.invoice_ids || [];
       const updatedInvoiceIds = currentInvoiceIds.filter(id => id !== invoiceId);
 
       const { error: updateError } = await supabase
         .from('parts')
         .update({ 
+          quantity: part.quantity + quantityToRestore,
           invoice_ids: updatedInvoiceIds,
           updated_at: new Date().toISOString()
         })
@@ -115,7 +186,7 @@ const AssignToInvoiceDialog: React.FC<AssignToInvoiceDialogProps> = ({
         throw updateError;
       }
 
-      toast.success(`Part removed from invoice #${invoiceId.substring(0, 8)}`);
+      toast.success(`Part removed from invoice #${invoiceId.substring(0, 8)}${quantityToRestore > 0 ? ` and ${quantityToRestore} pieces restored to inventory` : ''}`);
       onAssignmentComplete();
     } catch (error) {
       console.error('Error removing part assignment:', error);
@@ -163,7 +234,7 @@ const AssignToInvoiceDialog: React.FC<AssignToInvoiceDialogProps> = ({
           )}
 
           {/* Add New Assignment */}
-          <div className="space-y-2">
+          <div className="space-y-3">
             <Label htmlFor="invoiceNumber">Assign to Invoice:</Label>
             <div className="flex gap-2">
               <Input
@@ -172,16 +243,44 @@ const AssignToInvoiceDialog: React.FC<AssignToInvoiceDialogProps> = ({
                 value={invoiceNumber}
                 onChange={(e) => setInvoiceNumber(e.target.value)}
                 disabled={isAssigning}
+                className="flex-1"
               />
-              <Button 
-                onClick={handleAssignToInvoice}
-                disabled={!invoiceNumber.trim() || isAssigning}
-              >
-                {isAssigning ? 'Assigning...' : 'Assign'}
-              </Button>
             </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="quantity">Quantity to Assign:</Label>
+              <div className="flex items-center gap-3">
+                <Input
+                  id="quantity"
+                  type="number"
+                  min={1}
+                  max={part.quantity}
+                  value={quantity}
+                  onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                  disabled={isAssigning || part.quantity === 0}
+                  className="w-24"
+                />
+                <span className="text-sm text-muted-foreground">
+                  Available: <span className="font-medium">{part.quantity}</span> {part.unit || 'pieces'}
+                </span>
+              </div>
+              {quantity > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  After assignment: <span className="font-medium">{Math.max(0, part.quantity - quantity)}</span> {part.unit || 'pieces'} remaining
+                </p>
+              )}
+            </div>
+
+            <Button 
+              onClick={handleAssignToInvoice}
+              disabled={!invoiceNumber.trim() || quantity <= 0 || quantity > part.quantity || part.quantity === 0 || isAssigning}
+              className="w-full"
+            >
+              {isAssigning ? 'Assigning...' : `Assign ${quantity} ${part.unit || 'pieces'}`}
+            </Button>
+            
             <p className="text-xs text-muted-foreground">
-              Enter the full invoice ID to assign this part to a specific invoice.
+              Enter the full invoice ID and specify how many pieces to assign.
             </p>
           </div>
 
