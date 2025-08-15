@@ -64,12 +64,16 @@ const SubscriptionSettingsTab = () => {
     }
   };
   const handleSubscribe = async (planId: string, billingFrequency: 'monthly' | 'yearly' = 'monthly') => {
+    console.log('Subscribe button clicked', { planId, billingFrequency, currentUser });
+    
     if (!currentUser) {
       toast.error('Please log in to subscribe');
       return;
     }
+    
     setCheckoutLoading(planId);
     try {
+      console.log('Invoking create-checkout function...');
       const {
         data,
         error
@@ -79,13 +83,22 @@ const SubscriptionSettingsTab = () => {
           billingFrequency
         }
       });
+      
+      console.log('Create-checkout response:', { data, error });
+      
       if (error) throw error;
 
-      // Open Stripe checkout in a new tab
-      window.open(data.url, '_blank');
+      if (data?.url) {
+        console.log('Opening checkout URL:', data.url);
+        // Open Stripe checkout in a new tab
+        window.open(data.url, '_blank');
+        toast.success('Redirecting to checkout...');
+      } else {
+        throw new Error('No checkout URL received');
+      }
     } catch (error) {
       console.error('Error creating checkout session:', error);
-      toast.error('Failed to start checkout process');
+      toast.error(`Failed to start checkout process: ${error.message || 'Unknown error'}`);
     } finally {
       setCheckoutLoading(null);
     }
