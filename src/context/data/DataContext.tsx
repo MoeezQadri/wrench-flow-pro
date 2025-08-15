@@ -12,6 +12,7 @@ import { useExpenses } from './hooks/useExpenses';
 import { useTasks } from './hooks/useTasks';
 import { useParts } from './hooks/useParts';
 import { usePayments } from './hooks/usePayments';
+import { useAttendance } from './hooks/useAttendance';
 import { useAuthContext } from '@/context/AuthContext';
 // import { usePayables } from './hooks/usePayables'; // Temporarily disabled
 
@@ -32,6 +33,7 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     const tasksHook = useTasks();
     const partsHook = useParts();
     const paymentsHook = usePayments();
+    const attendanceHook = useAttendance();
     // const payablesHook = usePayables(); // Temporarily disabled
 
     const loadAllData = async () => {
@@ -52,7 +54,8 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
                 expensesHook.loadExpenses(),
                 tasksHook.loadTasks(),
                 partsHook.loadParts(),
-                paymentsHook.loadPayments()
+                paymentsHook.loadPayments(),
+                attendanceHook.loadAttendance()
                 // payablesHook.loadPayables() // Temporarily disabled
             ]);
             console.log("All data loaded successfully, customers:", customersHook.customers);
@@ -145,6 +148,13 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
             removePayment: paymentsHook.removePayment,
             updatePayment: paymentsHook.updatePayment,
 
+            attendanceRecords: attendanceHook.attendanceRecords,
+            attendanceLoading: attendanceHook.loading,
+            attendanceError: attendanceHook.error,
+            addAttendance: attendanceHook.addAttendance,
+            updateAttendance: attendanceHook.updateAttendance,
+            removeAttendance: attendanceHook.removeAttendance,
+            loadAttendance: attendanceHook.loadAttendance,
             
             getCustomerAnalytics,
             refreshAllData

@@ -1,5 +1,5 @@
 
-import type { Mechanic, Customer, Vehicle, Vendor, Invoice, Expense, Task, Part, Payment } from '@/types';
+import type { Mechanic, Customer, Vehicle, Vendor, Invoice, Expense, Task, Part, Payment, Attendance } from '@/types';
 
 export interface DataContextType {
     mechanics: Mechanic[];
@@ -59,6 +59,14 @@ export interface DataContextType {
     addPayment: (payment: Payment) => Promise<void>;
     removePayment: (id: string) => Promise<void>;
     updatePayment: (id: string, updates: Partial<Payment>) => Promise<void>;
+
+    attendanceRecords: Attendance[];
+    attendanceLoading: boolean;
+    attendanceError: string | null;
+    addAttendance: (attendance: Omit<Attendance, 'id'>) => Promise<Attendance>;
+    updateAttendance: (id: string, updates: Partial<Attendance>) => Promise<Attendance>;
+    removeAttendance: (id: string) => Promise<void>;
+    loadAttendance: () => Promise<void>;
 
     getCustomerAnalytics: (customerId: string) => Promise<{ lifetimeValue: number; totalInvoices: number; averageInvoiceValue: number; vehicles: Vehicle[]; invoiceHistory: Invoice[] }>;
     refreshAllData: () => Promise<void>;

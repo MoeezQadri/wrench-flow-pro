@@ -1,8 +1,6 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { fetchAttendance } from '@/services/data-service';
+import React, { useState, useMemo } from 'react';
 import { Attendance, Mechanic } from '@/types';
-import { toast } from 'sonner';
 import { useDataContext } from '@/context/data/DataContext';
 import { useAuthContext } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -14,8 +12,6 @@ import AttendanceFilters from '@/components/attendance/AttendanceFilters';
 import { hasPermission } from '@/utils/permissions';
 
 const AttendancePage: React.FC = () => {
-  const [attendanceRecords, setAttendanceRecords] = useState<Attendance[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [filters, setFilters] = useState({
     status: 'all',
@@ -23,7 +19,13 @@ const AttendancePage: React.FC = () => {
     mechanicId: 'all'
   });
   
-  const { mechanics } = useDataContext();
+  const { 
+    mechanics,
+    attendanceRecords,
+    attendanceLoading: loading,
+    addAttendance,
+    updateAttendance
+  } = useDataContext();
   const { currentUser } = useAuthContext();
 
   // Check permissions
@@ -33,22 +35,6 @@ const AttendancePage: React.FC = () => {
   const userCanManageAttendance = hasPermission(currentUser, 'attendance', 'manage') || hasPermission(currentUser, 'attendance', 'create');
   const userCanViewAttendance = hasPermission(currentUser, 'attendance', 'view');
 
-  useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      try {
-        const attendanceData = await fetchAttendance();
-        setAttendanceRecords(attendanceData);
-      } catch (error) {
-        console.error('Error loading attendance data:', error);
-        toast.error('Failed to load attendance records.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadData();
-  }, []);
 
   // Filter attendance records based on current filters
   const filteredRecords = useMemo(() => {
@@ -63,46 +49,32 @@ const AttendancePage: React.FC = () => {
 
   const handleSaveAttendance = async (attendanceData: Omit<Attendance, 'id'>) => {
     try {
-      const newRecord: Attendance = {
-        ...attendanceData,
-        id: `temp-${Date.now()}`
-      };
-      setAttendanceRecords(prev => [newRecord, ...prev]);
+      await addAttendance(attendanceData);
       setIsDialogOpen(false);
-      toast.success('Attendance recorded successfully!');
     } catch (error) {
       console.error('Error saving attendance:', error);
-      toast.error('Failed to save attendance record.');
     }
   };
 
   const handleApproveAttendance = async (id: string) => {
     try {
-      // In a real app, this would make an API call to update the record
-      setAttendanceRecords(prev => prev.map(record => 
-        record.id === id 
-          ? { ...record, status: 'approved' as const, approved_by: currentUser?.id }
-          : record
-      ));
-      toast.success('Attendance record approved successfully!');
+      await updateAttendance(id, { 
+        status: 'approved' as const, 
+        approved_by: currentUser?.id 
+      });
     } catch (error) {
       console.error('Error approving attendance:', error);
-      toast.error('Failed to approve attendance record.');
     }
   };
 
   const handleRejectAttendance = async (id: string) => {
     try {
-      // In a real app, this would make an API call to update the record
-      setAttendanceRecords(prev => prev.map(record => 
-        record.id === id 
-          ? { ...record, status: 'rejected' as const, approved_by: currentUser?.id }
-          : record
-      ));
-      toast.success('Attendance record rejected.');
+      await updateAttendance(id, { 
+        status: 'rejected' as const, 
+        approved_by: currentUser?.id 
+      });
     } catch (error) {
       console.error('Error rejecting attendance:', error);
-      toast.error('Failed to reject attendance record.');
     }
   };
 
