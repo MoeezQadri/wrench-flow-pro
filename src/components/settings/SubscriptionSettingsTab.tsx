@@ -277,7 +277,25 @@ const SubscriptionSettingsTab = () => {
                       </li>}
                   </ul>
 
-                  
+                  {plan.name.toLowerCase() !== 'trial' && (
+                    <Button 
+                      onClick={() => handleSubscribe(plan.id)}
+                      disabled={checkoutLoading === plan.id || isCurrentPlan}
+                      className="w-full"
+                      variant={isCurrentPlan ? "outline" : "default"}
+                    >
+                      {checkoutLoading === plan.id ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                          Loading...
+                        </>
+                      ) : isCurrentPlan ? (
+                        "Current Plan"
+                      ) : (
+                        `Subscribe to ${plan.name}`
+                      )}
+                    </Button>
+                  )}
                 </CardContent>
               </Card>;
         })}
