@@ -86,10 +86,12 @@ serve(async (req) => {
       const priceId = subscription.items.data[0].price.id;
       const price = await stripe.prices.retrieve(priceId);
       const amount = price.unit_amount || 0;
-      if (amount <= 999) {
+      if (amount === 0) {
+        subscriptionTier = "Trial";
+      } else if (amount <= 2900) { // $29 and below
         subscriptionTier = "Basic";
-      } else if (amount <= 2999) {
-        subscriptionTier = "Premium";
+      } else if (amount <= 7900) { // $79 and below
+        subscriptionTier = "Professional";
       } else {
         subscriptionTier = "Enterprise";
       }
