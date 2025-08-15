@@ -1,7 +1,5 @@
-
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
 import { useDataContext } from '@/context/data/DataContext';
 import { useAuthContext } from '@/context/AuthContext';
 import { hasPermission } from '@/utils/permissions';
@@ -15,8 +13,6 @@ import { Part } from '@/types';
 import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
 
 const Parts: React.FC = () => {
-  const [parts, setParts] = useState<any[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
   const [customerNames, setCustomerNames] = useState<Record<string, string>>({});
   const [showPartDialog, setShowPartDialog] = useState(false);
   const [showAssignDialog, setShowAssignDialog] = useState(false);
@@ -26,16 +22,20 @@ const Parts: React.FC = () => {
   const [assignmentFilter, setAssignmentFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<string>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-  const { getCustomerById } = useDataContext();
+  
+  const { parts, addPart, getCustomerById, refreshAllData } = useDataContext();
   const { currentUser } = useAuthContext();
   const { formatCurrency } = useOrganizationSettings();
+  
+  // Loading state - show loading until parts are available
+  const loading = parts.length === 0;
   
   // Check permissions
   const userCanManageParts = hasPermission(currentUser, 'parts', 'manage') || hasPermission(currentUser, 'parts', 'create');
   const userCanViewParts = hasPermission(currentUser, 'parts', 'view');
 
   // Load customer names for all vendors at once
-  const loadCustomerNames = async (vendorIds: string[]) => {
+  const loadCustomerNames = useCallback(async (vendorIds: string[]) => {
     const uniqueVendorIds = [...new Set(vendorIds.filter(Boolean))];
     const nameMap: Record<string, string> = {};
     
@@ -50,98 +50,26 @@ const Parts: React.FC = () => {
     }
     
     setCustomerNames(nameMap);
-  };
-
-  useEffect(() => {
-    const fetchParts = async () => {
-      setLoading(true);
-      try {
-        const { data, error } = await supabase
-          .from('parts')
-          .select('*');
-
-        if (error) {
-          throw error;
-        }
-
-        const partsData = data || [];
-        console.log('Fetched parts from database:', partsData);
-        setParts(partsData);
-
-        // Load customer names for all vendor IDs
-        const vendorIds = partsData.map(part => part.vendor_id).filter(Boolean);
-        if (vendorIds.length > 0) {
-          await loadCustomerNames(vendorIds);
-        }
-      } catch (error) {
-        console.error('Error fetching parts:', error);
-        toast.error('Failed to load parts inventory');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchParts();
   }, [getCustomerById]);
+
+  // Load customer names when parts change
+  useEffect(() => {
+    if (parts.length > 0) {
+      const vendorIds = parts.map(part => part.vendor_id).filter(Boolean);
+      if (vendorIds.length > 0) {
+        loadCustomerNames(vendorIds);
+      }
+    }
+  }, [parts, loadCustomerNames]);
 
   const handleSavePart = async (part: Part) => {
     try {
       console.log('Saving part with data:', part);
-      
-      // Use crypto.randomUUID() for proper UUID generation
-      const partWithId = {
-        id: crypto.randomUUID(),
-        name: part.name,
-        description: part.description,
-        part_number: part.part_number,
-        price: part.price,
-        quantity: part.quantity,
-        vendor_id: part.vendor_id || null,
-        vendor_name: part.vendor_name,
-        invoice_ids: part.invoice_ids || [],
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
-
-      console.log('Inserting part with proper UUID:', partWithId);
-
-      const { data, error } = await supabase
-        .from('parts')
-        .insert([partWithId])
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Database error inserting part:', error);
-        throw error;
-      }
-
-      console.log('Part successfully inserted:', data);
-
-      // Add the new part to the local state immediately
-      setParts(prev => {
-        const updated = [...prev, data];
-        console.log('Updated parts state:', updated);
-        return updated;
-      });
-      
-      // If the part has a vendor_id and we don't have the name cached, load it
-      if (data.vendor_id && !customerNames[data.vendor_id]) {
-        const customer = await getCustomerById(data.vendor_id);
-        if (customer) {
-          setCustomerNames(prev => ({
-            ...prev,
-            [data.vendor_id]: customer.name
-          }));
-        }
-      }
-
-      toast.success('Part added successfully');
+      await addPart(part);
       setShowPartDialog(false);
     } catch (error) {
       console.error('Error saving part:', error);
-      toast.error('Failed to save part');
-      throw error;
+      // Error is already handled in addPart
     }
   };
 
@@ -151,25 +79,8 @@ const Parts: React.FC = () => {
   };
 
   const handleAssignmentComplete = () => {
-    // Refresh the parts list
-    const fetchParts = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('parts')
-          .select('*');
-
-        if (error) {
-          throw error;
-        }
-
-        setParts(data || []);
-      } catch (error) {
-        console.error('Error refreshing parts:', error);
-        toast.error('Failed to refresh parts list');
-      }
-    };
-
-    fetchParts();
+    // Refresh all data to get updated parts
+    refreshAllData();
     setShowAssignDialog(false);
     setSelectedPartForAssignment(null);
   };

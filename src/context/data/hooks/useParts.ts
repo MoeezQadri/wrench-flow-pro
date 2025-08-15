@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { Part } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -8,6 +8,41 @@ import { useOrganizationAwareQuery } from '@/hooks/useOrganizationAwareQuery';
 export const useParts = () => {
     const [parts, setParts] = useState<Part[]>([]);
     const { applyOrganizationFilter } = useOrganizationAwareQuery();
+
+    // Set up real-time subscription for parts updates
+    useEffect(() => {
+        const channel = supabase
+            .channel('schema-db-changes')
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'parts'
+                },
+                (payload) => {
+                    console.log('Real-time parts update:', payload);
+                    
+                    if (payload.eventType === 'INSERT') {
+                        const newPart = payload.new as Part;
+                        setParts((prev) => [...prev, newPart]);
+                    } else if (payload.eventType === 'UPDATE') {
+                        const updatedPart = payload.new as Part;
+                        setParts((prev) => prev.map((part) => 
+                            part.id === updatedPart.id ? updatedPart : part
+                        ));
+                    } else if (payload.eventType === 'DELETE') {
+                        const deletedPart = payload.old as Part;
+                        setParts((prev) => prev.filter((part) => part.id !== deletedPart.id));
+                    }
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, []);
 
     const addPart = async (part: Part) => {
         try {
