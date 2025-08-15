@@ -20,7 +20,8 @@ import PaymentsSection from "./invoice/PaymentsSection";
 import CustomerVehicleSelection from "./invoice/CustomerVehicleSelection";
 import { toast } from "sonner";
 import { useDataContext } from "@/context/data/DataContext";
-import { getAssignedPartsForInvoice, getAssignedTasksForInvoice, updateInvoice } from "@/services/supabase-service";
+import { getAssignedPartsForInvoice, getAssignedTasksForInvoice } from "@/services/supabase-service";
+import { updateInvoiceService } from "@/services/invoice-service";
 import { createTestCustomers } from "@/utils/test-data-helper";
 
 interface InvoiceFormProps {
@@ -473,8 +474,8 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
           payments: payments
         };
 
-        console.log("Calling updateInvoice with:", updatedInvoiceData);
-        const result = await updateInvoice(updatedInvoiceData);
+        console.log("Calling updateInvoiceService with:", updatedInvoiceData);
+        const result = await updateInvoiceService(updatedInvoiceData as Invoice);
         console.log("Update invoice result:", result);
         
         // Also update in context

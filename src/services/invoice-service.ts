@@ -159,7 +159,8 @@ export const updateInvoiceService = async (invoiceData: Invoice): Promise<Invoic
           creates_inventory_part: item.creates_inventory_part || false,
           creates_task: item.creates_task || false,
           custom_part_data: item.custom_part_data || null,
-          custom_labor_data: item.custom_labor_data || null
+          custom_labor_data: item.custom_labor_data || null,
+          organization_id: invoiceResult.organization_id
         }));
 
         console.log('Inserting updated invoice items:', itemsToInsert);
@@ -200,7 +201,8 @@ export const updateInvoiceService = async (invoiceData: Invoice): Promise<Invoic
           amount: payment.amount,
           method: payment.method,
           date: payment.date,
-          notes: payment.notes || ''
+          notes: payment.notes || '',
+          organization_id: invoiceResult.organization_id
         }));
 
         console.log('Inserting payments:', paymentsToInsert);
