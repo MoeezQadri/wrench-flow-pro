@@ -120,6 +120,14 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={isActive('/subscriptions')}>
+                  <Link to="/subscriptions">
+                    <CreditCard className="w-4 h-4" />
+                    <span>Subscriptions</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={isActive('/settings')}>
                   <Link to="/settings">
                     <Settings className="w-4 h-4" />

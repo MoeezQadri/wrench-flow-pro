@@ -21,6 +21,7 @@ interface Organization {
 
 interface AuthContextType {
   currentUser: User | null;
+  user: User | null;
   organization: Organization | null;
   setCurrentUser: React.Dispatch<React.SetStateAction<User | null>>;
   loading: boolean;
@@ -40,6 +41,11 @@ interface AuthContextType {
   }>;
   signOut: () => Promise<{ error: Error | null }>;
   refreshProfile: () => Promise<void>;
+  // Subscription related
+  subscribed: boolean;
+  subscriptionTier: string | null;
+  subscriptionEnd: string | null;
+  refreshSubscription: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -53,6 +59,11 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [loading, setLoading] = useState(true);
   const [session, setSession] = useState<any>(null);
+  
+  // Subscription state
+  const [subscribed, setSubscribed] = useState(false);
+  const [subscriptionTier, setSubscriptionTier] = useState<string | null>(null);
+  const [subscriptionEnd, setSubscriptionEnd] = useState<string | null>(null);
 
   const isAuthenticated = !!currentUser;
   const isSuperAdmin = currentUser?.role === 'superuser'
@@ -67,8 +78,15 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (session) {
         await fetchUser(session.user);
+        // Check subscription status after user is authenticated
+        setTimeout(() => {
+          checkSubscriptionStatus();
+        }, 0);
       } else {
         setCurrentUser(null);
+        setSubscribed(false);
+        setSubscriptionTier(null);
+        setSubscriptionEnd(null);
       }
 
       setLoading(false);
@@ -158,6 +176,26 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.error('Error fetching organization:', error);
       setOrganization(null);
     }
+  };
+
+  const checkSubscriptionStatus = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('check-subscription');
+      if (error) throw error;
+      
+      setSubscribed(data.subscribed || false);
+      setSubscriptionTier(data.subscription_tier || null);
+      setSubscriptionEnd(data.subscription_end || null);
+    } catch (error) {
+      console.error('Error checking subscription status:', error);
+      setSubscribed(false);
+      setSubscriptionTier(null);
+      setSubscriptionEnd(null);
+    }
+  };
+
+  const refreshSubscription = async () => {
+    await checkSubscriptionStatus();
   };
 
   const refreshProfile = async () => {
@@ -284,6 +322,7 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const value: AuthContextType = {
     currentUser,
+    user: currentUser, // Add alias for user property
     organization,
     setCurrentUser,
     loading,
@@ -297,6 +336,10 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signUp,
     signOut,
     refreshProfile,
+    subscribed,
+    subscriptionTier,
+    subscriptionEnd,
+    refreshSubscription,
   };
 
   return (
