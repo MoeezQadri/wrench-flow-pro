@@ -1068,6 +1068,10 @@ export type Database = {
         Args: { user_id: string }
         Returns: undefined
       }
+      cleanup_expired_superadmin_sessions: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       column_exists: {
         Args: { p_column_name: string; p_table_name: string }
         Returns: boolean
@@ -1080,6 +1084,10 @@ export type Database = {
           p_user_role?: string
         }
         Returns: Json
+      }
+      create_superadmin_session: {
+        Args: { p_expires_at: string; p_superadmin_id: string; p_token: string }
+        Returns: string
       }
       current_user_org: {
         Args: Record<PropertyKey, never>
@@ -1113,6 +1121,10 @@ export type Database = {
           updated_at: string
         }[]
       }
+      invalidate_superadmin_session: {
+        Args: { token_to_invalidate: string }
+        Returns: boolean
+      }
       is_current_user_superadmin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
@@ -1145,6 +1157,10 @@ export type Database = {
       }
       verify_superadmin_token_new: {
         Args: { superadmin_token: string }
+        Returns: boolean
+      }
+      verify_superadmin_token_secure: {
+        Args: { token_to_verify: string }
         Returns: boolean
       }
     }
