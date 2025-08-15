@@ -139,7 +139,7 @@ export type Database = {
           last_visit: string | null
           lifetime_value: number | null
           name: string
-          organization_id: string | null
+          organization_id: string
           phone: string | null
           total_visits: number | null
           updated_at: string | null
@@ -152,7 +152,7 @@ export type Database = {
           last_visit?: string | null
           lifetime_value?: number | null
           name: string
-          organization_id?: string | null
+          organization_id: string
           phone?: string | null
           total_visits?: number | null
           updated_at?: string | null
@@ -165,7 +165,7 @@ export type Database = {
           last_visit?: string | null
           lifetime_value?: number | null
           name?: string
-          organization_id?: string | null
+          organization_id?: string
           phone?: string | null
           total_visits?: number | null
           updated_at?: string | null
@@ -1082,6 +1082,10 @@ export type Database = {
         Returns: Json
       }
       current_user_org: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      current_user_org_secure: {
         Args: Record<PropertyKey, never>
         Returns: string
       }
