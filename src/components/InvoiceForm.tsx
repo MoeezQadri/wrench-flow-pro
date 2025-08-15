@@ -132,7 +132,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
         });
       });
 
-      // Workshop parts: parts that are available in inventory and not assigned to any invoice
+      // Workshop parts: parts that are available in inventory
       // OR parts assigned to the current invoice being edited
       const workshopParts = parts.filter(part => {
         // If editing, include parts already assigned to this specific invoice
@@ -140,11 +140,10 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
           return true;
         }
         
-        // Workshop parts: have inventory quantity AND either no invoice assignments or empty invoice_ids
+        // Workshop parts: have inventory quantity (regardless of previous assignments)
         const hasInventory = part.quantity > 0;
-        const notAssignedToInvoices = !part.invoice_ids || part.invoice_ids.length === 0;
         
-        return hasInventory && notAssignedToInvoices;
+        return hasInventory;
       });
       
       console.log('Workshop parts (available for selection):', {
