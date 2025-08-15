@@ -196,7 +196,7 @@ const WorkshopPartsSelector: React.FC<WorkshopPartsSelectorProps> = ({
                     <>
                       <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
                       <p>No workshop parts available.</p>
-                      <p className="text-sm mt-2">Parts with inventory quantity {"> 0"} and not assigned to invoices will appear here.</p>
+                      <p className="text-sm mt-2">Parts with inventory quantity {"> 0"} will appear here.</p>
                     </>
                   ) : (
                     <>
