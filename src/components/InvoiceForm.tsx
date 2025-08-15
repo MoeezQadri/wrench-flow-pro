@@ -478,11 +478,6 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
         const result = await updateInvoiceService(updatedInvoiceData as Invoice);
         console.log("Update invoice result:", result);
         
-        // Also update in context
-        if (updateInvoiceInContext) {
-          await updateInvoiceInContext(updatedInvoiceData.id, updatedInvoiceData);
-        }
-        
         // Reload invoices to ensure data consistency
         if (loadInvoices) {
           await loadInvoices();
