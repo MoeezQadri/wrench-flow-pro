@@ -39,33 +39,14 @@ const Parts: React.FC = () => {
   const userCanManageParts = hasPermission(currentUser, 'parts', 'manage') || hasPermission(currentUser, 'parts', 'create');
   const userCanViewParts = hasPermission(currentUser, 'parts', 'view');
 
-  // Load customer names for all vendors at once
-  const loadCustomerNames = useCallback(async (vendorIds: string[]) => {
-    const uniqueVendorIds = [...new Set(vendorIds.filter(Boolean))];
-    const nameMap: Record<string, string> = {};
-    
-    for (const vendorId of uniqueVendorIds) {
-      try {
-        const customer = await getCustomerById(vendorId);
-        nameMap[vendorId] = customer?.name || 'Unknown';
-      } catch (error) {
-        console.error('Error loading customer:', error);
-        nameMap[vendorId] = 'Unknown';
-      }
-    }
-    
-    setCustomerNames(nameMap);
-  }, [getCustomerById]);
+  // Remove the customerNames loading logic since we should use vendors instead
+  // const loadCustomerNames = useCallback(async (vendorIds: string[]) => {
+  //   // This was incorrectly trying to load customer names for vendor IDs
+  // }, [getCustomerById]);
 
-  // Load customer names when parts change
-  useEffect(() => {
-    if (parts.length > 0) {
-      const vendorIds = parts.map(part => part.vendor_id).filter(Boolean);
-      if (vendorIds.length > 0) {
-        loadCustomerNames(vendorIds);
-      }
-    }
-  }, [parts, loadCustomerNames]);
+  // useEffect(() => {
+  //   // This was incorrectly loading customer names when we need vendor names
+  // }, [parts, loadCustomerNames]);
 
   const handleSavePart = async (part: Part) => {
     try {
@@ -97,8 +78,9 @@ const Parts: React.FC = () => {
   };
 
   const getVendorName = (part: any) => {
-    if (part.vendor_id) {
-      return customerNames[part.vendor_id] || 'Loading...';
+    if (part.vendor_id && part.vendor_id !== "none") {
+      const vendor = vendors.find(v => v.id === part.vendor_id);
+      return vendor?.name || 'Unknown';
     }
     return part.vendor_name || 'N/A';
   };
@@ -181,7 +163,7 @@ const Parts: React.FC = () => {
     });
 
     return filtered;
-  }, [parts, searchTerm, stockFilter, assignmentFilter, sortBy, sortOrder, customerNames]);
+  }, [parts, searchTerm, stockFilter, assignmentFilter, sortBy, sortOrder, vendors]);
 
   const toggleSortOrder = () => {
     setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
