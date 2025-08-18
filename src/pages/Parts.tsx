@@ -10,15 +10,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Search, Filter, SortAsc, SortDesc, FileText, Users, Package, AlertTriangle, Grid3X3, List } from 'lucide-react';
 import PartDialog from '@/components/part/PartDialog';
-import VendorDialog from '@/components/part/VendorDialog';
+import VendorManagement from '@/components/vendor/VendorManagement';
 import AssignToInvoiceDialog from '@/components/part/AssignToInvoiceDialog';
 import { Part } from '@/types';
 import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
 
 const Parts: React.FC = () => {
-  const [customerNames, setCustomerNames] = useState<Record<string, string>>({});
   const [showPartDialog, setShowPartDialog] = useState(false);
-  const [showVendorDialog, setShowVendorDialog] = useState(false);
+  const [showVendorManagement, setShowVendorManagement] = useState(false);
   const [showAssignDialog, setShowAssignDialog] = useState(false);
   const [selectedPartForAssignment, setSelectedPartForAssignment] = useState<Part | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -28,7 +27,7 @@ const Parts: React.FC = () => {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   
-  const { parts, addPart, getCustomerById, refreshAllData, vendors } = useDataContext();
+  const { parts, addPart, refreshAllData, vendors } = useDataContext();
   const { currentUser } = useAuthContext();
   const { formatCurrency } = useOrganizationSettings();
   
@@ -71,10 +70,13 @@ const Parts: React.FC = () => {
     setSelectedPartForAssignment(null);
   };
 
-  const handleVendorAdded = () => {
-    // Refresh all data to get updated vendor list
+  const handleVendorManagement = () => {
+    setShowVendorManagement(true);
+  };
+
+  const handleVendorManagementClose = () => {
+    setShowVendorManagement(false);
     refreshAllData();
-    setShowVendorDialog(false);
   };
 
   const getVendorName = (part: any) => {
@@ -191,7 +193,7 @@ const Parts: React.FC = () => {
         <div className="flex flex-wrap gap-2">
           {userCanManageParts && (
             <>
-              <Button variant="outline" onClick={() => setShowVendorDialog(true)} className="flex items-center gap-2">
+              <Button variant="outline" onClick={handleVendorManagement} className="flex items-center gap-2">
                 <Users className="w-4 h-4" />
                 Manage Vendors
               </Button>
@@ -459,24 +461,33 @@ const Parts: React.FC = () => {
         </>
       )}
 
+      {/* Vendor Management */}
+      {showVendorManagement && (
+        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="w-full max-w-6xl max-h-[90vh] overflow-hidden">
+              <VendorManagement onClose={handleVendorManagementClose} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Part Dialog */}
       <PartDialog
         open={showPartDialog}
         onOpenChange={setShowPartDialog}
         onSave={handleSavePart}
       />
 
-      <VendorDialog
-        open={showVendorDialog}
-        onOpenChange={setShowVendorDialog}
-        onVendorAdded={handleVendorAdded}
-      />
-
-      <AssignToInvoiceDialog
-        open={showAssignDialog}
-        onOpenChange={setShowAssignDialog}
-        part={selectedPartForAssignment}
-        onAssignmentComplete={handleAssignmentComplete}
-      />
+      {/* Assign to Invoice Dialog */}
+      {selectedPartForAssignment && (
+        <AssignToInvoiceDialog
+          open={showAssignDialog}
+          onOpenChange={setShowAssignDialog}
+          part={selectedPartForAssignment}
+          onAssignmentComplete={handleAssignmentComplete}
+        />
+      )}
     </div>
   );
 };
