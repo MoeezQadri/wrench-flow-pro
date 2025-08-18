@@ -34,8 +34,17 @@ export function AttendanceDialog({
 }: AttendanceDialogProps) {
   const handleSave = async (data: Omit<Attendance, "id">) => {
     console.log("AttendanceDialog handleSave called with:", data);
-    await onSave(data);
-    console.log("AttendanceDialog onSave completed");
+    try {
+      await onSave(data);
+      console.log("AttendanceDialog onSave completed successfully");
+      // Only close dialog if save was successful
+      if (onOpenChange) {
+        onOpenChange(false);
+      }
+    } catch (error) {
+      console.error("AttendanceDialog onSave failed:", error);
+      // Don't close dialog on error, let user try again
+    }
   };
 
   return (

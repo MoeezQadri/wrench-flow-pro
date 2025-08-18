@@ -56,16 +56,23 @@ const AttendanceForm: React.FC<AttendanceFormProps> = ({ onSubmit, initialData }
 
   const handleSubmit = async (data: AttendanceFormValues) => {
     console.log("AttendanceForm handleSubmit called with data:", data);
+    
+    // Validate that we have a mechanic selected
+    if (!data.mechanicId) {
+      toast.error("Please select a mechanic");
+      return;
+    }
+
     try {
       const attendanceData: Omit<Attendance, 'id'> = {
         mechanic_id: data.mechanicId,
         date: data.date,
         check_in: data.checkIn,
-        check_out: data.checkOut,
+        check_out: data.checkOut || undefined,
         status: data.status as 'pending' | 'approved' | 'rejected',
-        notes: data.notes,
-        created_at: data.created_at,
-        approved_by: data.approved_by
+        notes: data.notes || undefined,
+        created_at: new Date().toISOString(),
+        approved_by: data.approved_by || undefined
       };
 
       console.log("AttendanceForm calling onSubmit with:", attendanceData);
@@ -73,9 +80,13 @@ const AttendanceForm: React.FC<AttendanceFormProps> = ({ onSubmit, initialData }
       console.log("AttendanceForm onSubmit completed successfully");
       form.reset();
       toast.success("Attendance recorded successfully!");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error submitting attendance in form:", error);
-      toast.error("Failed to record attendance. Please try again.");
+      const errorMessage = error?.message || "Failed to record attendance. Please try again.";
+      toast.error(errorMessage);
+      
+      // Re-throw the error so the dialog knows not to close
+      throw error;
     }
   };
 

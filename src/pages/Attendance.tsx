@@ -52,10 +52,12 @@ const AttendancePage: React.FC = () => {
     try {
       console.log("Calling addAttendance...");
       await addAttendance(attendanceData);
-      console.log("addAttendance completed successfully, closing dialog");
-      setIsDialogOpen(false);
+      console.log("addAttendance completed successfully");
+      // Dialog will be closed by AttendanceDialog component on success
     } catch (error) {
       console.error('Error saving attendance in page:', error);
+      // Error is already handled in the hook and form, just log it here
+      throw error; // Re-throw so dialog knows not to close
     }
   };
 

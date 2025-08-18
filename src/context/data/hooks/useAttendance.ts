@@ -4,13 +4,24 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useOrganizationFilter } from '@/hooks/useOrganizationFilter';
 import { useOrganizationAwareQuery } from '@/hooks/useOrganizationAwareQuery';
+import { useAuthContext } from '@/context/AuthContext';
 
 export const useAttendance = () => {
     const [attendanceRecords, setAttendanceRecords] = useState<Attendance[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const { applyOrganizationFilter } = useOrganizationAwareQuery();
-    const { organizationId } = useOrganizationFilter();
+    const { organizationId, isSuperAdmin } = useOrganizationFilter();
+    const { currentUser, isAuthenticated } = useAuthContext();
+
+    // Enhanced debugging for auth and org context
+    console.log('[AttendanceHook] Context state:', {
+        currentUser: currentUser?.id,
+        isAuthenticated,
+        organizationId,
+        isSuperAdmin,
+        userOrgId: currentUser?.organization_id
+    });
 
     // Set up real-time subscription for attendance data
     useEffect(() => {
@@ -116,9 +127,26 @@ export const useAttendance = () => {
             throw new Error(errorMsg);
         }
 
-        console.log("Organization ID check:", { organizationId });
-        if (!organizationId) {
-            const errorMsg = 'No organization ID available for attendance creation';
+        // Enhanced organization ID validation with auth check
+        console.log("Organization ID check:", { 
+            organizationId, 
+            isAuthenticated, 
+            currentUser: currentUser?.id,
+            userOrgId: currentUser?.organization_id,
+            isSuperAdmin 
+        });
+        
+        if (!isAuthenticated || !currentUser) {
+            const errorMsg = 'You must be logged in to create attendance records';
+            console.error(errorMsg);
+            toast.error(errorMsg);
+            throw new Error(errorMsg);
+        }
+
+        // Get organization ID with fallback to user's org
+        const finalOrgId = organizationId || currentUser?.organization_id;
+        if (!finalOrgId) {
+            const errorMsg = 'No organization ID available. Please contact your administrator.';
             console.error(errorMsg);
             toast.error(errorMsg);
             throw new Error(errorMsg);
@@ -128,7 +156,7 @@ export const useAttendance = () => {
         const newAttendanceData = {
             ...attendanceData,
             id: tempId,
-            organization_id: organizationId,
+            organization_id: finalOrgId,
             created_at: new Date().toISOString(),
             status: attendanceData.status || 'pending',
             // Ensure required fields are present
