@@ -78,15 +78,22 @@ serve(async (req) => {
       throw new Error("Cannot invite users to a different organization");
     }
 
-    // Check if user already exists
-    const { data: existingUser } = await supabaseAdmin.auth.admin.getUserByEmail(email);
-    
-    if (existingUser.user) {
+    // Check if user already exists (admin API v2 has no getUserByEmail)
+    const { data: usersPage, error: listUsersError } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+
+    if (listUsersError) {
+      console.error("Error listing users:", listUsersError);
+      throw new Error("Failed to check existing users");
+    }
+
+    const foundUser = usersPage?.users?.find((u: any) => (u.email ?? u.user_metadata?.email) === email);
+
+    if (foundUser) {
       // Check if user already has a profile/organization
       const { data: existingProfile } = await supabaseAdmin
         .from("profiles")
         .select("organization_id, role")
-        .eq("id", existingUser.user.id)
+        .eq("id", foundUser.id)
         .single();
 
       if (existingProfile) {
