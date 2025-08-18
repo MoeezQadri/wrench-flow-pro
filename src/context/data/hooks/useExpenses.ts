@@ -4,14 +4,19 @@ import type { Expense } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useOrganizationAwareQuery } from '@/hooks/useOrganizationAwareQuery';
-
+import { useOrganizationFilter } from '@/hooks/useOrganizationFilter';
 export const useExpenses = () => {
     const [expenses, setExpenses] = useState<Expense[]>([]);
     const { applyOrganizationFilter } = useOrganizationAwareQuery();
+    const { organizationId } = useOrganizationFilter();
 
     const addExpense = async (expense: Expense) => {
         try {
-            const { data, error } = await supabase.from('expenses').insert(expense).select();
+            const payload = {
+                ...(expense as any),
+                organization_id: (expense as any).organization_id || organizationId,
+            };
+            const { data, error } = await supabase.from('expenses').insert(payload).select();
             if (error) {
                 console.error('Error adding expense:', error);
                 toast.error('Failed to add expense');
