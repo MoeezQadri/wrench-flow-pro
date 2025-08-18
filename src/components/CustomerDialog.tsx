@@ -44,6 +44,7 @@ const CustomerDialog = ({ open, onOpenChange, onSave, onVehicleSave, customer }:
   const [showVehiclePrompt, setShowVehiclePrompt] = useState(false);
   const [showVehicleDialog, setShowVehicleDialog] = useState(false);
   const [savedCustomerId, setSavedCustomerId] = useState<string>("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const {
     currentUser
   } = useAuthContext()
@@ -56,6 +57,9 @@ const CustomerDialog = ({ open, onOpenChange, onSave, onVehicleSave, customer }:
   }
 
   const handleSubmit = async (data: CustomerFormValues) => {
+    if (isSubmitting) return; // Prevent duplicate submissions
+    
+    setIsSubmitting(true);
     try {
       const newCustomer: Customer = {
         id: customer?.id || generateId("customer"),
@@ -80,6 +84,8 @@ const CustomerDialog = ({ open, onOpenChange, onSave, onVehicleSave, customer }:
     } catch (error) {
       console.error("Error saving customer:", error);
       toast.error("Failed to save customer. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -131,11 +137,14 @@ const CustomerDialog = ({ open, onOpenChange, onSave, onVehicleSave, customer }:
           />
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
+            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
               Cancel
             </Button>
-            <Button type="submit" form={formId}>
-              {isEditing ? "Update" : "Add"} Customer
+            <Button type="submit" form={formId} disabled={isSubmitting}>
+              {isSubmitting 
+                ? (isEditing ? "Updating..." : "Adding...") 
+                : (isEditing ? "Update" : "Add") + " Customer"
+              }
             </Button>
           </DialogFooter>
         </DialogContent>
