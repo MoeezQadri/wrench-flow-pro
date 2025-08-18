@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Plus, Search, Filter, SortAsc, SortDesc, FileText, Users, Package, AlertTriangle, Grid3X3, List } from 'lucide-react';
 import PartDialog from '@/components/part/PartDialog';
 import VendorManagement from '@/components/vendor/VendorManagement';
@@ -461,16 +462,12 @@ const Parts: React.FC = () => {
         </>
       )}
 
-      {/* Vendor Management */}
-      {showVendorManagement && (
-        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm">
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="w-full max-w-6xl max-h-[90vh] overflow-hidden">
-              <VendorManagement onClose={handleVendorManagementClose} />
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Vendor Management Dialog */}
+      <Dialog open={showVendorManagement} onOpenChange={setShowVendorManagement}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <VendorManagement onClose={handleVendorManagementClose} />
+        </DialogContent>
+      </Dialog>
 
       {/* Part Dialog */}
       <PartDialog
