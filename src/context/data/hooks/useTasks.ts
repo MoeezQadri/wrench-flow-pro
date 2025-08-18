@@ -4,10 +4,12 @@ import type { Task } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useOrganizationAwareQuery } from '@/hooks/useOrganizationAwareQuery';
+import { useOrganizationFilter } from '@/hooks/useOrganizationFilter';
 
 export const useTasks = () => {
     const [tasks, setTasks] = useState<Task[]>([]);
     const { applyOrganizationFilter } = useOrganizationAwareQuery();
+    const { organizationId } = useOrganizationFilter();
 
     const transformTask = (dbTask: any): Task => {
         return {
@@ -45,20 +47,21 @@ export const useTasks = () => {
             id: task.id,
             title: task.title,
             description: task.description,
-            mechanic_id: task.mechanicId || task.mechanic_id,
-            vehicle_id: task.vehicleId || task.vehicle_id,
+            mechanic_id: task.mechanicId || (task as any).mechanic_id,
+            vehicle_id: task.vehicleId || (task as any).vehicle_id,
             status: task.status,
             location: task.location,
-            hours_estimated: task.hoursEstimated || task.hours_estimated || 0,
-            hours_spent: task.hoursSpent || task.hours_spent,
+            hours_estimated: (task as any).hoursEstimated || (task as any).hours_estimated || 0,
+            hours_spent: (task as any).hoursSpent || (task as any).hours_spent,
             price: task.price,
-            start_time: task.startTime || task.start_time,
-            end_time: task.endTime || task.end_time,
-            completed_by: task.completedBy || task.completed_by,
-            completed_at: task.completedAt || task.completed_at,
-            invoice_id: task.invoiceId || task.invoice_id,
-            created_at: task.created_at,
-            updated_at: task.updated_at
+            start_time: (task as any).startTime || (task as any).start_time,
+            end_time: (task as any).endTime || (task as any).end_time,
+            completed_by: (task as any).completedBy || (task as any).completed_by,
+            completed_at: (task as any).completedAt || (task as any).completed_at,
+            invoice_id: (task as any).invoiceId || (task as any).invoice_id,
+            organization_id: (task as any).organization_id || organizationId,
+            created_at: (task as any).created_at,
+            updated_at: (task as any).updated_at
         };
     };
 
