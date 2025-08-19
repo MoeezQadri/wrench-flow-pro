@@ -58,20 +58,19 @@ const vehicleSchema = z.object({
 const formSchema = z.object({
   customer: customerSchema,
   addVehicle: z.boolean().default(false),
-  vehicle: vehicleSchema.optional()
-}).refine((data) => {
+  vehicle: z.union([
+    vehicleSchema,
+    z.undefined()
+  ]).optional()
+}).superRefine((data, ctx) => {
   // If addVehicle is checked, vehicle fields must be filled
-  if (data.addVehicle) {
-    return data.vehicle && 
-           data.vehicle.make && 
-           data.vehicle.model && 
-           data.vehicle.year && 
-           data.vehicle.license_plate;
+  if (data.addVehicle && (!data.vehicle || !data.vehicle.make || !data.vehicle.model || !data.vehicle.year || !data.vehicle.license_plate)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Vehicle information is required when 'Add vehicle information' is checked",
+      path: ["vehicle"]
+    });
   }
-  return true;
-}, {
-  message: "Vehicle information is required when 'Add vehicle information' is checked",
-  path: ["vehicle"]
 });
 
 // Define type for form values ensuring all fields are required
@@ -145,19 +144,29 @@ const Customers = () => {
         address: ""
       },
       addVehicle: false,
-      vehicle: {
+      vehicle: undefined
+    }
+  });
+
+  // Watch the addVehicle checkbox to conditionally show vehicle fields
+  const showVehicleFields = form.watch("addVehicle");
+
+  // Clear vehicle fields when addVehicle is unchecked
+  useEffect(() => {
+    if (!showVehicleFields) {
+      form.setValue("vehicle", undefined);
+    } else {
+      // Set default empty vehicle object when addVehicle is checked
+      form.setValue("vehicle", {
         make: "",
         model: "",
         year: "",
         license_plate: "",
         vin: "",
         color: ""
-      }
+      });
     }
-  });
-
-  // Watch the addVehicle checkbox to conditionally show vehicle fields
-  const showVehicleFields = form.watch("addVehicle");
+  }, [showVehicleFields, form]);
 
   // Form submission handler
   const onSubmit = async (values: CustomerFormValues) => {
