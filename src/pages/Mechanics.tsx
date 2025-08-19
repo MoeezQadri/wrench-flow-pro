@@ -128,7 +128,7 @@ const Mechanics = () => {
             className="flex items-center gap-2"
           >
             <Users className="h-4 w-4" />
-            {showActiveOnly ? "Active Mechanics" : "All Mechanics"}
+            {showActiveOnly ? "All Mechanics" : "Active Mechanics"}
           </Button>
           {userCanManageMechanics && (
             <Button onClick={handleAddMechanic}>
