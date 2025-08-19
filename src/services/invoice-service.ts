@@ -180,7 +180,7 @@ export const updateInvoiceService = async (invoiceData: Invoice): Promise<Invoic
     }
 
   // Handle payments with improved logic
-  if (payments) {
+  if (payments !== undefined) {
     console.log('Processing payments:', payments);
     
     try {

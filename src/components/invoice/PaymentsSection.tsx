@@ -11,6 +11,7 @@ import { Payment } from "@/types";
 import { toast } from "sonner";
 import { useFormContext } from "react-hook-form";
 import { format } from "date-fns";
+import { useOrganizationSettings } from "@/hooks/useOrganizationSettings";
 
 interface PaymentsSectionProps {
   payments: Payment[];
@@ -29,6 +30,7 @@ const PaymentsSection = ({
   
   const form = useFormContext();
   const status = form.watch("status");
+  const { formatCurrency, getCurrencySymbol } = useOrganizationSettings();
   
   // Define which statuses allow editing payments
   const canEditPayments = ['open', 'in-progress', 'completed', 'partial'].includes(status);
@@ -117,7 +119,7 @@ const PaymentsSection = ({
         <Card className="p-4">
           <div className="grid gap-4 md:grid-cols-3">
             <div>
-              <Label htmlFor="paymentAmount">Amount ($)</Label>
+              <Label htmlFor="paymentAmount">Amount ({getCurrencySymbol()})</Label>
               <Input
                 id="paymentAmount"
                 type="number"
@@ -190,7 +192,7 @@ const PaymentsSection = ({
             {payments.map((payment) => (
               <TableRow key={payment.id}>
                 <TableCell>{payment.date}</TableCell>
-                <TableCell>${payment.amount.toFixed(2)}</TableCell>
+                <TableCell>{formatCurrency(payment.amount)}</TableCell>
                 <TableCell>
                   {payment.method === "cash" ? "Cash" : 
                    payment.method === "card" ? "Card" : "Bank Transfer"}
@@ -214,7 +216,7 @@ const PaymentsSection = ({
               <TableCell colSpan={1} className="text-right font-medium">
                 Total Payments:
               </TableCell>
-              <TableCell className="font-medium">${totalPayments.toFixed(2)}</TableCell>
+              <TableCell className="font-medium">{formatCurrency(totalPayments)}</TableCell>
               <TableCell colSpan={canEditPayments ? 3 : 2}></TableCell>
             </TableRow>
             
@@ -223,7 +225,7 @@ const PaymentsSection = ({
                 Remaining Balance:
               </TableCell>
               <TableCell className={`font-medium ${remainingBalance === 0 ? 'text-green-600' : 'text-orange-600'}`}>
-                ${remainingBalance.toFixed(2)}
+                {formatCurrency(remainingBalance)}
               </TableCell>
               <TableCell colSpan={canEditPayments ? 3 : 2}></TableCell>
             </TableRow>
