@@ -64,7 +64,7 @@ export const useMechanics = () => {
             updated_at: new Date().toISOString()
         };
 
-        console.log('Updating mechanic:', updatedData);
+        console.log('Updating mechanic:', { id, updatedData });
         try {
             const { data, error } = await supabase
                 .from('mechanics')
@@ -78,9 +78,20 @@ export const useMechanics = () => {
                 throw error;
             }
 
+            let result: Mechanic | null = null;
+
             if (data && data.length > 0) {
-                const result = data[0] as Mechanic;
-                setMechanics((prev) => prev.map((item) => item.id === id ? result : item));
+                result = data[0] as Mechanic;
+            } else {
+                // Fallback when RLS prevents returning rows: optimistically update local state
+                const existing = mechanics.find((m) => m.id === id);
+                if (existing) {
+                    result = { ...existing, ...updatedData, id } as Mechanic;
+                }
+            }
+
+            if (result) {
+                setMechanics((prev) => prev.map((item) => item.id === id ? result as Mechanic : item));
                 toast.success('Mechanic updated successfully');
                 return result;
             }
