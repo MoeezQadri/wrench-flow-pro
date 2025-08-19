@@ -9,7 +9,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Car, Phone, Mail, MapPin, Calendar, DollarSign, ArrowLeft, FileText, Eye } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { VehicleTransferDialog } from '@/components/vehicle/VehicleTransferDialog';
+import { Car, Phone, Mail, MapPin, Calendar, DollarSign, ArrowLeft, FileText, Eye, MoreVertical, ArrowRightLeft, Edit, Trash2 } from 'lucide-react';
 
 const CustomerDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -18,10 +20,14 @@ const CustomerDetails: React.FC = () => {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [transferDialogOpen, setTransferDialogOpen] = useState(false);
+  const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
   const {
     getCustomerById,
     getVehiclesByCustomerId,
-    invoices: allInvoices
+    invoices: allInvoices,
+    customers,
+    updateVehicle
   } = useDataContext();
 
   useEffect(() => {
@@ -48,6 +54,20 @@ const CustomerDetails: React.FC = () => {
 
     loadCustomerData();
   }, [id, getCustomerById, getVehiclesByCustomerId, allInvoices]);
+
+  const handleTransferVehicle = (vehicle: Vehicle) => {
+    setSelectedVehicle(vehicle);
+    setTransferDialogOpen(true);
+  };
+
+  const handleVehicleTransfer = async (vehicleId: string, newCustomerId: string) => {
+    await updateVehicle(vehicleId, { customer_id: newCustomerId });
+    // Refresh the vehicles list after transfer
+    if (id) {
+      const updatedVehicles = await getVehiclesByCustomerId(id);
+      setVehicles(updatedVehicles);
+    }
+  };
 
   if (loading) {
     return (
@@ -174,11 +194,26 @@ const CustomerDetails: React.FC = () => {
                         <h4 className="font-semibold text-lg">
                           {vehicle.year} {vehicle.make} {vehicle.model}
                         </h4>
-                        {vehicle.color && (
-                          <Badge variant="secondary" className="text-xs">
-                            {vehicle.color}
-                          </Badge>
-                        )}
+                        <div className="flex items-center gap-2">
+                          {vehicle.color && (
+                            <Badge variant="secondary" className="text-xs">
+                              {vehicle.color}
+                            </Badge>
+                          )}
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleTransferVehicle(vehicle)}>
+                                <ArrowRightLeft className="mr-2 h-4 w-4" />
+                                Transfer
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </div>
                       
                       <div className="space-y-1 text-sm">
@@ -273,6 +308,16 @@ const CustomerDetails: React.FC = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Vehicle Transfer Dialog */}
+      <VehicleTransferDialog
+        open={transferDialogOpen}
+        onOpenChange={setTransferDialogOpen}
+        vehicle={selectedVehicle}
+        customers={customers}
+        currentCustomer={customer}
+        onTransfer={handleVehicleTransfer}
+      />
     </div>
   );
 };

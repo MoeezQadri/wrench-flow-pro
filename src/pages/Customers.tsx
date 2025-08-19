@@ -94,6 +94,7 @@ type CustomerFormValues = {
 const Customers = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [realtimeStatus, setRealtimeStatus] = useState<'connected' | 'disconnected' | 'connecting'>('connecting');
   const {
     toast
@@ -170,40 +171,53 @@ const Customers = () => {
 
   // Form submission handler
   const onSubmit = async (values: CustomerFormValues) => {
-    // Add the new customer to the data service
-    const id = crypto.randomUUID();
-    const newCustomer = await addCustomer({
-      ...values.customer,
-      organization_id: "00000000-0000-0000-0000-000000000001",
-      id
-    });
-
-    // Add vehicle if the checkbox is checked and vehicle data is provided
-    const vehicleId = crypto.randomUUID();
-    if (values.addVehicle && values.vehicle) {
-      const vehicleData: Vehicle = {
-        ...values.vehicle,
-        customer_id: newCustomer.id,
-        id: vehicleId
-      };
-      const newVehicle = await addVehicle(vehicleData);
-
-      // Display success message including vehicle
-      toast({
-        title: "Customer and Vehicle Added",
-        description: `${newCustomer.name} and their ${values.vehicle.make} ${values.vehicle.model} have been added successfully.`
+    if (isSubmitting) return; // Prevent duplicate submissions
+    
+    setIsSubmitting(true);
+    try {
+      // Add the new customer to the data service
+      const id = crypto.randomUUID();
+      const newCustomer = await addCustomer({
+        ...values.customer,
+        organization_id: "00000000-0000-0000-0000-000000000001",
+        id
       });
-    } else {
-      // Display success message for customer only
+
+      // Add vehicle if the checkbox is checked and vehicle data is provided
+      const vehicleId = crypto.randomUUID();
+      if (values.addVehicle && values.vehicle) {
+        const vehicleData: Vehicle = {
+          ...values.vehicle,
+          customer_id: newCustomer.id,
+          id: vehicleId
+        };
+        const newVehicle = await addVehicle(vehicleData);
+
+        // Display success message including vehicle
+        toast({
+          title: "Customer and Vehicle Added",
+          description: `${newCustomer.name} and their ${values.vehicle.make} ${values.vehicle.model} have been added successfully.`
+        });
+      } else {
+        // Display success message for customer only
+        toast({
+          title: "Customer Added",
+          description: `${newCustomer.name} has been added successfully.`
+        });
+      }
+
+      // Reset form and close dialog
+      form.reset();
+      setIsDialogOpen(false);
+    } catch (error) {
       toast({
-        title: "Customer Added",
-        description: `${newCustomer.name} has been added successfully.`
+        title: "Error",
+        description: "Failed to add customer. Please try again.",
+        variant: "destructive"
       });
+    } finally {
+      setIsSubmitting(false);
     }
-
-    // Reset form and close dialog
-    form.reset();
-    setIsDialogOpen(false);
   };
 
   // Filter customers based on search query - use customers from context directly
@@ -503,7 +517,9 @@ const Customers = () => {
                 <DialogClose asChild>
                   <Button type="button" variant="outline">Cancel</Button>
                 </DialogClose>
-                <Button type="submit">Add Customer</Button>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? 'Adding Customer...' : 'Add Customer'}
+                </Button>
               </DialogFooter>
             </form>
           </Form>
