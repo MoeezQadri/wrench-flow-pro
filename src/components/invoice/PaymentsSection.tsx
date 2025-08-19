@@ -30,6 +30,8 @@ const PaymentsSection = ({
   
   const form = useFormContext();
   const status = form.watch("status");
+  const invoiceId = form.watch("invoiceId"); // Get invoice ID if editing
+  const isEditing = Boolean(invoiceId);
   const { formatCurrency, getCurrencySymbol } = useOrganizationSettings();
   
   // Define which statuses allow editing payments
@@ -56,8 +58,8 @@ const PaymentsSection = ({
     }
 
     const newPayment: Payment = {
-      id: `temp-${Date.now()}`, // Temporary ID for new payments
-      invoice_id: "", // Will be set when the invoice is saved
+      id: crypto.randomUUID(), // Generate proper UUID
+      invoice_id: isEditing ? invoiceId : "", // Set invoice_id immediately if editing
       amount: amountAsNumber,
       method: newPaymentMethod,
       date: format(new Date(), "yyyy-MM-dd"),

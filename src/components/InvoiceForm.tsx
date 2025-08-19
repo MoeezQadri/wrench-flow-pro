@@ -64,7 +64,8 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
       discountType: 'none' as 'none' | 'percentage' | 'fixed',
       discountValue: 0,
       taxRate: 7.5,
-      date: new Date()
+      date: new Date(),
+      invoiceId: invoiceData?.id || null
     }
   });
 
@@ -246,6 +247,9 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
       setNotes(invoiceData.notes || "");
       setItems(invoiceData.items || []);
       setPayments(invoiceData.payments || []);
+      
+      // Set the invoice ID in the form for PaymentsSection
+      form.setValue('invoiceId', invoiceData.id);
       initialDataLoaded.current = true;
     }
   }, [invoiceData]);
@@ -470,11 +474,6 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
         const result = await updateInvoiceWithHook(updatedInvoiceData as Invoice);
         
         if (result) {
-          // Update context
-          if (updateInvoiceInContext) {
-            await updateInvoiceInContext(invoiceData.id, updatedInvoiceData);
-          }
-          
           // Reload invoices to ensure data consistency
           if (loadInvoices) {
             await loadInvoices();

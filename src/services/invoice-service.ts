@@ -179,7 +179,7 @@ export const updateInvoiceService = async (invoiceData: Invoice): Promise<Invoic
       }
     }
 
-  // Handle payments with improved logic
+  // Handle payments with proper upsert logic
   if (payments !== undefined) {
     console.log('Processing payments:', payments);
     
@@ -196,11 +196,12 @@ export const updateInvoiceService = async (invoiceData: Invoice): Promise<Invoic
       }
 
       const existingPaymentIds = (existingPayments || []).map(p => p.id);
-      const currentPaymentIds = payments.filter(p => !p.id.startsWith('temp-')).map(p => p.id);
+      const currentPaymentIds = payments.map(p => p.id);
       
       // Delete payments that are no longer in the current list
-      const paymentsToDelete = existingPaymentIds.filter(id => !currentPaymentIds.includes(id));
+      const paymentsToDelete = existingPaymentIds.filter(existingId => !currentPaymentIds.includes(existingId));
       if (paymentsToDelete.length > 0) {
+        console.log('Deleting removed payments:', paymentsToDelete);
         const { error: deleteError } = await supabase
           .from('payments')
           .delete()
@@ -212,47 +213,47 @@ export const updateInvoiceService = async (invoiceData: Invoice): Promise<Invoic
         }
       }
 
-      // Insert new payments (with temp IDs)
-      const newPayments = payments.filter(p => p.id.startsWith('temp-'));
-      if (newPayments.length > 0) {
-        const paymentsToInsert = newPayments.map(payment => ({
-          id: crypto.randomUUID(),
-          invoice_id: id,
-          amount: payment.amount,
-          method: payment.method,
-          date: payment.date,
-          notes: payment.notes || '',
-          organization_id: invoiceResult.organization_id
-        }));
+      // Process each payment - insert if new, update if existing
+      for (const payment of payments) {
+        const isExisting = existingPaymentIds.includes(payment.id);
+        
+        if (isExisting) {
+          // Update existing payment
+          const { error: updateError } = await supabase
+            .from('payments')
+            .update({
+              amount: payment.amount,
+              method: payment.method,
+              date: payment.date,
+              notes: payment.notes || '',
+              organization_id: invoiceResult.organization_id
+            })
+            .eq('id', payment.id);
 
-        console.log('Inserting new payments:', paymentsToInsert);
+          if (updateError) {
+            console.error('Error updating payment:', updateError);
+            throw new Error(`Failed to update payment: ${updateError.message}`);
+          }
+          console.log('Updated existing payment:', payment.id);
+        } else {
+          // Insert new payment (with proper UUID already generated)
+          const { error: insertError } = await supabase
+            .from('payments')
+            .insert({
+              id: payment.id, // Use the UUID generated on frontend
+              invoice_id: id,
+              amount: payment.amount,
+              method: payment.method,
+              date: payment.date,
+              notes: payment.notes || '',
+              organization_id: invoiceResult.organization_id
+            });
 
-        const { error: insertError } = await supabase
-          .from('payments')
-          .insert(paymentsToInsert);
-
-        if (insertError) {
-          console.error('Error inserting new payments:', insertError);
-          throw new Error(`Failed to insert payments: ${insertError.message}`);
-        }
-      }
-
-      // Update existing payments (if any modifications were made)
-      const existingPaymentsToUpdate = payments.filter(p => !p.id.startsWith('temp-') && currentPaymentIds.includes(p.id));
-      for (const payment of existingPaymentsToUpdate) {
-        const { error: updateError } = await supabase
-          .from('payments')
-          .update({
-            amount: payment.amount,
-            method: payment.method,
-            date: payment.date,
-            notes: payment.notes || ''
-          })
-          .eq('id', payment.id);
-
-        if (updateError) {
-          console.error('Error updating payment:', updateError);
-          throw new Error(`Failed to update payment: ${updateError.message}`);
+          if (insertError) {
+            console.error('Error inserting new payment:', insertError);
+            throw new Error(`Failed to insert payment: ${insertError.message}`);
+          }
+          console.log('Inserted new payment:', payment.id);
         }
       }
     } catch (paymentError) {
