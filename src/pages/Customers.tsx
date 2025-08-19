@@ -422,42 +422,42 @@ const Customers = () => {
                 {showVehicleFields && (
                   <div className="space-y-4 pl-4 border-l-2 border-primary/20">
                     <div className="grid grid-cols-2 gap-4">
-                      <FormField control={form.control} name="vehicle.make" render={({
-                        field
-                      }) => <FormItem>
-                                <FormLabel>Make *</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="Toyota" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>} />
+                       <FormField control={form.control} name="vehicle.make" render={({
+                         field
+                       }) => <FormItem>
+                                 <FormLabel>{showVehicleFields ? "Make *" : "Make"}</FormLabel>
+                                 <FormControl>
+                                   <Input placeholder="Toyota" {...field} />
+                                 </FormControl>
+                                 <FormMessage />
+                               </FormItem>} />
 
-                      <FormField control={form.control} name="vehicle.model" render={({
-                        field
-                      }) => <FormItem>
-                                <FormLabel>Model *</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="Camry" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>} />
-                    </div>
+                       <FormField control={form.control} name="vehicle.model" render={({
+                         field
+                       }) => <FormItem>
+                                 <FormLabel>{showVehicleFields ? "Model *" : "Model"}</FormLabel>
+                                 <FormControl>
+                                   <Input placeholder="Camry" {...field} />
+                                 </FormControl>
+                                 <FormMessage />
+                               </FormItem>} />
+                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormField control={form.control} name="vehicle.year" render={({
-                        field
-                      }) => <FormItem>
-                                <FormLabel>Year *</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="2023" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>} />
+                     <div className="grid grid-cols-2 gap-4">
+                       <FormField control={form.control} name="vehicle.year" render={({
+                         field
+                       }) => <FormItem>
+                                 <FormLabel>{showVehicleFields ? "Year *" : "Year"}</FormLabel>
+                                 <FormControl>
+                                   <Input placeholder="2023" {...field} />
+                                 </FormControl>
+                                 <FormMessage />
+                               </FormItem>} />
 
-                      <FormField control={form.control} name="vehicle.license_plate" render={({
-                        field
-                      }) => <FormItem>
-                                <FormLabel>License Plate *</FormLabel>
+                       <FormField control={form.control} name="vehicle.license_plate" render={({
+                         field
+                       }) => <FormItem>
+                                 <FormLabel>{showVehicleFields ? "License Plate *" : "License Plate"}</FormLabel>
                                 <FormControl>
                                   <Input placeholder="ABC-123" {...field} />
                                 </FormControl>
