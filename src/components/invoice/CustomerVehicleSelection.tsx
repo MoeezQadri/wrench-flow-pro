@@ -120,6 +120,10 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
     return null;
   };
   const vehicleDisplayText = getVehicleDisplayText();
+
+  // Only use selectedVehicleId as value if it exists in the vehicles array
+  // This ensures the Select component only highlights when the option is actually available
+  const validSelectedVehicleId = vehicles.find(v => v.id === selectedVehicleId) ? selectedVehicleId : "";
   return <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div>
         <div className="flex justify-between items-center mb-2 min-h-[32px]">
@@ -154,7 +158,7 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
               </Link>}
           </div>
         </div>
-        <Select value={selectedVehicleId} onValueChange={onVehicleIdChange} required={vehicles.length > 0} disabled={!selectedCustomerId || isLoadingVehicles}>
+        <Select value={validSelectedVehicleId} onValueChange={onVehicleIdChange} required={vehicles.length > 0} disabled={!selectedCustomerId || isLoadingVehicles}>
           <SelectTrigger id="vehicle">
             <SelectValue placeholder={!selectedCustomerId ? "Select a customer first" : isLoadingVehicles ? "Loading vehicles..." : "Select a vehicle"}>
               {vehicleDisplayText}
