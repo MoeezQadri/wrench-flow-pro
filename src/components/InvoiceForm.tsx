@@ -23,6 +23,7 @@ import { useDataContext } from "@/context/data/DataContext";
 import { getAssignedPartsForInvoice, getAssignedTasksForInvoice } from "@/services/supabase-service";
 import { updateInvoiceService } from "@/services/invoice-service";
 import { createTestCustomers } from "@/utils/test-data-helper";
+import { useInvoiceEdit } from "@/hooks/useInvoiceEdit";
 
 interface InvoiceFormProps {
   isEditing?: boolean;
@@ -52,6 +53,9 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
   
   // Add a ref to track if initial data has been loaded to prevent conflicts
   const initialDataLoaded = useRef(false);
+  
+  // Use dedicated hook for invoice editing
+  const { updateInvoice: updateInvoiceWithHook, isSubmitting: isInvoiceSubmitting } = useInvoiceEdit();
 
   // Initialize react-hook-form with proper default values
   const form = useForm({
@@ -427,25 +431,17 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     console.log("Main form submission started - handleSubmit called");
-    console.log("Form submit event:", e);
-    console.log("Current date value:", date);
-    console.log("Date type:", typeof date);
-    console.log("Current payments:", payments);
-    console.log("Form data:", {
-      customerId: selectedCustomerId,
-      vehicleId: selectedVehicleId,
-      date,
-      status,
-      taxRate,
-      items: items.length,
-      payments: payments.length,
-      isEditing
-    });
-
-    // Validate form
+    
+    // Validate form first
     if (!validateForm()) {
       console.log("Form validation failed:", formErrors);
       toast.error("Please fix the form errors before submitting");
+      return;
+    }
+
+    // Prevent duplicate submissions
+    if (isSubmitting || isInvoiceSubmitting) {
+      console.log("Form is already being submitted, ignoring duplicate submission");
       return;
     }
 
@@ -455,16 +451,11 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
       if (isEditing && invoiceData) {
         console.log("Updating existing invoice:", invoiceData.id);
         
-        // Ensure date is in proper format for backend
-        const formattedDate = date;
-        console.log("Date being sent to backend:", formattedDate);
-        console.log("Payments being sent to backend:", payments);
-        
         const updatedInvoiceData = {
           id: invoiceData.id,
           customer_id: selectedCustomerId,
           vehicle_id: selectedVehicleId,
-          date: formattedDate,
+          date: date,
           status: status,
           tax_rate: taxRate,
           discount_type: discountType,
@@ -474,18 +465,24 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
           payments: payments
         };
 
-        console.log("Calling updateInvoiceService with:", updatedInvoiceData);
-        const result = await updateInvoiceService(updatedInvoiceData as Invoice);
-        console.log("Update invoice result:", result);
+        console.log("Calling updateInvoiceWithHook with:", updatedInvoiceData);
         
-        // Reload invoices to ensure data consistency
-        if (loadInvoices) {
-          await loadInvoices();
+        const result = await updateInvoiceWithHook(updatedInvoiceData as Invoice);
+        
+        if (result) {
+          // Update context
+          if (updateInvoiceInContext) {
+            await updateInvoiceInContext(invoiceData.id, updatedInvoiceData);
+          }
+          
+          // Reload invoices to ensure data consistency
+          if (loadInvoices) {
+            await loadInvoices();
+          }
+          
+          console.log("Invoice updated successfully, navigating to invoices page");
+          navigate("/invoices");
         }
-        
-        toast.success("Invoice updated successfully!");
-        console.log("Invoice updated successfully, navigating to invoices page");
-        navigate("/invoices");
       } else {
         console.log("Creating new invoice");
         console.log("Items before sending:", items);
@@ -766,9 +763,9 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
           <Button 
             type="submit" 
             className="w-full" 
-            disabled={isSubmitting}
+            disabled={isSubmitting || isInvoiceSubmitting}
           >
-            {isSubmitting ? "Saving..." : (isEditing ? "Update Invoice" : "Create Invoice")}
+            {isSubmitting || isInvoiceSubmitting ? "Saving..." : (isEditing ? "Update Invoice" : "Create Invoice")}
           </Button>
         </form>
       </div>
