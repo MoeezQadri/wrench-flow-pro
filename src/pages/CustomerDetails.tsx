@@ -1,24 +1,27 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Customer, Vehicle } from '@/types';
+import { Customer, Vehicle, Invoice } from '@/types';
+import { calculateInvoiceTotal } from '@/services/data-service';
 import { useDataContext } from '@/context/data/DataContext';
 import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Car, Phone, Mail, MapPin, Calendar, DollarSign, ArrowLeft } from 'lucide-react';
+import { Car, Phone, Mail, MapPin, Calendar, DollarSign, ArrowLeft, FileText, Eye } from 'lucide-react';
 
 const CustomerDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { formatCurrency } = useOrganizationSettings();
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const {
     getCustomerById,
-    getVehiclesByCustomerId
+    getVehiclesByCustomerId,
+    invoices: allInvoices
   } = useDataContext();
 
   useEffect(() => {
@@ -32,6 +35,10 @@ const CustomerDetails: React.FC = () => {
           ]);
           setCustomer(customerData);
           setVehicles(vehicleData);
+          
+          // Filter invoices for this customer
+          const customerInvoices = allInvoices.filter(invoice => invoice.customer_id === id);
+          setInvoices(customerInvoices);
         } catch (error) {
           console.error('Error loading customer data:', error);
         }
@@ -40,7 +47,7 @@ const CustomerDetails: React.FC = () => {
     };
 
     loadCustomerData();
-  }, [id, getCustomerById, getVehiclesByCustomerId]);
+  }, [id, getCustomerById, getVehiclesByCustomerId, allInvoices]);
 
   if (loading) {
     return (
@@ -186,16 +193,82 @@ const CustomerDetails: React.FC = () => {
                             <span className="font-mono text-xs">{vehicle.vin}</span>
                           </div>
                         )}
-                        
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Added:</span>
-                          <span>{new Date(vehicle.created_at).toLocaleDateString()}</span>
-                        </div>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
               ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Invoices Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            Invoices ({invoices.length})
+          </CardTitle>
+          <CardDescription>
+            All invoices for this customer
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {invoices.length === 0 ? (
+            <div className="text-center py-8">
+              <FileText className="mx-auto h-12 w-12 text-muted-foreground/60" />
+              <h3 className="mt-4 text-lg font-medium">No invoices found</h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                This customer doesn't have any invoices yet.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {invoices.map((invoice) => {
+                const { total } = calculateInvoiceTotal(invoice);
+                return (
+                  <Card key={invoice.id} className="border-border/50">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-semibold">
+                              Invoice #{invoice.id.slice(0, 8)}
+                            </h4>
+                            <Badge variant={
+                              invoice.status === 'paid' ? 'default' : 
+                              invoice.status === 'overdue' ? 'destructive' : 
+                              'secondary'
+                            }>
+                              {invoice.status}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                            <span>
+                              {new Date(invoice.date).toLocaleDateString()}
+                            </span>
+                            <span className="font-semibold text-foreground">
+                              {formatCurrency(total)}
+                            </span>
+                          </div>
+                          {invoice.notes && (
+                            <p className="text-sm text-muted-foreground">
+                              {invoice.notes}
+                            </p>
+                          )}
+                        </div>
+                        <Button variant="outline" size="sm" asChild>
+                          <Link to={`/invoices/${invoice.id}`}>
+                            <Eye className="mr-2 h-4 w-4" />
+                            View
+                          </Link>
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           )}
         </CardContent>
