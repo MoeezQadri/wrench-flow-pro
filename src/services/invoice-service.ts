@@ -213,21 +213,40 @@ export const updateInvoiceService = async (invoiceData: Invoice): Promise<Invoic
         }
       }
 
-      // Process each payment - insert if new, update if existing
+      // Process each payment - insert if new, update if existing with validation/normalization
       for (const payment of payments) {
+        const amountNumber = typeof (payment as any).amount === 'string'
+          ? parseFloat((payment as any).amount as unknown as string)
+          : (payment as any).amount;
+
+        if (!Number.isFinite(amountNumber)) {
+          console.error('Invalid payment amount detected:', payment);
+          throw new Error(`Invalid payment amount for payment ${payment.id || '(new)'}`);
+        }
+
+        let dateIso: string;
+        try {
+          // Normalize date to ISO string
+          dateIso = payment.date ? new Date(payment.date).toISOString() : new Date().toISOString();
+        } catch {
+          dateIso = new Date().toISOString();
+        }
+
+        const method = payment.method || 'cash';
+
+        const basePayload = {
+          amount: amountNumber,
+          method,
+          date: dateIso,
+          notes: payment.notes || '',
+          organization_id: invoiceResult.organization_id
+        };
+
         const isExisting = existingPaymentIds.includes(payment.id);
-        
         if (isExisting) {
-          // Update existing payment
           const { error: updateError } = await supabase
             .from('payments')
-            .update({
-              amount: payment.amount,
-              method: payment.method,
-              date: payment.date,
-              notes: payment.notes || '',
-              organization_id: invoiceResult.organization_id
-            })
+            .update(basePayload)
             .eq('id', payment.id);
 
           if (updateError) {
@@ -236,17 +255,12 @@ export const updateInvoiceService = async (invoiceData: Invoice): Promise<Invoic
           }
           console.log('Updated existing payment:', payment.id);
         } else {
-          // Insert new payment (with proper UUID already generated)
           const { error: insertError } = await supabase
             .from('payments')
             .insert({
-              id: payment.id, // Use the UUID generated on frontend
+              id: payment.id || crypto.randomUUID(),
               invoice_id: id,
-              amount: payment.amount,
-              method: payment.method,
-              date: payment.date,
-              notes: payment.notes || '',
-              organization_id: invoiceResult.organization_id
+              ...basePayload,
             });
 
           if (insertError) {

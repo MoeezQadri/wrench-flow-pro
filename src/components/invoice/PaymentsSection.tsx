@@ -62,7 +62,7 @@ const PaymentsSection = ({
       invoice_id: isEditing ? invoiceId : "", // Set invoice_id immediately if editing
       amount: amountAsNumber,
       method: newPaymentMethod,
-      date: format(new Date(), "yyyy-MM-dd"),
+      date: new Date().toISOString(),
       notes: newPaymentNotes,
     };
 
