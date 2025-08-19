@@ -54,11 +54,24 @@ const vehicleSchema = z.object({
   color: z.string().optional()
 });
 
-// Combined schema for customer with vehicle
+// Combined schema for customer with vehicle - conditional validation
 const formSchema = z.object({
   customer: customerSchema,
   addVehicle: z.boolean().default(false),
   vehicle: vehicleSchema.optional()
+}).refine((data) => {
+  // If addVehicle is checked, vehicle fields must be filled
+  if (data.addVehicle) {
+    return data.vehicle && 
+           data.vehicle.make && 
+           data.vehicle.model && 
+           data.vehicle.year && 
+           data.vehicle.license_plate;
+  }
+  return true;
+}, {
+  message: "Vehicle information is required when 'Add vehicle information' is checked",
+  path: ["vehicle"]
 });
 
 // Define type for form values ensuring all fields are required
