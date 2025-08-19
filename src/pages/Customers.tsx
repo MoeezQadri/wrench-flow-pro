@@ -323,139 +323,159 @@ const Customers = () => {
           </DialogHeader>
 
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <Tabs defaultValue="customer" className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="customer">Customer Info</TabsTrigger>
-                  <TabsTrigger value="vehicle">Vehicle Info</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="customer" className="space-y-4 mt-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              {/* Customer Information Section */}
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-lg font-medium">Customer Information</h3>
+                  <p className="text-sm text-muted-foreground">Required fields to create the customer</p>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
                   <FormField control={form.control} name="customer.name" render={({
-                  field
-                }) => <FormItem>
-                        <FormLabel>Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="John Doe" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>} />
+                    field
+                  }) => <FormItem>
+                          <FormLabel>Name *</FormLabel>
+                          <FormControl>
+                            <Input placeholder="John Doe" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>} />
 
-                  <FormField control={form.control} name="customer.email" render={({
-                  field
-                }) => <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input placeholder="customer@example.com" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>} />
+                    <FormField control={form.control} name="customer.email" render={({
+                    field
+                  }) => <FormItem>
+                          <FormLabel>Email *</FormLabel>
+                          <FormControl>
+                            <Input placeholder="customer@example.com" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>} />
+                </div>
 
+                <div className="grid grid-cols-2 gap-4">
                   <FormField control={form.control} name="customer.phone" render={({
-                  field
-                }) => <FormItem>
-                        <FormLabel>Phone</FormLabel>
-                        <FormControl>
-                          <Input placeholder="555-123-4567" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>} />
+                    field
+                  }) => <FormItem>
+                          <FormLabel>Phone *</FormLabel>
+                          <FormControl>
+                            <Input placeholder="555-123-4567" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>} />
 
-                  <FormField control={form.control} name="customer.address" render={({
-                  field
-                }) => <FormItem>
-                        <FormLabel>Address</FormLabel>
-                        <FormControl>
-                          <Textarea placeholder="123 Main St, Anytown" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>} />
-                </TabsContent>
+                    <FormField control={form.control} name="customer.address" render={({
+                    field
+                  }) => <FormItem>
+                          <FormLabel>Address *</FormLabel>
+                          <FormControl>
+                            <Textarea placeholder="123 Main St, Anytown" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>} />
+                </div>
+              </div>
 
-                <TabsContent value="vehicle" className="space-y-4 mt-4">
-                  <FormField control={form.control} name="addVehicle" render={({
+              <Separator />
+
+              {/* Vehicle Information Section */}
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-lg font-medium">Vehicle Information</h3>
+                  <p className="text-sm text-muted-foreground">Optional - You can add vehicle details now or later</p>
+                </div>
+
+                <FormField control={form.control} name="addVehicle" render={({
                   field
-                }) => <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                }) => <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-lg border p-4 bg-muted/30">
                         <FormControl>
-                          <input type="checkbox" checked={field.value} onChange={field.onChange} className="h-4 w-4 mt-1" />
+                          <input 
+                            type="checkbox" 
+                            checked={field.value} 
+                            onChange={field.onChange} 
+                            className="h-5 w-5 mt-0.5 rounded border-2 border-primary text-primary focus:ring-primary" 
+                          />
                         </FormControl>
                         <div className="space-y-1 leading-none">
-                          <FormLabel>Add a vehicle for this customer</FormLabel>
+                          <FormLabel className="text-base font-medium cursor-pointer">
+                            Add vehicle information (Optional)
+                          </FormLabel>
                           <p className="text-sm text-muted-foreground">
-                            Check this box to add vehicle information
+                            You can skip this and add vehicle details later from the customer's profile
                           </p>
                         </div>
                       </FormItem>} />
 
-                  {showVehicleFields && <>
-                      <div className="grid grid-cols-2 gap-4">
-                        <FormField control={form.control} name="vehicle.make" render={({
-                      field
-                    }) => <FormItem>
-                              <FormLabel>Make</FormLabel>
-                              <FormControl>
-                                <Input placeholder="Toyota" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>} />
+                {showVehicleFields && (
+                  <div className="space-y-4 pl-4 border-l-2 border-primary/20">
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField control={form.control} name="vehicle.make" render={({
+                        field
+                      }) => <FormItem>
+                                <FormLabel>Make *</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="Toyota" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>} />
 
-                        <FormField control={form.control} name="vehicle.model" render={({
-                      field
-                    }) => <FormItem>
-                              <FormLabel>Model</FormLabel>
-                              <FormControl>
-                                <Input placeholder="Camry" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>} />
-                      </div>
+                      <FormField control={form.control} name="vehicle.model" render={({
+                        field
+                      }) => <FormItem>
+                                <FormLabel>Model *</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="Camry" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>} />
+                    </div>
 
-                      <div className="grid grid-cols-2 gap-4">
-                        <FormField control={form.control} name="vehicle.year" render={({
-                      field
-                    }) => <FormItem>
-                              <FormLabel>Year</FormLabel>
-                              <FormControl>
-                                <Input placeholder="2023" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>} />
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField control={form.control} name="vehicle.year" render={({
+                        field
+                      }) => <FormItem>
+                                <FormLabel>Year *</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="2023" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>} />
 
-                        <FormField control={form.control} name="vehicle.license_plate" render={({
-                      field
-                    }) => <FormItem>
-                              <FormLabel>License Plate</FormLabel>
-                              <FormControl>
-                                <Input placeholder="ABC-123" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>} />
-                      </div>
+                      <FormField control={form.control} name="vehicle.license_plate" render={({
+                        field
+                      }) => <FormItem>
+                                <FormLabel>License Plate *</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="ABC-123" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>} />
+                    </div>
 
-                      <div className="grid grid-cols-2 gap-4">
-                        <FormField control={form.control} name="vehicle.vin" render={({
-                      field
-                    }) => <FormItem>
-                              <FormLabel>VIN (Optional)</FormLabel>
-                              <FormControl>
-                                <Input placeholder="1HGBH41JXMN109186" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>} />
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField control={form.control} name="vehicle.vin" render={({
+                        field
+                      }) => <FormItem>
+                                <FormLabel>VIN (Optional)</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="1HGBH41JXMN109186" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>} />
 
-                        <FormField control={form.control} name="vehicle.color" render={({
-                      field
-                    }) => <FormItem>
-                              <FormLabel>Color (Optional)</FormLabel>
-                              <FormControl>
-                                <Input placeholder="Silver" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>} />
-                      </div>
-                    </>}
-                </TabsContent>
-              </Tabs>
+                      <FormField control={form.control} name="vehicle.color" render={({
+                        field
+                      }) => <FormItem>
+                                <FormLabel>Color (Optional)</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="Silver" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>} />
+                    </div>
+                  </div>
+                )}
+              </div>
 
               <DialogFooter className="mt-6">
                 <DialogClose asChild>
