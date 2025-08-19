@@ -162,9 +162,7 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
         </div>
         <Select value={validSelectedVehicleId} onValueChange={onVehicleIdChange} required={vehicles.length > 0} disabled={!selectedCustomerId || isLoadingVehicles}>
           <SelectTrigger id="vehicle">
-            <SelectValue placeholder={!selectedCustomerId ? "Select a customer first" : isLoadingVehicles ? "Loading vehicles..." : "Select a vehicle"}>
-              {vehicleDisplayText}
-            </SelectValue>
+            <SelectValue placeholder={!selectedCustomerId ? "Select a customer first" : isLoadingVehicles ? "Loading vehicles..." : "Select a vehicle"} />
           </SelectTrigger>
           <SelectContent>
             {vehicles.length === 0 ? <SelectItem value="no-vehicles" disabled>
