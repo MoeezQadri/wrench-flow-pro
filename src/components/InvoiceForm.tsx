@@ -469,6 +469,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
           payments: payments
         };
 
+        console.log("Payments before update - count:", payments?.length, "total amount:", (payments || []).reduce((s,p)=>s + (typeof p.amount==='string'?parseFloat((p as any).amount): (p as any).amount || 0),0));
         console.log("Calling updateInvoiceWithHook with:", updatedInvoiceData);
         
         const result = await updateInvoiceWithHook(updatedInvoiceData as Invoice);

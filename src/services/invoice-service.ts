@@ -195,6 +195,8 @@ export const updateInvoiceService = async (invoiceData: Invoice): Promise<Invoic
         throw new Error(`Failed to fetch existing payments: ${fetchError.message}`);
       }
 
+      console.log('Existing payments fetched:', (existingPayments || []).length, existingPayments);
+
       const existingPaymentIds = (existingPayments || []).map(p => p.id);
       const currentPaymentIds = payments.map(p => p.id);
       

@@ -193,7 +193,7 @@ const PaymentsSection = ({
           <TableBody>
             {payments.map((payment) => (
               <TableRow key={payment.id}>
-                <TableCell>{payment.date}</TableCell>
+                <TableCell>{(() => { try { return new Date(payment.date).toLocaleString(); } catch { return String(payment.date); } })()}</TableCell>
                 <TableCell>{formatCurrency(payment.amount)}</TableCell>
                 <TableCell>
                   {payment.method === "cash" ? "Cash" : 
