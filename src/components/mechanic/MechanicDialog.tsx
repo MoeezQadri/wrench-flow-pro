@@ -56,6 +56,7 @@ const mechanicSchema = z.object({
 });
 
 const MechanicDialog: React.FC<MechanicDialogProps> = ({ open, onOpenChange, mechanic, onSave }) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const {
     addMechanic, updateMechanic
   } = useDataContext();
@@ -86,6 +87,9 @@ const MechanicDialog: React.FC<MechanicDialogProps> = ({ open, onOpenChange, mec
   }, [mechanic, form]);
 
   const handleSubmit = async (data: MechanicFormValues) => {
+    if (isSubmitting) return;
+    
+    setIsSubmitting(true);
     try {
       const mechanicData: Omit<Mechanic, 'id'> = {
         name: data.name,
@@ -112,6 +116,8 @@ const MechanicDialog: React.FC<MechanicDialogProps> = ({ open, onOpenChange, mec
     } catch (error) {
       console.error("Error adding/updating mechanic:", error);
       toast.error("Failed to save mechanic. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -230,8 +236,11 @@ const MechanicDialog: React.FC<MechanicDialogProps> = ({ open, onOpenChange, mec
               <Button variant="outline" type="button" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button type="submit">
-                {mechanic ? "Update Mechanic" : "Add Mechanic"}
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting 
+                  ? (mechanic ? "Updating..." : "Adding...") 
+                  : (mechanic ? "Update Mechanic" : "Add Mechanic")
+                }
               </Button>
             </DialogFooter>
           </form>
