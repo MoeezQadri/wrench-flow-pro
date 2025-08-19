@@ -107,14 +107,15 @@ export const useMechanics = () => {
 
     const loadMechanics = async () => {
         try {
-            const query = supabase.from('mechanics').select('*');
-            const { data: mechanicsData, error: mechanicsError } = await applyOrganizationFilter(query);
+            const baseQuery = supabase.from('mechanics').select('*');
+            const filteredQuery = applyOrganizationFilter(baseQuery);
+            const { data: mechanicsData, error: mechanicsError } = await filteredQuery;
             if (mechanicsError) {
                 console.error('Error fetching mechanics:', mechanicsError);
                 toast.error('Failed to load mechanics');
-            } else {
-                setMechanics(mechanicsData || []);
+                return;
             }
+            setMechanics(mechanicsData ?? []);
         } catch (error) {
             console.error('Error fetching mechanics:', error);
             toast.error('Failed to load mechanics');
