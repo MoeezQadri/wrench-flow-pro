@@ -83,7 +83,7 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
       }
     };
     loadVehicles();
-  }, [selectedCustomerId, selectedVehicleId, getVehiclesByCustomerId, isEditing, vehicles]);
+  }, [selectedCustomerId, selectedVehicleId, getVehiclesByCustomerId, isEditing]);
   const handleRefreshCustomers = async () => {
     setIsLoadingCustomers(true);
     try {
