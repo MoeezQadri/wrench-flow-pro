@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, BarChart, MoreHorizontal, Edit, Archive, ArchiveRestore, Trash2, Filter } from "lucide-react";
+import { Plus, BarChart, MoreHorizontal, Edit, Archive, ArchiveRestore, Users } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,16 +33,13 @@ const Mechanics = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedMechanic, setSelectedMechanic] = useState<Mechanic | null>(null);
   const [showActiveOnly, setShowActiveOnly] = useState(true);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
-  const [mechanicToDelete, setMechanicToDelete] = useState<Mechanic | null>(null);
   const [mechanicToArchive, setMechanicToArchive] = useState<Mechanic | null>(null);
   const navigate = useNavigate();
   const {
     mechanics,
     addMechanic,
     updateMechanic,
-    removeMechanic,
   } = useDataContext();
   const { currentUser } = useAuthContext();
   const userCanManageMechanics = canManageMechanics(currentUser);
@@ -90,17 +87,14 @@ const Mechanics = () => {
     setArchiveDialogOpen(true);
   };
 
-  const handleDeleteMechanic = (mechanic: Mechanic) => {
-    setMechanicToDelete(mechanic);
-    setDeleteDialogOpen(true);
-  };
 
   const confirmArchive = async () => {
     if (!mechanicToArchive) return;
     
     try {
+      const { id, ...mechanicData } = mechanicToArchive;
       await updateMechanic(mechanicToArchive.id, {
-        ...mechanicToArchive,
+        ...mechanicData,
         is_active: !mechanicToArchive.is_active
       });
       toast.success(
@@ -116,19 +110,6 @@ const Mechanics = () => {
     }
   };
 
-  const confirmDelete = async () => {
-    if (!mechanicToDelete) return;
-    
-    try {
-      await removeMechanic(mechanicToDelete.id);
-      toast.success("Mechanic deleted permanently");
-    } catch (error) {
-      toast.error("Failed to delete mechanic");
-    } finally {
-      setDeleteDialogOpen(false);
-      setMechanicToDelete(null);
-    }
-  };
 
   return (
     <div className="space-y-6">
@@ -146,8 +127,8 @@ const Mechanics = () => {
             onClick={() => setShowActiveOnly(!showActiveOnly)}
             className="flex items-center gap-2"
           >
-            <Filter className="h-4 w-4" />
-            {showActiveOnly ? "Show All" : "Show Active Only"}
+            <Users className="h-4 w-4" />
+            {showActiveOnly ? "Active Mechanics" : "All Mechanics"}
           </Button>
           {userCanManageMechanics && (
             <Button onClick={handleAddMechanic}>
@@ -195,13 +176,6 @@ const Mechanics = () => {
                               Restore
                             </>
                           )}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={() => handleDeleteMechanic(mechanic)}
-                          className="text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Delete Permanently
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -302,27 +276,6 @@ const Mechanics = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Mechanic Permanently</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to permanently delete "{mechanicToDelete?.name}"? 
-              This action cannot be undone and will remove all their data from the system.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={confirmDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Delete Permanently
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 };
