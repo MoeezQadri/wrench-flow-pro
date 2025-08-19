@@ -126,6 +126,36 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
   const validSelectedVehicleId = isEditing && vehicleInfo && selectedVehicleId 
     ? selectedVehicleId 
     : vehicles.find(v => v.id === selectedVehicleId) ? selectedVehicleId : "";
+  if (isEditing) {
+    // Find customer name from customers array
+    const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
+    const customerName = selectedCustomer?.name || "Loading customer...";
+
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label className="text-sm font-medium text-muted-foreground">Customer</Label>
+          <div className="mt-2 p-3 border rounded-md bg-muted/50">
+            <p className="font-medium">{customerName}</p>
+          </div>
+        </div>
+
+        <div>
+          <Label className="text-sm font-medium text-muted-foreground">Vehicle</Label>
+          <div className="mt-2 p-3 border rounded-md bg-muted/50">
+            {vehicleInfo ? (
+              <p className="font-medium">
+                {vehicleInfo.year} {vehicleInfo.make} {vehicleInfo.model} ({vehicleInfo.license_plate})
+              </p>
+            ) : (
+              <p className="font-medium text-muted-foreground">Loading vehicle...</p>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div>
         <div className="flex justify-between items-center mb-2 min-h-[32px]">
