@@ -22,9 +22,10 @@ import { deduplicateItems, mergeItemQuantities } from "./invoice/InvoiceItemDedu
 import { toast } from "sonner";
 import { useDataContext } from "@/context/data/DataContext";
 import { getAssignedPartsForInvoice, getAssignedTasksForInvoice } from "@/services/supabase-service";
-import { updateInvoiceService } from "@/services/invoice-service";
+import { createInvoiceOptimized } from "@/services/optimized-invoice-service";
 import { createTestCustomers } from "@/utils/test-data-helper";
-import { useInvoiceEdit } from "@/hooks/useInvoiceEdit";
+import { useOptimizedInvoiceEdit } from "@/hooks/useOptimizedInvoiceEdit";
+import { useSmartDataLoading } from "@/hooks/useSmartDataLoading";
 
 interface InvoiceFormProps {
   isEditing?: boolean;
@@ -55,8 +56,9 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
   // Add a ref to track if initial data has been loaded to prevent conflicts
   const initialDataLoaded = useRef(false);
   
-  // Use dedicated hook for invoice editing
-  const { updateInvoice: updateInvoiceWithHook, isSubmitting: isInvoiceSubmitting } = useInvoiceEdit();
+  // Use optimized hooks for invoice editing and data loading
+  const { updateInvoice: updateInvoiceWithHook, isSubmitting: isInvoiceSubmitting } = useOptimizedInvoiceEdit();
+  const { smartLoad, isLoaded } = useSmartDataLoading();
 
   // Initialize react-hook-form with proper default values
   const form = useForm({
@@ -95,31 +97,40 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
     });
   }, [mechanics, tasks, parts]);
 
-  // Ensure data is loaded when component mounts
+  // Smart data loading - only load what's needed
   useEffect(() => {
     const loadAllData = async () => {
-      console.log('Loading all data for invoice form...');
+      console.log('Smart loading data for invoice form...');
       try {
-        if (loadMechanics) {
-          console.log('Loading mechanics...');
-          await loadMechanics();
+        const loadPromises = [];
+        
+        if (!isLoaded('mechanics') && loadMechanics) {
+          loadPromises.push(smartLoad('mechanics', loadMechanics));
         }
-        if (loadTasks) {
-          console.log('Loading tasks...');
-          await loadTasks();
+        
+        if (!isLoaded('tasks') && loadTasks) {
+          loadPromises.push(smartLoad('tasks', loadTasks));
         }
-        if (loadParts) {
-          console.log('Loading parts...');
-          await loadParts();
+        
+        if (!isLoaded('parts') && loadParts) {
+          loadPromises.push(smartLoad('parts', loadParts));
         }
-        console.log('Data loading completed');
+        
+        if (loadPromises.length > 0) {
+          console.log('Loading missing data:', loadPromises.length, 'items');
+          await Promise.all(loadPromises);
+        } else {
+          console.log('All data already loaded, skipping');
+        }
+        
+        console.log('Smart data loading completed');
       } catch (error) {
         console.error('Error loading data:', error);
       }
     };
     
     loadAllData();
-  }, [loadMechanics, loadTasks, loadParts]);
+  }, [loadMechanics, loadTasks, loadParts, smartLoad, isLoaded]);
 
   // Fetch parts and tasks - separate workshop parts from invoice-assigned parts
   useEffect(() => {
@@ -467,11 +478,6 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
         const result = await updateInvoiceWithHook(invoiceDataWithoutPayments as Invoice);
         
         if (result) {
-          // Reload invoices to ensure data consistency
-          if (loadInvoices) {
-            await loadInvoices();
-          }
-          
           console.log("Invoice updated successfully, navigating to invoices page");
           navigate("/invoices");
         }
@@ -498,12 +504,8 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
           items: mergedItems
         };
 
-        console.log("Calling addInvoice with:", invoiceCreationData);
-        await addInvoice(invoiceCreationData);
-        
-        if (loadInvoices) {
-          await loadInvoices();
-        }
+        console.log("Calling optimized invoice creation with:", invoiceCreationData);
+        await createInvoiceOptimized(invoiceCreationData);
         
         toast.success("Invoice created successfully!");
         navigate("/invoices");

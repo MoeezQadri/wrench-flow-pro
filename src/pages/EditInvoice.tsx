@@ -7,6 +7,7 @@ import InvoiceForm from "@/components/InvoiceForm";
 import { toast } from "sonner";
 import { Invoice } from "@/types";
 import { useDataContext } from "@/context/data/DataContext";
+import { useSmartDataLoading } from "@/hooks/useSmartDataLoading";
 
 const EditInvoice = () => {
   const { id } = useParams<{ id: string }>();
@@ -14,6 +15,7 @@ const EditInvoice = () => {
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
   const { getInvoiceById, loadInvoices, loadCustomers } = useDataContext();
+  const { smartLoad, isLoaded } = useSmartDataLoading();
 
   useEffect(() => {
     const fetchInvoice = async () => {
@@ -21,13 +23,22 @@ const EditInvoice = () => {
         try {
           console.log("Fetching invoice with ID:", id);
           
-          // Load data only if not already loaded to prevent redundant calls
+          // Smart load only necessary data - don't reload if already loaded
           const loadPromises = [];
-          if (loadInvoices) loadPromises.push(loadInvoices());
-          if (loadCustomers) loadPromises.push(loadCustomers());
+          
+          if (!isLoaded('invoices') && loadInvoices) {
+            loadPromises.push(smartLoad('invoices', loadInvoices));
+          }
+          
+          if (!isLoaded('customers') && loadCustomers) {
+            loadPromises.push(smartLoad('customers', loadCustomers));
+          }
           
           if (loadPromises.length > 0) {
+            console.log('Loading missing data:', loadPromises.length, 'items');
             await Promise.all(loadPromises);
+          } else {
+            console.log('All required data already loaded, skipping data fetch');
           }
           
           // Find the invoice in the context invoices array
@@ -72,7 +83,7 @@ const EditInvoice = () => {
     };
 
     fetchInvoice();
-  }, [id, navigate, getInvoiceById, loadInvoices, loadCustomers]);
+  }, [id, navigate, getInvoiceById, loadInvoices, loadCustomers, smartLoad, isLoaded]);
 
   if (loading) {
     return <div className="p-6">Loading invoice...</div>;

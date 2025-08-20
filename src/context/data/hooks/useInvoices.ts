@@ -3,7 +3,7 @@ import { useState } from 'react';
 import type { Invoice } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { createInvoice, updateInvoiceService, CreateInvoiceData } from '@/services/invoice-service';
+import { createInvoiceOptimized, updateInvoiceOptimized, CreateInvoiceData } from '@/services/optimized-invoice-service';
 import { useOrganizationAwareQuery } from '@/hooks/useOrganizationAwareQuery';
 
 export const useInvoices = () => {
@@ -13,7 +13,7 @@ export const useInvoices = () => {
     const addInvoice = async (invoiceData: CreateInvoiceData) => {
         try {
             console.log('useInvoices: Creating invoice with data:', invoiceData);
-            const newInvoice = await createInvoice(invoiceData);
+            const newInvoice = await createInvoiceOptimized(invoiceData);
             
             setInvoices((prev) => [...prev, newInvoice]);
             toast.success('Invoice created successfully');
@@ -106,7 +106,7 @@ export const useInvoices = () => {
             console.log('useInvoices: Updating invoice with ID:', id);
             console.log('Updates:', updates);
             
-            const updatedInvoice = await updateInvoiceService(updates as Invoice);
+            const updatedInvoice = await updateInvoiceOptimized(updates as Invoice);
             setInvoices((prev) => prev.map((item) => item.id === id ? updatedInvoice : item));
             toast.success('Invoice updated successfully');
             return updatedInvoice;
