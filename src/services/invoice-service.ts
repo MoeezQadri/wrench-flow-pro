@@ -179,110 +179,15 @@ export const updateInvoiceService = async (invoiceData: Invoice): Promise<Invoic
       }
     }
 
-  // Handle payments with proper upsert logic
-  if (payments !== undefined) {
-    console.log('Processing payments:', payments);
-    
-    try {
-      // Get existing payments for comparison
-      const { data: existingPayments, error: fetchError } = await supabase
-        .from('payments')
-        .select('*')
-        .eq('invoice_id', id);
+    // Note: Payment handling has been moved to dedicated payment service
+    // Payments are now managed separately through usePayments hook and PaymentsSection component
+    console.log('Invoice update complete. Payments are handled separately through payment service.');
 
-      if (fetchError) {
-        console.error('Error fetching existing payments:', fetchError);
-        throw new Error(`Failed to fetch existing payments: ${fetchError.message}`);
-      }
-
-      console.log('Existing payments fetched:', (existingPayments || []).length, existingPayments);
-
-      const existingPaymentIds = (existingPayments || []).map(p => p.id);
-      const currentPaymentIds = payments.map(p => p.id);
-      
-      // Delete payments that are no longer in the current list
-      const paymentsToDelete = existingPaymentIds.filter(existingId => !currentPaymentIds.includes(existingId));
-      if (paymentsToDelete.length > 0) {
-        console.log('Deleting removed payments:', paymentsToDelete);
-        const { error: deleteError } = await supabase
-          .from('payments')
-          .delete()
-          .in('id', paymentsToDelete);
-
-        if (deleteError) {
-          console.error('Error deleting removed payments:', deleteError);
-          throw new Error(`Failed to delete payments: ${deleteError.message}`);
-        }
-      }
-
-      // Process each payment - insert if new, update if existing with validation/normalization
-      for (const payment of payments) {
-        const amountNumber = typeof (payment as any).amount === 'string'
-          ? parseFloat((payment as any).amount as unknown as string)
-          : (payment as any).amount;
-
-        if (!Number.isFinite(amountNumber)) {
-          console.error('Invalid payment amount detected:', payment);
-          throw new Error(`Invalid payment amount for payment ${payment.id || '(new)'}`);
-        }
-
-        let dateIso: string;
-        try {
-          // Normalize date to ISO string
-          dateIso = payment.date ? new Date(payment.date).toISOString() : new Date().toISOString();
-        } catch {
-          dateIso = new Date().toISOString();
-        }
-
-        const method = payment.method || 'cash';
-
-        const basePayload = {
-          amount: amountNumber,
-          method,
-          date: dateIso,
-          notes: payment.notes || '',
-          organization_id: invoiceResult.organization_id
-        };
-
-        const isExisting = existingPaymentIds.includes(payment.id);
-        if (isExisting) {
-          const { error: updateError } = await supabase
-            .from('payments')
-            .update(basePayload)
-            .eq('id', payment.id);
-
-          if (updateError) {
-            console.error('Error updating payment:', updateError);
-            throw new Error(`Failed to update payment: ${updateError.message}`);
-          }
-          console.log('Updated existing payment:', payment.id);
-        } else {
-          const { error: insertError } = await supabase
-            .from('payments')
-            .insert({
-              id: payment.id || crypto.randomUUID(),
-              invoice_id: id,
-              ...basePayload,
-            });
-
-          if (insertError) {
-            console.error('Error inserting new payment:', insertError);
-            throw new Error(`Failed to insert payment: ${insertError.message}`);
-          }
-          console.log('Inserted new payment:', payment.id);
-        }
-      }
-    } catch (paymentError) {
-      console.error('Payment processing failed:', paymentError);
-      throw paymentError;
-    }
-  }
-
-    return {
-      ...invoiceResult,
-      items: items || [],
-      payments: payments || []
-    } as Invoice;
+  return {
+    ...invoiceResult,
+    items: items || [],
+    payments: []  // Payments handled separately now
+  } as Invoice;
 
   } catch (error) {
     console.error('Error updating invoice:', error);

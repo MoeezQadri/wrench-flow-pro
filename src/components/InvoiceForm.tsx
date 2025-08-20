@@ -469,10 +469,12 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
           payments: payments
         };
 
-        console.log("Payments before update - count:", payments?.length, "total amount:", (payments || []).reduce((s,p)=>s + (typeof p.amount==='string'?parseFloat((p as any).amount): (p as any).amount || 0),0));
-        console.log("Calling updateInvoiceWithHook with:", updatedInvoiceData);
+        console.log("INVOICE_FORM: Updating invoice without payments (handled separately)");
         
-        const result = await updateInvoiceWithHook(updatedInvoiceData as Invoice);
+        // Remove payments from invoice data - they're handled separately
+        const { payments: _, ...invoiceDataWithoutPayments } = updatedInvoiceData;
+        
+        const result = await updateInvoiceWithHook(invoiceDataWithoutPayments as Invoice);
         
         if (result) {
           // Reload invoices to ensure data consistency

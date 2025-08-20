@@ -56,9 +56,9 @@ export interface DataContextType {
     loadParts: () => Promise<void>;
 
     payments: Payment[];
-    addPayment: (payment: Payment) => Promise<void>;
-    removePayment: (id: string) => Promise<void>;
-    updatePayment: (id: string, updates: Partial<Payment>) => Promise<void>;
+  addPayment: (paymentData: import('@/services/payment-service').CreatePaymentData) => Promise<Payment>;
+  removePayment: (id: string) => Promise<void>;
+  updatePayment: (updateData: import('@/services/payment-service').UpdatePaymentData) => Promise<Payment>;
 
     attendanceRecords: Attendance[];
     attendanceLoading: boolean;
