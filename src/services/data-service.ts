@@ -11,7 +11,9 @@ export const calculateInvoiceTotal = (invoice: Invoice): { subtotal: number; tax
   const subtotal = invoice.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const tax = subtotal * (invoice.tax_rate / 100);
   const total = subtotal + tax;
-  const paidAmount = 0; // Replace with actual paid amount from payments
+  
+  // Calculate actual paid amount from payments array
+  const paidAmount = invoice.payments?.reduce((sum, payment) => sum + payment.amount, 0) || 0;
   const balanceDue = total - paidAmount;
 
   return { subtotal, tax, total, paidAmount, balanceDue };

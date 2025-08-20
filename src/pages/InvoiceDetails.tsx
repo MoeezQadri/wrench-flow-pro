@@ -235,6 +235,46 @@ const InvoiceDetails: React.FC = () => {
             <p className="text-gray-600">{invoice.notes}</p>
           </div>
         )}
+
+        {/* Payments Section */}
+        {invoice.payments && invoice.payments.length > 0 && (
+          <div className="mb-6">
+            <h3 className="font-medium text-gray-700 mb-3">Payments</h3>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Method</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notes</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {invoice.payments.map((payment, index) => (
+                    <tr key={payment.id || index}>
+                      <td className="px-4 py-2 whitespace-nowrap text-sm">
+                        {new Date(payment.date).toLocaleDateString()}
+                      </td>
+                      <td className="px-4 py-2 whitespace-nowrap text-sm font-medium text-green-600">
+                        {formatCurrency(payment.amount)}
+                      </td>
+                      <td className="px-4 py-2 whitespace-nowrap text-sm capitalize">
+                        {payment.method === "cash" ? "Cash" : 
+                         payment.method === "card" ? "Card" : 
+                         payment.method === "bank_transfer" ? "Bank Transfer" :
+                         payment.method === "check" ? "Check" : payment.method}
+                      </td>
+                      <td className="px-4 py-2 whitespace-nowrap text-sm">
+                        {payment.notes || '-'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

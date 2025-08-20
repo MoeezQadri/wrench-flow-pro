@@ -21,6 +21,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { InvoiceItem, Part, Task } from "@/types";
 import { useDataContext } from "@/context/data/DataContext";
+import { useOrganizationSettings } from "@/hooks/useOrganizationSettings";
 
 interface InvoiceItemFormProps {
   open: boolean;
@@ -67,6 +68,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
   const [skillLevel, setSkillLevel] = useState("standard");
 
   const { mechanics, addPart, addTask } = useDataContext();
+  const { getCurrencySymbol, formatCurrency } = useOrganizationSettings();
 
   // Debug logging for available data
   useEffect(() => {
@@ -299,7 +301,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
                   {availableParts && availableParts.length > 0 ? (
                     availableParts.map((part) => (
                       <SelectItem key={part.id} value={part.id}>
-                        {part.name} - ${part.price.toFixed(2)} (Stock: {part.quantity})
+                        {part.name} - {formatCurrency(part.price)} (Stock: {part.quantity})
                       </SelectItem>
                     ))
                   ) : (
@@ -328,7 +330,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
                   {availableTasks && availableTasks.length > 0 ? (
                     availableTasks.map((task) => (
                       <SelectItem key={task.id} value={task.id}>
-                        {task.title} - ${task.price?.toFixed(2) || '0.00'} ({task.hoursEstimated || 1}h)
+                        {task.title} - {formatCurrency(task.price || 0)} ({task.hoursEstimated || 1}h)
                       </SelectItem>
                     ))
                   ) : (
@@ -371,7 +373,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
               />
             </div>
             <div>
-              <Label htmlFor="price">Unit Price ($) *</Label>
+              <Label htmlFor="price">Unit Price ({getCurrencySymbol()}) *</Label>
               <Input
                 id="price"
                 type="number"
@@ -474,7 +476,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
               {createsTask && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-muted p-4 rounded-lg">
                   <div>
-                    <Label htmlFor="laborRate">Labor Rate ($/hour)</Label>
+                    <Label htmlFor="laborRate">Labor Rate ({getCurrencySymbol()}/hour)</Label>
                     <Input
                       id="laborRate"
                       type="number"
@@ -507,7 +509,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
           <div className="bg-muted p-3 rounded-lg">
             <div className="flex justify-between items-center">
               <span className="font-medium">Total:</span>
-              <span className="font-bold text-lg">${(price * quantity).toFixed(2)}</span>
+              <span className="font-bold text-lg">{formatCurrency(price * quantity)}</span>
             </div>
           </div>
         </div>
