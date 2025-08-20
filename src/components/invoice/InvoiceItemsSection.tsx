@@ -5,6 +5,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { InvoiceItem, Part, Task } from "@/types";
 import InvoiceItemForm from "./InvoiceItemForm";
 import WorkshopPartsSelector from "./WorkshopPartsSelector";
+import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
 
 interface InvoiceItemsSectionProps {
   items: InvoiceItem[];
@@ -23,6 +24,7 @@ const InvoiceItemsSection: React.FC<InvoiceItemsSectionProps> = ({
   vehicleId,
   invoiceId
 }) => {
+  const { formatCurrency } = useOrganizationSettings();
   const [showItemForm, setShowItemForm] = useState(false);
   const [showPartsSelector, setShowPartsSelector] = useState(false);
   const [editingItem, setEditingItem] = useState<InvoiceItem | null>(null);
@@ -77,7 +79,7 @@ const InvoiceItemsSection: React.FC<InvoiceItemsSectionProps> = ({
   };
 
   const calculateItemTotal = (item: InvoiceItem) => {
-    return (item.price * item.quantity).toFixed(2);
+    return item.price * item.quantity;
   };
 
   // Button click handlers with proper event handling
@@ -183,7 +185,7 @@ const InvoiceItemsSection: React.FC<InvoiceItemsSectionProps> = ({
                       )}
                       {item.custom_labor_data && (
                         <div className="text-xs text-muted-foreground">
-                          {item.custom_labor_data.labor_rate && `Rate: $${item.custom_labor_data.labor_rate}/hr`}
+                          {item.custom_labor_data.labor_rate && `Rate: ${formatCurrency(item.custom_labor_data.labor_rate)}/hr`}
                           {item.custom_labor_data.skill_level && ` | Level: ${item.custom_labor_data.skill_level}`}
                         </div>
                       )}
@@ -193,8 +195,8 @@ const InvoiceItemsSection: React.FC<InvoiceItemsSectionProps> = ({
                   <td className="p-3 text-right">
                     {item.quantity} {item.unit_of_measure || 'piece'}
                   </td>
-                  <td className="p-3 text-right">${item.price.toFixed(2)}</td>
-                  <td className="p-3 text-right font-medium">${calculateItemTotal(item)}</td>
+                  <td className="p-3 text-right">{formatCurrency(item.price)}</td>
+                  <td className="p-3 text-right font-medium">{formatCurrency(calculateItemTotal(item))}</td>
                   <td className="p-3 text-center">
                     <div className="flex justify-center gap-1">
                       <Button
