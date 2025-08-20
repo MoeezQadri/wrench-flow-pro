@@ -43,8 +43,8 @@ export const useSmartDataLoading = () => {
       return;
     }
 
-    // Skip if already loading
-    if (isLoading(dataType)) {
+    // Skip if already loading (unless forcing reload)
+    if (isLoading(dataType) && !forceReload) {
       console.log(`${dataType} already loading, skipping`);
       return;
     }
@@ -52,7 +52,7 @@ export const useSmartDataLoading = () => {
     loadingInProgress.current.add(dataType);
     
     try {
-      console.log(`Smart loading ${dataType}...`);
+      console.log(`Smart loading ${dataType}${forceReload ? ' (forced)' : ''}...`);
       await loadFunction();
       markAsLoaded(dataType);
       console.log(`${dataType} loaded successfully`);

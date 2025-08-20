@@ -478,6 +478,11 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
         const result = await updateInvoiceWithHook(invoiceDataWithoutPayments as Invoice);
         
         if (result) {
+          // Update the invoice in context to ensure fresh data
+          if (updateInvoiceInContext) {
+            await updateInvoiceInContext(invoiceData.id, result);
+          }
+          
           console.log("Invoice updated successfully, navigating to invoices page");
           navigate("/invoices");
         }

@@ -7,6 +7,7 @@ import { Invoice } from '@/types';
 import { useDataContext } from '@/context/data/DataContext';
 import { toast } from 'sonner';
 import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
+import { useSmartDataLoading } from '@/hooks/useSmartDataLoading';
 
 const InvoiceDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -22,6 +23,8 @@ const InvoiceDetails: React.FC = () => {
   const [customerName, setCustomerName] = useState<string>('');
   const [vehicleInfo, setVehicleInfo] = useState<any>(null);
   const { formatCurrency } = useOrganizationSettings();
+  const { smartLoad, isLoaded, resetLoadedState } = useSmartDataLoading();
+
 
   useEffect(() => {
     const loadInvoice = async () => {
@@ -31,17 +34,31 @@ const InvoiceDetails: React.FC = () => {
       }
 
       try {
-        console.log("Loading invoice with ID:", id);
+        console.log("Loading invoice details with ID:", id);
         
-        // Ensure data is loaded first
-        await Promise.all([
-          loadInvoices(),
-          loadCustomers()
-        ]);
+        // Force reload invoices to ensure we have the latest data
+        // This is important when coming from edit page
+        const loadPromises = [];
         
-        // Get invoice from context
+        // Always reload invoices to get fresh data
+        if (loadInvoices) {
+          console.log('Force reloading invoices for fresh data');
+          resetLoadedState('invoices'); // Reset cache to force reload
+          loadPromises.push(smartLoad('invoices', loadInvoices, true)); // Force reload
+        }
+        
+        // Load customers if not loaded
+        if (!isLoaded('customers') && loadCustomers) {
+          loadPromises.push(smartLoad('customers', loadCustomers));
+        }
+        
+        if (loadPromises.length > 0) {
+          await Promise.all(loadPromises);
+        }
+        
+        // Get invoice from context with fresh data
         const foundInvoice = getInvoiceById(id);
-        console.log("Found invoice:", foundInvoice);
+        console.log("Found invoice with fresh data:", foundInvoice);
         
         if (foundInvoice) {
           setInvoice(foundInvoice);
@@ -50,7 +67,7 @@ const InvoiceDetails: React.FC = () => {
           const customer = customers.find(c => c.id === foundInvoice.customer_id);
           setCustomerName(customer ? customer.name : 'Unknown Customer');
           
-          // Get vehicle info - now properly await the promise
+          // Get vehicle info
           if (foundInvoice.customer_id) {
             const vehicles = await getVehiclesByCustomerId(foundInvoice.customer_id);
             const vehicle = vehicles.find(v => v.id === foundInvoice.vehicle_id);
@@ -69,7 +86,7 @@ const InvoiceDetails: React.FC = () => {
     };
 
     loadInvoice();
-  }, [id]); // Only depend on id to prevent infinite loops
+  }, [id, loadInvoices, loadCustomers, getInvoiceById, customers, getVehiclesByCustomerId, smartLoad, isLoaded, resetLoadedState]);
 
   if (loading) {
     return <div className="p-6">Loading invoice details...</div>;
