@@ -27,6 +27,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Invoice, Part } from "@/types";
 import { X } from "lucide-react";
+import { useOrganizationSettings } from "@/hooks/useOrganizationSettings";
 import { useDataContext } from "@/context/data/DataContext";
 
 const partSchema = z.object({
@@ -59,6 +60,7 @@ const PartForm = ({ defaultValues, onSubmit, formId, invoice, invoiceId, part }:
   const {
     vendors, invoices: invoices_
   } = useDataContext();
+  const { getCurrencySymbol } = useOrganizationSettings();
 
   const form = useForm<PartFormValues>({
     resolver: zodResolver(partSchema),
@@ -195,7 +197,7 @@ const PartForm = ({ defaultValues, onSubmit, formId, invoice, invoiceId, part }:
             name="price"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Price ($)</FormLabel>
+                <FormLabel>Price ({getCurrencySymbol()})</FormLabel>
                 <FormControl>
                   <Input
                     type="number"
