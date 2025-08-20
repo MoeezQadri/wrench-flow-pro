@@ -93,22 +93,11 @@ export const createInvoice = async (invoiceData: CreateInvoiceData): Promise<Inv
 
 export const updateInvoiceService = async (invoiceData: Invoice): Promise<Invoice> => {
   try {
-    const { id, customer_id, vehicle_id, date, tax_rate, discount_type, discount_value, notes, status, items, payments } = invoiceData;
+    const { id, customer_id, vehicle_id, date, tax_rate, discount_type, discount_value, notes, status, items } = invoiceData;
 
-    console.log('Updating invoice service called with:', { id, items: items?.length, payments: payments?.length });
+    console.log('Updating invoice service called with:', { id, items: items?.length });
 
-    // First, get existing items to clean up part assignments
-    const { data: existingItems } = await supabase
-      .from('invoice_items')
-      .select('*')
-      .eq('invoice_id', id);
-
-    // Clean up old part assignments
-    if (existingItems) {
-      await cleanupOldPartAssignments(existingItems, id);
-    }
-
-    // Update the invoice
+    // Update the invoice main record
     const { data: invoiceResult, error: invoiceError } = await supabase
       .from('invoices')
       .update({
@@ -131,63 +120,34 @@ export const updateInvoiceService = async (invoiceData: Invoice): Promise<Invoic
       throw new Error(`Failed to update invoice: ${invoiceError.message}`);
     }
 
-    // Handle invoice items
+    // Handle invoice items with smart updates
     if (items) {
-      // Delete existing items
-      const { error: deleteError } = await supabase
+      // First, get existing items to clean up part assignments
+      const { data: existingItems } = await supabase
         .from('invoice_items')
-        .delete()
+        .select('*')
         .eq('invoice_id', id);
 
-      if (deleteError) {
-        console.error('Error deleting existing invoice items:', deleteError);
+      // Clean up old part assignments before updating
+      if (existingItems) {
+        await cleanupOldPartAssignments(existingItems, id);
       }
 
-      // Insert new items
-      if (items.length > 0) {
-        const itemsToInsert = items.map(item => ({
-          id: crypto.randomUUID(),
-          invoice_id: id,
-          description: item.description,
-          type: item.type,
-          quantity: item.quantity,
-          price: item.price,
-          part_id: item.part_id || null,
-          task_id: item.task_id || null,
-          is_auto_added: item.is_auto_added || false,
-          unit_of_measure: item.unit_of_measure || 'piece',
-          creates_inventory_part: item.creates_inventory_part || false,
-          creates_task: item.creates_task || false,
-          custom_part_data: item.custom_part_data || null,
-          custom_labor_data: item.custom_labor_data || null,
-          organization_id: invoiceResult.organization_id
-        }));
+      // Use smart update instead of delete-all-recreate
+      const { smartUpdateInvoiceItems } = await import('./smart-invoice-service');
+      await smartUpdateInvoiceItems(id, items, invoiceResult.organization_id);
 
-        console.log('Inserting updated invoice items:', itemsToInsert);
-
-        const { error: itemsError } = await supabase
-          .from('invoice_items')
-          .insert(itemsToInsert);
-
-        if (itemsError) {
-          console.error('Error inserting updated invoice items:', itemsError);
-          throw new Error(`Failed to update invoice items: ${itemsError.message}`);
-        }
-
-        // Update parts inventory and task assignments for new items
-        await updatePartsAndTasksForInvoice(items, id);
-      }
+      // Update parts inventory and task assignments for current items
+      await updatePartsAndTasksForInvoice(items, id);
     }
 
-    // Note: Payment handling has been moved to dedicated payment service
-    // Payments are now managed separately through usePayments hook and PaymentsSection component
-    console.log('Invoice update complete. Payments are handled separately through payment service.');
+    console.log('Invoice update complete. Using smart updates for better performance.');
 
-  return {
-    ...invoiceResult,
-    items: items || [],
-    payments: []  // Payments handled separately now
-  } as Invoice;
+    return {
+      ...invoiceResult,
+      items: items || [],
+      payments: []  // Payments handled separately
+    } as Invoice;
 
   } catch (error) {
     console.error('Error updating invoice:', error);

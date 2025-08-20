@@ -18,6 +18,7 @@ import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
 import InvoiceItemsSection from "./invoice/InvoiceItemsSection";
 import PaymentsSection from "./invoice/PaymentsSection";
 import CustomerVehicleSelection from "./invoice/CustomerVehicleSelection";
+import { deduplicateItems, mergeItemQuantities } from "./invoice/InvoiceItemDeduplication";
 import { toast } from "sonner";
 import { useDataContext } from "@/context/data/DataContext";
 import { getAssignedPartsForInvoice, getAssignedTasksForInvoice } from "@/services/supabase-service";
@@ -254,79 +255,40 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
     }
   }, [invoiceData]);
 
-  // Load assigned parts and tasks when vehicle is selected - for both new and editing invoices
+  // Load assigned parts and tasks - skip auto-assignment for editing invoices
   useEffect(() => {
     const loadAssignedItems = async () => {
-      if (selectedVehicleId && selectedCustomerId) {
+      if (selectedVehicleId && selectedCustomerId && !isEditing) {
         try {
-          // For editing invoices, load items assigned specifically to this invoice
-          if (isEditing && invoiceData?.id) {
-            console.log('Loading pre-assigned items for invoice:', invoiceData.id);
-            
-            // Load parts specifically assigned to this invoice
-            const preAssignedParts = parts.filter(part => 
-              part.invoice_ids && part.invoice_ids.includes(invoiceData.id)
-            );
-            
-            // Load tasks specifically assigned to this invoice
-            const preAssignedTasks = tasks.filter(task => 
-              task.invoiceId === invoiceData.id && task.status === 'completed'
-            );
-            
-            console.log('Pre-assigned parts for invoice:', preAssignedParts);
-            console.log('Pre-assigned tasks for invoice:', preAssignedTasks);
-            
-            if (preAssignedParts.length > 0 || preAssignedTasks.length > 0) {
-              setAssignedParts(preAssignedParts);
-              setAssignedTasks(preAssignedTasks.map(task => ({
-                id: task.id,
-                title: task.title,
-                description: task.description,
-                mechanicId: task.mechanicId,
-                vehicleId: selectedVehicleId,
-                status: task.status,
-                location: task.location || 'workshop',
-                hoursEstimated: task.hoursEstimated,
-                hoursSpent: task.hoursSpent,
-                price: task.price,
-                invoiceId: task.invoiceId
-              })));
-              
-              // Auto-show the pre-assigned items banner
-              setShowAutoItems(true);
-              toast.success(`Found ${preAssignedParts.length} pre-assigned parts and ${preAssignedTasks.length} pre-assigned tasks for this invoice.`);
-            }
-          } else if (!isEditing) {
-            // For new invoices, load vehicle-specific assignments as before
-            const [assignedPartsData, assignedTasksData] = await Promise.all([
-              getAssignedPartsForInvoice(selectedVehicleId, selectedCustomerId),
-              getAssignedTasksForInvoice(selectedVehicleId)
-            ]);
-            
-            setAssignedParts(assignedPartsData);
-            
-            const mappedTasks: Task[] = assignedTasksData
-              .filter(task => task.status === 'completed')
-              .map(task => ({
-                id: task.id,
-                title: task.title,
-                description: task.description,
-                mechanicId: task.mechanic_id,
-                vehicleId: selectedVehicleId,
-                status: task.status,
-                location: (task.location as TaskLocation) || 'workshop',
-                hoursEstimated: task.hours_estimated,
-                hoursSpent: task.hours_spent,
-                price: task.price,
-                invoiceId: task.invoice_id
-              }));
-            
-            setAssignedTasks(mappedTasks);
-            
-            if (assignedPartsData.length > 0 || mappedTasks.length > 0) {
-              setShowAutoItems(true);
-              toast.success(`Found ${assignedPartsData.length} assigned parts and ${mappedTasks.length} completed tasks that will be automatically added to this invoice.`);
-            }
+          // Only load auto-assignments for NEW invoices
+          const [assignedPartsData, assignedTasksData] = await Promise.all([
+            getAssignedPartsForInvoice(selectedVehicleId, selectedCustomerId),
+            getAssignedTasksForInvoice(selectedVehicleId)
+          ]);
+          
+          setAssignedParts(assignedPartsData);
+          
+          const mappedTasks: Task[] = assignedTasksData
+            .filter(task => task.status === 'completed')
+            .map(task => ({
+              id: task.id,
+              title: task.title,
+              description: task.description,
+              mechanicId: task.mechanic_id,
+              vehicleId: selectedVehicleId,
+              status: task.status,
+              location: (task.location as TaskLocation) || 'workshop',
+              hoursEstimated: task.hours_estimated,
+              hoursSpent: task.hours_spent,
+              price: task.price,
+              invoiceId: task.invoice_id
+            }));
+          
+          setAssignedTasks(mappedTasks);
+          
+          if (assignedPartsData.length > 0 || mappedTasks.length > 0) {
+            setShowAutoItems(true);
+            toast.success(`Found ${assignedPartsData.length} assigned parts and ${mappedTasks.length} completed tasks that will be automatically added to this invoice.`);
           }
         } catch (error) {
           console.error('Error loading assigned items:', error);
@@ -335,35 +297,63 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
     };
 
     loadAssignedItems();
-  }, [selectedVehicleId, selectedCustomerId, isEditing, invoiceData, parts, tasks]);
+  }, [selectedVehicleId, selectedCustomerId, isEditing]);
+
+  // Helper function to check if item already exists to prevent duplicates
+  const isDuplicateItem = (newItem: InvoiceItem, existingItems: InvoiceItem[]) => {
+    return existingItems.some(item => 
+      (item.part_id && newItem.part_id && item.part_id === newItem.part_id) ||
+      (item.task_id && newItem.task_id && item.task_id === newItem.task_id) ||
+      (item.description === newItem.description && item.type === newItem.type)
+    );
+  };
 
   // Add auto-assigned items to the invoice items list
   const addAutoAssignedItems = () => {
+    if (isEditing) {
+      toast.info('Auto-assignment is not available when editing invoices');
+      return;
+    }
+
     const autoItems: InvoiceItem[] = [];
     
     assignedParts.forEach(part => {
-      autoItems.push({
+      const newItem = {
         id: `auto-part-${part.id}`,
         description: part.name,
-        type: 'part',
+        type: 'part' as const,
         quantity: 1,
         price: part.price,
         part_id: part.id,
         is_auto_added: true
-      });
+      };
+      
+      if (!isDuplicateItem(newItem, items)) {
+        autoItems.push(newItem);
+      }
     });
     
     assignedTasks.forEach(task => {
-      autoItems.push({
+      const newItem = {
         id: `auto-task-${task.id}`,
         description: task.title,
-        type: 'labor',
+        type: 'labor' as const,
         quantity: task.hoursEstimated || 1,
         price: task.price || 0,
         task_id: task.id,
         is_auto_added: true
-      });
+      };
+      
+      if (!isDuplicateItem(newItem, items)) {
+        autoItems.push(newItem);
+      }
     });
+    
+    if (autoItems.length === 0) {
+      toast.info('All items are already added to the invoice');
+      setShowAutoItems(false);
+      return;
+    }
     
     setItems(prev => {
       console.log('Adding auto-assigned items:', autoItems);
@@ -372,7 +362,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
       return updated;
     });
     setShowAutoItems(false);
-    toast.success('Auto-assigned items added to invoice');
+    toast.success(`${autoItems.length} auto-assigned items added to invoice`);
   };
 
   // Update the form status when status state changes
@@ -489,6 +479,14 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
         console.log("Creating new invoice");
         console.log("Items before sending:", items);
         
+        console.log("Items before deduplication:", items);
+        
+        // Deduplicate and merge items before creating invoice
+        const deduplicatedItems = deduplicateItems(items);
+        const mergedItems = mergeItemQuantities(deduplicatedItems);
+        
+        console.log("Items after deduplication and merging:", mergedItems);
+
         const invoiceCreationData = {
           customerId: selectedCustomerId,
           vehicleId: selectedVehicleId,
@@ -497,7 +495,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
           discountType: discountType,
           discountValue: discountValue,
           notes: notes,
-          items: items
+          items: mergedItems
         };
 
         console.log("Calling addInvoice with:", invoiceCreationData);

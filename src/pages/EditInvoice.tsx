@@ -21,11 +21,14 @@ const EditInvoice = () => {
         try {
           console.log("Fetching invoice with ID:", id);
           
-          // Ensure data is loaded first
-          await Promise.all([
-            loadInvoices(),
-            loadCustomers()
-          ]);
+          // Load data only if not already loaded to prevent redundant calls
+          const loadPromises = [];
+          if (loadInvoices) loadPromises.push(loadInvoices());
+          if (loadCustomers) loadPromises.push(loadCustomers());
+          
+          if (loadPromises.length > 0) {
+            await Promise.all(loadPromises);
+          }
           
           // Find the invoice in the context invoices array
           const foundInvoice = getInvoiceById(id);
