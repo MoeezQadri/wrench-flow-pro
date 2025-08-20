@@ -2,6 +2,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { Invoice, InvoiceItem, Part, Task } from '@/types';
 import { toast } from 'sonner';
+import { smartUpdateInvoiceItems } from './smart-invoice-service';
 
 export interface CreateInvoiceData {
   customerId: string;
@@ -134,7 +135,6 @@ export const updateInvoiceService = async (invoiceData: Invoice): Promise<Invoic
       }
 
       // Use smart update instead of delete-all-recreate
-      const { smartUpdateInvoiceItems } = await import('./smart-invoice-service');
       await smartUpdateInvoiceItems(id, items, invoiceResult.organization_id);
 
       // Update parts inventory and task assignments for current items
