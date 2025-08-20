@@ -758,6 +758,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
               payments={payments}
               setPayments={setPayments}
               total={totals.total}
+              invoiceId={invoiceData?.id}
             />
           )}
 
