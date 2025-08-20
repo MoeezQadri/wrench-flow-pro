@@ -5,7 +5,6 @@ import { Plus, Trash2 } from "lucide-react";
 import { InvoiceItem, Part, Task } from "@/types";
 import InvoiceItemForm from "./InvoiceItemForm";
 import WorkshopPartsSelector from "./WorkshopPartsSelector";
-import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
 
 interface InvoiceItemsSectionProps {
   items: InvoiceItem[];
@@ -14,6 +13,7 @@ interface InvoiceItemsSectionProps {
   availableTasks: Task[];
   vehicleId: string;
   invoiceId?: string;
+  formatCurrency?: (amount: number) => string; // Add formatCurrency as prop
 }
 
 const InvoiceItemsSection: React.FC<InvoiceItemsSectionProps> = ({
@@ -22,9 +22,9 @@ const InvoiceItemsSection: React.FC<InvoiceItemsSectionProps> = ({
   availableParts,
   availableTasks,
   vehicleId,
-  invoiceId
+  invoiceId,
+  formatCurrency = (amount: number) => `$${amount.toFixed(2)}` // Default fallback
 }) => {
-  const { formatCurrency } = useOrganizationSettings();
   const [showItemForm, setShowItemForm] = useState(false);
   const [showPartsSelector, setShowPartsSelector] = useState(false);
   const [editingItem, setEditingItem] = useState<InvoiceItem | null>(null);

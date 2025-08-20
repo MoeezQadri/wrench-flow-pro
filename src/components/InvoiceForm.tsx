@@ -678,6 +678,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
             availableTasks={availableTasks}
             vehicleId={selectedVehicleId}
             invoiceId={invoiceData?.id}
+            formatCurrency={formatCurrency}
           />
 
           {/* Tax Rate and Discount */}
