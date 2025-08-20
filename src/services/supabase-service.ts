@@ -657,7 +657,6 @@ export const updateInvoice = async (invoiceData: Invoice) => {
             // Insert new payments
             if (payments.length > 0) {
                 const paymentsToInsert = payments.map(payment => ({
-                    id: payment.id.startsWith('temp-') ? crypto.randomUUID() : payment.id,
                     invoice_id: id,
                     amount: payment.amount,
                     method: payment.method,
