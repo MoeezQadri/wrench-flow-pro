@@ -22,6 +22,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { InvoiceItem, Part, Task, Vendor, Expense } from "@/types";
 import { useDataContext } from "@/context/data/DataContext";
 import { useOrganizationSettings } from "@/hooks/useOrganizationSettings";
+import VendorDialog from "@/components/part/VendorDialog";
+import { Plus } from "lucide-react";
 
 interface InvoiceItemFormProps {
   open: boolean;
@@ -46,6 +48,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
 }) => {
   // Form state
   const [description, setDescription] = useState("");
+  const [partName, setPartName] = useState("");
   const [type, setType] = useState<'part' | 'labor' | 'other'>('part');
   const [quantity, setQuantity] = useState(1);
   const [price, setPrice] = useState(0);
@@ -58,6 +61,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
   
   // Vendor selection for parts
   const [selectedVendorId, setSelectedVendorId] = useState("");
+  const [isVendorDialogOpen, setIsVendorDialogOpen] = useState(false);
   
   // Custom part data
   const [partNumber, setPartNumber] = useState("");
@@ -90,6 +94,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
       if (editingItem) {
         // Populate form with editing item data
         setDescription(editingItem.description);
+        setPartName(editingItem.description); // For parts, name and description are the same initially
         setType(editingItem.type as 'part' | 'labor' | 'other');
         setQuantity(editingItem.quantity);
         setPrice(editingItem.price);
@@ -114,6 +119,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
       } else {
         // Reset form for new item
         setDescription("");
+        setPartName("");
         setType('part');
         setQuantity(1);
         setPrice(0);
@@ -158,19 +164,26 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
   }, [selectedTaskId, availableTasks]);
 
   const handleSave = async () => {
-    if (!description.trim()) {
+    // Validate required fields based on type
+    if (type === 'part' && !partName.trim()) {
+      alert('Please enter a part name.');
+      return;
+    } else if (type !== 'part' && !description.trim()) {
+      alert('Please enter a description.');
       return;
     }
 
-    // Validate vendor selection for parts
-    if (type === 'part' && !selectedPartId && !selectedVendorId) {
+    // Validate vendor selection for parts (always required for parts since we removed part selection)
+    if (type === 'part' && !selectedVendorId) {
       alert('Please select a vendor for the part.');
       return;
     }
 
+    const itemDescription = type === 'part' ? partName.trim() : description.trim();
+
     const newItem: InvoiceItem = {
       id: editingItem?.id || `item-${Date.now()}`,
-      description: description.trim(),
+      description: itemDescription,
       type,
       quantity,
       price,
@@ -182,18 +195,76 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
       is_auto_added: false
     };
 
-    // Handle custom part creation - always save to database for parts and other items
-    if ((type === 'part' || type === 'other') && !selectedPartId && addPart && invoiceId) {
+    // Handle custom part creation - always save to database for parts (since we removed part selection)
+    if (type === 'part' && addPart && invoiceId) {
       try {
         const customPart: Part = {
           id: crypto.randomUUID(),
-          name: description.trim(),
-          description: `Custom part created from invoice ${invoiceId.substring(0, 8)}`,
+          name: partName.trim(),
+          description: description.trim() || `Custom part created from invoice ${invoiceId.substring(0, 8)}`,
           price,
           quantity: 0, // Start with 0 since it's being used immediately
           part_number: partNumber || undefined,
           manufacturer: manufacturer || undefined,
-          category: category || (type === 'other' ? 'other' : undefined),
+          category: category || undefined,
+          location: location || undefined,
+          vendor_id: selectedVendorId,
+          vendor_name: vendors.find((v: Vendor) => v.id === selectedVendorId)?.name,
+          invoice_ids: [invoiceId],
+          reorder_level: 5,
+          unit: unitOfMeasure,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+        
+        const savedPart = await addPart(customPart);
+        newItem.part_id = savedPart.id;
+        newItem.custom_part_data = {
+          part_number: partNumber,
+          manufacturer: manufacturer,
+          category: category,
+          location: location
+        };
+        
+        // Create expense for part purchase
+        const vendor = vendors.find((v: Vendor) => v.id === selectedVendorId);
+        const expense: Expense = {
+          id: crypto.randomUUID(),
+          category: 'parts',
+          description: `Invoice ${invoiceId.substring(0, 8)}: ${partName.trim()}`,
+          amount: price * quantity,
+          date: new Date().toISOString(),
+          vendor_id: selectedVendorId,
+          vendor_name: vendor?.name,
+          payment_method: "cash",
+          payment_status: "paid",
+          invoice_id: invoiceId,
+        };
+        
+        try {
+          await addExpense(expense);
+        } catch (error) {
+          console.error("Error creating expense for part purchase:", error);
+        }
+        console.log('Created custom part in database:', savedPart);
+      } catch (error) {
+        console.error('Failed to create custom part:', error);
+        // Still proceed with invoice item creation
+      }
+    }
+
+    // Handle custom other item creation - always save to database
+    if (type === 'other' && !selectedPartId && addPart && invoiceId) {
+      try {
+        const customPart: Part = {
+          id: crypto.randomUUID(),
+          name: description.trim(),
+          description: `Custom item created from invoice ${invoiceId.substring(0, 8)}`,
+          price,
+          quantity: 0, // Start with 0 since it's being used immediately
+          part_number: partNumber || undefined,
+          manufacturer: manufacturer || undefined,
+          category: 'other',
           location: location || undefined,
           vendor_id: selectedVendorId || undefined,
           vendor_name: selectedVendorId ? vendors.find((v: Vendor) => v.id === selectedVendorId)?.name : undefined,
@@ -213,12 +284,12 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
           location: location
         };
         
-        // Create expense for part purchase
+        // Create expense for other item purchase if vendor is selected
         if (selectedVendorId) {
           const vendor = vendors.find((v: Vendor) => v.id === selectedVendorId);
           const expense: Expense = {
             id: crypto.randomUUID(),
-            category: type === 'part' ? 'parts' : 'other',
+            category: 'other',
             description: `Invoice ${invoiceId.substring(0, 8)}: ${description.trim()}`,
             amount: price * quantity,
             date: new Date().toISOString(),
@@ -235,19 +306,11 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
             console.error("Error creating expense for item purchase:", error);
           }
         }
-        console.log('Created custom part in database:', savedPart);
+        console.log('Created custom other item in database:', savedPart);
       } catch (error) {
-        console.error('Failed to create custom part:', error);
+        console.error('Failed to create custom other item:', error);
         // Still proceed with invoice item creation
       }
-    } else if (type === 'part' && !selectedPartId) {
-      // For custom parts not being saved to inventory
-      newItem.custom_part_data = {
-        part_number: partNumber,
-        manufacturer: manufacturer,
-        category: category,
-        location: location
-      };
     }
 
     // Handle custom task creation - save to database if creating task
@@ -292,6 +355,11 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
     onOpenChange(false);
   };
 
+  const handleVendorAdded = async () => {
+    // Vendor will be automatically added to the context when created
+    // We can optionally set the new vendor as selected here
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -320,34 +388,6 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
             </Select>
           </div>
 
-          {/* Part Selection */}
-          {type === 'part' && (
-            <div>
-              <Label>Select Part (Optional)</Label>
-              <Select value={selectedPartId} onValueChange={setSelectedPartId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select from workshop inventory or leave blank for custom" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Custom Part (not from inventory)</SelectItem>
-                  {availableParts && availableParts.length > 0 ? (
-                    availableParts.map((part) => (
-                      <SelectItem key={part.id} value={part.id}>
-                        {part.name} - {formatCurrency(part.price)} (Stock: {part.quantity})
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value="no-parts" disabled>No parts available in workshop inventory</SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
-              {availableParts?.length === 0 && (
-                <p className="text-sm text-muted-foreground mt-1">
-                  No parts available from workshop inventory. You can still create custom parts.
-                </p>
-              )}
-            </div>
-          )}
 
           {/* Task Selection */}
           {type === 'labor' && (
@@ -378,17 +418,30 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
             </div>
           )}
 
-          {/* Description */}
-          <div>
-            <Label htmlFor="description">Description *</Label>
-            <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Enter item description"
-              required
-            />
-          </div>
+          {/* Part Name for parts, Description for others */}
+          {type === 'part' ? (
+            <div>
+              <Label htmlFor="partName">Part Name *</Label>
+              <Input
+                id="partName"
+                value={partName}
+                onChange={(e) => setPartName(e.target.value)}
+                placeholder="Enter part name"
+                required
+              />
+            </div>
+          ) : (
+            <div>
+              <Label htmlFor="description">Description *</Label>
+              <Textarea
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Enter item description"
+                required
+              />
+            </div>
+          )}
 
           {/* Quantity and Price */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -434,32 +487,41 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
             </div>
           </div>
 
-          {/* Custom Part/Other Item Creation */}
-          {(type === 'part' || type === 'other') && !selectedPartId && (
+          {/* Part Details Section */}
+          {type === 'part' && (
             <div className="space-y-4 border-t pt-4">
               <div className="text-sm text-muted-foreground">
-                This {type} will be automatically saved to the parts database and linked to this invoice.
+                This part will be automatically saved to the parts database and linked to this invoice.
               </div>
 
-              {/* Vendor Selection */}
+              {/* Vendor Selection with Add Button */}
               <div>
-                <Label htmlFor="vendorSelect">Vendor {type === 'part' ? '(Required)' : '(Optional)'}</Label>
-                <Select value={selectedVendorId} onValueChange={setSelectedVendorId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder={`Select vendor for ${type}`} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {type === 'other' && <SelectItem value="none">No vendor</SelectItem>}
-                    {vendors.map((vendor: Vendor) => (
-                      <SelectItem key={vendor.id} value={vendor.id}>
-                        {vendor.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="vendorSelect">Vendor (Required)</Label>
+                <div className="flex gap-2">
+                  <Select value={selectedVendorId} onValueChange={setSelectedVendorId}>
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder="Select vendor for part" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {vendors.map((vendor: Vendor) => (
+                        <SelectItem key={vendor.id} value={vendor.id}>
+                          {vendor.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setIsVendorDialogOpen(true)}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-muted p-4 rounded-lg">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="partNumber">Part Number</Label>
                   <Input
@@ -467,6 +529,96 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
                     value={partNumber}
                     onChange={(e) => setPartNumber(e.target.value)}
                     placeholder="P-12345"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="manufacturer">Manufacturer</Label>
+                  <Input
+                    id="manufacturer"
+                    value={manufacturer}
+                    onChange={(e) => setManufacturer(e.target.value)}
+                    placeholder="OEM or aftermarket brand"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="category">Category</Label>
+                  <Input
+                    id="category"
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    placeholder="Engine, Brake, etc."
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="location">Location</Label>
+                  <Input
+                    id="location"
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                    placeholder="Shelf A1, etc."
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="partDescription">Description</Label>
+                <Textarea
+                  id="partDescription"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Detailed part description"
+                  rows={3}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Other Item Creation */}
+          {type === 'other' && !selectedPartId && (
+            <div className="space-y-4 border-t pt-4">
+              <div className="text-sm text-muted-foreground">
+                This item will be automatically saved to the parts database and linked to this invoice.
+              </div>
+
+              {/* Vendor Selection */}
+              <div>
+                <Label htmlFor="vendorSelect">Vendor (Optional)</Label>
+                <div className="flex gap-2">
+                  <Select value={selectedVendorId} onValueChange={setSelectedVendorId}>
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder="Select vendor for item" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No vendor</SelectItem>
+                      {vendors.map((vendor: Vendor) => (
+                        <SelectItem key={vendor.id} value={vendor.id}>
+                          {vendor.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setIsVendorDialogOpen(true)}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="partNumber">Item Number</Label>
+                  <Input
+                    id="partNumber"
+                    value={partNumber}
+                    onChange={(e) => setPartNumber(e.target.value)}
+                    placeholder="I-12345"
                   />
                 </div>
                 <div>
@@ -484,7 +636,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
                     id="category"
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
-                    placeholder={type === 'part' ? "Engine, Brakes, etc." : "Supplies, Materials, etc."}
+                    placeholder="Supplies, Materials, etc."
                   />
                 </div>
                 <div>
@@ -559,11 +711,18 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleSave} disabled={!description.trim()}>
+          <Button onClick={handleSave} disabled={type === 'part' ? !partName.trim() : !description.trim()}>
             {editingItem ? 'Update Item' : 'Add Item'}
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      {/* Vendor Dialog */}
+      <VendorDialog
+        open={isVendorDialogOpen}
+        onOpenChange={setIsVendorDialogOpen}
+        onVendorAdded={handleVendorAdded}
+      />
     </Dialog>
   );
 };
