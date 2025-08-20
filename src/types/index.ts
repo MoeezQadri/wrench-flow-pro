@@ -236,6 +236,7 @@ export interface Expense {
   invoice_id?: string;
   receipt_url?: string;
   notes?: string;
+  organization_id?: string;
   created_at?: string;
   updated_at?: string;
 }

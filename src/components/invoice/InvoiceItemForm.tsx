@@ -23,6 +23,7 @@ import { InvoiceItem, Part, Task, Vendor, Expense } from "@/types";
 import { useDataContext } from "@/context/data/DataContext";
 import { useOrganizationSettings } from "@/hooks/useOrganizationSettings";
 import VendorDialog from "@/components/part/VendorDialog";
+import { useOrganizationContext } from "@/hooks/useOrganizationContext";
 import { Plus } from "lucide-react";
 
 interface InvoiceItemFormProps {
@@ -75,6 +76,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
 
   const { mechanics, vendors, addPart, addTask, addExpense } = useDataContext();
   const { getCurrencySymbol, formatCurrency } = useOrganizationSettings();
+  const { selectedOrganizationId } = useOrganizationContext();
 
   // Debug logging for available data
   useEffect(() => {
@@ -239,6 +241,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
           payment_method: "cash",
           payment_status: "paid",
           invoice_id: invoiceId,
+          organization_id: selectedOrganizationId,
         };
         
         try {
@@ -298,6 +301,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
             payment_method: "cash",
             payment_status: "paid",
             invoice_id: invoiceId,
+            organization_id: selectedOrganizationId,
           };
           
           try {
