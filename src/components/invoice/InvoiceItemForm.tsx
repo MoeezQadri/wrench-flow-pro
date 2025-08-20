@@ -466,11 +466,12 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
                 step="0.01"
                 value={price}
                 onChange={(e) => setPrice(parseFloat(e.target.value) || 0)}
+                placeholder="0.00"
                 required
               />
             </div>
             <div>
-              <Label htmlFor="unitOfMeasure">Unit</Label>
+              <Label htmlFor="unitOfMeasure">Unit of Measure</Label>
               <Select value={unitOfMeasure} onValueChange={setUnitOfMeasure}>
                 <SelectTrigger>
                   <SelectValue />
@@ -479,9 +480,10 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
                   <SelectItem value="piece">Piece</SelectItem>
                   <SelectItem value="hour">Hour</SelectItem>
                   <SelectItem value="liter">Liter</SelectItem>
-                  <SelectItem value="meter">Meter</SelectItem>
                   <SelectItem value="kg">Kilogram</SelectItem>
                   <SelectItem value="set">Set</SelectItem>
+                  <SelectItem value="box">Box</SelectItem>
+                  <SelectItem value="pack">Pack</SelectItem>
                 </SelectContent>
               </Select>
             </div>
