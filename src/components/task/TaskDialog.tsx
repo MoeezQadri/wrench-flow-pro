@@ -100,15 +100,7 @@ const TaskDialog = ({ open, onOpenChange, onSave, task, invoiceId }: TaskDialogP
         updated_at: new Date().toISOString()
       };
 
-      onSave(newTask);
-
-      // Show success message
-      if (data.taskType === "invoice" && vehicle) {
-        toast.success(`Task ${isEditing ? "updated" : "added"} for ${vehicle.make} ${vehicle.model} (${vehicle.license_plate})!`);
-      } else {
-        toast.success(`Internal workshop task ${isEditing ? "updated" : "added"} successfully!`);
-      }
-
+      await onSave(newTask);
       onOpenChange(false);
     } catch (error) {
       console.error("Error saving task:", error);

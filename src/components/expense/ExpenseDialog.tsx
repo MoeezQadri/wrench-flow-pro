@@ -76,16 +76,7 @@ const ExpenseDialog: React.FC<ExpenseDialogProps> = ({
         (expenseData as any).invoice_id = expenseInvoiceId;
       }
 
-      onSave(expenseData);
-
-      // Show success message based on expense type
-      if (data.expenseType === "invoice") {
-        toast.success(`Invoice expense ${isEditing ? "updated" : "added"} successfully!`);
-      } else {
-        toast.success(`Workshop expense ${isEditing ? "updated" : "added"} successfully!`);
-      }
-
-      onOpenChange(false);
+      await onSave(expenseData);
     } catch (error) {
       console.error("Error saving expense:", error);
       toast.error("Failed to save expense. Please try again.");
