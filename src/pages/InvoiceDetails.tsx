@@ -36,19 +36,15 @@ const InvoiceDetails: React.FC = () => {
       try {
         console.log("Loading invoice details with ID:", id);
         
-        // Force reload invoices to ensure we have the latest data
-        // This is important when coming from edit page
+        // Load data efficiently
         const loadPromises = [];
         
-        // Always reload invoices to get fresh data
+        // Load invoices and customers
         if (loadInvoices) {
-          console.log('Force reloading invoices for fresh data');
-          resetLoadedState('invoices'); // Reset cache to force reload
-          loadPromises.push(smartLoad('invoices', loadInvoices, true)); // Force reload
+          loadPromises.push(smartLoad('invoices', loadInvoices));
         }
         
-        // Load customers if not loaded
-        if (!isLoaded('customers') && loadCustomers) {
+        if (loadCustomers) {
           loadPromises.push(smartLoad('customers', loadCustomers));
         }
         
@@ -56,9 +52,9 @@ const InvoiceDetails: React.FC = () => {
           await Promise.all(loadPromises);
         }
         
-        // Get invoice from context with fresh data
+        // Get invoice from context
         const foundInvoice = getInvoiceById(id);
-        console.log("Found invoice with fresh data:", foundInvoice);
+        console.log("Found invoice:", foundInvoice);
         
         if (foundInvoice) {
           setInvoice(foundInvoice);
@@ -86,7 +82,7 @@ const InvoiceDetails: React.FC = () => {
     };
 
     loadInvoice();
-  }, [id, loadInvoices, loadCustomers, getInvoiceById, customers, getVehiclesByCustomerId, smartLoad, isLoaded, resetLoadedState]);
+  }, [id]); // Only depend on id to prevent infinite loops
 
   if (loading) {
     return <div className="p-6">Loading invoice details...</div>;
