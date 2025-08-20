@@ -31,6 +31,7 @@ import { cn } from "@/lib/utils";
 import { Vendor } from "@/types";
 import VendorDialog from "./VendorDialog";
 import { useDataContext } from "@/context/data/DataContext";
+import { useOrganizationSettings } from "@/hooks/useOrganizationSettings";
 
 const expenseSchema = z.object({
   date: z.date(),
@@ -62,6 +63,7 @@ interface ExpenseFormProps {
 
 const ExpenseForm = ({ defaultValues, onSubmit, formId }: ExpenseFormProps) => {
   const { vendors, invoices: invoices_ } = useDataContext();
+  const { getCurrencySymbol } = useOrganizationSettings();
   const [isVendorDialogOpen, setIsVendorDialogOpen] = useState(false);
   const [vendorsList, setVendorsList] = useState<Vendor[]>(vendors as Vendor[]);
   const [invoices, setInvoices] = useState<any[]>([]);
@@ -261,7 +263,7 @@ const ExpenseForm = ({ defaultValues, onSubmit, formId }: ExpenseFormProps) => {
             name="amount"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Amount ($)</FormLabel>
+                <FormLabel>Amount ({getCurrencySymbol()})</FormLabel>
                 <FormControl>
                   <Input
                     type="number"
