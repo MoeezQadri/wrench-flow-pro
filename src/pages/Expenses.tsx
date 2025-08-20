@@ -32,15 +32,13 @@ import { useOrganizationSettings } from "@/hooks/useOrganizationSettings";
 import { format, isThisMonth, isToday, parseISO } from "date-fns";
 import { useAuthContext } from '@/context/AuthContext';
 import { hasPermission } from '@/utils/permissions';
-import { useDataContext } from '@/context/data/DataContext';
 
 const Expenses = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState<Expense | undefined>(undefined);
-  const [isLoading, setIsLoading] = useState(true);
+  const [expensesList, setExpensesList] = useState<Expense[]>([]);
   const { currentUser } = useAuthContext();
   const { formatCurrency } = useOrganizationSettings();
-  const { expenses, addExpense, updateExpense } = useDataContext();
   
   // Check permissions
   const userCanManageExpenses = hasPermission(currentUser, 'expenses', 'manage') || hasPermission(currentUser, 'expenses', 'create');
@@ -56,44 +54,30 @@ const Expenses = () => {
     setIsDialogOpen(true);
   };
 
-  const handleSaveExpense = async (expense: Expense) => {
-    try {
-      // Check if this is an existing expense or new expense
-      const existingExpense = expenses.find(e => e.id === expense.id);
-      
-      if (existingExpense) {
-        await updateExpense(expense.id, expense);
-        toast.success("Expense updated successfully");
+  const handleSaveExpense = (expense: Expense) => {
+    setExpensesList(prev => {
+      const index = prev.findIndex(e => e.id === expense.id);
+      if (index >= 0) {
+        const updated = [...prev];
+        updated[index] = expense;
+        return updated;
       } else {
-        await addExpense(expense);
-        toast.success("Expense added successfully");
+        return [...prev, expense];
       }
-      
-      setIsDialogOpen(false);
-      setSelectedExpense(undefined);
-    } catch (error) {
-      console.error("Error saving expense:", error);
-      toast.error("Failed to save expense");
-    }
+    });
   };
 
-  // Load expenses on component mount
-  React.useEffect(() => {
-    // Since expenses are loaded from context, just set loading to false
-    setIsLoading(false);
-  }, []);
-
   // Calculate expenses for different time periods
-  const todayExpenses = expenses.filter(expense => isToday(parseISO(expense.date)));
-  const monthExpenses = expenses.filter(expense => isThisMonth(parseISO(expense.date)));
+  const todayExpenses = expensesList.filter(expense => isToday(parseISO(expense.date)));
+  const monthExpenses = expensesList.filter(expense => isThisMonth(parseISO(expense.date)));
   
   const totalToday = todayExpenses.reduce((total, expense) => total + expense.amount, 0);
   const totalMonth = monthExpenses.reduce((total, expense) => total + expense.amount, 0);
-  const totalAll = expenses.reduce((total, expense) => total + expense.amount, 0);
+  const totalAll = expensesList.reduce((total, expense) => total + expense.amount, 0);
 
   // Calculate workshop vs invoice expenses
-  const workshopExpenses = expenses.filter(expense => !(expense as any).invoice_id);
-  const invoiceExpenses = expenses.filter(expense => (expense as any).invoice_id);
+  const workshopExpenses = expensesList.filter(expense => !(expense as any).invoice_id);
+  const invoiceExpenses = expensesList.filter(expense => (expense as any).invoice_id);
   const totalWorkshop = workshopExpenses.reduce((total, expense) => total + expense.amount, 0);
   const totalInvoice = invoiceExpenses.reduce((total, expense) => total + expense.amount, 0);
 
@@ -124,14 +108,6 @@ const Expenses = () => {
       color: isInvoiceExpense ? "text-blue-600" : "text-gray-600"
     };
   };
-
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-96">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
@@ -216,7 +192,7 @@ const Expenses = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {expenses.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((expense) => {
+              {expensesList.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((expense) => {
                 const typeInfo = getExpenseTypeInfo(expense);
                 return (
                   <TableRow key={expense.id}>
@@ -255,7 +231,7 @@ const Expenses = () => {
                   </TableRow>
                 );
               })}
-              {expenses.length === 0 && (
+              {expensesList.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center py-6">
                     <div className="flex flex-col items-center justify-center text-muted-foreground">

@@ -22,6 +22,7 @@ import { useAuthContext } from "@/context/AuthContext";
 const Tasks = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | undefined>(undefined);
+  const [tasksList, setTasksList] = useState<Task[]>([]);
   const [selectedTaskForTimeTracking, setSelectedTaskForTimeTracking] = useState<Task | null>(null);
   const [selectedTaskForAssignment, setSelectedTaskForAssignment] = useState<Task | null>(null);
   const [selectedTaskForInvoiceAssignment, setSelectedTaskForInvoiceAssignment] = useState<Task | null>(null);
@@ -38,8 +39,6 @@ const Tasks = () => {
     getInvoiceById,
     getVehicleById,
     getCustomerById,
-    addTask,
-    updateTask,
   } = useDataContext()
   const { currentUser: user } = useAuthContext()
   const currentUser: any = user;
@@ -51,13 +50,24 @@ const Tasks = () => {
 
   // Load tasks
   useEffect(() => {
-    // Since tasks are loaded from context, just set loading to false
-    setIsLoading(false);
+    const loadTasks = async () => {
+      try {
+        setIsLoading(true);
+        setTasksList(tasks);
+      } catch (error) {
+        console.error("Error loading tasks:", error);
+        toast.error("Failed to load tasks");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadTasks();
   }, []);
 
   // Apply filters to tasks
   const filteredTasks = useMemo(() => {
-    let filtered = tasks;
+    let filtered = tasksList;
 
     // Filter by mechanic for mechanic users
     if (currentUser?.role === 'mechanic' && currentUser?.mechanicId) {
@@ -88,11 +98,20 @@ const Tasks = () => {
     }
 
     return filtered;
-  }, [tasks, currentUser?.role, currentUser?.mechanicId, searchTerm, locationFilter, statusFilter, mechanicFilter]);
+  }, [tasksList, currentUser?.role, currentUser?.mechanicId, searchTerm, locationFilter, statusFilter, mechanicFilter]);
 
   const handleAssignmentComplete = () => {
     setSelectedTaskForAssignment(null);
-    // Tasks will be automatically updated through data context
+    // Refresh tasks list
+    const loadTasks = async () => {
+      try {
+        setTasksList(tasks);
+      } catch (error) {
+        console.error("Error reloading tasks:", error);
+        toast.error("Failed to reload tasks");
+      }
+    };
+    loadTasks();
   };
 
   const clearFilters = () => {
@@ -137,33 +156,24 @@ const Tasks = () => {
     setIsDialogOpen(true);
   };
 
-  const handleSaveTask = async (task: Task) => {
-    try {
-      // Check if this is an existing task (has created_at) or new task
-      const existingTask = tasks.find(t => t.id === task.id);
-      
-      if (existingTask) {
-        await updateTask(task.id, task);
-        toast.success("Task updated successfully");
+  const handleSaveTask = (task: Task) => {
+    setTasksList(prev => {
+      const index = prev.findIndex(t => t.id === task.id);
+      if (index >= 0) {
+        const updated = [...prev];
+        updated[index] = task;
+        return updated;
       } else {
-        await addTask(task);
-        toast.success("Task added successfully");
+        return [...prev, task];
       }
-    } catch (error) {
-      console.error("Error saving task:", error);
-      toast.error("Failed to save task");
-    }
+    });
   };
 
-  const handleTimeTrackingUpdate = async (updatedTask: Task) => {
-    try {
-      await updateTask(updatedTask.id, updatedTask);
-      setSelectedTaskForTimeTracking(null);
-      toast.success("Task time tracking updated");
-    } catch (error) {
-      console.error("Error updating task:", error);
-      toast.error("Failed to update task");
-    }
+  const handleTimeTrackingUpdate = (updatedTask: Task) => {
+    setTasksList(prev =>
+      prev.map(task => task.id === updatedTask.id ? updatedTask : task)
+    );
+    setSelectedTaskForTimeTracking(null);
   };
 
   const handleAssignToInvoice = (task: Task) => {
@@ -172,7 +182,17 @@ const Tasks = () => {
   };
 
   const handleInvoiceAssignmentComplete = () => {
-    // Tasks will be automatically updated through data context
+    // Refresh the tasks list
+    const loadTasks = async () => {
+      try {
+        setTasksList(tasks);
+      } catch (error) {
+        console.error("Error reloading tasks:", error);
+        toast.error("Failed to reload tasks");
+      }
+    };
+    
+    loadTasks();
     setShowInvoiceAssignDialog(false);
     setSelectedTaskForInvoiceAssignment(null);
   };
@@ -263,7 +283,7 @@ const Tasks = () => {
   useEffect(() => {
     const prefetchData = async () => {
       // Prefetch mechanic data
-      for (const task of tasks) {
+      for (const task of tasksList) {
         if (task.mechanicId && !mechanicInfoCache[task.mechanicId]) {
           const resp = getMechanicById(task.mechanicId);
           setMechanicInfoCache(prev => ({
@@ -314,10 +334,10 @@ const Tasks = () => {
       }
     };
 
-    if (tasks.length > 0 && !isLoading) {
+    if (tasksList.length > 0 && !isLoading) {
       prefetchData();
     }
-  }, [tasks, isLoading]);
+  }, [tasksList, isLoading]);
 
   const shouldShowVehicleColumn = isForeman || currentUser?.role === 'manager' || currentUser?.role === 'owner';
   const shouldShowAssignmentColumn = isForeman || currentUser?.role === 'manager' || currentUser?.role === 'owner';
@@ -421,7 +441,7 @@ const Tasks = () => {
 
       {/* Results Summary */}
       <div className="text-sm text-gray-600">
-        Showing {filteredTasks.length} of {tasks.length} tasks
+        Showing {filteredTasks.length} of {tasksList.length} tasks
       </div>
 
       <Card>
@@ -571,9 +591,9 @@ const Tasks = () => {
                     <div className="flex flex-col items-center justify-center text-muted-foreground">
                       <CalendarCheck className="w-12 h-12 mb-2 text-muted-foreground/60" />
                       <p>
-                       {tasks.length === 0 ? "No tasks found" : "No tasks match your search criteria"}
+                       {tasksList.length === 0 ? "No tasks found" : "No tasks match your search criteria"}
                      </p>
-                     {(canManageTasks || currentUser?.role === 'mechanic' || isForeman) && tasks.length === 0 && (
+                     {(canManageTasks || currentUser?.role === 'mechanic' || isForeman) && tasksList.length === 0 && (
                         <Button
                           variant="outline"
                           size="sm"
