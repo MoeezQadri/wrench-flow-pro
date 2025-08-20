@@ -15,7 +15,7 @@ const EditInvoice = () => {
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
   const { getInvoiceById, loadInvoices, loadCustomers } = useDataContext();
-  const { smartLoad, isLoaded } = useSmartDataLoading();
+  const { smartLoad, isLoaded, resetLoadedState } = useSmartDataLoading();
 
   useEffect(() => {
     const fetchInvoice = async () => {
@@ -23,11 +23,13 @@ const EditInvoice = () => {
         try {
           console.log("Fetching invoice with ID:", id);
           
-          // Smart load only necessary data - don't reload if already loaded
+          // Always force reload invoices to get the latest data when editing
           const loadPromises = [];
           
-          if (!isLoaded('invoices') && loadInvoices) {
-            loadPromises.push(smartLoad('invoices', loadInvoices));
+          if (loadInvoices) {
+            console.log('Force reloading invoices for fresh edit data');
+            resetLoadedState('invoices'); // Reset cache to force reload
+            loadPromises.push(smartLoad('invoices', loadInvoices, true)); // Force reload
           }
           
           if (!isLoaded('customers') && loadCustomers) {
@@ -35,11 +37,11 @@ const EditInvoice = () => {
           }
           
           if (loadPromises.length > 0) {
-            console.log('Loading missing data:', loadPromises.length, 'items');
+            console.log('Loading data for editing...');
             await Promise.all(loadPromises);
-          } else {
-            console.log('All required data already loaded, skipping data fetch');
           }
+          
+          console.log('Smart data loading completed');
           
           // Find the invoice in the context invoices array
           const foundInvoice = getInvoiceById(id);
@@ -83,7 +85,7 @@ const EditInvoice = () => {
     };
 
     fetchInvoice();
-  }, [id, navigate, getInvoiceById, loadInvoices, loadCustomers, smartLoad, isLoaded]);
+  }, [id, navigate, getInvoiceById, loadInvoices, loadCustomers, smartLoad, isLoaded, resetLoadedState]);
 
   if (loading) {
     return <div className="p-6">Loading invoice...</div>;

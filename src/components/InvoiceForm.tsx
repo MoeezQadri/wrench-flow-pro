@@ -225,9 +225,9 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
     }
   }, [tasks, isEditing, invoiceData]);
 
-  // Initialize form values when editing - only run once and before other effects
+  // Initialize form values when editing - reinitialize when invoice data changes
   useEffect(() => {
-    if (invoiceData && !initialDataLoaded.current) {
+    if (invoiceData) {
       console.log("Initializing form with invoice data:", invoiceData);
       console.log("Raw invoice date:", invoiceData.date);
       console.log("Invoice date type:", typeof invoiceData.date);
@@ -264,7 +264,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
       form.setValue('invoiceId', invoiceData.id);
       initialDataLoaded.current = true;
     }
-  }, [invoiceData]);
+  }, [invoiceData, invoiceData?.updated_at]); // Depend on updated_at to reinitialize when data is fresh
 
   // Load assigned parts and tasks - skip auto-assignment for editing invoices
   useEffect(() => {
