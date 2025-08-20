@@ -39,6 +39,8 @@ const Tasks = () => {
     getInvoiceById,
     getVehicleById,
     getCustomerById,
+    addTask,
+    updateTask,
   } = useDataContext()
   const { currentUser: user } = useAuthContext()
   const currentUser: any = user;
@@ -53,6 +55,7 @@ const Tasks = () => {
     const loadTasks = async () => {
       try {
         setIsLoading(true);
+        // Use tasks from context and sync with local state
         setTasksList(tasks);
       } catch (error) {
         console.error("Error loading tasks:", error);
@@ -63,7 +66,7 @@ const Tasks = () => {
     };
 
     loadTasks();
-  }, []);
+  }, [tasks]); // Re-sync when tasks from context change
 
   // Apply filters to tasks
   const filteredTasks = useMemo(() => {
@@ -156,17 +159,32 @@ const Tasks = () => {
     setIsDialogOpen(true);
   };
 
-  const handleSaveTask = (task: Task) => {
-    setTasksList(prev => {
-      const index = prev.findIndex(t => t.id === task.id);
-      if (index >= 0) {
-        const updated = [...prev];
-        updated[index] = task;
-        return updated;
+  const handleSaveTask = async (task: Task) => {
+    try {
+      // Check if this is an existing task or new task
+      const existingTask = tasksList.find(t => t.id === task.id);
+      
+      if (existingTask) {
+        await updateTask(task.id, task);
       } else {
-        return [...prev, task];
+        await addTask(task);
       }
-    });
+      
+      // Update local state as well for immediate UI update
+      setTasksList(prev => {
+        const index = prev.findIndex(t => t.id === task.id);
+        if (index >= 0) {
+          const updated = [...prev];
+          updated[index] = task;
+          return updated;
+        } else {
+          return [...prev, task];
+        }
+      });
+    } catch (error) {
+      console.error("Error saving task:", error);
+      toast.error("Failed to save task");
+    }
   };
 
   const handleTimeTrackingUpdate = (updatedTask: Task) => {

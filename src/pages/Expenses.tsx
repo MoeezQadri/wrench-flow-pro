@@ -32,6 +32,7 @@ import { useOrganizationSettings } from "@/hooks/useOrganizationSettings";
 import { format, isThisMonth, isToday, parseISO } from "date-fns";
 import { useAuthContext } from '@/context/AuthContext';
 import { hasPermission } from '@/utils/permissions';
+import { useDataContext } from '@/context/data/DataContext';
 
 const Expenses = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -39,6 +40,7 @@ const Expenses = () => {
   const [expensesList, setExpensesList] = useState<Expense[]>([]);
   const { currentUser } = useAuthContext();
   const { formatCurrency } = useOrganizationSettings();
+  const { expenses, addExpense, updateExpense } = useDataContext();
   
   // Check permissions
   const userCanManageExpenses = hasPermission(currentUser, 'expenses', 'manage') || hasPermission(currentUser, 'expenses', 'create');
@@ -54,18 +56,38 @@ const Expenses = () => {
     setIsDialogOpen(true);
   };
 
-  const handleSaveExpense = (expense: Expense) => {
-    setExpensesList(prev => {
-      const index = prev.findIndex(e => e.id === expense.id);
-      if (index >= 0) {
-        const updated = [...prev];
-        updated[index] = expense;
-        return updated;
+  const handleSaveExpense = async (expense: Expense) => {
+    try {
+      // Check if this is an existing expense or new expense
+      const existingExpense = expensesList.find(e => e.id === expense.id);
+      
+      if (existingExpense) {
+        await updateExpense(expense.id, expense);
       } else {
-        return [...prev, expense];
+        await addExpense(expense);
       }
-    });
+      
+      // Update local state as well for immediate UI update
+      setExpensesList(prev => {
+        const index = prev.findIndex(e => e.id === expense.id);
+        if (index >= 0) {
+          const updated = [...prev];
+          updated[index] = expense;
+          return updated;
+        } else {
+          return [...prev, expense];
+        }
+      });
+    } catch (error) {
+      console.error("Error saving expense:", error);
+      toast.error("Failed to save expense");
+    }
   };
+
+  // Sync local state with context data
+  React.useEffect(() => {
+    setExpensesList(expenses);
+  }, [expenses]);
 
   // Calculate expenses for different time periods
   const todayExpenses = expensesList.filter(expense => isToday(parseISO(expense.date)));
