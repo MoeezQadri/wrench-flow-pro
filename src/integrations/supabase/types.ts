@@ -180,6 +180,7 @@ export type Database = {
           date: string | null
           description: string | null
           id: string
+          invoice_id: string | null
           organization_id: string | null
           payment_method:
             | Database["public"]["Enums"]["payment_method_enum"]
@@ -196,6 +197,7 @@ export type Database = {
           date?: string | null
           description?: string | null
           id?: string
+          invoice_id?: string | null
           organization_id?: string | null
           payment_method?:
             | Database["public"]["Enums"]["payment_method_enum"]
@@ -212,6 +214,7 @@ export type Database = {
           date?: string | null
           description?: string | null
           id?: string
+          invoice_id?: string | null
           organization_id?: string | null
           payment_method?:
             | Database["public"]["Enums"]["payment_method_enum"]

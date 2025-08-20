@@ -233,6 +233,7 @@ export interface Expense {
   date: string;
   payment_method?: PaymentMethod;
   payment_status?: string;
+  invoice_id?: string;
   receipt_url?: string;
   notes?: string;
   created_at?: string;

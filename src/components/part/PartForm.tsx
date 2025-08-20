@@ -34,8 +34,7 @@ const partSchema = z.object({
   price: z.coerce.number().min(0.01, { message: "Price must be at least 0.01" }),
   quantity: z.coerce.number().min(0, { message: "Quantity cannot be negative" }),
   description: z.string().min(1, { message: "Description is required" }),
-  vendorId: z.string().optional(),
-  vendorName: z.string().optional(),
+  vendorId: z.string().min(1, { message: "Vendor is required" }),
   partNumber: z.string().optional(),
   invoiceIds: z.array(z.string()).optional(),
 });
@@ -68,8 +67,7 @@ const PartForm = ({ defaultValues, onSubmit, formId, invoice, invoiceId, part }:
       price: 0,
       quantity: 0,
       description: "",
-      vendorId: "none",
-      vendorName: "",
+      vendorId: "",
       partNumber: "",
       invoiceIds: [],
     },
@@ -256,40 +254,26 @@ const PartForm = ({ defaultValues, onSubmit, formId, invoice, invoiceId, part }:
               <Select
                 onValueChange={field.onChange}
                 defaultValue={field.value}
-                value={field.value || "none"}
+                value={field.value}
               >
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select a vendor (optional)" />
+                    <SelectValue placeholder="Select a vendor" />
                   </SelectTrigger>
                 </FormControl>
-                <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  {vendors.map((vendor) => (
-                    <SelectItem key={vendor.id} value={vendor.id}>
-                      {vendor.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
+                  <SelectContent>
+                   {vendors.map((vendor) => (
+                     <SelectItem key={vendor.id} value={vendor.id}>
+                       {vendor.name}
+                     </SelectItem>
+                   ))}
+                 </SelectContent>
               </Select>
               <FormMessage />
             </FormItem>
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="vendorName"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Vendor Name (Optional)</FormLabel>
-              <FormControl>
-                <Input placeholder="Vendor name" {...field} value={field.value || ""} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
 
         <FormField
           control={form.control}

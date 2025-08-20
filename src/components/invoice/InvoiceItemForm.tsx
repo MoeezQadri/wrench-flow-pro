@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { InvoiceItem, Part, Task } from "@/types";
+import { InvoiceItem, Part, Task, Vendor, Expense } from "@/types";
 import { useDataContext } from "@/context/data/DataContext";
 import { useOrganizationSettings } from "@/hooks/useOrganizationSettings";
 
@@ -54,8 +54,10 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
   const [selectedTaskId, setSelectedTaskId] = useState("");
   
   // Custom creation flags
-  const [createsInventoryPart, setCreatesInventoryPart] = useState(false);
   const [createsTask, setCreatesTask] = useState(false);
+  
+  // Vendor selection for parts
+  const [selectedVendorId, setSelectedVendorId] = useState("");
   
   // Custom part data
   const [partNumber, setPartNumber] = useState("");
@@ -67,7 +69,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
   const [laborRate, setLaborRate] = useState(50);
   const [skillLevel, setSkillLevel] = useState("standard");
 
-  const { mechanics, addPart, addTask } = useDataContext();
+  const { mechanics, vendors, addPart, addTask, addExpense } = useDataContext();
   const { getCurrencySymbol, formatCurrency } = useOrganizationSettings();
 
   // Debug logging for available data
@@ -94,7 +96,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
         setUnitOfMeasure(editingItem.unit_of_measure || "piece");
         setSelectedPartId(editingItem.part_id || "");
         setSelectedTaskId(editingItem.task_id || "");
-        setCreatesInventoryPart(editingItem.creates_inventory_part || false);
+        
         setCreatesTask(editingItem.creates_task || false);
         
         // Populate custom data if available
@@ -118,7 +120,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
         setUnitOfMeasure("piece");
         setSelectedPartId("");
         setSelectedTaskId("");
-        setCreatesInventoryPart(false);
+        
         setCreatesTask(false);
         setPartNumber("");
         setManufacturer("");
@@ -126,6 +128,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
         setLocation("");
         setLaborRate(50);
         setSkillLevel("standard");
+        setSelectedVendorId("");
       }
     }
   }, [open, editingItem]);
@@ -159,6 +162,12 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
       return;
     }
 
+    // Validate vendor selection for parts
+    if (type === 'part' && !selectedPartId && !selectedVendorId) {
+      alert('Please select a vendor for the part.');
+      return;
+    }
+
     const newItem: InvoiceItem = {
       id: editingItem?.id || `item-${Date.now()}`,
       description: description.trim(),
@@ -168,13 +177,13 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
       unit_of_measure: unitOfMeasure,
       part_id: selectedPartId || undefined,
       task_id: selectedTaskId || undefined,
-      creates_inventory_part: createsInventoryPart,
+      creates_inventory_part: type === 'part' || type === 'other',
       creates_task: createsTask,
       is_auto_added: false
     };
 
-    // Handle custom part creation - save to database if creating inventory part
-    if (createsInventoryPart && type === 'part' && addPart && invoiceId) {
+    // Handle custom part creation - always save to database for parts and other items
+    if ((type === 'part' || type === 'other') && !selectedPartId && addPart && invoiceId) {
       try {
         const customPart: Part = {
           id: crypto.randomUUID(),
@@ -184,10 +193,10 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
           quantity: 0, // Start with 0 since it's being used immediately
           part_number: partNumber || undefined,
           manufacturer: manufacturer || undefined,
-          category: category || undefined,
+          category: category || (type === 'other' ? 'other' : undefined),
           location: location || undefined,
-          vendor_id: undefined,
-          vendor_name: undefined,
+          vendor_id: selectedVendorId || undefined,
+          vendor_name: selectedVendorId ? vendors.find((v: Vendor) => v.id === selectedVendorId)?.name : undefined,
           invoice_ids: [invoiceId],
           reorder_level: 5,
           unit: unitOfMeasure,
@@ -203,6 +212,29 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
           category: category,
           location: location
         };
+        
+        // Create expense for part purchase
+        if (selectedVendorId) {
+          const vendor = vendors.find((v: Vendor) => v.id === selectedVendorId);
+          const expense: Expense = {
+            id: crypto.randomUUID(),
+            category: type === 'part' ? 'parts' : 'other',
+            description: `Invoice ${invoiceId.substring(0, 8)}: ${description.trim()}`,
+            amount: price * quantity,
+            date: new Date().toISOString(),
+            vendor_id: selectedVendorId,
+            vendor_name: vendor?.name,
+            payment_method: "cash",
+            payment_status: "paid",
+            invoice_id: invoiceId,
+          };
+          
+          try {
+            await addExpense(expense);
+          } catch (error) {
+            console.error("Error creating expense for item purchase:", error);
+          }
+        }
         console.log('Created custom part in database:', savedPart);
       } catch (error) {
         console.error('Failed to create custom part:', error);
@@ -402,60 +434,69 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
             </div>
           </div>
 
-          {/* Custom Part Creation */}
-          {type === 'part' && !selectedPartId && (
+          {/* Custom Part/Other Item Creation */}
+          {(type === 'part' || type === 'other') && !selectedPartId && (
             <div className="space-y-4 border-t pt-4">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="createsInventoryPart"
-                  checked={createsInventoryPart}
-                  onCheckedChange={(checked) => setCreatesInventoryPart(checked as boolean)}
-                />
-                <Label htmlFor="createsInventoryPart" className="text-sm">
-                  Save to parts database {invoiceId ? `(tagged with this invoice)` : '(no invoice ID available)'}
-                </Label>
+              <div className="text-sm text-muted-foreground">
+                This {type} will be automatically saved to the parts database and linked to this invoice.
               </div>
 
-              {createsInventoryPart && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-muted p-4 rounded-lg">
-                  <div>
-                    <Label htmlFor="partNumber">Part Number</Label>
-                    <Input
-                      id="partNumber"
-                      value={partNumber}
-                      onChange={(e) => setPartNumber(e.target.value)}
-                      placeholder="P-12345"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="manufacturer">Manufacturer</Label>
-                    <Input
-                      id="manufacturer"
-                      value={manufacturer}
-                      onChange={(e) => setManufacturer(e.target.value)}
-                      placeholder="Brand Name"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="category">Category</Label>
-                    <Input
-                      id="category"
-                      value={category}
-                      onChange={(e) => setCategory(e.target.value)}
-                      placeholder="Engine, Brakes, etc."
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="location">Storage Location</Label>
-                    <Input
-                      id="location"
-                      value={location}
-                      onChange={(e) => setLocation(e.target.value)}
-                      placeholder="Shelf A-1"
-                    />
-                  </div>
+              {/* Vendor Selection */}
+              <div>
+                <Label htmlFor="vendorSelect">Vendor {type === 'part' ? '(Required)' : '(Optional)'}</Label>
+                <Select value={selectedVendorId} onValueChange={setSelectedVendorId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={`Select vendor for ${type}`} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {type === 'other' && <SelectItem value="">No vendor</SelectItem>}
+                    {vendors.map((vendor: Vendor) => (
+                      <SelectItem key={vendor.id} value={vendor.id}>
+                        {vendor.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-muted p-4 rounded-lg">
+                <div>
+                  <Label htmlFor="partNumber">Part Number</Label>
+                  <Input
+                    id="partNumber"
+                    value={partNumber}
+                    onChange={(e) => setPartNumber(e.target.value)}
+                    placeholder="P-12345"
+                  />
                 </div>
-              )}
+                <div>
+                  <Label htmlFor="manufacturer">Manufacturer</Label>
+                  <Input
+                    id="manufacturer"
+                    value={manufacturer}
+                    onChange={(e) => setManufacturer(e.target.value)}
+                    placeholder="Brand Name"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="category">Category</Label>
+                  <Input
+                    id="category"
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    placeholder={type === 'part' ? "Engine, Brakes, etc." : "Supplies, Materials, etc."}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="location">Storage Location</Label>
+                  <Input
+                    id="location"
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                    placeholder="Shelf A-1"
+                  />
+                </div>
+              </div>
             </div>
           )}
 

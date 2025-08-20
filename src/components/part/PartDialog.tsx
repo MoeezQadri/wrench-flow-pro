@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Part } from "@/types";
+import { Part, Expense, Vendor } from "@/types";
 import PartForm, { PartFormValues } from "./PartForm";
 import { generateId } from "@/services/data-service";
 import { useDataContext } from "@/context/data/DataContext";
@@ -30,7 +30,9 @@ const PartDialog = ({ open, onOpenChange, onSave, part, invoiceId }: PartDialogP
   const [loading, setLoading] = useState(invoiceId ? true : false);
 
   const {
-    getInvoiceById
+    getInvoiceById,
+    vendors,
+    addExpense
   } = useDataContext()
 
   useEffect(() => {
@@ -54,8 +56,8 @@ const PartDialog = ({ open, onOpenChange, onSave, part, invoiceId }: PartDialogP
 
   const handleSubmit = async (data: PartFormValues) => {
     try {
-      // Only look up vendor if vendorId is provided and not "none"
-      const vendorId = data.vendorId !== "none" ? data.vendorId : undefined;
+      // Vendor is now required, so always use it
+      const vendorId = data.vendorId;
 
       const newPart: Part = {
         id: part?.id || generateId("part"),
@@ -64,12 +66,35 @@ const PartDialog = ({ open, onOpenChange, onSave, part, invoiceId }: PartDialogP
         quantity: data.quantity,
         description: data.description,
         vendor_id: vendorId,
-        vendor_name: data.vendorName,
         part_number: data.partNumber,
         invoice_ids: data.invoiceIds || [],
       };
 
       onSave(newPart);
+
+      // Create expense for part purchase
+      if (vendorId && !isEditing) {
+        const vendor = vendors.find((v: Vendor) => v.id === vendorId);
+        const expense: Expense = {
+          id: generateId("expense"),
+          category: "parts",
+          description: `Purchase: ${newPart.name}`,
+          amount: newPart.price * newPart.quantity,
+          date: new Date().toISOString(),
+          vendor_id: vendorId,
+          vendor_name: vendor?.name,
+          payment_method: "cash",
+          payment_status: "paid",
+          invoice_id: invoiceId || undefined,
+        };
+        
+        try {
+          await addExpense(expense);
+        } catch (error) {
+          console.error("Error creating expense for part purchase:", error);
+          toast.error("Part added but failed to create expense entry");
+        }
+      }
 
       // If the part is being added to an invoice, show a specialized message
       if (invoiceId && invoice) {
@@ -114,8 +139,7 @@ const PartDialog = ({ open, onOpenChange, onSave, part, invoiceId }: PartDialogP
                 price: part.price,
                 quantity: part.quantity,
                 description: part.description,
-                vendorId: part.vendor_id || "none",
-                vendorName: part.vendor_name,
+                vendorId: part.vendor_id || "",
                 partNumber: part.part_number,
                 invoiceIds: part.invoice_ids || [],
               }
