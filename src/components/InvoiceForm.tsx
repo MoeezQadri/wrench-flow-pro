@@ -53,8 +53,9 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formErrors, setFormErrors] = useState<string[]>([]);
   
-  // Add a ref to track if initial data has been loaded to prevent conflicts
+  // Add refs to track state and prevent unnecessary reinitializations
   const initialDataLoaded = useRef(false);
+  const userHasChangedForm = useRef(false);
   
   // Use optimized hooks for invoice editing and data loading
   const { updateInvoice: updateInvoiceWithHook, isSubmitting: isInvoiceSubmitting } = useOptimizedInvoiceEdit();
@@ -225,12 +226,12 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
     }
   }, [tasks, isEditing, invoiceData]);
 
-  // Initialize form values when editing - reinitialize when invoice data changes
+  // Initialize form values when editing - only initialize once or when invoice ID changes
   useEffect(() => {
-    if (invoiceData) {
+    if (invoiceData && (!initialDataLoaded.current || !userHasChangedForm.current)) {
       console.log("Initializing form with invoice data:", invoiceData);
       console.log("Raw invoice date:", invoiceData.date);
-      console.log("Invoice date type:", typeof invoiceData.date);
+      console.log("User has changed form:", userHasChangedForm.current);
       
       setSelectedCustomerId(invoiceData.customer_id);
       setSelectedVehicleId(invoiceData.vehicle_id);
@@ -264,7 +265,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
       form.setValue('invoiceId', invoiceData.id);
       initialDataLoaded.current = true;
     }
-  }, [invoiceData, invoiceData?.updated_at]); // Depend on updated_at to reinitialize when data is fresh
+  }, [invoiceData?.id]); // Only depend on invoice ID to prevent form reinitialization
 
   // Load assigned parts and tasks - skip auto-assignment for editing invoices
   useEffect(() => {
@@ -455,6 +456,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
     try {
       if (isEditing && invoiceData) {
         console.log("Updating existing invoice:", invoiceData.id);
+        console.log("Current form state:", { selectedCustomerId, selectedVehicleId, date, status, taxRate, discountType, discountValue, notes, items });
         
         const updatedInvoiceData = {
           id: invoiceData.id,
@@ -470,7 +472,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
           payments: payments
         };
 
-        console.log("INVOICE_FORM: Updating invoice without payments (handled separately)");
+        console.log("INVOICE_FORM: Updating invoice data:", updatedInvoiceData);
         
         // Remove payments from invoice data - they're handled separately
         const { payments: _, ...invoiceDataWithoutPayments } = updatedInvoiceData;
@@ -478,9 +480,15 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
         const result = await updateInvoiceWithHook(invoiceDataWithoutPayments as Invoice);
         
         if (result) {
-          // Update the invoice in context to ensure fresh data
-          if (updateInvoiceInContext) {
-            await updateInvoiceInContext(invoiceData.id, result);
+          console.log("Invoice update result:", result);
+          
+          // Reset user change tracking after successful save
+          userHasChangedForm.current = false;
+          
+          // Force reload invoices to get fresh data
+          if (loadInvoices) {
+            console.log("Reloading invoices after update");
+            await loadInvoices();
           }
           
           console.log("Invoice updated successfully, navigating to invoices page");
@@ -527,6 +535,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
   // Enhanced items change handler to prevent conflicts
   const handleItemsChange = (newItems: InvoiceItem[] | ((prev: InvoiceItem[]) => InvoiceItem[])) => {
     console.log('handleItemsChange called with:', typeof newItems === 'function' ? 'function' : newItems);
+    userHasChangedForm.current = true; // Track that user has made changes
     setItems(prevItems => {
       const result = typeof newItems === 'function' ? newItems(prevItems) : newItems;
       console.log('Items state updated from:', prevItems, 'to:', result);
@@ -597,6 +606,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
               onChange={(e) => {
                 console.log("Date input changed to:", e.target.value);
                 setDate(e.target.value);
+                userHasChangedForm.current = true;
               }}
               required
             />
@@ -612,6 +622,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
                 onValueChange={(value: InvoiceStatus) => {
                   console.log('Status changing to:', value);
                   setStatus(value);
+                  userHasChangedForm.current = true;
                 }}
               >
                 <SelectTrigger id="status">
@@ -680,7 +691,10 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
                 min="0"
                 max="100"
                 value={taxRate}
-                onChange={(e) => setTaxRate(parseFloat(e.target.value) || 0)}
+                onChange={(e) => {
+                  setTaxRate(parseFloat(e.target.value) || 0);
+                  userHasChangedForm.current = true;
+                }}
               />
             </div>
 
@@ -691,6 +705,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
                 onValueChange={(value: 'none' | 'percentage' | 'fixed') => {
                   console.log('Discount type changing to:', value);
                   setDiscountType(value);
+                  userHasChangedForm.current = true;
                 }}
               >
                 <SelectTrigger id="discountType">
@@ -716,7 +731,10 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
                   min="0"
                   max={discountType === 'percentage' ? "100" : undefined}
                   value={discountValue}
-                  onChange={(e) => setDiscountValue(parseFloat(e.target.value) || 0)}
+                  onChange={(e) => {
+                    setDiscountValue(parseFloat(e.target.value) || 0);
+                    userHasChangedForm.current = true;
+                  }}
                 />
               </div>
             )}
@@ -728,7 +746,10 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
             <Textarea
               id="notes"
               value={notes}
-              onChange={(e) => setNotes(e.target.value)}
+              onChange={(e) => {
+                setNotes(e.target.value);
+                userHasChangedForm.current = true;
+              }}
               placeholder="Additional notes for this invoice..."
             />
           </div>
