@@ -11,12 +11,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Expense } from "@/types";
-import { nanoid } from "nanoid";
 import ExpenseForm, { ExpenseFormValues } from "./ExpenseForm";
 import { useDataContext } from "@/context/data/DataContext";
 
-const generateId = (prefix: string = 'expense'): string => {
-  return `${prefix}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+// Generate proper UUID for database
+const generateId = (): string => {
+  return crypto.randomUUID();
 };
 
 interface ExpenseDialogProps {
@@ -59,7 +59,7 @@ const ExpenseDialog: React.FC<ExpenseDialogProps> = ({
       }
 
       const expenseData: Expense = {
-        id: expense?.id || generateId("expense"),
+        id: expense?.id || generateId(),
         date: data.date.toISOString().split('T')[0],
         amount: data.amount,
         category: data.category,

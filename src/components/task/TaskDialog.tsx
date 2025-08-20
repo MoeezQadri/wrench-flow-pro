@@ -15,8 +15,9 @@ import TaskForm from "./TaskForm";
 import { TaskFormValues } from "./TaskFormValues";
 import { useDataContext } from "@/context/data/DataContext";
 
-const generateId = (prefix: string = 'id'): string => {
-  return `${prefix}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+// Generate proper UUID for database
+const generateId = (): string => {
+  return crypto.randomUUID();
 };
 
 interface TaskDialogProps {
@@ -85,7 +86,7 @@ const TaskDialog = ({ open, onOpenChange, onSave, task, invoiceId }: TaskDialogP
       }
 
       const newTask: Task = {
-        id: task?.id || generateId("task"),
+        id: task?.id || generateId(),
         title: data.title,
         description: data.description || "",
         status: data.status === 'in-progress' ? 'in-progress' : 'completed',
