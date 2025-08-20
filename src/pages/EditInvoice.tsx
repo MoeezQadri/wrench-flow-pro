@@ -85,7 +85,7 @@ const EditInvoice = () => {
     };
 
     fetchInvoice();
-  }, [id, navigate, getInvoiceById, loadInvoices, loadCustomers, smartLoad, isLoaded, resetLoadedState]);
+  }, [id]); // Only depend on id to prevent infinite loops
 
   if (loading) {
     return <div className="p-6">Loading invoice...</div>;
