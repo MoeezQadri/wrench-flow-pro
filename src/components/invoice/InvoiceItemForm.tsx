@@ -449,7 +449,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
                     <SelectValue placeholder={`Select vendor for ${type}`} />
                   </SelectTrigger>
                   <SelectContent>
-                    {type === 'other' && <SelectItem value="">No vendor</SelectItem>}
+                    {type === 'other' && <SelectItem value="none">No vendor</SelectItem>}
                     {vendors.map((vendor: Vendor) => (
                       <SelectItem key={vendor.id} value={vendor.id}>
                         {vendor.name}
