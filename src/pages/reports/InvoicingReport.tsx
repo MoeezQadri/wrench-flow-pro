@@ -9,11 +9,13 @@ import { DateRangePicker } from "@/components/dashboard/DateRangePicker";
 import { subDays } from "date-fns";
 import { useDataContext } from "@/context/data/DataContext";
 import { isWithinInterval, parseISO } from "date-fns";
+import { useOrganizationSettings } from "@/hooks/useOrganizationSettings";
 
 const InvoicingReport = () => {
   const [startDate, setStartDate] = useState<Date>(subDays(new Date(), 30));
   const [endDate, setEndDate] = useState<Date>(new Date());
   const { invoices, customers, payments } = useDataContext();
+  const { formatCurrency } = useOrganizationSettings();
 
   // Filter invoices for the selected date range
   const filteredInvoices = invoices.filter(invoice => {
@@ -112,7 +114,7 @@ const InvoicingReport = () => {
             <CardTitle className="text-sm">Outstanding</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${outstandingAmount.toLocaleString()}</div>
+            <div className="text-2xl font-bold">{formatCurrency(outstandingAmount)}</div>
           </CardContent>
         </Card>
       </div>
@@ -124,7 +126,7 @@ const InvoicingReport = () => {
             <CardTitle>Total Revenue</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">${totalRevenue.toLocaleString()}</div>
+            <div className="text-3xl font-bold">{formatCurrency(totalRevenue)}</div>
           </CardContent>
         </Card>
         <Card>
@@ -132,7 +134,7 @@ const InvoicingReport = () => {
             <CardTitle>Amount Paid</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-green-600">${paidAmount.toLocaleString()}</div>
+            <div className="text-3xl font-bold text-green-600">{formatCurrency(paidAmount)}</div>
           </CardContent>
         </Card>
         <Card>
@@ -194,7 +196,7 @@ const InvoicingReport = () => {
                       <TableCell className="font-medium">#{invoice.id?.slice(0, 8)}</TableCell>
                       <TableCell>{customer?.name || "Unknown"}</TableCell>
                       <TableCell>{new Date(invoice.date || '').toLocaleDateString()}</TableCell>
-                      <TableCell>${invoiceTotal.toLocaleString()}</TableCell>
+                      <TableCell>{formatCurrency(invoiceTotal)}</TableCell>
                       <TableCell>
                         <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                           invoice.status === 'paid' ? 'bg-green-100 text-green-800' :

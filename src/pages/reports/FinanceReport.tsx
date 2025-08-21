@@ -10,6 +10,7 @@ import { resolvePromiseAndSetState } from '@/utils/async-helpers';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { exportToCSV } from '@/utils/csv-export';
+import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
 
 // Interface for expenses matching Supabase schema
 interface DatabaseExpense {
@@ -65,6 +66,7 @@ const FinanceReport = () => {
   const [expenses, setExpenses] = useState<DatabaseExpense[]>([]);
   const [revenue, setRevenue] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const { formatCurrency } = useOrganizationSettings();
   
   useEffect(() => {
     const loadFinanceData = async () => {
@@ -134,7 +136,7 @@ const FinanceReport = () => {
       return {
         invoice_id: invoice.id?.slice(0, 8),
         date: new Date(invoice.date).toLocaleDateString(),
-        amount: invoiceTotal.toFixed(2),
+        amount: formatCurrency(invoiceTotal),
         status: invoice.status,
         items_count: invoice.invoice_items?.length || 0
       };
@@ -149,7 +151,7 @@ const FinanceReport = () => {
       date: new Date(expense.date).toLocaleDateString(),
       category: expense.category,
       description: expense.description || '',
-      amount: expense.amount.toFixed(2),
+      amount: formatCurrency(expense.amount),
       payment_method: expense.payment_method,
       vendor_name: expense.vendor_name || '',
       payment_status: expense.payment_status || ''
@@ -191,7 +193,7 @@ const FinanceReport = () => {
             <CardTitle className="text-sm">Total Revenue</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">${totalRevenue.toLocaleString()}</div>
+            <div className="text-2xl font-bold text-green-600">{formatCurrency(totalRevenue)}</div>
           </CardContent>
         </Card>
         <Card>
@@ -199,7 +201,7 @@ const FinanceReport = () => {
             <CardTitle className="text-sm">Total Expenses</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">${totalExpenses.toLocaleString()}</div>
+            <div className="text-2xl font-bold text-red-600">{formatCurrency(totalExpenses)}</div>
           </CardContent>
         </Card>
         <Card>
@@ -208,7 +210,7 @@ const FinanceReport = () => {
           </CardHeader>
           <CardContent>
             <div className={`text-2xl font-bold ${netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              ${netProfit.toLocaleString()}
+              {formatCurrency(netProfit)}
             </div>
           </CardContent>
         </Card>
@@ -256,7 +258,7 @@ const FinanceReport = () => {
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="font-medium">${invoiceTotal.toFixed(2)}</p>
+                        <p className="font-medium">{formatCurrency(invoiceTotal)}</p>
                         <p className={`text-xs ${
                           invoice.status === 'paid' ? 'text-green-600' : 
                           invoice.status === 'overdue' ? 'text-red-600' : 'text-yellow-600'
@@ -299,7 +301,7 @@ const FinanceReport = () => {
                       )}
                     </div>
                     <div className="text-right">
-                      <p className="font-medium">${expense.amount.toFixed(2)}</p>
+                      <p className="font-medium">{formatCurrency(expense.amount)}</p>
                       <p className="text-xs text-muted-foreground">{expense.payment_method}</p>
                     </div>
                   </div>
