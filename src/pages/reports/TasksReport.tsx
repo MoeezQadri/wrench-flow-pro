@@ -105,7 +105,7 @@ const TasksReport = () => {
             <CardTitle className="text-sm">Total Value</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totalTaskValue)}</div>
+            <div className="text-2xl font-bold break-words">{formatCurrency(totalTaskValue)}</div>
           </CardContent>
         </Card>
         <Card>
@@ -113,7 +113,7 @@ const TasksReport = () => {
             <CardTitle className="text-sm">Avg Value</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(averageTaskValue)}</div>
+            <div className="text-2xl font-bold break-words">{formatCurrency(averageTaskValue)}</div>
           </CardContent>
         </Card>
       </div>

@@ -114,7 +114,7 @@ const InvoicingReport = () => {
             <CardTitle className="text-sm">Outstanding</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(outstandingAmount)}</div>
+            <div className="text-2xl font-bold break-words">{formatCurrency(outstandingAmount)}</div>
           </CardContent>
         </Card>
       </div>
@@ -126,7 +126,7 @@ const InvoicingReport = () => {
             <CardTitle>Total Revenue</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{formatCurrency(totalRevenue)}</div>
+            <div className="text-3xl font-bold break-words">{formatCurrency(totalRevenue)}</div>
           </CardContent>
         </Card>
         <Card>
@@ -134,7 +134,7 @@ const InvoicingReport = () => {
             <CardTitle>Amount Paid</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-green-600">{formatCurrency(paidAmount)}</div>
+            <div className="text-3xl font-bold text-green-600 break-words">{formatCurrency(paidAmount)}</div>
           </CardContent>
         </Card>
         <Card>

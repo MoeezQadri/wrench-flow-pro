@@ -165,7 +165,7 @@ const FinancialReport = () => {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
+            <div className="text-2xl font-bold text-green-600 break-words">
               {formatCurrency(totalReceivables)}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -180,7 +180,7 @@ const FinancialReport = () => {
             <TrendingDown className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">
+            <div className="text-2xl font-bold text-red-600 break-words">
               {formatCurrency(totalPayables)}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -195,7 +195,7 @@ const FinancialReport = () => {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${netPosition >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            <div className={`text-2xl font-bold break-words ${netPosition >= 0 ? 'text-green-600' : 'text-red-600'}`}>
               {formatCurrency(netPosition)}
             </div>
             <p className="text-xs text-muted-foreground">
