@@ -8,11 +8,13 @@ import { DateRangePicker } from "@/components/dashboard/DateRangePicker";
 import { subDays } from "date-fns";
 import { useDataContext } from "@/context/data/DataContext";
 import { isWithinInterval, parseISO } from "date-fns";
+import { useOrganizationSettings } from "@/hooks/useOrganizationSettings";
 
 const TasksReport = () => {
   const [startDate, setStartDate] = useState<Date>(subDays(new Date(), 30));
   const [endDate, setEndDate] = useState<Date>(new Date());
   const { tasks, mechanics } = useDataContext();
+  const { formatCurrency } = useOrganizationSettings();
 
   // Filter tasks for the selected date range
   const filteredTasks = tasks.filter(task => {
@@ -33,6 +35,10 @@ const TasksReport = () => {
   const totalHoursSpent = filteredTasks.reduce((sum, task) => sum + (task.hoursSpent || 0), 0);
   const totalHoursEstimated = filteredTasks.reduce((sum, task) => sum + (task.hoursEstimated || 0), 0);
   const averageTaskTime = totalTasks > 0 ? totalHoursSpent / totalTasks : 0;
+  
+  // Calculate financial metrics
+  const totalTaskValue = filteredTasks.reduce((sum, task) => sum + (task.price || 0), 0);
+  const averageTaskValue = totalTasks > 0 ? totalTaskValue / totalTasks : 0;
 
   const handleDateRangeChange = (newStartDate: Date, newEndDate: Date) => {
     setStartDate(newStartDate);
@@ -61,7 +67,7 @@ const TasksReport = () => {
       </div>
 
       {/* Statistics */}
-      <div className="grid gap-4 grid-cols-2 md:grid-cols-5">
+      <div className="grid gap-4 grid-cols-2 md:grid-cols-6">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm">Total Tasks</CardTitle>
@@ -96,10 +102,18 @@ const TasksReport = () => {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Avg Hours</CardTitle>
+            <CardTitle className="text-sm">Total Value</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{averageTaskTime.toFixed(1)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(totalTaskValue)}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Avg Value</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(averageTaskValue)}</div>
           </CardContent>
         </Card>
       </div>
@@ -128,6 +142,7 @@ const TasksReport = () => {
                 <TableHead>Task</TableHead>
                 <TableHead>Mechanic</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Price</TableHead>
                 <TableHead>Hours Est.</TableHead>
                 <TableHead>Hours Spent</TableHead>
                 <TableHead>Efficiency</TableHead>
@@ -136,7 +151,7 @@ const TasksReport = () => {
             <TableBody>
               {filteredTasks.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                     No tasks found for the selected date range
                   </TableCell>
                 </TableRow>
@@ -160,6 +175,7 @@ const TasksReport = () => {
                           {task.status}
                         </div>
                       </TableCell>
+                      <TableCell>{formatCurrency(task.price || 0)}</TableCell>
                       <TableCell>{task.hoursEstimated || 0}h</TableCell>
                       <TableCell>{task.hoursSpent || 0}h</TableCell>
                       <TableCell>
