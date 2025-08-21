@@ -22,7 +22,7 @@ const Finance = () => {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(0)}</div>
+            <div className="text-2xl font-bold break-words">{formatCurrency(0)}</div>
             <p className="text-xs text-muted-foreground">This month</p>
           </CardContent>
         </Card>
@@ -32,7 +32,7 @@ const Finance = () => {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(0)}</div>
+            <div className="text-2xl font-bold break-words">{formatCurrency(0)}</div>
             <p className="text-xs text-muted-foreground">Outstanding</p>
           </CardContent>
         </Card>
@@ -42,7 +42,7 @@ const Finance = () => {
             <TrendingDown className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(0)}</div>
+            <div className="text-2xl font-bold break-words">{formatCurrency(0)}</div>
             <p className="text-xs text-muted-foreground">Owed</p>
           </CardContent>
         </Card>

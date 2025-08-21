@@ -106,7 +106,7 @@ export function DashboardMetrics({ data, isLoading }: DashboardMetricsProps) {
               <Icon className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{metric.value}</div>
+              <div className="text-2xl font-bold break-words">{metric.value}</div>
               <p className="text-xs text-muted-foreground flex items-center gap-1">
                 <span className={isPositive ? "text-green-600" : "text-red-600"}>
                   {isPositive ? "+" : ""}{metric.change}%

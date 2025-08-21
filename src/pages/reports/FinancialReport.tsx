@@ -12,8 +12,10 @@ import {
   FileText,
   AlertTriangle,
   Download,
-  Calendar
+  Calendar,
+  ChevronLeft
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useDataContext } from '@/context/data/DataContext';
 import { DateRangePicker } from '@/components/dashboard/DateRangePicker';
 import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
@@ -97,11 +99,19 @@ const FinancialReport = () => {
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Financial Report</h1>
-          <p className="text-muted-foreground">Receivables, payables and cash flow analysis</p>
-          <div className="text-sm text-muted-foreground mt-1">
-            Period: {appliedDateRange.startDate.toLocaleDateString()} - {appliedDateRange.endDate.toLocaleDateString()}
+        <div className="flex items-center gap-4">
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/reports">
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              Back to Reports
+            </Link>
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold">Financial Report</h1>
+            <p className="text-muted-foreground">Receivables, payables and cash flow analysis</p>
+            <div className="text-sm text-muted-foreground mt-1">
+              Period: {appliedDateRange.startDate.toLocaleDateString()} - {appliedDateRange.endDate.toLocaleDateString()}
+            </div>
           </div>
         </div>
         <div className="flex items-center space-x-2">
