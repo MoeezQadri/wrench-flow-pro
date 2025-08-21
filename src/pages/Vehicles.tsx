@@ -76,6 +76,7 @@ const Vehicles: React.FC = () => {
         const { error } = await supabase
           .from('vehicles')
           .update({
+            customer_id: vehicle.customer_id,
             make: vehicle.make,
             model: vehicle.model,
             year: vehicle.year,
@@ -88,7 +89,22 @@ const Vehicles: React.FC = () => {
 
         if (error) throw error;
 
+        // Update local state
         setVehicles(prev => prev.map(v => v.id === vehicle.id ? vehicle : v));
+
+        // Update customer name cache if customer changed
+        if (editingVehicle.customer_id !== vehicle.customer_id) {
+          try {
+            const customer = await getCustomerById(vehicle.customer_id);
+            setCustomerNames(prev => ({
+              ...prev,
+              [vehicle.customer_id]: customer?.name || 'Unknown'
+            }));
+          } catch (error) {
+            console.error('Error loading customer name:', error);
+          }
+        }
+
         toast.success("Vehicle updated successfully!");
       } else {
         // Add new vehicle
