@@ -350,7 +350,7 @@ const Customers = () => {
 
       {/* New Customer Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add New Customer</DialogTitle>
             <DialogDescription>
@@ -367,7 +367,7 @@ const Customers = () => {
                   <p className="text-sm text-muted-foreground">Required fields to create the customer</p>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FormField control={form.control} name="customer.name" render={({
                     field
                   }) => <FormItem>
@@ -389,7 +389,7 @@ const Customers = () => {
                         </FormItem>} />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FormField control={form.control} name="customer.phone" render={({
                     field
                   }) => <FormItem>
@@ -402,7 +402,7 @@ const Customers = () => {
 
                     <FormField control={form.control} name="customer.address" render={({
                     field
-                  }) => <FormItem>
+                  }) => <FormItem className="sm:col-span-1">
                           <FormLabel>Address *</FormLabel>
                           <FormControl>
                             <Textarea placeholder="123 Main St, Anytown" {...field} />
@@ -429,10 +429,10 @@ const Customers = () => {
                             type="checkbox" 
                             checked={field.value} 
                             onChange={field.onChange} 
-                            className="h-5 w-5 mt-0.5 rounded border-2 border-primary text-primary focus:ring-primary" 
+                            className="h-5 w-5 mt-0.5 rounded border-2 border-primary text-primary focus:ring-primary flex-shrink-0" 
                           />
                         </FormControl>
-                        <div className="space-y-1 leading-none">
+                        <div className="space-y-1 leading-none min-w-0 flex-1">
                           <FormLabel className="text-base font-medium cursor-pointer">
                             Add vehicle information (Optional)
                           </FormLabel>
@@ -444,7 +444,7 @@ const Customers = () => {
 
                 {showVehicleFields && (
                   <div className="space-y-4 pl-4 border-l-2 border-primary/20">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                        <FormField control={form.control} name="vehicle.make" render={({
                          field
                        }) => <FormItem>
@@ -466,7 +466,7 @@ const Customers = () => {
                                </FormItem>} />
                      </div>
 
-                     <div className="grid grid-cols-2 gap-4">
+                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                        <FormField control={form.control} name="vehicle.year" render={({
                          field
                        }) => <FormItem>
@@ -488,7 +488,7 @@ const Customers = () => {
                               </FormItem>} />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <FormField control={form.control} name="vehicle.vin" render={({
                         field
                       }) => <FormItem>
@@ -513,11 +513,11 @@ const Customers = () => {
                 )}
               </div>
 
-              <DialogFooter className="mt-6">
+              <DialogFooter className="mt-6 flex-col sm:flex-row gap-2">
                 <DialogClose asChild>
-                  <Button type="button" variant="outline">Cancel</Button>
+                  <Button type="button" variant="outline" className="w-full sm:w-auto">Cancel</Button>
                 </DialogClose>
-                <Button type="submit" disabled={isSubmitting}>
+                <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
                   {isSubmitting ? 'Adding Customer...' : 'Add Customer'}
                 </Button>
               </DialogFooter>
