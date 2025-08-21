@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import ExpenseDialog from "@/components/expense/ExpenseDialog";
+import { MarkAsPaidButton } from "@/components/expense/MarkAsPaidButton";
 import { Expense } from "@/types";
 import { useOrganizationSettings } from "@/hooks/useOrganizationSettings";
 import { format, isThisMonth, isToday, parseISO } from "date-fns";
@@ -240,15 +241,23 @@ const Expenses = () => {
                     <TableCell>{expense.vendor_name || "—"}</TableCell>
                     <TableCell className="font-medium">{formatCurrency(expense.amount)}</TableCell>
                     <TableCell className="text-right">
-                      {userCanEditExpenses && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleEditExpense(expense)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                      )}
+                      <div className="flex gap-2 justify-end">
+                        {userCanEditExpenses && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEditExpense(expense)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        )}
+                        <MarkAsPaidButton 
+                          expense={expense} 
+                          onPaymentRecorded={() => {
+                            // Refresh expenses data if needed
+                          }}
+                        />
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
