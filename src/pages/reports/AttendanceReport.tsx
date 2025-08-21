@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -14,31 +14,33 @@ import { exportToCSV } from "@/utils/csv-export";
 const AttendanceReport = () => {
   const [startDate, setStartDate] = useState<Date>(subDays(new Date(), 30));
   const [endDate, setEndDate] = useState<Date>(new Date());
-  const [isLoading, setIsLoading] = useState(true);
+  const hasLoadedAttendance = useRef(false);
   const {
     attendanceRecords,
     mechanics,
-    loadAttendance
+    loadAttendance,
+    attendanceLoading
   } = useDataContext();
-  // Load attendance data
+  
+  // Load attendance data only once
   useEffect(() => {
     const fetchData = async () => {
+      // Prevent multiple loads
+      if (hasLoadedAttendance.current || attendanceLoading) {
+        return;
+      }
+      
       try {
-        setIsLoading(true);
-        
-        // If no attendance data, trigger load
-        if (!attendanceRecords || attendanceRecords.length === 0) {
-          await loadAttendance();
-        }
+        hasLoadedAttendance.current = true;
+        await loadAttendance();
       } catch (error) {
         console.error("Error fetching attendance data:", error);
-      } finally {
-        setIsLoading(false);
+        hasLoadedAttendance.current = false; // Reset on error
       }
     };
 
     fetchData();
-  }, [loadAttendance, attendanceRecords]);
+  }, [loadAttendance]);
 
   // Filter attendance for the selected date range
   const filteredAttendance = (attendanceRecords || []).filter(record => {
@@ -113,7 +115,7 @@ const AttendanceReport = () => {
     exportToCSV(exportData, filename);
   };
 
-  if (isLoading) {
+  if (attendanceLoading) {
     return <div className="p-8 text-center">Loading attendance data...</div>;
   }
 

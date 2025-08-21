@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { Attendance } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -330,7 +330,7 @@ export const useAttendance = () => {
         }
     };
 
-    const loadAttendance = async (retryCount = 0) => {
+    const loadAttendance = useCallback(async (retryCount = 0) => {
         setLoading(true);
         setError(null);
 
@@ -399,7 +399,7 @@ export const useAttendance = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [organizationId, applyOrganizationFilter]);
 
     return {
         attendanceRecords,
