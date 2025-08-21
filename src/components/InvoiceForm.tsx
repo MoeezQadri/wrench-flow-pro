@@ -56,6 +56,8 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
   // Add refs to track state and prevent unnecessary reinitializations
   const initialDataLoaded = useRef(false);
   const userHasChangedForm = useRef(false);
+  const submissionLock = useRef(false);
+  const submissionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // Use optimized hooks for invoice editing and data loading
   const { updateInvoice: updateInvoiceWithHook, isSubmitting: isInvoiceSubmitting } = useOptimizedInvoiceEdit();
@@ -406,23 +408,43 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
 
   const totals = calculateTotals();
 
-  // Validate form before submission - removed item requirement
   const validateForm = () => {
     const errors: string[] = [];
 
     if (!selectedCustomerId) {
       errors.push("Please select a customer");
     }
+    
     if (!selectedVehicleId) {
       errors.push("Please select a vehicle");
     }
+
     if (!date) {
       errors.push("Please select a date");
-    } else {
-      // Validate date format
-      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-      if (!dateRegex.test(date)) {
-        errors.push("Date must be in YYYY-MM-DD format");
+    }
+
+    if (items.length === 0) {
+      errors.push("Please add at least one item to the invoice");
+    }
+
+    // Validate each item
+    items.forEach((item, index) => {
+      if (!item.description) {
+        errors.push(`Item ${index + 1}: Description is required`);
+      }
+      if (item.quantity <= 0) {
+        errors.push(`Item ${index + 1}: Quantity must be greater than 0`);
+      }
+      if (item.price < 0) {
+        errors.push(`Item ${index + 1}: Price cannot be negative`);
+      }
+    });
+
+    // Check for zero amount invoice when items exist
+    if (items.length > 0) {
+      const totalAmount = items.reduce((sum, item) => sum + (item.quantity * item.price), 0);
+      if (totalAmount === 0) {
+        errors.push("Invoice cannot have zero total when items are present. Please check item prices.");
       }
     }
 
@@ -438,6 +460,12 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
     e.preventDefault();
     console.log("Main form submission started - handleSubmit called");
     
+    // Robust duplicate submission prevention
+    if (submissionLock.current || isSubmitting || isInvoiceSubmitting) {
+      console.log("Form is already being submitted, ignoring duplicate submission");
+      return;
+    }
+
     // Validate form first
     if (!validateForm()) {
       console.log("Form validation failed:", formErrors);
@@ -445,13 +473,19 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
       return;
     }
 
-    // Prevent duplicate submissions
-    if (isSubmitting || isInvoiceSubmitting) {
-      console.log("Form is already being submitted, ignoring duplicate submission");
-      return;
-    }
-
+    // Set submission lock and state
+    submissionLock.current = true;
     setIsSubmitting(true);
+
+    // Set timeout to prevent infinite loading
+    submissionTimeoutRef.current = setTimeout(() => {
+      if (submissionLock.current) {
+        console.error("Invoice submission timed out");
+        toast.error("Invoice submission timed out. Please try again.");
+        submissionLock.current = false;
+        setIsSubmitting(false);
+      }
+    }, 30000); // 30 second timeout
     
     try {
       if (isEditing && invoiceData) {
@@ -500,11 +534,24 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
         
         console.log("Items before deduplication:", items);
         
+        // Clone items array to prevent reference issues during submission
+        const clonedItems = JSON.parse(JSON.stringify(items));
+        
         // Deduplicate and merge items before creating invoice
-        const deduplicatedItems = deduplicateItems(items);
+        const deduplicatedItems = deduplicateItems(clonedItems);
         const mergedItems = mergeItemQuantities(deduplicatedItems);
         
         console.log("Items after deduplication and merging:", mergedItems);
+
+        // Final validation before creation
+        if (mergedItems.length === 0) {
+          throw new Error("No valid items to add to invoice");
+        }
+
+        const totalAmount = mergedItems.reduce((sum, item) => sum + (item.quantity * item.price), 0);
+        if (totalAmount === 0) {
+          throw new Error("Cannot create invoice with zero total amount");
+        }
 
         const invoiceCreationData = {
           customerId: selectedCustomerId,
@@ -518,17 +565,47 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
         };
 
         console.log("Calling optimized invoice creation with:", invoiceCreationData);
-        await createInvoiceOptimized(invoiceCreationData);
         
+        // Show progress indication
+        toast.loading("Creating invoice...", { id: "invoice-creation" });
+        
+        const createdInvoice = await createInvoiceOptimized(invoiceCreationData);
+        
+        // Dismiss loading toast
+        toast.dismiss("invoice-creation");
+        
+        if (!createdInvoice) {
+          throw new Error("Invoice creation returned no data");
+        }
+        
+        console.log("Invoice created successfully:", createdInvoice);
         toast.success("Invoice created successfully!");
+        
+        // Reset form tracking
+        userHasChangedForm.current = false;
+        
         navigate("/invoices");
       }
     } catch (error) {
       console.error("Error saving invoice:", error);
       console.error("Error details:", error.message);
       toast.error(`Failed to save invoice: ${error.message}`);
+      
+      // Rollback any partial state changes if needed
+      if (!isEditing) {
+        // For new invoices, we can reset form state on error
+        console.log("Rolling back form state due to error");
+      }
     } finally {
+      // Clear submission lock and state
+      submissionLock.current = false;
       setIsSubmitting(false);
+      
+      // Clear timeout
+      if (submissionTimeoutRef.current) {
+        clearTimeout(submissionTimeoutRef.current);
+        submissionTimeoutRef.current = null;
+      }
     }
   };
 
@@ -793,9 +870,16 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
           <Button 
             type="submit" 
             className="w-full" 
-            disabled={isSubmitting || isInvoiceSubmitting}
+            disabled={isSubmitting || isInvoiceSubmitting || submissionLock.current}
           >
-            {isSubmitting || isInvoiceSubmitting ? "Saving..." : (isEditing ? "Update Invoice" : "Create Invoice")}
+            {isSubmitting || isInvoiceSubmitting ? (
+              <>
+                <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                {isEditing ? "Updating..." : "Creating..."}
+              </>
+            ) : (
+              isEditing ? "Update Invoice" : "Create Invoice"
+            )}
           </Button>
         </form>
       </div>

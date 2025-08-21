@@ -123,8 +123,25 @@ export const batchUpdateTasks = async (updates: BatchTaskUpdate[]) => {
 // Optimized invoice creation with minimal database calls
 export const createInvoiceOptimized = async (invoiceData: CreateInvoiceData): Promise<Invoice> => {
   try {
+    // Validate invoice data before creation
+    if (!invoiceData.customerId) {
+      throw new Error('Customer ID is required');
+    }
+    if (!invoiceData.vehicleId) {
+      throw new Error('Vehicle ID is required');
+    }
+    if (!invoiceData.items || invoiceData.items.length === 0) {
+      throw new Error('At least one item is required');
+    }
+
+    // Check for zero amount invoice
+    const totalAmount = invoiceData.items.reduce((sum, item) => sum + (item.quantity * item.price), 0);
+    if (totalAmount === 0) {
+      throw new Error('Cannot create invoice with zero total amount. Please check item prices.');
+    }
+
     const invoiceId = crypto.randomUUID();
-    console.log('Creating optimized invoice:', invoiceId);
+    console.log('Creating optimized invoice:', invoiceId, 'with total amount:', totalAmount);
 
     // Single transaction for invoice and items
     const { data: invoice, error: invoiceError } = await supabase
