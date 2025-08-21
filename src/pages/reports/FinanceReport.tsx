@@ -9,6 +9,7 @@ import { subDays, isWithinInterval, parseISO } from 'date-fns';
 import { resolvePromiseAndSetState } from '@/utils/async-helpers';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { exportToCSV } from '@/utils/csv-export';
 
 // Interface for expenses matching Supabase schema
 interface DatabaseExpense {
@@ -121,6 +122,42 @@ const FinanceReport = () => {
     setStartDate(newStartDate);
     setEndDate(newEndDate);
   };
+
+  const handleExportRevenue = () => {
+    const exportData = filteredRevenue.map(invoice => {
+      const invoiceTotal = invoice.invoice_items?.reduce(
+        (sum: number, item: { price: number; quantity: number }) => 
+          sum + (item.price * item.quantity), 
+        0
+      ) || 0;
+      
+      return {
+        invoice_id: invoice.id?.slice(0, 8),
+        date: new Date(invoice.date).toLocaleDateString(),
+        amount: invoiceTotal.toFixed(2),
+        status: invoice.status,
+        items_count: invoice.invoice_items?.length || 0
+      };
+    });
+
+    const filename = `revenue-report-${startDate.toISOString().split('T')[0]}-to-${endDate.toISOString().split('T')[0]}.csv`;
+    exportToCSV(exportData, filename);
+  };
+
+  const handleExportExpenses = () => {
+    const exportData = filteredExpenses.map(expense => ({
+      date: new Date(expense.date).toLocaleDateString(),
+      category: expense.category,
+      description: expense.description || '',
+      amount: expense.amount.toFixed(2),
+      payment_method: expense.payment_method,
+      vendor_name: expense.vendor_name || '',
+      payment_status: expense.payment_status || ''
+    }));
+
+    const filename = `expenses-report-${startDate.toISOString().split('T')[0]}-to-${endDate.toISOString().split('T')[0]}.csv`;
+    exportToCSV(exportData, filename);
+  };
   
   if (loading) {
     return <div className="p-4 text-center">Loading financial data...</div>;
@@ -192,7 +229,7 @@ const FinanceReport = () => {
           <CardHeader>
             <div className="flex justify-between items-center">
               <CardTitle>Revenue Breakdown</CardTitle>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={handleExportRevenue}>
                 <Download className="h-4 w-4 mr-2" />
                 Export
               </Button>
@@ -239,7 +276,7 @@ const FinanceReport = () => {
           <CardHeader>
             <div className="flex justify-between items-center">
               <CardTitle>Expense Breakdown</CardTitle>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={handleExportExpenses}>
                 <Download className="h-4 w-4 mr-2" />
                 Export
               </Button>

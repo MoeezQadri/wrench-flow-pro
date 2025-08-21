@@ -3,33 +3,33 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { fetchAttendance as getAttendance } from "@/services/data-service";
 import { ChevronLeft, Download, Filter } from "lucide-react";
 import { Link } from "react-router-dom";
 import DateRangeDropdown from "@/components/DateRangeDropdown";
 import { Attendance } from "@/types";
-import { isWithinInterval, parseISO, format } from "date-fns";
+import { isWithinInterval, parseISO, format, subDays } from "date-fns";
 import { useDataContext } from "@/context/data/DataContext";
+import { exportToCSV } from "@/utils/csv-export";
 
 const AttendanceReport = () => {
-  const [startDate, setStartDate] = useState<Date>(new Date());
+  const [startDate, setStartDate] = useState<Date>(subDays(new Date(), 30));
   const [endDate, setEndDate] = useState<Date>(new Date());
-  const [attendanceData, setAttendanceData] = useState<Attendance[]>([]);
-  const [mechanics, setMechanics] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const {
-    mechanics: mechanics_
+    attendanceRecords,
+    mechanics,
+    loadAttendance
   } = useDataContext();
   // Load attendance data
   useEffect(() => {
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        const attendance = await getAttendance();
-        const mechanicsData = mechanics_;
-
-        setAttendanceData(attendance);
-        setMechanics(mechanicsData);
+        
+        // If no attendance data, trigger load
+        if (!attendanceRecords || attendanceRecords.length === 0) {
+          await loadAttendance();
+        }
       } catch (error) {
         console.error("Error fetching attendance data:", error);
       } finally {
@@ -38,10 +38,10 @@ const AttendanceReport = () => {
     };
 
     fetchData();
-  }, []);
+  }, [loadAttendance, attendanceRecords]);
 
   // Filter attendance for the selected date range
-  const filteredAttendance = attendanceData.filter(record => {
+  const filteredAttendance = (attendanceRecords || []).filter(record => {
     try {
       const recordDate = parseISO(record.date);
       return isWithinInterval(recordDate, { start: startDate, end: endDate });
@@ -82,6 +82,35 @@ const AttendanceReport = () => {
   const handleDateRangeChange = (start: Date, end: Date) => {
     setStartDate(start);
     setEndDate(end);
+  };
+
+  const handleExportAttendance = () => {
+    const exportData = filteredAttendance.map(record => {
+      const mechanic = mechanics.find(m => m.id === record.mechanic_id);
+      const hoursWorked = calculateHoursWorked(record.check_in, record.check_out || "");
+      
+      let statusDisplay = "Present";
+      if (record.status === "rejected" || (!record.check_in && !record.check_out)) {
+        statusDisplay = "Absent";
+      } else if (record.notes?.toLowerCase().includes("late")) {
+        statusDisplay = "Late";
+      } else if (record.notes?.toLowerCase().includes("half-day")) {
+        statusDisplay = "Half-day";
+      }
+
+      return {
+        mechanic: mechanic?.name || "Unknown",
+        date: record.date,
+        check_in: record.check_in || "N/A",
+        check_out: record.check_out || "N/A",
+        hours_worked: hoursWorked.toFixed(1),
+        status: statusDisplay,
+        notes: record.notes || ""
+      };
+    });
+
+    const filename = `attendance-report-${startDate.toISOString().split('T')[0]}-to-${endDate.toISOString().split('T')[0]}.csv`;
+    exportToCSV(exportData, filename);
   };
 
   if (isLoading) {
@@ -163,7 +192,7 @@ const AttendanceReport = () => {
                 <Filter className="h-4 w-4 mr-2" />
                 Filter
               </Button>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={handleExportAttendance}>
                 <Download className="h-4 w-4 mr-2" />
                 Export
               </Button>
