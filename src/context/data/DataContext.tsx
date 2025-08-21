@@ -13,8 +13,8 @@ import { useTasks } from './hooks/useTasks';
 import { useParts } from './hooks/useParts';
 import { usePayments } from './hooks/usePayments';
 import { useAttendance } from './hooks/useAttendance';
+import { usePayables } from './hooks/usePayables';
 import { useAuthContext } from '@/context/AuthContext';
-// import { usePayables } from './hooks/usePayables'; // Temporarily disabled
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
@@ -34,7 +34,7 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     const partsHook = useParts();
     const paymentsHook = usePayments();
     const attendanceHook = useAttendance();
-    // const payablesHook = usePayables(); // Temporarily disabled
+    const payablesHook = usePayables();
 
     const loadAllData = async () => {
         // Wait for authentication to be ready and user to be loaded
@@ -55,8 +55,8 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
                 tasksHook.loadTasks(),
                 partsHook.loadParts(),
                 paymentsHook.loadPayments(),
-                attendanceHook.loadAttendance()
-                // payablesHook.loadPayables() // Temporarily disabled
+                attendanceHook.loadAttendance(),
+                payablesHook.loadPayables()
             ]);
             console.log("All data loaded successfully, customers:", customersHook.customers);
         } catch (error) {
@@ -155,6 +155,15 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
             updateAttendance: attendanceHook.updateAttendance,
             removeAttendance: attendanceHook.removeAttendance,
             loadAttendance: attendanceHook.loadAttendance,
+
+            // Payables
+            payables: payablesHook.payables,
+            addPayable: payablesHook.addPayable,
+            updatePayable: payablesHook.updatePayable,
+            markPayableAsPaid: payablesHook.markAsPaid,
+            removePayable: payablesHook.removePayable,
+            loadPayables: payablesHook.loadPayables,
+            getPayablesByVendor: payablesHook.getPayablesByVendor,
             
             getCustomerAnalytics,
             refreshAllData
