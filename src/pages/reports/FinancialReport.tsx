@@ -19,6 +19,9 @@ import { Link } from 'react-router-dom';
 import { useDataContext } from '@/context/data/DataContext';
 import { DateRangePicker } from '@/components/dashboard/DateRangePicker';
 import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
+import { calculateInvoiceTotal, calculateTotalReceivables, calculateOverdueAmount } from '@/utils/invoice-calculations';
+import { exportToCSV } from '@/utils/csv-export';
+import { toast } from 'sonner';
 
 const FinancialReport = () => {
   const { invoices, expenses, vendors } = useDataContext();
@@ -52,17 +55,14 @@ const FinancialReport = () => {
   // Calculate receivables (unpaid invoices) within date range
   const filteredInvoices = filterByDateRange(invoices, 'date');
   const receivables = filteredInvoices.filter(inv => inv.status !== 'paid');
-  const totalReceivables = receivables.reduce((sum, inv) => {
-    // Use a default calculation or existing amount field
-    const amount = 1000; // Placeholder - would normally calculate from invoice items
-    return sum + amount;
-  }, 0);
+  const totalReceivables = calculateTotalReceivables(receivables);
 
   // Calculate overdue receivables
   const overdueReceivables = receivables.filter(inv => {
     if (!inv.due_date) return false;
     return new Date(inv.due_date) < new Date();
   });
+  const overdueReceivablesAmount = calculateOverdueAmount(overdueReceivables);
 
   // Calculate payables from expenses (unpaid expenses) within date range
   const filteredExpenses = filterByDateRange(expenses, 'date');
@@ -92,6 +92,71 @@ const FinancialReport = () => {
     }, 500);
   };
 
+  // Export functions
+  const exportReceivables = () => {
+    const exportData = receivables.map(invoice => ({
+      'Invoice ID': invoice.id.slice(0, 8) + '...',
+      'Customer ID': invoice.customer_id.slice(0, 8) + '...',
+      'Amount': calculateInvoiceTotal(invoice),
+      'Due Date': invoice.due_date ? new Date(invoice.due_date).toLocaleDateString() : 'N/A',
+      'Status': invoice.status,
+      'Days Overdue': invoice.due_date 
+        ? Math.max(0, Math.floor((new Date().getTime() - new Date(invoice.due_date).getTime()) / (1000 * 3600 * 24)))
+        : 0
+    }));
+    
+    exportToCSV(exportData, `receivables-${new Date().toISOString().split('T')[0]}.csv`);
+    toast.success('Receivables exported successfully');
+  };
+
+  const exportPayables = () => {
+    const exportData = payables.map(expense => ({
+      'Description': expense.description || 'N/A',
+      'Vendor': expense.vendor_name || 'N/A',
+      'Amount': expense.amount,
+      'Date': new Date(expense.date).toLocaleDateString(),
+      'Category': expense.category,
+      'Age (Days)': Math.floor((new Date().getTime() - new Date(expense.date).getTime()) / (1000 * 3600 * 24))
+    }));
+    
+    exportToCSV(exportData, `payables-${new Date().toISOString().split('T')[0]}.csv`);
+    toast.success('Payables exported successfully');
+  };
+
+  const exportVendors = () => {
+    const exportData = vendors.map(vendor => {
+      const vendorExpenses = expenses.filter(exp => exp.vendor_id === vendor.id);
+      const totalExpenses = vendorExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+      
+      return {
+        'Vendor': vendor.name,
+        'Contact': vendor.contact_name || 'N/A',
+        'Phone': vendor.phone || 'N/A',
+        'Category': vendor.category || 'N/A',
+        'Total Expenses': totalExpenses
+      };
+    });
+    
+    exportToCSV(exportData, `vendors-${new Date().toISOString().split('T')[0]}.csv`);
+    toast.success('Vendors exported successfully');
+  };
+
+  const exportCashFlow = () => {
+    const exportData = [{
+      'Money Coming In': totalReceivables,
+      'Money Going Out': totalPayables,
+      'Net Cash Flow': netPosition,
+      'Outstanding Receivables Count': receivables.length,
+      'Outstanding Payables Count': payables.length,
+      'Report Date': new Date().toLocaleDateString(),
+      'Period Start': appliedDateRange.startDate.toLocaleDateString(),
+      'Period End': appliedDateRange.endDate.toLocaleDateString()
+    }];
+    
+    exportToCSV(exportData, `cash-flow-${new Date().toISOString().split('T')[0]}.csv`);
+    toast.success('Cash flow exported successfully');
+  };
+
   const hasUnappliedChanges = 
     dateRange.startDate.getTime() !== appliedDateRange.startDate.getTime() ||
     dateRange.endDate.getTime() !== appliedDateRange.endDate.getTime();
@@ -115,9 +180,9 @@ const FinancialReport = () => {
           </div>
         </div>
         <div className="flex items-center space-x-2">
-          <Button variant="outline">
+          <Button variant="outline" onClick={exportCashFlow}>
             <Download className="w-4 h-4 mr-2" />
-            Export
+            Export Summary
           </Button>
         </div>
       </div>
@@ -234,7 +299,7 @@ const FinancialReport = () => {
               <div className="p-3 bg-yellow-50 rounded-lg">
                 <h4 className="font-medium text-yellow-800">Overdue Receivables</h4>
                 <p className="text-sm text-yellow-600">
-                  {overdueReceivables.length} overdue invoice{overdueReceivables.length !== 1 ? 's' : ''} totaling {formatCurrency(overdueReceivables.reduce((sum, inv) => sum + 1000, 0))}
+                  {overdueReceivables.length} overdue invoice{overdueReceivables.length !== 1 ? 's' : ''} totaling {formatCurrency(overdueReceivablesAmount)}
                 </p>
               </div>
             )}
@@ -261,8 +326,12 @@ const FinancialReport = () => {
         
         <TabsContent value="receivables" className="space-y-4">
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Outstanding Receivables</CardTitle>
+              <Button variant="outline" size="sm" onClick={exportReceivables}>
+                <Download className="w-4 h-4 mr-2" />
+                Export
+              </Button>
             </CardHeader>
             <CardContent>
               <Table>
@@ -288,7 +357,7 @@ const FinancialReport = () => {
                           {invoice.id.slice(0, 8)}...
                         </TableCell>
                         <TableCell>Customer {invoice.customer_id.slice(0, 8)}</TableCell>
-                        <TableCell>{formatCurrency(1000)}</TableCell> {/* Placeholder amount */}
+                        <TableCell>{formatCurrency(calculateInvoiceTotal(invoice))}</TableCell>
                         <TableCell>{formatDate(invoice.due_date)}</TableCell>
                         <TableCell>
                           <Badge variant={daysOverdue > 0 ? 'destructive' : 'secondary'}>
@@ -309,8 +378,12 @@ const FinancialReport = () => {
         
         <TabsContent value="payables" className="space-y-4">
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Outstanding Payables</CardTitle>
+              <Button variant="outline" size="sm" onClick={exportPayables}>
+                <Download className="w-4 h-4 mr-2" />
+                Export
+              </Button>
             </CardHeader>
             <CardContent>
               <Table>
@@ -355,8 +428,12 @@ const FinancialReport = () => {
         
         <TabsContent value="vendors" className="space-y-4">
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Vendor Summary</CardTitle>
+              <Button variant="outline" size="sm" onClick={exportVendors}>
+                <Download className="w-4 h-4 mr-2" />
+                Export
+              </Button>
             </CardHeader>
             <CardContent>
               <Table>
@@ -392,8 +469,12 @@ const FinancialReport = () => {
 
         <TabsContent value="cash-flow" className="space-y-4">
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Cash Flow Summary</CardTitle>
+              <Button variant="outline" size="sm" onClick={exportCashFlow}>
+                <Download className="w-4 h-4 mr-2" />
+                Export
+              </Button>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
