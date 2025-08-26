@@ -28,6 +28,7 @@ const PartDialog = ({ open, onOpenChange, onSave, part, invoiceId }: PartDialogP
   const formId = "part-form";
   const [invoice, setInvoice] = useState<any>(null);
   const [loading, setLoading] = useState(invoiceId ? true : false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
     getInvoiceById,
@@ -55,7 +56,10 @@ const PartDialog = ({ open, onOpenChange, onSave, part, invoiceId }: PartDialogP
   }, [invoiceId]);
 
   const handleSubmit = async (data: PartFormValues) => {
+    if (isSubmitting) return; // Prevent duplicate submissions
+    
     try {
+      setIsSubmitting(true);
       // Vendor is now required, so always use it
       const vendorId = data.vendorId;
 
@@ -109,6 +113,8 @@ const PartDialog = ({ open, onOpenChange, onSave, part, invoiceId }: PartDialogP
     } catch (error) {
       console.error("Error saving part:", error);
       toast.error("Failed to save part. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -150,14 +156,15 @@ const PartDialog = ({ open, onOpenChange, onSave, part, invoiceId }: PartDialogP
           invoice={invoice}
           invoiceId={invoiceId}
           part={part}
+          isSubmitting={isSubmitting}
         />
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
             Cancel
           </Button>
-          <Button type="submit" form={formId}>
-            {isEditing ? "Update" : "Add"} Part {invoice ? "to Invoice" : ""}
+          <Button type="submit" form={formId} disabled={isSubmitting}>
+            {isSubmitting ? "Saving..." : `${isEditing ? "Update" : "Add"} Part ${invoice ? "to Invoice" : ""}`}
           </Button>
         </DialogFooter>
       </DialogContent>

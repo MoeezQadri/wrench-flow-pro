@@ -49,9 +49,10 @@ interface PartFormProps {
   invoice?: Invoice | null;
   invoiceId?: string;
   part?: Part;
+  isSubmitting?: boolean;
 }
 
-const PartForm = ({ defaultValues, onSubmit, formId, invoice, invoiceId, part }: PartFormProps) => {
+const PartForm = ({ defaultValues, onSubmit, formId, invoice, invoiceId, part, isSubmitting = false }: PartFormProps) => {
   const [availableInvoices, setAvailableInvoices] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [assignmentType, setAssignmentType] = useState<'workshop' | 'invoice'>('workshop');
@@ -144,6 +145,8 @@ const PartForm = ({ defaultValues, onSubmit, formId, invoice, invoiceId, part }:
 
   // Before submitting, ensure invoiceIds is properly set
   const handleFormSubmit = (data: PartFormValues) => {
+    if (isSubmitting) return; // Prevent duplicate submissions
+    
     const formData = { ...data };
 
     if (assignmentType === 'invoice') {
@@ -167,6 +170,7 @@ const PartForm = ({ defaultValues, onSubmit, formId, invoice, invoiceId, part }:
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleFormSubmit)} id={formId} className="space-y-4">
+        <fieldset disabled={isSubmitting} className="space-y-4">
         {invoice && (
           <div className="rounded-md bg-muted p-3 mb-4">
             <p className="text-sm font-medium">Adding part to invoice:</p>
@@ -380,6 +384,7 @@ const PartForm = ({ defaultValues, onSubmit, formId, invoice, invoiceId, part }:
             </>
           )}
         </div>
+        </fieldset>
       </form>
     </Form>
   );
