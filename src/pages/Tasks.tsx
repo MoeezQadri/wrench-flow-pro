@@ -42,6 +42,7 @@ const Tasks = () => {
     getCustomerById,
     addTask,
     updateTask,
+    loadTasks,
   } = useDataContext()
   const { currentUser: user } = useAuthContext()
   const currentUser: any = user;
@@ -104,15 +105,7 @@ const Tasks = () => {
   const handleAssignmentComplete = () => {
     setSelectedTaskForAssignment(null);
     setShowMechanicAssignDialog(false);
-    // Refresh tasks list
-    const loadTasks = async () => {
-      try {
-        setTasksList(tasks);
-      } catch (error) {
-        console.error("Error reloading tasks:", error);
-        toast.error("Failed to reload tasks");
-      }
-    };
+    // Refresh tasks list from data context
     loadTasks();
   };
 

@@ -113,7 +113,7 @@ const MechanicAssignmentDialog: React.FC<MechanicAssignmentDialogProps> = ({
             </Button>
             <Button 
               onClick={handleAssignment}
-              disabled={isAssigning || !selectedMechanicId || selectedMechanicId === currentMechanicId}
+              disabled={isAssigning || !selectedMechanicId || (currentMechanicId && selectedMechanicId === currentMechanicId)}
               className="flex-1"
             >
               {isAssigning ? "Assigning..." : currentMechanicId ? "Update Assignment" : "Assign Mechanic"}

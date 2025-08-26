@@ -254,9 +254,8 @@ export const assignMechanicToInvoiceTask = async (taskId: string, mechanicId: st
     if (error) throw error;
     
     console.log(`Assigned mechanic ${mechanicId} to task ${taskId}`);
-    toast.success('Mechanic assigned to task successfully');
   } catch (error) {
-    handleError(error, 'assigning mechanic to task');
-    toast.error('Failed to assign mechanic to task');
+    console.error(`Error assigning mechanic to task:`, error);
+    throw error;
   }
 };
