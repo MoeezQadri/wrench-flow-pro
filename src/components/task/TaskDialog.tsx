@@ -23,7 +23,7 @@ const generateId = (): string => {
 interface TaskDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (task: Task) => void;
+  onSave: (task: Task) => Promise<void>;
   task?: Task;
   invoiceId?: string;
 }
@@ -71,7 +71,7 @@ const TaskDialog = ({ open, onOpenChange, onSave, task, invoiceId }: TaskDialogP
       // Determine task assignment based on type
       let taskInvoiceId = undefined;
       let taskVehicleId = undefined;
-      let taskLocation = data.location;
+      let taskLocation: "workshop" | "onsite" | "remote" = "workshop";
 
       if (data.taskType === "invoice") {
         if (!data.invoiceId) {
@@ -80,6 +80,8 @@ const TaskDialog = ({ open, onOpenChange, onSave, task, invoiceId }: TaskDialogP
         }
         taskInvoiceId = data.invoiceId;
         taskVehicleId = data.vehicleId;
+        // Map UI locations to DB values
+        taskLocation = data.location === 'roadside' ? 'onsite' : data.location === 'other' ? 'remote' : 'workshop';
       } else {
         // Internal task - force workshop location
         taskLocation = "workshop";
@@ -101,7 +103,7 @@ const TaskDialog = ({ open, onOpenChange, onSave, task, invoiceId }: TaskDialogP
         updated_at: new Date().toISOString()
       };
 
-      onSave(newTask);
+      await onSave(newTask);
 
       // Show success message
       if (data.taskType === "invoice" && vehicle) {
