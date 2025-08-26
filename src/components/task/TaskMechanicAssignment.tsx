@@ -41,7 +41,7 @@ const TaskMechanicAssignment: React.FC<TaskMechanicAssignmentProps> = ({
   }
 
   const handleAssignment = async () => {
-    if (!selectedMechanicId || selectedMechanicId === "unassigned") {
+    if (!selectedMechanicId) {
       toast.error("Please select a mechanic");
       return;
     }
@@ -50,12 +50,14 @@ const TaskMechanicAssignment: React.FC<TaskMechanicAssignmentProps> = ({
     
     try {
       await assignMechanicToInvoiceTask(taskId, selectedMechanicId);
+      toast.success("Mechanic assigned successfully");
       
       if (onAssignmentComplete) {
         onAssignmentComplete();
       }
     } catch (error) {
       console.error("Error assigning mechanic:", error);
+      toast.error("Failed to assign mechanic. Please try again.");
     } finally {
       setIsAssigning(false);
     }
@@ -80,7 +82,6 @@ const TaskMechanicAssignment: React.FC<TaskMechanicAssignmentProps> = ({
               <SelectValue placeholder="Select a mechanic" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="unassigned">Unassigned</SelectItem>
               {availableMechanics.map((mechanic) => (
                 <SelectItem key={mechanic.id} value={mechanic.id}>
                   {mechanic.name}
@@ -110,7 +111,7 @@ const TaskMechanicAssignment: React.FC<TaskMechanicAssignmentProps> = ({
           className="w-full"
           size="sm"
         >
-          {isAssigning ? "Assigning..." : "Assign Mechanic"}
+          {isAssigning ? "Assigning..." : currentMechanicId ? "Update Assignment" : "Assign Mechanic"}
         </Button>
       </CardContent>
     </Card>
