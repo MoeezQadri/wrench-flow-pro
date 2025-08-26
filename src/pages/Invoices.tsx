@@ -11,6 +11,7 @@ import { Search, Filter, SortAsc, SortDesc, Plus } from 'lucide-react';
 import { useAuthContext } from '@/context/AuthContext';
 import { hasPermission } from '@/utils/permissions';
 import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
+import { calculateInvoiceBreakdown } from '@/utils/invoice-calculations';
 
 const Invoices: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
@@ -75,7 +76,6 @@ const Invoices: React.FC = () => {
 
   // Use standardized calculation function for consistency
   const calculateInvoiceTotal = (invoice: Invoice): number => {
-    const { calculateInvoiceBreakdown } = require('@/utils/invoice-calculations');
     return calculateInvoiceBreakdown(invoice).total;
   };
 
