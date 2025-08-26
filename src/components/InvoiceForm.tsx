@@ -52,12 +52,15 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
   const [showAutoItems, setShowAutoItems] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formErrors, setFormErrors] = useState<string[]>([]);
+  const [networkIssue, setNetworkIssue] = useState(false);
+  const [submissionAttempts, setSubmissionAttempts] = useState(0);
   
   // Add refs to track state and prevent unnecessary reinitializations
   const initialDataLoaded = useRef(false);
   const userHasChangedForm = useRef(false);
   const submissionLock = useRef(false);
   const submissionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const submissionId = useRef<string | null>(null);
   
   // Use optimized hooks for invoice editing and data loading
   const { updateInvoice: updateInvoiceWithHook, isSubmitting: isInvoiceSubmitting } = useOptimizedInvoiceEdit();
@@ -408,6 +411,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
 
   const totals = calculateTotals();
 
+  // Enhanced validation with custom part checking
   const validateForm = () => {
     const errors: string[] = [];
 
@@ -427,9 +431,9 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
       errors.push("Please add at least one item to the invoice");
     }
 
-    // Validate each item
+    // Validate each item with enhanced custom part checking
     items.forEach((item, index) => {
-      if (!item.description) {
+      if (!item.description || item.description.trim() === '') {
         errors.push(`Item ${index + 1}: Description is required`);
       }
       if (item.quantity <= 0) {
@@ -438,13 +442,39 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
       if (item.price < 0) {
         errors.push(`Item ${index + 1}: Price cannot be negative`);
       }
+      
+      // Special validation for custom parts
+      if (item.creates_inventory_part && item.custom_part_data) {
+        if (!item.custom_part_data.part_number || item.custom_part_data.part_number.trim() === '') {
+          errors.push(`Item ${index + 1}: Part number is required for custom parts`);
+        }
+        if (item.price === 0) {
+          errors.push(`Item ${index + 1}: Custom parts must have a price greater than 0`);
+        }
+      }
+      
+      // Special validation for custom labor
+      if (item.creates_task && item.custom_labor_data) {
+        if (!item.custom_labor_data.labor_rate || item.custom_labor_data.labor_rate <= 0) {
+          errors.push(`Item ${index + 1}: Labor rate is required for custom labor items`);
+        }
+        if (item.price === 0) {
+          errors.push(`Item ${index + 1}: Custom labor items must have a price greater than 0`);
+        }
+      }
     });
 
-    // Check for zero amount invoice when items exist
+    // Enhanced zero amount checking
     if (items.length > 0) {
       const totalAmount = items.reduce((sum, item) => sum + (item.quantity * item.price), 0);
       if (totalAmount === 0) {
-        errors.push("Invoice cannot have zero total when items are present. Please check item prices.");
+        errors.push("Invoice cannot have zero total when items are present. Please check item prices and ensure custom parts/labor have proper pricing.");
+      }
+      
+      // Check for specific zero-price issues
+      const zeroPriceItems = items.filter(item => item.price === 0);
+      if (zeroPriceItems.length > 0) {
+        errors.push(`${zeroPriceItems.length} item(s) have zero price. Please review and set proper prices.`);
       }
     }
 
@@ -460,28 +490,41 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
     e.preventDefault();
     console.log("Main form submission started - handleSubmit called");
     
-    // Robust duplicate submission prevention
+    // Generate unique submission ID for tracking
+    const currentSubmissionId = crypto.randomUUID();
+    submissionId.current = currentSubmissionId;
+    
+    // Enhanced duplicate submission prevention
     if (submissionLock.current || isSubmitting || isInvoiceSubmitting) {
       console.log("Form is already being submitted, ignoring duplicate submission");
+      toast.warning("Submission already in progress. Please wait...");
       return;
     }
 
-    // Validate form first
+    // Validate form first with enhanced validation
     if (!validateForm()) {
       console.log("Form validation failed:", formErrors);
       toast.error("Please fix the form errors before submitting");
+      setSubmissionAttempts(prev => prev + 1);
       return;
     }
 
-    // Set submission lock and state
+    // Reset error states
+    setNetworkIssue(false);
+    setFormErrors([]);
+
+    // Set robust submission lock and state
     submissionLock.current = true;
     setIsSubmitting(true);
+    
+    console.log(`Starting submission ${currentSubmissionId}, attempt ${submissionAttempts + 1}`);
 
-    // Set timeout to prevent infinite loading
+    // Enhanced timeout with progressive retry
     submissionTimeoutRef.current = setTimeout(() => {
-      if (submissionLock.current) {
+      if (submissionLock.current && submissionId.current === currentSubmissionId) {
         console.error("Invoice submission timed out");
-        toast.error("Invoice submission timed out. Please try again.");
+        setNetworkIssue(true);
+        toast.error("Submission timed out. Please check your connection and try again.");
         submissionLock.current = false;
         setIsSubmitting(false);
       }
@@ -525,8 +568,12 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
             await loadInvoices();
           }
           
+          // Only navigate after successful completion
           console.log("Invoice updated successfully, navigating to invoices page");
+          toast.success("Invoice updated successfully!");
           navigate("/invoices");
+        } else {
+          throw new Error("Update returned no result");
         }
       } else {
         console.log("Creating new invoice");
@@ -543,14 +590,30 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
         
         console.log("Items after deduplication and merging:", mergedItems);
 
-        // Final validation before creation
+        // Enhanced final validation before creation
         if (mergedItems.length === 0) {
-          throw new Error("No valid items to add to invoice");
+          throw new Error("No valid items to add to invoice after processing");
         }
 
         const totalAmount = mergedItems.reduce((sum, item) => sum + (item.quantity * item.price), 0);
         if (totalAmount === 0) {
-          throw new Error("Cannot create invoice with zero total amount");
+          console.error("Zero amount invoice detected:", {
+            originalItems: items,
+            mergedItems: mergedItems,
+            totalAmount
+          });
+          throw new Error("Cannot create invoice with zero total amount. Please check that all items have valid prices.");
+        }
+
+        // Check for custom parts without proper pricing
+        const problematicItems = mergedItems.filter(item => 
+          (item.creates_inventory_part && (!item.custom_part_data || item.price === 0)) ||
+          (item.creates_task && (!item.custom_labor_data || item.price === 0))
+        );
+        
+        if (problematicItems.length > 0) {
+          console.error("Problematic items found:", problematicItems);
+          throw new Error(`${problematicItems.length} custom item(s) are missing proper pricing information`);
         }
 
         const invoiceCreationData = {
@@ -565,41 +628,77 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
         };
 
         console.log("Calling optimized invoice creation with:", invoiceCreationData);
+        console.log(`Submission ID: ${currentSubmissionId}`);
         
         // Show progress indication
-        toast.loading("Creating invoice...", { id: "invoice-creation" });
+        toast.loading("Creating invoice...", { id: `invoice-creation-${currentSubmissionId}` });
         
         const createdInvoice = await createInvoiceOptimized(invoiceCreationData);
         
         // Dismiss loading toast
-        toast.dismiss("invoice-creation");
+        toast.dismiss(`invoice-creation-${currentSubmissionId}`);
         
         if (!createdInvoice) {
           throw new Error("Invoice creation returned no data");
         }
         
+        // Verify the created invoice has the expected amount
+        const createdTotal = createdInvoice.items?.reduce((sum, item) => sum + (item.quantity * item.price), 0) || 0;
+        if (createdTotal === 0 && totalAmount > 0) {
+          console.error("Created invoice has zero amount but expected non-zero:", {
+            expectedTotal: totalAmount,
+            createdTotal,
+            createdInvoice
+          });
+          throw new Error("Created invoice has incorrect total amount");
+        }
+        
         console.log("Invoice created successfully:", createdInvoice);
-        toast.success("Invoice created successfully!");
+        console.log(`Submission ${currentSubmissionId} completed successfully`);
         
-        // Reset form tracking
+        // Reset form tracking and attempt counter
         userHasChangedForm.current = false;
+        setSubmissionAttempts(0);
         
+        // Show success and navigate only after full completion
+        toast.success("Invoice created successfully!");
         navigate("/invoices");
       }
     } catch (error) {
-      console.error("Error saving invoice:", error);
-      console.error("Error details:", error.message);
-      toast.error(`Failed to save invoice: ${error.message}`);
+      console.error(`Error saving invoice (submission ${currentSubmissionId}):`, error);
+      console.error("Error details:", error instanceof Error ? error.message : String(error));
       
-      // Rollback any partial state changes if needed
-      if (!isEditing) {
-        // For new invoices, we can reset form state on error
-        console.log("Rolling back form state due to error");
+      // Track submission attempts
+      setSubmissionAttempts(prev => prev + 1);
+      
+      // Enhanced error handling with specific messages
+      let errorMessage = "Failed to save invoice";
+      if (error instanceof Error) {
+        if (error.message.includes("zero total")) {
+          errorMessage = "Cannot create invoice with zero amount. Please check item prices.";
+        } else if (error.message.includes("custom item")) {
+          errorMessage = "Custom items missing pricing information. Please review custom parts and labor.";
+        } else if (error.message.includes("network") || error.message.includes("timeout")) {
+          errorMessage = "Network error. Please check your connection and try again.";
+          setNetworkIssue(true);
+        } else {
+          errorMessage = `Failed to save invoice: ${error.message}`;
+        }
       }
+      
+      toast.dismiss(`invoice-creation-${currentSubmissionId}`);
+      toast.error(errorMessage);
+      
+      // Don't navigate on error - keep user on form to fix issues
+      console.log("Staying on form due to error for user to review and retry");
+      
     } finally {
-      // Clear submission lock and state
-      submissionLock.current = false;
-      setIsSubmitting(false);
+      // Only clear submission lock if this is still the current submission
+      if (submissionId.current === currentSubmissionId) {
+        submissionLock.current = false;
+        setIsSubmitting(false);
+        submissionId.current = null;
+      }
       
       // Clear timeout
       if (submissionTimeoutRef.current) {
@@ -632,6 +731,17 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
                 <li key={index}>{error}</li>
               ))}
             </ul>
+          </div>
+        )}
+
+        {/* Show network issue warning */}
+        {networkIssue && (
+          <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <h4 className="font-medium text-yellow-800 mb-2">Connection Issue Detected</h4>
+            <p className="text-sm text-yellow-700">
+              There may be a network connectivity issue. Please check your internet connection and try again.
+              {submissionAttempts > 0 && ` (Attempt ${submissionAttempts + 1})`}
+            </p>
           </div>
         )}
 
