@@ -72,7 +72,6 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
   
   // Custom labor data
   const [laborRate, setLaborRate] = useState(50);
-  const [skillLevel, setSkillLevel] = useState("standard");
 
   const { mechanics, vendors, addPart, addTask, addExpense } = useDataContext();
   const { getCurrencySymbol, formatCurrency } = useOrganizationSettings();
@@ -116,7 +115,6 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
         
         if (editingItem.custom_labor_data) {
           setLaborRate(editingItem.custom_labor_data.labor_rate || 50);
-          setSkillLevel(editingItem.custom_labor_data.skill_level || "standard");
         }
       } else {
         // Reset form for new item
@@ -135,7 +133,6 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
         setCategory("");
         setLocation("");
         setLaborRate(50);
-        setSkillLevel("standard");
         setSelectedVendorId("");
       }
     }
@@ -339,8 +336,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
         await addTask(customTask);
         newItem.task_id = customTask.id;
         newItem.custom_labor_data = {
-          labor_rate: laborRate,
-          skill_level: skillLevel
+          labor_rate: laborRate
         };
         console.log('Created custom task in database:', customTask);
       } catch (error) {
@@ -350,8 +346,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
     } else if (type === 'labor' && !selectedTaskId) {
       // For custom labor not being saved as task
       newItem.custom_labor_data = {
-        labor_rate: laborRate,
-        skill_level: skillLevel
+        labor_rate: laborRate
       };
     }
 
@@ -684,20 +679,6 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
                       value={laborRate}
                       onChange={(e) => setLaborRate(parseFloat(e.target.value) || 50)}
                     />
-                  </div>
-                  <div>
-                    <Label htmlFor="skillLevel">Skill Level</Label>
-                    <Select value={skillLevel} onValueChange={setSkillLevel}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="basic">Basic</SelectItem>
-                        <SelectItem value="standard">Standard</SelectItem>
-                        <SelectItem value="advanced">Advanced</SelectItem>
-                        <SelectItem value="expert">Expert</SelectItem>
-                      </SelectContent>
-                    </Select>
                   </div>
                 </div>
               )}

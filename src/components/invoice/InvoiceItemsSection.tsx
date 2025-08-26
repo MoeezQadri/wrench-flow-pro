@@ -186,7 +186,6 @@ const InvoiceItemsSection: React.FC<InvoiceItemsSectionProps> = ({
                       {item.custom_labor_data && (
                         <div className="text-xs text-muted-foreground">
                           {item.custom_labor_data.labor_rate && `Rate: ${formatCurrency(item.custom_labor_data.labor_rate)}/hr`}
-                          {item.custom_labor_data.skill_level && ` | Level: ${item.custom_labor_data.skill_level}`}
                         </div>
                       )}
                     </div>
