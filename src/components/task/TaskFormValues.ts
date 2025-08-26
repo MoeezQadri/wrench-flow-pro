@@ -4,7 +4,6 @@ export interface TaskFormValues {
   description?: string;
   status: 'in-progress' | 'completed';
   price: number;
-  location: 'workshop' | 'roadside' | 'other';
   taskType: 'invoice' | 'internal';
   mechanicId: string;
   vehicleId?: string;

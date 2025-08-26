@@ -21,7 +21,7 @@ export const useTasks = () => {
             vehicleId: dbTask.vehicle_id,
             vehicle_id: dbTask.vehicle_id,
             status: dbTask.status,
-            location: dbTask.location,
+            
             hoursEstimated: dbTask.hours_estimated || 0,
             hours_estimated: dbTask.hours_estimated,
             hoursSpent: dbTask.hours_spent,
@@ -50,7 +50,7 @@ export const useTasks = () => {
             mechanic_id: task.mechanicId || (task as any).mechanic_id,
             vehicle_id: task.vehicleId || (task as any).vehicle_id,
             status: task.status,
-            location: task.location,
+            
             hours_estimated: (task as any).hoursEstimated || (task as any).hours_estimated || 0,
             hours_spent: (task as any).hoursSpent || (task as any).hours_spent,
             price: task.price,

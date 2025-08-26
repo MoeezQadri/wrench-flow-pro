@@ -71,7 +71,6 @@ const TaskDialog = ({ open, onOpenChange, onSave, task, invoiceId }: TaskDialogP
       // Determine task assignment based on type
       let taskInvoiceId = undefined;
       let taskVehicleId = undefined;
-      let taskLocation: "workshop" | "onsite" | "remote" = "workshop";
 
       if (data.taskType === "invoice") {
         if (!data.invoiceId) {
@@ -80,11 +79,6 @@ const TaskDialog = ({ open, onOpenChange, onSave, task, invoiceId }: TaskDialogP
         }
         taskInvoiceId = data.invoiceId;
         taskVehicleId = data.vehicleId;
-        // Map UI locations to DB values
-        taskLocation = data.location === 'roadside' ? 'onsite' : data.location === 'other' ? 'remote' : 'workshop';
-      } else {
-        // Internal task - force workshop location
-        taskLocation = "workshop";
       }
 
       const newTask: Task = {
@@ -98,7 +92,7 @@ const TaskDialog = ({ open, onOpenChange, onSave, task, invoiceId }: TaskDialogP
         hoursEstimated: data.hoursEstimated,
         hoursSpent: data.hoursSpent,
         price: data.price,
-        location: taskLocation,
+        
         created_at: task?.created_at || new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
@@ -159,7 +153,7 @@ const TaskDialog = ({ open, onOpenChange, onSave, task, invoiceId }: TaskDialogP
                 description: task.description,
                 status: task.status === 'completed' ? 'completed' : 'in-progress',
                 price: task.price || 0,
-                location: convertLocationForForm(task.location),
+                
                 taskType: getTaskType(task),
                 mechanicId: task.mechanicId || "unassigned",
                 vehicleId: task.vehicleId,
@@ -172,7 +166,7 @@ const TaskDialog = ({ open, onOpenChange, onSave, task, invoiceId }: TaskDialogP
                 invoiceId: invoiceId,
                 vehicleId: invoice?.vehicle_id,
                 mechanicId: "unassigned",
-                location: "workshop"
+                
               }
           }
           onSubmit={handleSubmit}

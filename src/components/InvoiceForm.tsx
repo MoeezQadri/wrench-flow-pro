@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Invoice, InvoiceItem, Vehicle, Part, Task, TaskLocation, InvoiceStatus, Payment } from "@/types";
+import { Invoice, InvoiceItem, Vehicle, Part, Task, InvoiceStatus, Payment } from "@/types";
 import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
 
 import InvoiceItemsSection from "./invoice/InvoiceItemsSection";
@@ -294,7 +294,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
               mechanicId: task.mechanic_id,
               vehicleId: selectedVehicleId,
               status: task.status,
-              location: (task.location as TaskLocation) || 'workshop',
+              
               hoursEstimated: task.hours_estimated,
               hoursSpent: task.hours_spent,
               price: task.price,

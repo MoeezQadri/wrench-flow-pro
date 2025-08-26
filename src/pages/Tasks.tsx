@@ -14,7 +14,7 @@ import AssignToInvoiceDialog from "@/components/task/AssignToInvoiceDialog";
 import {
   hasPermission,
 } from "@/services/data-service";
-import { Task, TaskLocation, Invoice, Vehicle, Mechanic, Customer, TaskStatus } from "@/types";
+import { Task, Invoice, Vehicle, Mechanic, Customer, TaskStatus } from "@/types";
 import { resolvePromiseAndSetState } from "@/utils/async-helpers";
 import { useDataContext } from "@/context/data/DataContext";
 import { useAuthContext } from "@/context/AuthContext";
@@ -28,7 +28,7 @@ const Tasks = () => {
   const [selectedTaskForInvoiceAssignment, setSelectedTaskForInvoiceAssignment] = useState<Task | null>(null);
   const [showInvoiceAssignDialog, setShowInvoiceAssignDialog] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [locationFilter, setLocationFilter] = useState<TaskLocation | 'all'>('all');
+  
   const [statusFilter, setStatusFilter] = useState<TaskStatus | 'all'>('all');
   const [mechanicFilter, setMechanicFilter] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -85,10 +85,6 @@ const Tasks = () => {
       );
     }
 
-    // Apply location filter if not set to 'all'
-    if (locationFilter !== 'all') {
-      filtered = filtered.filter(task => task.location === locationFilter);
-    }
 
     // Apply status filter if not set to 'all'
     if (statusFilter !== 'all') {
@@ -101,7 +97,7 @@ const Tasks = () => {
     }
 
     return filtered;
-  }, [tasksList, currentUser?.role, currentUser?.mechanicId, searchTerm, locationFilter, statusFilter, mechanicFilter]);
+  }, [tasksList, currentUser?.role, currentUser?.mechanicId, searchTerm, statusFilter, mechanicFilter]);
 
   const handleAssignmentComplete = () => {
     setSelectedTaskForAssignment(null);
@@ -119,7 +115,6 @@ const Tasks = () => {
 
   const clearFilters = () => {
     setSearchTerm('');
-    setLocationFilter('all');
     setStatusFilter('all');
     setMechanicFilter('all');
   };
@@ -233,18 +228,6 @@ const Tasks = () => {
     }
   };
 
-  const getLocationBadgeClass = (location?: TaskLocation) => {
-    switch (location) {
-      case 'workshop':
-        return 'bg-blue-100 text-blue-800';
-      case 'onsite':
-        return 'bg-purple-100 text-purple-800';
-      case 'remote':
-        return 'bg-teal-100 text-teal-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
 
   const getInvoiceInfo = async (task: Task) => {
     if (!task.invoiceId) return null;
@@ -408,18 +391,6 @@ const Tasks = () => {
           />
         </div>
 
-        <Select value={locationFilter} onValueChange={(value) => setLocationFilter(value as TaskLocation | 'all')}>
-          <SelectTrigger>
-            <MapPin className="h-4 w-4 mr-2" />
-            <SelectValue placeholder="Location" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Locations</SelectItem>
-            <SelectItem value="workshop">Workshop</SelectItem>
-            <SelectItem value="onsite">Onsite</SelectItem>
-            <SelectItem value="remote">Remote</SelectItem>
-          </SelectContent>
-        </Select>
 
         <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as TaskStatus | 'all')}>
           <SelectTrigger>
@@ -473,7 +444,7 @@ const Tasks = () => {
                 <TableHead>Task</TableHead>
                 <TableHead>Mechanic</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Location</TableHead>
+                
                 <TableHead>Est. Hours</TableHead>
                 <TableHead>Hours Spent</TableHead>
                 {shouldShowVehicleColumn && <TableHead>Vehicle/Customer</TableHead>}
@@ -499,13 +470,6 @@ const Tasks = () => {
                         className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${getStatusBadgeClass(task.status)}`}
                       >
                         {task.status.charAt(0).toUpperCase() + task.status.slice(1)}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <span
-                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${getLocationBadgeClass(task.location)}`}
-                      >
-                        {task.location?.charAt(0).toUpperCase() + task.location?.slice(1) || "Workshop"}
                       </span>
                     </TableCell>
                     <TableCell>{task.hoursEstimated}</TableCell>
@@ -605,7 +569,7 @@ const Tasks = () => {
               })}
               {filteredTasks.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={shouldShowVehicleColumn ? 9 : 8} className="text-center py-6">
+                  <TableCell colSpan={shouldShowVehicleColumn ? 8 : 7} className="text-center py-6">
                     <div className="flex flex-col items-center justify-center text-muted-foreground">
                       <CalendarCheck className="w-12 h-12 mb-2 text-muted-foreground/60" />
                       <p>

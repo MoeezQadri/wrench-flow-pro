@@ -327,7 +327,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
           mechanicId: undefined,
           vehicleId: vehicleId,
           status: 'completed', // Mark as completed since it's being invoiced
-          location: 'workshop',
+          
           hoursEstimated: quantity,
           hoursSpent: quantity,
           price: price * quantity,

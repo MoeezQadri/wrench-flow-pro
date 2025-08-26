@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { Task, TaskLocation } from "@/types";
+import { Task } from "@/types";
 import { useDataContext } from "@/context/data/DataContext";
 
 const taskSchema = z.object({
@@ -29,7 +29,6 @@ const taskSchema = z.object({
   description: z.string().optional(),
   status: z.enum(["in-progress", "completed"]), // Remove pending and open
   price: z.coerce.number().min(0, { message: "Price must be 0 or greater" }),
-  location: z.enum(["workshop", "roadside", "other"]), // Use roadside instead of onsite
   taskType: z.enum(["invoice", "internal"]),
   vehicleId: z.string().optional(),
   mechanicId: z.string().optional(),
@@ -39,10 +38,6 @@ const taskSchema = z.object({
 }).refine((data) => {
   // If task type is invoice, require invoiceId
   if (data.taskType === "invoice" && !data.invoiceId) {
-    return false;
-  }
-  // If task type is internal, ensure location is workshop
-  if (data.taskType === "internal" && data.location !== "workshop") {
     return false;
   }
   return true;
@@ -79,7 +74,7 @@ const TaskForm = ({ defaultValues, onSubmit, formId, task }: TaskFormProps) => {
       description: "",
       status: "in-progress", // Changed default from pending
       price: 0,
-      location: "workshop",
+      
       taskType: "internal",
       vehicleId: "",
       mechanicId: "",
@@ -121,10 +116,9 @@ const TaskForm = ({ defaultValues, onSubmit, formId, task }: TaskFormProps) => {
     loadVehicles();
   }, [selectedCustomer]);
 
-  // When task type changes, update location and clear invoice selection
+  // When task type changes, clear invoice selection
   useEffect(() => {
     if (watchTaskType === "internal") {
-      form.setValue("location", "workshop");
       form.setValue("invoiceId", "");
       form.setValue("vehicleId", "");
       setSelectedCustomer("");
@@ -254,36 +248,6 @@ const TaskForm = ({ defaultValues, onSubmit, formId, task }: TaskFormProps) => {
             )}
           />
 
-          <FormField
-            control={form.control}
-            name="location"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Location</FormLabel>
-                <Select 
-                  onValueChange={field.onChange} 
-                  value={field.value}
-                  disabled={watchTaskType === "internal"}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select location" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="workshop">Workshop</SelectItem>
-                    {watchTaskType === "invoice" && (
-                      <>
-                        <SelectItem value="roadside">Roadside</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
-                      </>
-                    )}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { InvoiceItem, Part, Task, TaskLocation } from "@/types";
+import { InvoiceItem, Part, Task } from "@/types";
 import { toast } from "sonner";
 
 /**
@@ -105,7 +105,7 @@ export const createTaskFromInvoiceItem = async (
       title: item.description,
       description: `Auto-created from invoice item: ${item.description}`,
       status: 'completed', // Since it's being invoiced, it's completed
-      location: 'workshop' as TaskLocation,
+      
       price: item.price,
       hours_estimated: item.quantity,
       hours_spent: item.quantity, // Assume estimated equals spent for completed tasks

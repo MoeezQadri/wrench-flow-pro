@@ -31,7 +31,6 @@ export interface Vehicle {
 }
 
 export type TaskStatus = 'open' | 'in-progress' | 'completed' | 'blocked' | 'canceled' | 'pending';
-export type TaskLocation = 'workshop' | 'roadside' | 'other' | 'onsite' | 'remote';
 export type InvoiceStatus = 'open' | 'paid' | 'partial' | 'overdue' | 'draft' | 'in-progress' | 'completed';
 export type AttendanceStatus = 'present' | 'late' | 'absent' | 'half-day' | 'pending' | 'approved' | 'rejected';
 export type PaymentMethod = 'cash' | 'card' | 'bank-transfer' | 'check' | 'other';
@@ -124,7 +123,6 @@ export interface Task {
   vehicleId?: string;
   vehicle_id?: string;
   status: TaskStatus;
-  location?: TaskLocation;
   hoursEstimated?: number;
   hours_estimated?: number;
   hoursSpent?: number;
