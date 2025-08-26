@@ -70,6 +70,7 @@ const Tasks = () => {
 
   // Apply filters to tasks
   const filteredTasks = useMemo(() => {
+    console.log('Filtering tasks...');
     let filtered = tasksList;
 
     // Filter by mechanic for mechanic users
@@ -81,10 +82,9 @@ const Tasks = () => {
     if (searchTerm) {
       filtered = filtered.filter(task => 
         task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        task.description.toLowerCase().includes(searchTerm.toLowerCase())
+        (task.description && task.description.toLowerCase().includes(searchTerm.toLowerCase()))
       );
     }
-
 
     // Apply status filter if not set to 'all'
     if (statusFilter !== 'all') {
@@ -96,6 +96,7 @@ const Tasks = () => {
       filtered = filtered.filter(task => task.mechanicId === mechanicFilter);
     }
 
+    console.log('Filtered tasks:', filtered.length);
     return filtered;
   }, [tasksList, currentUser?.role, currentUser?.mechanicId, searchTerm, statusFilter, mechanicFilter]);
 
