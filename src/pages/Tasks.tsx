@@ -9,7 +9,7 @@ import { Plus, Pencil, Calendar, CalendarCheck, Tag, Car, MapPin, Filter, UserPl
 import { toast } from "sonner";
 import TaskDialog from "@/components/task/TaskDialog";
 import TaskCheckInOut from "@/components/task/TaskCheckInOut";
-import TaskMechanicAssignment from "@/components/task/TaskMechanicAssignment";
+import MechanicAssignmentDialog from "@/components/task/MechanicAssignmentDialog";
 import AssignToInvoiceDialog from "@/components/task/AssignToInvoiceDialog";
 import {
   hasPermission,
@@ -25,6 +25,7 @@ const Tasks = () => {
   const [tasksList, setTasksList] = useState<Task[]>([]);
   const [selectedTaskForTimeTracking, setSelectedTaskForTimeTracking] = useState<Task | null>(null);
   const [selectedTaskForAssignment, setSelectedTaskForAssignment] = useState<Task | null>(null);
+  const [showMechanicAssignDialog, setShowMechanicAssignDialog] = useState(false);
   const [selectedTaskForInvoiceAssignment, setSelectedTaskForInvoiceAssignment] = useState<Task | null>(null);
   const [showInvoiceAssignDialog, setShowInvoiceAssignDialog] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -102,6 +103,7 @@ const Tasks = () => {
 
   const handleAssignmentComplete = () => {
     setSelectedTaskForAssignment(null);
+    setShowMechanicAssignDialog(false);
     // Refresh tasks list
     const loadTasks = async () => {
       try {
@@ -371,14 +373,6 @@ const Tasks = () => {
         />
       )}
 
-      {selectedTaskForAssignment && (
-        <TaskMechanicAssignment
-          taskId={selectedTaskForAssignment.id}
-          currentMechanicId={selectedTaskForAssignment.mechanicId || undefined}
-          taskTitle={selectedTaskForAssignment.title}
-          onAssignmentComplete={handleAssignmentComplete}
-        />
-      )}
 
       {/* Search and Filter Controls */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4 p-4 bg-gray-50 rounded-lg">
@@ -536,7 +530,10 @@ const Tasks = () => {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => setSelectedTaskForAssignment(task)}
+                                      onClick={() => {
+                                        setSelectedTaskForAssignment(task);
+                                        setShowMechanicAssignDialog(true);
+                                      }}
                           >
                             <UserPlus className="h-4 w-4" />
                           </Button>
@@ -607,6 +604,15 @@ const Tasks = () => {
         onOpenChange={setShowInvoiceAssignDialog}
         task={selectedTaskForInvoiceAssignment}
         onAssignmentComplete={handleInvoiceAssignmentComplete}
+      />
+
+      <MechanicAssignmentDialog
+        open={showMechanicAssignDialog}
+        onOpenChange={setShowMechanicAssignDialog}
+        taskId={selectedTaskForAssignment?.id || ""}
+        currentMechanicId={selectedTaskForAssignment?.mechanicId || undefined}
+        taskTitle={selectedTaskForAssignment?.title || ""}
+        onAssignmentComplete={handleAssignmentComplete}
       />
     </div>
   );
