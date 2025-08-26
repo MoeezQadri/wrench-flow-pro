@@ -6,12 +6,35 @@ export const generateId = (prefix: string = 'id'): string => {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 };
 
-// Import the enhanced calculation function from utils
-import { calculateInvoiceTotalWithBreakdown } from '@/utils/invoice-calculations';
-
-// @deprecated Use calculateInvoiceTotalWithBreakdown from utils/invoice-calculations.ts instead
+// Legacy invoice calculation function - kept for backward compatibility
+// Note: This function is simplified to avoid circular dependencies with utils/invoice-calculations.ts
 export const calculateInvoiceTotal = (invoice: Invoice): { subtotal: number; tax: number; total: number; paidAmount: number; balanceDue: number } => {
-  return calculateInvoiceTotalWithBreakdown(invoice);
+  if (!invoice.items || invoice.items.length === 0) {
+    return { subtotal: 0, tax: 0, total: 0, paidAmount: 0, balanceDue: 0 };
+  }
+
+  // Calculate subtotal
+  const subtotal = invoice.items.reduce((sum, item) => sum + (item.quantity * item.price), 0);
+  
+  // Apply discounts
+  let discountAmount = 0;
+  if (invoice.discount_type === 'percentage' && invoice.discount_value) {
+    discountAmount = subtotal * (invoice.discount_value / 100);
+  } else if (invoice.discount_type === 'fixed' && invoice.discount_value) {
+    discountAmount = invoice.discount_value;
+  }
+  
+  const afterDiscount = subtotal - discountAmount;
+  
+  // Calculate tax
+  const tax = afterDiscount * ((invoice.tax_rate || 0) / 100);
+  const total = afterDiscount + tax;
+  
+  // Calculate paid amount
+  const paidAmount = invoice.payments?.reduce((sum, payment) => sum + payment.amount, 0) || 0;
+  const balanceDue = total - paidAmount;
+
+  return { subtotal, tax, total, paidAmount, balanceDue };
 };
 
 // Mock function to simulate fetching dashboard metrics
