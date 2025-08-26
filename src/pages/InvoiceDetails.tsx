@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { calculateInvoiceTotal } from '@/services/data-service';
+import { calculateInvoiceBreakdown, calculateInvoiceTotalWithBreakdown } from '@/utils/invoice-calculations';
 import { Invoice } from '@/types';
 import { useDataContext } from '@/context/data/DataContext';
 import { toast } from 'sonner';
@@ -102,7 +102,8 @@ const InvoiceDetails: React.FC = () => {
     );
   }
 
-  const { subtotal, tax, total, paidAmount, balanceDue } = calculateInvoiceTotal(invoice);
+  const breakdown = calculateInvoiceBreakdown(invoice);
+  const { subtotal, tax, total, paidAmount, balanceDue } = calculateInvoiceTotalWithBreakdown(invoice);
 
   return (
     <div className="p-4">
@@ -216,10 +217,12 @@ const InvoiceDetails: React.FC = () => {
                 <span>Subtotal:</span>
                 <span>{formatCurrency(subtotal)}</span>
               </div>
-              {invoice.discount_value && invoice.discount_value > 0 && (
+              {breakdown.discountAmount > 0 && (
                 <div className="flex justify-between py-2 border-b text-red-600">
-                  <span>Discount:</span>
-                  <span>-{formatCurrency(invoice.discount_value)}</span>
+                  <span>
+                    Discount {breakdown.discountType === 'percentage' ? `(${breakdown.discountValue}%)` : ''}:
+                  </span>
+                  <span>-{formatCurrency(breakdown.discountAmount)}</span>
                 </div>
               )}
               <div className="flex justify-between py-2 border-b">

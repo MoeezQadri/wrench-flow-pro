@@ -6,17 +6,12 @@ export const generateId = (prefix: string = 'id'): string => {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 };
 
-// Mock function to simulate calculating invoice total
-export const calculateInvoiceTotal = (invoice: Invoice): { subtotal: number; tax: number; total: number; paidAmount: number; balanceDue: number } => {
-  const subtotal = invoice.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const tax = subtotal * (invoice.tax_rate / 100);
-  const total = subtotal + tax;
-  
-  // Calculate actual paid amount from payments array
-  const paidAmount = invoice.payments?.reduce((sum, payment) => sum + payment.amount, 0) || 0;
-  const balanceDue = total - paidAmount;
+// Import the enhanced calculation function from utils
+import { calculateInvoiceTotalWithBreakdown } from '@/utils/invoice-calculations';
 
-  return { subtotal, tax, total, paidAmount, balanceDue };
+// @deprecated Use calculateInvoiceTotalWithBreakdown from utils/invoice-calculations.ts instead
+export const calculateInvoiceTotal = (invoice: Invoice): { subtotal: number; tax: number; total: number; paidAmount: number; balanceDue: number } => {
+  return calculateInvoiceTotalWithBreakdown(invoice);
 };
 
 // Mock function to simulate fetching dashboard metrics

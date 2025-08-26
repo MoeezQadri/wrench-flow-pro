@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, ReactNode, useEffect } from 'react';
 import type { Vehicle, Invoice } from '@/types';
-import { calculateInvoiceTotal } from '@/services/data-service';
+import { calculateInvoiceTotalWithBreakdown } from '@/utils/invoice-calculations';
 import { DataContextType } from './DataContextType';
 import { useMechanics } from './hooks/useMechanics';
 import { useCustomers } from './hooks/useCustomers';
@@ -79,7 +79,7 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
         const invoiceHistory: Invoice[] = invoicesHook.invoices.filter(inv => inv.customer_id === customerId);
 
         const lifetimeValue = invoiceHistory.reduce((sum, invoice) => {
-            const { total } = calculateInvoiceTotal(invoice);
+            const { total } = calculateInvoiceTotalWithBreakdown(invoice);
             return sum + total;
         }, 0);
         const totalInvoices = invoiceHistory.length;

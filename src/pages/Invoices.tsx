@@ -73,27 +73,10 @@ const Invoices: React.FC = () => {
     loadData();
   }, []); // Remove function dependencies to prevent infinite loop
 
+  // Use standardized calculation function for consistency
   const calculateInvoiceTotal = (invoice: Invoice): number => {
-    if (!invoice.items) return 0;
-
-    // Calculate subtotal
-    const subtotal = invoice.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-
-    // Calculate tax amount
-    const taxAmount = subtotal * (invoice.tax_rate / 100);
-
-    // Calculate discount if applicable
-    let discountAmount = 0;
-    if (invoice.discount_type && invoice.discount_type !== 'none') {
-      if (invoice.discount_type === 'percentage') {
-        discountAmount = subtotal * ((invoice.discount_value || 0) / 100);
-      } else if (invoice.discount_type === 'fixed') {
-        discountAmount = invoice.discount_value || 0;
-      }
-    }
-
-    // Calculate final total
-    return subtotal + taxAmount - discountAmount;
+    const { calculateInvoiceBreakdown } = require('@/utils/invoice-calculations');
+    return calculateInvoiceBreakdown(invoice).total;
   };
 
   const getCustomerName = (customerId: string): string => {

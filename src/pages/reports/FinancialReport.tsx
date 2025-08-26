@@ -19,7 +19,7 @@ import { Link } from 'react-router-dom';
 import { useDataContext } from '@/context/data/DataContext';
 import { DateRangePicker } from '@/components/dashboard/DateRangePicker';
 import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
-import { calculateInvoiceTotal, calculateTotalReceivables, calculateOverdueAmount } from '@/utils/invoice-calculations';
+import { calculateInvoiceBreakdown, calculateTotalReceivables, calculateOverdueAmount } from '@/utils/invoice-calculations';
 import { exportToCSV } from '@/utils/csv-export';
 import { toast } from 'sonner';
 
@@ -97,7 +97,7 @@ const FinancialReport = () => {
     const exportData = receivables.map(invoice => ({
       'Invoice ID': invoice.id.slice(0, 8) + '...',
       'Customer ID': invoice.customer_id.slice(0, 8) + '...',
-      'Amount': calculateInvoiceTotal(invoice),
+      'Amount': calculateInvoiceBreakdown(invoice).total,
       'Due Date': invoice.due_date ? new Date(invoice.due_date).toLocaleDateString() : 'N/A',
       'Status': invoice.status,
       'Days Overdue': invoice.due_date 
@@ -357,7 +357,7 @@ const FinancialReport = () => {
                           {invoice.id.slice(0, 8)}...
                         </TableCell>
                         <TableCell>Customer {invoice.customer_id.slice(0, 8)}</TableCell>
-                        <TableCell>{formatCurrency(calculateInvoiceTotal(invoice))}</TableCell>
+                        <TableCell>{formatCurrency(calculateInvoiceBreakdown(invoice).total)}</TableCell>
                         <TableCell>{formatDate(invoice.due_date)}</TableCell>
                         <TableCell>
                           <Badge variant={daysOverdue > 0 ? 'destructive' : 'secondary'}>

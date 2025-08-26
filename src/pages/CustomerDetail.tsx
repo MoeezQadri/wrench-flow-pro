@@ -24,8 +24,8 @@ import {
   DollarSign
 } from 'lucide-react';
 import {
-  calculateInvoiceTotal
-} from '@/services/data-service';
+  calculateInvoiceTotalWithBreakdown
+} from '@/utils/invoice-calculations';
 import StatusBadge from '@/components/StatusBadge';
 import { Customer, CustomerAnalytics } from '@/types';
 import { resolvePromiseAndSetState } from '@/utils/async-helpers';
@@ -269,7 +269,7 @@ const CustomerDetail = () => {
                     </TableRow>
                   ) : (
                     analytics.invoiceHistory.map((invoice) => {
-                      const { total } = calculateInvoiceTotal(invoice);
+                      const { total } = calculateInvoiceTotalWithBreakdown(invoice);
                       const vehicle = analytics.vehicles.find(v => v.id === invoice.vehicle_id);
 
                       return (

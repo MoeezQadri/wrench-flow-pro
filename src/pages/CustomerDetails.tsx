@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Customer, Vehicle, Invoice } from '@/types';
-import { calculateInvoiceTotal } from '@/services/data-service';
+import { calculateInvoiceTotalWithBreakdown } from '@/utils/invoice-calculations';
 import { useDataContext } from '@/context/data/DataContext';
 import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -261,7 +261,7 @@ const CustomerDetails: React.FC = () => {
           ) : (
             <div className="space-y-3">
               {invoices.map((invoice) => {
-                const { total } = calculateInvoiceTotal(invoice);
+                const { total } = calculateInvoiceTotalWithBreakdown(invoice);
                 return (
                   <Card key={invoice.id} className="border-border/50">
                     <CardContent className="p-4">

@@ -1,11 +1,35 @@
 import type { Invoice, InvoiceItem } from '@/types';
 
+export interface InvoiceCalculationBreakdown {
+  subtotal: number;
+  discountAmount: number;
+  discountType: 'none' | 'percentage' | 'fixed';
+  discountValue: number;
+  afterDiscount: number;
+  taxAmount: number;
+  taxRate: number;
+  total: number;
+  paidAmount: number;
+  balanceDue: number;
+}
+
 /**
- * Calculate the total amount for an invoice including items, tax, and discounts
+ * Calculate comprehensive invoice breakdown including all components
  */
-export const calculateInvoiceTotal = (invoice: Invoice): number => {
+export const calculateInvoiceBreakdown = (invoice: Invoice): InvoiceCalculationBreakdown => {
   if (!invoice.items || invoice.items.length === 0) {
-    return 0;
+    return {
+      subtotal: 0,
+      discountAmount: 0,
+      discountType: 'none',
+      discountValue: 0,
+      afterDiscount: 0,
+      taxAmount: 0,
+      taxRate: invoice.tax_rate || 0,
+      total: 0,
+      paidAmount: 0,
+      balanceDue: 0
+    };
   }
 
   // Calculate subtotal from all items
@@ -15,18 +39,47 @@ export const calculateInvoiceTotal = (invoice: Invoice): number => {
 
   // Apply discounts
   let discountAmount = 0;
-  if (invoice.discount_type === 'percentage' && invoice.discount_value) {
-    discountAmount = subtotal * (invoice.discount_value / 100);
-  } else if (invoice.discount_type === 'fixed' && invoice.discount_value) {
-    discountAmount = invoice.discount_value;
+  const discountType = invoice.discount_type || 'none';
+  const discountValue = invoice.discount_value || 0;
+  
+  if (discountType === 'percentage' && discountValue) {
+    discountAmount = subtotal * (discountValue / 100);
+  } else if (discountType === 'fixed' && discountValue) {
+    discountAmount = discountValue;
   }
 
   const afterDiscount = subtotal - discountAmount;
 
-  // Apply tax
-  const taxAmount = invoice.tax_rate ? afterDiscount * (invoice.tax_rate / 100) : 0;
+  // Apply tax on discounted amount
+  const taxRate = invoice.tax_rate || 0;
+  const taxAmount = afterDiscount * (taxRate / 100);
 
-  return afterDiscount + taxAmount;
+  const total = afterDiscount + taxAmount;
+
+  // Calculate actual paid amount from payments array
+  const paidAmount = invoice.payments?.reduce((sum, payment) => sum + payment.amount, 0) || 0;
+  const balanceDue = total - paidAmount;
+
+  return {
+    subtotal,
+    discountAmount,
+    discountType,
+    discountValue,
+    afterDiscount,
+    taxAmount,
+    taxRate,
+    total,
+    paidAmount,
+    balanceDue
+  };
+};
+
+/**
+ * Calculate the total amount for an invoice including items, tax, and discounts
+ * @deprecated Use calculateInvoiceBreakdown for detailed breakdown or calculateInvoiceTotal for simple total
+ */
+export const calculateInvoiceTotal = (invoice: Invoice): number => {
+  return calculateInvoiceBreakdown(invoice).total;
 };
 
 /**
@@ -35,7 +88,7 @@ export const calculateInvoiceTotal = (invoice: Invoice): number => {
 export const calculateTotalReceivables = (invoices: Invoice[]): number => {
   return invoices
     .filter(invoice => invoice.status !== 'paid')
-    .reduce((total, invoice) => total + calculateInvoiceTotal(invoice), 0);
+    .reduce((total, invoice) => total + calculateInvoiceBreakdown(invoice).total, 0);
 };
 
 /**
@@ -47,5 +100,26 @@ export const calculateOverdueAmount = (invoices: Invoice[]): number => {
       if (invoice.status === 'paid' || !invoice.due_date) return false;
       return new Date(invoice.due_date) < new Date();
     })
-    .reduce((total, invoice) => total + calculateInvoiceTotal(invoice), 0);
+    .reduce((total, invoice) => total + calculateInvoiceBreakdown(invoice).total, 0);
+};
+
+/**
+ * Enhanced calculation function for data-service.ts compatibility
+ * Returns detailed breakdown in the format expected by existing components
+ */
+export const calculateInvoiceTotalWithBreakdown = (invoice: Invoice): { 
+  subtotal: number; 
+  tax: number; 
+  total: number; 
+  paidAmount: number; 
+  balanceDue: number 
+} => {
+  const breakdown = calculateInvoiceBreakdown(invoice);
+  return {
+    subtotal: breakdown.subtotal,
+    tax: breakdown.taxAmount,
+    total: breakdown.total,
+    paidAmount: breakdown.paidAmount,
+    balanceDue: breakdown.balanceDue
+  };
 };
