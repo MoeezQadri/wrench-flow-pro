@@ -74,7 +74,24 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     setLoading(true);
     const { data: listener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      // Detect recovery flow to avoid authenticating app during password reset
+      const path = window.location.pathname;
+      const params = new URLSearchParams(window.location.search);
+      const isRecoveryFlow =
+        path === '/auth/reset-password' ||
+        (path === '/auth/confirm' && params.get('type') === 'recovery');
+
       setSession(session);
+
+      if (session && isRecoveryFlow) {
+        // Allow password update without triggering redirects/auth state
+        setCurrentUser(null);
+        setSubscribed(false);
+        setSubscriptionTier(null);
+        setSubscriptionEnd(null);
+        setLoading(false);
+        return;
+      }
 
       if (session) {
         await fetchUser(session.user);
