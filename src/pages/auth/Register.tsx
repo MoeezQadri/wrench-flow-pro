@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuthContext } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { checkEmailExists } from '@/utils/supabase-helpers';
 
 const Register: React.FC = () => {
   const [email, setEmail] = useState<string>('');
@@ -12,6 +13,7 @@ const Register: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState<string>('');
   const [organizationName, setOrganizationName] = useState<string>('');
   const [error, setError] = useState<string>('');
+  const [emailCheckingLoading, setEmailCheckingLoading] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const { signUp } = useAuthContext();
   const navigate = useNavigate();
@@ -129,6 +131,34 @@ const Register: React.FC = () => {
     }
 
     try {
+      // Pre-check if email already exists
+      console.log('Checking if email exists...');
+      const emailCheckResult = await checkEmailExists(email.trim());
+      
+      if (emailCheckResult?.exists) {
+        const errorMessage = emailCheckResult.is_active 
+          ? 'This email is already registered and cannot be used to register again. Please login or use "Forgot Password" if needed.'
+          : 'This email is registered but not yet activated. Please check your inbox or use "Forgot Password" to complete activation.';
+        
+        setError(errorMessage);
+        toast({
+          title: emailCheckResult.is_active ? "Email Already Registered" : "Email Pending Activation",
+          description: errorMessage,
+          variant: "destructive",
+          duration: 8000,
+          action: (
+            <div className="flex items-center gap-1 text-sm">
+              <AlertCircle className="h-4 w-4" />
+              <Link to="/auth/login" className="underline hover:no-underline">
+                Go to Login
+              </Link>
+            </div>
+          ),
+        });
+        setLoading(false);
+        return;
+      }
+      
       // Show loading toast
       toast({
         title: "Creating Account",
@@ -277,6 +307,31 @@ const Register: React.FC = () => {
     }
   };
 
+  const handleEmailBlur = async () => {
+    if (!email || !email.includes('@')) return;
+    
+    setEmailCheckingLoading(true);
+    try {
+      const result = await checkEmailExists(email.trim());
+      if (result?.exists) {
+        const message = result.is_active 
+          ? 'This email is already registered. Please use login instead.'
+          : 'This email is registered but not activated. Check your inbox or use "Forgot Password".';
+        
+        toast({
+          title: "Email Already in Use",
+          description: message,
+          variant: "destructive",
+          duration: 5000,
+        });
+      }
+    } catch (error) {
+      console.error('Error checking email:', error);
+    } finally {
+      setEmailCheckingLoading(false);
+    }
+  };
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-100">
       <div className="w-full max-w-md">
@@ -326,14 +381,22 @@ const Register: React.FC = () => {
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
                 Email Address
               </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              />
+              <div className="relative">
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  onBlur={handleEmailBlur}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+                {emailCheckingLoading && (
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+                  </div>
+                )}
+              </div>
             </div>
             
             <div className="mb-4">

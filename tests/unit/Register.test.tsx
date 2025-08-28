@@ -5,13 +5,20 @@ import Register from '@/pages/auth/Register';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
 const signUpMock = vi.fn();
+const checkEmailExistsMock = vi.fn();
+
 vi.mock('@/context/AuthContext', () => ({
   useAuthContext: () => ({ signUp: signUpMock })
+}));
+
+vi.mock('@/utils/supabase-helpers', () => ({
+  checkEmailExists: checkEmailExistsMock
 }));
 
 describe('Register page - organization rules', () => {
   beforeEach(() => {
     signUpMock.mockReset();
+    checkEmailExistsMock.mockReset();
   });
 
   it('shows helper text about organization rules', () => {
@@ -47,6 +54,7 @@ describe('Register page - organization rules', () => {
   });
 
   it('shows error when organization already exists', async () => {
+    checkEmailExistsMock.mockResolvedValue({ exists: false });
     signUpMock.mockResolvedValue({ data: null, error: new Error('Organization already exists. Please contact your administrator to be added to this organization.') });
 
     render(
@@ -66,5 +74,47 @@ describe('Register page - organization rules', () => {
     expect(
       await screen.findByText('Organization already exists. Please contact your administrator to be added to this organization.')
     ).toBeInTheDocument();
+  });
+
+  it('blocks registration when email already exists and is active', async () => {
+    checkEmailExistsMock.mockResolvedValue({ exists: true, is_active: true });
+
+    render(
+      <MemoryRouter>
+        <Register />
+      </MemoryRouter>
+    );
+
+    fireEvent.change(screen.getByLabelText(/Full Name/i), { target: { value: 'Jane Doe' } });
+    fireEvent.change(screen.getByLabelText(/Organization Name/i), { target: { value: 'Test Org' } });
+    fireEvent.change(screen.getByLabelText(/Email Address/i), { target: { value: 'existing@example.com' } });
+    fireEvent.change(screen.getByLabelText(/^Password$/i), { target: { value: 'Password123!' } });
+    fireEvent.change(screen.getByLabelText(/Confirm Password/i), { target: { value: 'Password123!' } });
+
+    fireEvent.click(screen.getByRole('button', { name: /Register/i }));
+
+    expect(await screen.findByText(/already registered and cannot be used to register again/)).toBeInTheDocument();
+    expect(signUpMock).not.toHaveBeenCalled();
+  });
+
+  it('shows activation guidance when email exists but is inactive', async () => {
+    checkEmailExistsMock.mockResolvedValue({ exists: true, is_active: false });
+
+    render(
+      <MemoryRouter>
+        <Register />
+      </MemoryRouter>
+    );
+
+    fireEvent.change(screen.getByLabelText(/Full Name/i), { target: { value: 'Jane Doe' } });
+    fireEvent.change(screen.getByLabelText(/Organization Name/i), { target: { value: 'Test Org' } });
+    fireEvent.change(screen.getByLabelText(/Email Address/i), { target: { value: 'inactive@example.com' } });
+    fireEvent.change(screen.getByLabelText(/^Password$/i), { target: { value: 'Password123!' } });
+    fireEvent.change(screen.getByLabelText(/Confirm Password/i), { target: { value: 'Password123!' } });
+
+    fireEvent.click(screen.getByRole('button', { name: /Register/i }));
+
+    expect(await screen.findByText(/registered but not yet activated/)).toBeInTheDocument();
+    expect(signUpMock).not.toHaveBeenCalled();
   });
 });
