@@ -14,6 +14,8 @@ import {
   BarChart3,
   Package,
   Building,
+  LogOut,
+  ChevronUp,
 } from 'lucide-react';
 import { useAuthContext } from '@/context/AuthContext';
 import {
@@ -28,6 +30,13 @@ import {
   SidebarMenuItem,
   SidebarSeparator,
 } from '@/components/ui/sidebar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 const navItems = [
   {
@@ -84,13 +93,21 @@ const navItems = [
 
 export function AppSidebar() {
   const location = useLocation();
-  const { currentUser } = useAuthContext();
+  const { currentUser, logout } = useAuthContext();
 
   const isActive = (path: string) => {
     if (path === '/') {
       return location.pathname === '/';
     }
     return location.pathname.startsWith(path);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
   };
 
   return (
@@ -133,17 +150,35 @@ export function AppSidebar() {
 
       <SidebarFooter>
         {currentUser && (
-          <div className="flex items-center gap-3 p-2 rounded-lg bg-sidebar-accent/50">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-sidebar-accent">
-              <UserRound className="h-4 w-4" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{currentUser.name}</p>
-              <p className="text-xs text-muted-foreground capitalize truncate">
-                {currentUser.role === 'owner' ? 'Admin' : currentUser.role}
-              </p>
-            </div>
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <div className="flex items-center gap-3 p-2 rounded-lg bg-sidebar-accent/50 hover:bg-sidebar-accent cursor-pointer transition-colors">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-sidebar-accent">
+                  <UserRound className="h-4 w-4" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{currentUser.name}</p>
+                  <p className="text-xs text-muted-foreground capitalize truncate">
+                    {currentUser.role === 'owner' ? 'Admin' : currentUser.role}
+                  </p>
+                </div>
+                <ChevronUp className="h-4 w-4 text-muted-foreground" />
+              </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem asChild>
+                <Link to="/settings" className="flex items-center gap-2 w-full">
+                  <Settings className="h-4 w-4" />
+                  Settings
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleLogout} className="flex items-center gap-2 text-destructive">
+                <LogOut className="h-4 w-4" />
+                Logout
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
       </SidebarFooter>
     </Sidebar>
