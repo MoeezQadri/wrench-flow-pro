@@ -34,6 +34,7 @@ const TaskDialog = ({ open, onOpenChange, onSave, task, invoiceId }: TaskDialogP
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [loading, setLoading] = useState(invoiceId ? true : false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
     getInvoiceById,
@@ -67,7 +68,12 @@ const TaskDialog = ({ open, onOpenChange, onSave, task, invoiceId }: TaskDialogP
   }, [invoiceId]);
 
   const handleSubmit = async (data: TaskFormValues) => {
+    // Prevent duplicate submissions
+    if (isSubmitting) return;
+    
     try {
+      setIsSubmitting(true);
+      
       // Determine task assignment based on type
       let taskInvoiceId = undefined;
       let taskVehicleId = undefined;
@@ -110,6 +116,8 @@ const TaskDialog = ({ open, onOpenChange, onSave, task, invoiceId }: TaskDialogP
     } catch (error) {
       console.error("Error saving task:", error);
       toast.error("Failed to save task. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -175,11 +183,11 @@ const TaskDialog = ({ open, onOpenChange, onSave, task, invoiceId }: TaskDialogP
         />
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
             Cancel
           </Button>
-          <Button type="submit" form={formId}>
-            {isEditing ? "Update" : "Add"} Task
+          <Button type="submit" form={formId} disabled={isSubmitting}>
+            {isSubmitting ? "Saving..." : isEditing ? "Update" : "Add"} Task
           </Button>
         </DialogFooter>
       </DialogContent>
