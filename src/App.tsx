@@ -14,6 +14,7 @@ import { Toaster } from '@/components/ui/toaster';
 // Auth pages
 import Login from '@/pages/auth/Login';
 import Register from '@/pages/auth/Register';
+import ForgotPassword from '@/pages/auth/ForgotPassword';
 
 // Non-lazy loaded reports
 import FinanceReport from '@/pages/reports/FinanceReport';
@@ -65,6 +66,7 @@ function App() {
                 <Route path="/auth" element={<PublicRoute />}>
                   <Route path="login" element={<Login />} />
                   <Route path="register" element={<Register />} />
+                  <Route path="forgot-password" element={<ForgotPassword />} />
                   <Route path="*" element={<Navigate to="/auth/login" replace />} />
                 </Route>
 
