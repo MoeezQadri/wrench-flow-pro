@@ -22,12 +22,18 @@ const Register: React.FC = () => {
     
     const message = error.message || error.toString();
     
-    // Handle specific Supabase auth errors
+    // Handle specific cross-organization registration errors
+    if (message.includes('user_exists_in_organization') || 
+        message.includes('already registered with another organization')) {
+      return 'This email is already registered with another organization. Each user can only be part of one organization at a time.';
+    }
+    
+    // Handle specific Supabase auth errors - user already exists in current org
     if (message.includes('User already registered') || 
         message.includes('user_repeated_signup') ||
         message.includes('email_address_taken') ||
         message.includes('A user with this email address has already been registered')) {
-      return 'An account with this email already exists. Please use the login page instead.';
+      return 'An account with this email already exists. Please use the login page to access your existing account.';
     }
     
     // Handle organization existence errors
@@ -139,23 +145,43 @@ const Register: React.FC = () => {
         console.error('Registration error:', error);
         setError(errorMessage);
         
-        // Determine toast icon based on error type
+        // Determine toast type and actions based on error type
         const isUserExists = errorMessage.includes('already exists') || errorMessage.includes('already registered');
+        const isCrossOrgError = errorMessage.includes('another organization') || errorMessage.includes('user_exists_in_organization');
         const isOrgExists = errorMessage.includes('organization') && errorMessage.includes('taken');
         
-        toast({
-          title: isUserExists ? "Account Already Exists" : isOrgExists ? "Organization Unavailable" : "Registration Failed",
-          description: errorMessage,
-          variant: "destructive",
-          action: isUserExists ? (
-            <div className="flex items-center gap-1 text-sm">
-              <AlertCircle className="h-4 w-4" />
-              <Link to="/auth/login" className="underline hover:no-underline">
-                Go to Login
-              </Link>
-            </div>
-          ) : undefined,
-        });
+        // Special handling for cross-organization registration
+        if (isCrossOrgError) {
+          toast({
+            title: "Account Exists in Another Organization",
+            description: `${errorMessage} Please login to access your existing account or contact your current organization administrator for assistance.`,
+            variant: "destructive",
+            duration: 8000, // Show longer for important message
+            action: (
+              <div className="flex flex-col gap-1 text-sm">
+                <Link to="/auth/login" className="underline hover:no-underline flex items-center gap-1">
+                  <AlertCircle className="h-4 w-4" />
+                  Login Instead
+                </Link>
+                <span className="text-xs text-muted-foreground">Or use "Forgot Password" if needed</span>
+              </div>
+            ),
+          });
+        } else {
+          toast({
+            title: isUserExists ? "Account Already Exists" : isOrgExists ? "Organization Unavailable" : "Registration Failed",
+            description: errorMessage,
+            variant: "destructive",
+            action: isUserExists ? (
+              <div className="flex items-center gap-1 text-sm">
+                <AlertCircle className="h-4 w-4" />
+                <Link to="/auth/login" className="underline hover:no-underline">
+                  Go to Login
+                </Link>
+              </div>
+            ) : undefined,
+          });
+        }
       } else if (data) {
         console.log('Registration successful:', data);
         
@@ -210,22 +236,42 @@ const Register: React.FC = () => {
       console.error('Registration exception:', err);
       setError(errorMessage);
       
-      // Check if this is a user exists error for special handling
+      // Check error type for special handling
       const isUserExists = errorMessage.includes('already exists') || errorMessage.includes('already registered');
+      const isCrossOrgError = errorMessage.includes('another organization') || errorMessage.includes('user_exists_in_organization');
       
-      toast({
-        title: isUserExists ? "Account Already Exists" : "Registration Failed", 
-        description: errorMessage,
-        variant: "destructive",
-        action: isUserExists ? (
-          <div className="flex items-center gap-1 text-sm">
-            <AlertCircle className="h-4 w-4" />
-            <Link to="/auth/login" className="underline hover:no-underline">
-              Go to Login
-            </Link>
-          </div>
-        ) : undefined,
-      });
+      // Special handling for cross-organization registration
+      if (isCrossOrgError) {
+        toast({
+          title: "Account Exists in Another Organization",
+          description: `${errorMessage} Please login to access your existing account or contact your current organization administrator.`,
+          variant: "destructive",
+          duration: 8000,
+          action: (
+            <div className="flex flex-col gap-1 text-sm">
+              <Link to="/auth/login" className="underline hover:no-underline flex items-center gap-1">
+                <AlertCircle className="h-4 w-4" />
+                Login Instead
+              </Link>
+              <span className="text-xs text-muted-foreground">Or use "Forgot Password" if needed</span>
+            </div>
+          ),
+        });
+      } else {
+        toast({
+          title: isUserExists ? "Account Already Exists" : "Registration Failed", 
+          description: errorMessage,
+          variant: "destructive",
+          action: isUserExists ? (
+            <div className="flex items-center gap-1 text-sm">
+              <AlertCircle className="h-4 w-4" />
+              <Link to="/auth/login" className="underline hover:no-underline">
+                Go to Login
+              </Link>
+            </div>
+          ) : undefined,
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -272,7 +318,7 @@ const Register: React.FC = () => {
                 required
               />
               <p className="text-sm text-gray-500 mt-1">
-                Enter your organization name. If it doesn't exist, you'll become the admin of a new organization. If it already exists, contact your admin to be added.
+                <strong>Important:</strong> Each user can only be part of one organization. If your organization already exists, contact your administrator to be added. If it doesn't exist, you'll become the admin of a new organization.
               </p>
             </div>
             

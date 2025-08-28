@@ -275,9 +275,16 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           // Type guard for organization result
           const orgData = orgResult as any;
           
-          // Check if organization already exists
-          if (orgData?.success === false && orgData?.error === 'organization_exists') {
-            return { data: null, error: new Error(orgData.message) };
+          // Handle specific error cases from database function
+          if (orgData?.success === false) {
+            if (orgData?.error === 'organization_exists') {
+              return { data: null, error: new Error(orgData.message) };
+            } else if (orgData?.error === 'user_exists_in_organization') {
+              const message = `This email is already registered with "${orgData.existing_organization}". Each user can only belong to one organization at a time.`;
+              return { data: null, error: new Error(message) };
+            } else {
+              return { data: null, error: new Error(orgData.message || 'Failed to create organization') };
+            }
           }
           
           if (!orgData?.success) {
