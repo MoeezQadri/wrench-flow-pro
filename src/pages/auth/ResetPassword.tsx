@@ -33,13 +33,21 @@ const ResetPassword = () => {
       }
 
       try {
-        // Set the session to verify the token is valid
-        const { error } = await supabase.auth.setSession({
-          access_token,
-          refresh_token,
-        });
+        // Verify token validity without triggering full authentication
+        // We'll only set the session during the actual password update
+        const tokenParts = access_token.split('.');
+        if (tokenParts.length !== 3) {
+          throw new Error('Invalid token format');
+        }
 
-        if (error) throw error;
+        // Basic JWT structure validation
+        const payload = JSON.parse(atob(tokenParts[1]));
+        const now = Math.floor(Date.now() / 1000);
+        
+        if (payload.exp && payload.exp < now) {
+          throw new Error('Token has expired');
+        }
+
         setIsValidToken(true);
       } catch (err: any) {
         console.error('Invalid reset token:', err);
@@ -75,6 +83,23 @@ const ResetPassword = () => {
     }
 
     try {
+      // Set session for password update, then sign out
+      const access_token = searchParams.get('access_token');
+      const refresh_token = searchParams.get('refresh_token');
+      
+      if (!access_token || !refresh_token) {
+        throw new Error('Missing reset tokens');
+      }
+
+      // Set session for password update
+      const { error: sessionError } = await supabase.auth.setSession({
+        access_token,
+        refresh_token,
+      });
+
+      if (sessionError) throw sessionError;
+
+      // Update password
       const { error } = await supabase.auth.updateUser({ password });
 
       if (error) throw error;
