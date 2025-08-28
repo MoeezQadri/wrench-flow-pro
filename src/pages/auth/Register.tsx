@@ -2,6 +2,8 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthContext } from '@/context/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+import { CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 
 const Register: React.FC = () => {
   const [email, setEmail] = useState<string>('');
@@ -13,35 +15,148 @@ const Register: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const { signUp } = useAuthContext();
   const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const getErrorMessage = (error: any): string => {
+    if (!error) return 'An unexpected error occurred';
+    
+    const message = error.message || error.toString();
+    
+    // Handle specific error cases
+    if (message.includes('User already registered')) {
+      return 'An account with this email already exists. Please login instead.';
+    }
+    
+    if (message.includes('organization already exists') || message.includes('Organization already exists')) {
+      return 'This organization already exists. Please contact your administrator to be added to the organization.';
+    }
+    
+    if (message.includes('Invalid email')) {
+      return 'Please enter a valid email address.';
+    }
+    
+    if (message.includes('Password should be at least')) {
+      return 'Password must be at least 6 characters long.';
+    }
+    
+    if (message.includes('Failed to process organization')) {
+      return 'There was an issue setting up your organization. Please try again.';
+    }
+    
+    if (message.includes('Network')) {
+      return 'Network error. Please check your connection and try again.';
+    }
+    
+    // Return the original message if no specific handling
+    return message;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
     
+    console.log('Registration attempt:', { email, name, organizationName });
+    
+    // Basic validation
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
+      const errorMsg = 'Passwords do not match';
+      setError(errorMsg);
+      toast({
+        title: "Validation Error",
+        description: errorMsg,
+        variant: "destructive",
+      });
+      setLoading(false);
+      return;
+    }
+    
+    if (password.length < 6) {
+      const errorMsg = 'Password must be at least 6 characters long';
+      setError(errorMsg);
+      toast({
+        title: "Validation Error", 
+        description: errorMsg,
+        variant: "destructive",
+      });
       setLoading(false);
       return;
     }
     
     if (!signUp) {
-      setError('Authentication service unavailable');
+      const errorMsg = 'Authentication service unavailable';
+      setError(errorMsg);
+      toast({
+        title: "Service Error",
+        description: errorMsg,
+        variant: "destructive",
+      });
       setLoading(false);
       return;
     }
 
     try {
-      // Pass name and organization name for signup
-      const { data, error } = await signUp(email, password, name, organizationName);
+      // Show loading toast
+      toast({
+        title: "Creating Account",
+        description: "Please wait while we set up your account...",
+      });
+      
+      console.log('Calling signUp function...');
+      const { data, error } = await signUp(email, password, name.trim(), organizationName.trim());
+      
+      console.log('SignUp result:', { data, error });
+      
       if (error) {
-        setError(error.message);
+        const errorMessage = getErrorMessage(error);
+        console.error('Registration error:', error);
+        setError(errorMessage);
+        
+        toast({
+          title: "Registration Failed",
+          description: errorMessage,
+          variant: "destructive",
+        });
       } else if (data) {
-        navigate('/');
+        console.log('Registration successful:', data);
+        
+        toast({
+          title: "Account Created Successfully!",
+          description: "Please check your email to verify your account. You may need to check your spam folder.",
+          action: (
+            <div className="flex items-center gap-1">
+              <CheckCircle className="h-4 w-4" />
+              <span>Success</span>
+            </div>
+          ),
+        });
+        
+        // Small delay to let user see the success message
+        setTimeout(() => {
+          navigate('/');
+        }, 1500);
+      } else {
+        // Edge case: no data and no error
+        console.warn('Registration completed but no data returned');
+        toast({
+          title: "Account Created",
+          description: "Please check your email to verify your account.",
+        });
+        
+        setTimeout(() => {
+          navigate('/');
+        }, 1500);
       }
-    } catch (err) {
-      setError('An unexpected error occurred');
-      console.error('Registration error:', err);
+    } catch (err: any) {
+      const errorMessage = getErrorMessage(err);
+      console.error('Registration exception:', err);
+      setError(errorMessage);
+      
+      toast({
+        title: "Registration Failed", 
+        description: errorMessage,
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -137,8 +252,9 @@ const Register: React.FC = () => {
             <button
               type="submit"
               disabled={loading}
-              className={`w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
+              className={`w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center justify-center gap-2 ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
             >
+              {loading && <Loader2 className="h-4 w-4 animate-spin" />}
               {loading ? 'Creating account...' : 'Register'}
             </button>
           </form>

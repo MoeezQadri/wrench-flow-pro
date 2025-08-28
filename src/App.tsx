@@ -9,6 +9,7 @@ import PrivateRoute from '@/components/PrivateRoute';
 import PublicRoute from '@/components/PublicRoute';
 import { AuthProvider } from '@/context/AuthProvider';
 import { DataProvider } from '@/context/data/DataProvider';
+import { Toaster } from '@/components/ui/toaster';
 
 // Auth pages
 import Login from '@/pages/auth/Login';
@@ -84,7 +85,7 @@ function App() {
                     <Route path="invoices" element={<Invoices />} />
                     <Route path="invoices/new" element={<NewInvoice />} />
                     <Route path="invoices/:id" element={<InvoiceDetails />} />
-                    <Route path="invoices/:id/edit" element={<EditInvoice />} />
+                    <Route path="invoices/edit/:id" element={<EditInvoice />} />
                     <Route path="mechanics" element={<Mechanics />} />
                     <Route path="mechanics/:mechanicId/performance" element={<MechanicPerformance />} />
                     <Route path="tasks" element={<Tasks />} />
@@ -108,6 +109,7 @@ function App() {
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>
+            <Toaster />
           </PersistentRouter>
         </DataProvider>
       </AuthProvider>
