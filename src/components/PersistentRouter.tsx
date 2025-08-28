@@ -19,8 +19,9 @@ const PersistentRouter = ({ children }: Props) => {
             const isPasswordResetFlow = location.pathname === '/auth/reset-password';
             const isEmailConfirmFlow = location.pathname === '/auth/confirm';
             const isRecoveryConfirm = location.pathname === '/auth/confirm' && params.get('type') === 'recovery';
+            const hasRecoveryTokens = params.get('access_token') && params.get('refresh_token') && params.get('type') === 'recovery';
             
-            if (isPasswordResetFlow || isEmailConfirmFlow || isRecoveryConfirm) {
+            if (isPasswordResetFlow || isEmailConfirmFlow || isRecoveryConfirm || hasRecoveryTokens) {
                 return; // Skip automatic redirect for recovery flows
             }
             

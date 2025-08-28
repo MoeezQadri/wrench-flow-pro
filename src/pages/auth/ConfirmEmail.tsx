@@ -21,7 +21,20 @@ const ConfirmEmail = () => {
         const refresh_token = searchParams.get('refresh_token');
         const type = searchParams.get('type');
 
-        if (!access_token || !refresh_token || type !== 'signup') {
+        if (!access_token || !refresh_token) {
+          throw new Error('Invalid confirmation link');
+        }
+
+        // Handle password recovery flow
+        if (type === 'recovery') {
+          // Redirect to reset password page with tokens
+          const resetUrl = `/auth/reset-password?access_token=${access_token}&refresh_token=${refresh_token}&type=recovery`;
+          navigate(resetUrl, { replace: true });
+          return;
+        }
+
+        // Handle email signup confirmation
+        if (type !== 'signup') {
           throw new Error('Invalid confirmation link');
         }
 

@@ -17,9 +17,10 @@ const PublicRoute = ({ children, redirectPath = '/' }: PublicRouteProps) => {
   const isPasswordResetFlow = location.pathname === '/auth/reset-password';
   const isEmailConfirmFlow = location.pathname === '/auth/confirm';
   const isRecoveryConfirm = location.pathname === '/auth/confirm' && params.get('type') === 'recovery';
+  const hasRecoveryTokens = params.get('access_token') && params.get('refresh_token') && params.get('type') === 'recovery';
   
   // If user is authenticated and NOT in a recovery flow, redirect to dashboard
-  if (isAuthenticated && !isPasswordResetFlow && !isEmailConfirmFlow && !isRecoveryConfirm) {
+  if (isAuthenticated && !isPasswordResetFlow && !isEmailConfirmFlow && !isRecoveryConfirm && !hasRecoveryTokens) {
     const lastRoute = localStorage.getItem('lastRoute');
     const safeRedirect = lastRoute && lastRoute !== '/auth/login' ? lastRoute : redirectPath;
     return <Navigate to={safeRedirect} state={{ from: location }} replace />;

@@ -79,7 +79,8 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const params = new URLSearchParams(window.location.search);
       const isRecoveryFlow =
         path === '/auth/reset-password' ||
-        (path === '/auth/confirm' && params.get('type') === 'recovery');
+        (path === '/auth/confirm' && params.get('type') === 'recovery') ||
+        (params.get('access_token') && params.get('refresh_token') && params.get('type') === 'recovery');
 
       setSession(session);
 
