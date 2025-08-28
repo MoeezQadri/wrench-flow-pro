@@ -387,11 +387,11 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
     form.setValue('status', status);
   }, [status, form]);
 
-  // Calculate totals including discount
+  // Calculate totals including discount (matching calculateInvoiceBreakdown logic)
   const calculateTotals = () => {
     const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const taxAmount = subtotal * (taxRate / 100);
 
+    // Apply discount first
     let discountAmount = 0;
     if (discountType === 'percentage') {
       discountAmount = subtotal * (discountValue / 100);
@@ -399,7 +399,11 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
       discountAmount = discountValue;
     }
 
-    const total = subtotal + taxAmount - discountAmount;
+    // Calculate tax on the post-discount amount
+    const afterDiscount = subtotal - discountAmount;
+    const taxAmount = afterDiscount * (taxRate / 100);
+
+    const total = afterDiscount + taxAmount;
 
     return {
       subtotal,
