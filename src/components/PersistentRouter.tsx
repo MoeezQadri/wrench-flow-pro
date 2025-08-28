@@ -14,6 +14,14 @@ const PersistentRouter = ({ children }: Props) => {
 
     useEffect(() => {
         if (!loading && isAuthenticated) {
+            // Don't redirect during password reset or email confirmation flows
+            const isPasswordResetFlow = location.pathname === '/auth/reset-password';
+            const isEmailConfirmFlow = location.pathname === '/auth/confirm';
+            
+            if (isPasswordResetFlow || isEmailConfirmFlow) {
+                return; // Skip automatic redirect for recovery flows
+            }
+            
             const lastRoute = localStorage.getItem('lastRoute');
             if (
                 lastRoute &&
@@ -23,7 +31,7 @@ const PersistentRouter = ({ children }: Props) => {
                 navigate(lastRoute, { replace: true });
             }
         }
-    }, [loading, isAuthenticated]);
+    }, [loading, isAuthenticated, location.pathname]);
 
     if (loading) {
         return <LoadingScreen />;
