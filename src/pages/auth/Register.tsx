@@ -22,33 +22,60 @@ const Register: React.FC = () => {
     
     const message = error.message || error.toString();
     
-    // Handle specific error cases
-    if (message.includes('User already registered')) {
-      return 'An account with this email already exists. Please login instead.';
+    // Handle specific Supabase auth errors
+    if (message.includes('User already registered') || 
+        message.includes('user_repeated_signup') ||
+        message.includes('email_address_taken') ||
+        message.includes('A user with this email address has already been registered')) {
+      return 'An account with this email already exists. Please use the login page instead.';
     }
     
-    if (message.includes('organization already exists') || message.includes('Organization already exists')) {
-      return 'This organization already exists. Please contact your administrator to be added to the organization.';
+    // Handle organization existence errors
+    if (message.includes('organization already exists') || 
+        message.includes('Organization already exists') ||
+        message.includes('organization name is already taken')) {
+      return 'This organization name is already taken. Please contact the organization administrator to request access, or choose a different organization name.';
     }
     
-    if (message.includes('Invalid email')) {
-      return 'Please enter a valid email address.';
+    // Handle email validation errors
+    if (message.includes('Invalid email') || 
+        message.includes('invalid_email') ||
+        message.includes('Unable to validate email address')) {
+      return 'Please enter a valid email address format.';
     }
     
-    if (message.includes('Password should be at least')) {
-      return 'Password must be at least 6 characters long.';
+    // Handle password strength errors
+    if (message.includes('Password should be at least') ||
+        message.includes('weak_password') ||
+        message.includes('password_too_short')) {
+      return 'Password must be at least 6 characters long and contain a mix of letters and numbers.';
     }
     
-    if (message.includes('Failed to process organization')) {
-      return 'There was an issue setting up your organization. Please try again.';
+    // Handle signup rate limiting
+    if (message.includes('rate_limit') || message.includes('too_many_requests')) {
+      return 'Too many registration attempts. Please wait a few minutes before trying again.';
     }
     
-    if (message.includes('Network')) {
-      return 'Network error. Please check your connection and try again.';
+    // Handle organization processing errors
+    if (message.includes('Failed to process organization') ||
+        message.includes('organization_creation_failed')) {
+      return 'There was an issue setting up your organization. Please try again or contact support.';
     }
     
-    // Return the original message if no specific handling
-    return message;
+    // Handle network/connection errors
+    if (message.includes('Network') || 
+        message.includes('fetch') ||
+        message.includes('connection')) {
+      return 'Network error. Please check your internet connection and try again.';
+    }
+    
+    // Handle generic auth errors
+    if (message.includes('Invalid credentials') || message.includes('auth')) {
+      return 'Authentication error. Please check your information and try again.';
+    }
+    
+    // Return the original message if no specific handling, but clean it up
+    return message.replace(/^Error:\s*/, '').trim() || 'Registration failed. Please try again.';
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -112,50 +139,92 @@ const Register: React.FC = () => {
         console.error('Registration error:', error);
         setError(errorMessage);
         
+        // Determine toast icon based on error type
+        const isUserExists = errorMessage.includes('already exists') || errorMessage.includes('already registered');
+        const isOrgExists = errorMessage.includes('organization') && errorMessage.includes('taken');
+        
         toast({
-          title: "Registration Failed",
+          title: isUserExists ? "Account Already Exists" : isOrgExists ? "Organization Unavailable" : "Registration Failed",
           description: errorMessage,
           variant: "destructive",
+          action: isUserExists ? (
+            <div className="flex items-center gap-1 text-sm">
+              <AlertCircle className="h-4 w-4" />
+              <Link to="/auth/login" className="underline hover:no-underline">
+                Go to Login
+              </Link>
+            </div>
+          ) : undefined,
         });
       } else if (data) {
         console.log('Registration successful:', data);
         
+        // Clear any existing error state
+        setError('');
+        
+        // Show prominent success message
         toast({
-          title: "Account Created Successfully!",
-          description: "Please check your email to verify your account. You may need to check your spam folder.",
+          title: "🎉 Welcome to GaragePro!",
+          description: "Your account has been created successfully! Please check your email (including spam folder) to verify your account and complete the setup.",
+          duration: 5000, // Show longer for success
           action: (
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 text-green-600">
               <CheckCircle className="h-4 w-4" />
-              <span>Success</span>
+              <span className="font-medium">Success</span>
             </div>
           ),
         });
         
-        // Small delay to let user see the success message
+        // Additional toast with next steps
+        setTimeout(() => {
+          toast({
+            title: "Next Steps",
+            description: "After email verification, you'll be able to access your organization dashboard and start managing your garage operations.",
+            duration: 4000,
+          });
+        }, 1000);
+        
+        // Navigate after showing messages
         setTimeout(() => {
           navigate('/');
-        }, 1500);
+        }, 2500);
       } else {
         // Edge case: no data and no error
         console.warn('Registration completed but no data returned');
+        setError('');
+        
         toast({
           title: "Account Created",
-          description: "Please check your email to verify your account.",
+          description: "Your registration appears to be successful. Please check your email to verify your account.",
+          action: (
+            <CheckCircle className="h-4 w-4 text-green-600" />
+          ),
         });
         
         setTimeout(() => {
           navigate('/');
-        }, 1500);
+        }, 2000);
       }
     } catch (err: any) {
       const errorMessage = getErrorMessage(err);
       console.error('Registration exception:', err);
       setError(errorMessage);
       
+      // Check if this is a user exists error for special handling
+      const isUserExists = errorMessage.includes('already exists') || errorMessage.includes('already registered');
+      
       toast({
-        title: "Registration Failed", 
+        title: isUserExists ? "Account Already Exists" : "Registration Failed", 
         description: errorMessage,
         variant: "destructive",
+        action: isUserExists ? (
+          <div className="flex items-center gap-1 text-sm">
+            <AlertCircle className="h-4 w-4" />
+            <Link to="/auth/login" className="underline hover:no-underline">
+              Go to Login
+            </Link>
+          </div>
+        ) : undefined,
       });
     } finally {
       setLoading(false);
