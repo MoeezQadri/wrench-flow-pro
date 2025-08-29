@@ -5,6 +5,7 @@ import { Settings } from 'lucide-react';
 import { useAuthContext } from '@/context/AuthContext';
 import { useOrganizationContext } from '@/hooks/useOrganizationContext';
 import { OrganizationSelector } from '@/components/layout/OrganizationSelector';
+import { GlobalRecoveryButton } from '@/components/GlobalRecoveryButton';
 import Logo from './Logo';
 import { AppSidebar } from './AppSidebar';
 import {
@@ -50,6 +51,8 @@ const Layout = () => {
                   onOrganizationChange={handleOrganizationChange}
                 />
               )}
+              
+              <GlobalRecoveryButton />
               
               <Button 
                 variant="ghost" 
