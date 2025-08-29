@@ -42,7 +42,7 @@ const Expenses = () => {
   const [expensesList, setExpensesList] = useState<Expense[]>([]);
   const { currentUser } = useAuthContext();
   const { formatCurrency } = useOrganizationSettings();
-  const { expenses, addExpense, updateExpense } = useDataContext();
+  const { expenses, addExpense, updateExpense, loadExpenses } = useDataContext();
   
   // Check permissions
   const userCanManageExpenses = hasPermission(currentUser, 'expenses', 'manage') || hasPermission(currentUser, 'expenses', 'create');
@@ -145,7 +145,7 @@ const Expenses = () => {
       title="Expenses"
       headerActions={headerActions}
       loadData={async () => {
-        // Data is loaded via DataContext, no explicit loading needed
+        await loadExpenses();
       }}
       skeletonType="cards"
     >

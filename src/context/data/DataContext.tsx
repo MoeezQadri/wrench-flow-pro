@@ -99,6 +99,7 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
             addExpense: expensesHook.addExpense,
             removeExpense: expensesHook.removeExpense,
             updateExpense: expensesHook.updateExpense,
+            loadExpenses: expensesHook.loadExpenses,
 
             tasks: tasksHook.tasks,
             addTask: tasksHook.addTask,
