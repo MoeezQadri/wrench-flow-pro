@@ -20,6 +20,7 @@ import { OrganizationDisplay } from '@/components/organization/OrganizationDispl
 import { useDebounce } from '@/hooks/useDebounce';
 import { useDataCache } from '@/hooks/useDataCache';
 import { toast } from "sonner";
+import PageWrapper from '@/components/PageWrapper';
 
 const Dashboard = () => {
   const { formatCurrency, organizationInfo } = useOrganizationSettings();
@@ -117,31 +118,32 @@ const Dashboard = () => {
     loadChartData(true);
   }, [loadDashboardData, loadChartData]);
 
+  const headerActions = (
+    <div className="flex items-center gap-4">
+      <DateRangePicker
+        startDate={startDate}
+        endDate={endDate}
+        onRangeChange={handleDateRangeChange}
+      />
+      <Button 
+        variant="outline" 
+        size="icon"
+        onClick={handleRefresh}
+        disabled={isLoading}
+      >
+        <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+      </Button>
+    </div>
+  );
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground">
-            Overview of your garage operations and performance metrics
-          </p>
-        </div>
-        <div className="flex items-center gap-4">
-          <DateRangePicker
-            startDate={startDate}
-            endDate={endDate}
-            onRangeChange={handleDateRangeChange}
-          />
-          <Button 
-            variant="outline" 
-            size="icon"
-            onClick={handleRefresh}
-            disabled={isLoading}
-          >
-            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-          </Button>
-        </div>
-      </div>
+    <PageWrapper
+      title="Dashboard"
+      subtitle="Overview of your garage operations and performance metrics"
+      headerActions={headerActions}
+      showSkeleton={false}
+    >
+      <div className="space-y-6">
 
       {/* Metrics Cards */}
       <DashboardMetrics data={dashboardData} isLoading={isLoading} />
@@ -200,7 +202,8 @@ const Dashboard = () => {
           </div>
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </PageWrapper>
   );
 };
 

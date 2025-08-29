@@ -10,6 +10,7 @@ import AttendanceListItem from '@/components/attendance/AttendanceListItem';
 import AttendanceSummary from '@/components/attendance/AttendanceSummary';
 import AttendanceFilters from '@/components/attendance/AttendanceFilters';
 import { hasPermission } from '@/utils/permissions';
+import PageWrapper from '@/components/PageWrapper';
 
 const AttendancePage: React.FC = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -83,39 +84,27 @@ const AttendancePage: React.FC = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading attendance records...</p>
-        </div>
-      </div>
-    );
-  }
-
   const pendingCount = attendanceRecords.filter(r => r.status === 'pending').length;
 
+  const subtitle = `Track mechanic attendance and working hours${canApprove && pendingCount > 0 ? ` • ${pendingCount} records pending approval` : ''}`;
+
+  const headerActions = userCanManageAttendance ? (
+    <Button onClick={() => setIsDialogOpen(true)}>
+      <Plus className="h-4 w-4 mr-2" />
+      Record Attendance
+    </Button>
+  ) : undefined;
+
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-3xl font-bold">Attendance Records</h1>
-          <p className="text-muted-foreground">Track mechanic attendance and working hours</p>
-          {canApprove && pendingCount > 0 && (
-            <div className="flex items-center gap-2 mt-2 text-yellow-600">
-              <AlertCircle className="h-4 w-4" />
-              <span className="text-sm font-medium">{pendingCount} records pending approval</span>
-            </div>
-          )}
-        </div>
-        {userCanManageAttendance && (
-          <Button onClick={() => setIsDialogOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Record Attendance
-          </Button>
-        )}
-      </div>
+    <PageWrapper
+      title="Attendance Records"
+      subtitle={subtitle}
+      headerActions={headerActions}
+      loading={loading}
+      loadingMessage="Loading attendance records..."
+      className="p-6"
+    >
+      <div className="space-y-6">
 
       <AttendanceSummary records={filteredRecords} />
 
@@ -166,7 +155,8 @@ const AttendancePage: React.FC = () => {
         onOpenChange={setIsDialogOpen}
         onSave={handleSaveAttendance}
       />
-    </div>
+      </div>
+    </PageWrapper>
   );
 };
 

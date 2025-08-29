@@ -1,6 +1,7 @@
 
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import PageWrapper from "@/components/PageWrapper";
 import { Button } from "@/components/ui/button";
 import { 
   Table, 
@@ -132,17 +133,20 @@ const Expenses = () => {
     };
   };
 
+  const headerActions = userCanManageExpenses ? (
+    <Button onClick={handleAddExpense}>
+      <Plus className="mr-1 h-4 w-4" />
+      Add Expense
+    </Button>
+  ) : undefined;
+
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold tracking-tight">Expenses</h1>
-        {userCanManageExpenses && (
-          <Button onClick={handleAddExpense}>
-            <Plus className="mr-1 h-4 w-4" />
-            Add Expense
-          </Button>
-        )}
-      </div>
+    <PageWrapper
+      title="Expenses"
+      headerActions={headerActions}
+      skeletonType="cards"
+    >
+      <div className="space-y-6">
 
       {/* Summary Cards */}
       <div className="grid gap-4 md:grid-cols-4">
@@ -293,7 +297,8 @@ const Expenses = () => {
         onSave={handleSaveExpense}
         expense={selectedExpense}
       />
-    </div>
+      </div>
+    </PageWrapper>
   );
 };
 

@@ -4,6 +4,7 @@ import { Suspense, lazy } from 'react';
 // Import immediately loaded components
 import Layout from '@/components/Layout';
 import LoadingScreen from '@/components/LoadingScreen';
+import LoadingCoordinator from '@/components/LoadingCoordinator';
 import PrivateRoute from '@/components/PrivateRoute';
 import PublicRoute from '@/components/PublicRoute';
 import { AuthProvider } from '@/context/AuthProvider';
@@ -61,9 +62,10 @@ function App() {
     <Router>
       <AuthProvider>
         <DataProvider>
-          <PersistentRouter>
-              <Suspense fallback={<LoadingScreen />}>
-                <Routes>
+          <LoadingCoordinator>
+            <PersistentRouter>
+                <Suspense fallback={<LoadingScreen />}>
+                  <Routes>
                   {/* Public authentication routes */}
                   <Route path="/auth" element={<PublicRoute />}>
                     <Route path="login" element={<Login />} />
@@ -113,10 +115,11 @@ function App() {
 
                   {/* 404 route */}
                   <Route path="*" element={<NotFound />} />
-                </Routes>
-              </Suspense>
-              <Toaster />
-          </PersistentRouter>
+                  </Routes>
+                </Suspense>
+                <Toaster />
+            </PersistentRouter>
+          </LoadingCoordinator>
         </DataProvider>
       </AuthProvider>
     </Router>

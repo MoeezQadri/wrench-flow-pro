@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import { useDataContext } from '@/context/data/DataContext';
 import { useAuthContext } from '@/context/AuthContext';
 import { hasPermission } from '@/utils/permissions';
+import PageWrapper from '@/components/PageWrapper';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -31,9 +32,6 @@ const Parts: React.FC = () => {
   const { parts, addPart, refreshAllData, vendors } = useDataContext();
   const { currentUser } = useAuthContext();
   const { formatCurrency } = useOrganizationSettings();
-  
-  // Loading state - show loading until parts are available
-  const loading = parts.length === 0;
   
   // Check permissions
   const userCanManageParts = hasPermission(currentUser, 'parts', 'manage') || hasPermission(currentUser, 'parts', 'create');
@@ -182,30 +180,27 @@ const Parts: React.FC = () => {
 
   console.log('Current parts state:', parts);
 
+  const headerActions = userCanManageParts ? (
+    <div className="flex flex-wrap gap-2">
+      <Button variant="outline" onClick={handleVendorManagement} className="flex items-center gap-2">
+        <Users className="w-4 h-4" />
+        Manage Vendors
+      </Button>
+      <Button onClick={() => setShowPartDialog(true)} className="flex items-center gap-2">
+        <Plus className="w-4 h-4" />
+        Add Part
+      </Button>
+    </div>
+  ) : undefined;
+
   return (
-    <div className="container max-w-7xl mx-auto p-4 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-        <div className="flex items-center gap-3">
-          <Package className="h-8 w-8 text-primary" />
-          <h1 className="text-3xl font-bold">Parts Inventory</h1>
-        </div>
-        
-        <div className="flex flex-wrap gap-2">
-          {userCanManageParts && (
-            <>
-              <Button variant="outline" onClick={handleVendorManagement} className="flex items-center gap-2">
-                <Users className="w-4 h-4" />
-                Manage Vendors
-              </Button>
-              <Button onClick={() => setShowPartDialog(true)} className="flex items-center gap-2">
-                <Plus className="w-4 h-4" />
-                Add Part
-              </Button>
-            </>
-          )}
-        </div>
-      </div>
+    <PageWrapper
+      title="Parts Inventory"
+      headerActions={headerActions}
+      skeletonType="grid"
+      className="container max-w-7xl mx-auto"
+    >
+      <div className="space-y-6">
 
       {/* Search and Filter Controls */}
       <Card>
@@ -294,24 +289,10 @@ const Parts: React.FC = () => {
         </CardContent>
       </Card>
 
-      {loading ? (
-        <Card>
-          <CardContent className="py-12">
-            <div className="text-center space-y-4">
-              <Package className="h-12 w-12 text-muted-foreground mx-auto animate-pulse" />
-              <div>
-                <h3 className="text-lg font-medium">Loading parts inventory...</h3>
-                <p className="text-muted-foreground">Please wait while we fetch your parts data.</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <>
-          {/* Results Summary */}
-          <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <span>Showing {filteredAndSortedParts.length} of {parts.length} parts</span>
-          </div>
+      {/* Results Summary */}
+      <div className="flex items-center justify-between text-sm text-muted-foreground">
+        <span>Showing {filteredAndSortedParts.length} of {parts.length} parts</span>
+      </div>
 
           {filteredAndSortedParts.length === 0 ? (
             <Card>
@@ -459,8 +440,6 @@ const Parts: React.FC = () => {
               )}
             </>
           )}
-        </>
-      )}
 
       {/* Vendor Management Dialog */}
       <Dialog open={showVendorManagement} onOpenChange={setShowVendorManagement}>
@@ -485,7 +464,8 @@ const Parts: React.FC = () => {
           onAssignmentComplete={handleAssignmentComplete}
         />
       )}
-    </div>
+      </div>
+    </PageWrapper>
   );
 };
 

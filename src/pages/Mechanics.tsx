@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, BarChart, MoreHorizontal, Edit, Archive, ArchiveRestore, Users } from "lucide-react";
+import PageWrapper from "@/components/PageWrapper";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -111,32 +112,32 @@ const Mechanics = () => {
   };
 
 
+  const headerActions = (
+    <div className="flex gap-2">
+      <Button 
+        variant="outline" 
+        onClick={() => setShowActiveOnly(!showActiveOnly)}
+        className="flex items-center gap-2"
+      >
+        <Users className="h-4 w-4" />
+        {showActiveOnly ? "Show All Mechanics" : "Show Active Mechanics"}
+      </Button>
+      {userCanManageMechanics && (
+        <Button onClick={handleAddMechanic}>
+          <Plus className="h-4 w-4 mr-2" /> Add Mechanic
+        </Button>
+      )}
+    </div>
+  );
+
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Mechanics</h1>
-          <p className="text-muted-foreground">
-            Showing {filteredMechanics.length} of {totalMechanicsCount} mechanics
-            {showActiveOnly && ` (${activeMechanicsCount} active)`}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button 
-            variant="outline" 
-            onClick={() => setShowActiveOnly(!showActiveOnly)}
-            className="flex items-center gap-2"
-          >
-            <Users className="h-4 w-4" />
-            {showActiveOnly ? "Show All Mechanics" : "Show Active Mechanics"}
-          </Button>
-          {userCanManageMechanics && (
-            <Button onClick={handleAddMechanic}>
-              <Plus className="h-4 w-4 mr-2" /> Add Mechanic
-            </Button>
-          )}
-        </div>
-      </div>
+    <PageWrapper
+      title="Mechanics"
+      subtitle={`Showing ${filteredMechanics.length} of ${totalMechanicsCount} mechanics${showActiveOnly ? ` (${activeMechanicsCount} active)` : ''}`}
+      headerActions={headerActions}
+      skeletonType="grid"
+    >
+      <div className="space-y-6">
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {filteredMechanics.map((mechanic) => (
@@ -276,7 +277,8 @@ const Mechanics = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-    </div>
+      </div>
+    </PageWrapper>
   );
 };
 
