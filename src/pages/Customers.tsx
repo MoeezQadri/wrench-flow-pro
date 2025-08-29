@@ -157,7 +157,7 @@ const Customers = () => {
         color: ""
       });
     }
-  }, [showVehicleFields, form]);
+  }, [showVehicleFields]);
 
   // Form submission handler
   const onSubmit = async (values: CustomerFormValues) => {
@@ -197,7 +197,16 @@ const Customers = () => {
       }
 
       // Reset form and close dialog
-      form.reset();
+      form.reset({
+        customer: {
+          name: "",
+          email: "",
+          phone: "",
+          address: ""
+        },
+        addVehicle: false,
+        vehicle: undefined
+      });
       setIsDialogOpen(false);
     } catch (error) {
       toast({
