@@ -161,10 +161,25 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
         <div className="flex justify-between items-center mb-2 min-h-[32px]">
           <Label htmlFor="customer">Customer *</Label>
           <div className="flex gap-2">
-            
-            {!isEditing && <Link to="/customers/new">
-                
-              </Link>}
+            <Button 
+              type="button" 
+              variant="ghost" 
+              size="sm" 
+              onClick={handleRefreshCustomers}
+              disabled={isLoadingCustomers}
+            >
+              Refresh
+            </Button>
+            {!isEditing && (
+              <Button 
+                type="button" 
+                variant="outline" 
+                size="sm" 
+                asChild
+              >
+                <Link to="/customers/new">Add Customer</Link>
+              </Button>
+            )}
           </div>
         </div>
         <Select value={selectedCustomerId} onValueChange={handleCustomerChange} required disabled={isEditing}>
@@ -185,9 +200,16 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
         <div className="flex justify-between items-center mb-2 min-h-[32px]">
           <Label htmlFor="vehicle">Vehicle *</Label>
           <div className="flex gap-2">
-            {selectedCustomerId && !isEditing && <Link to={`/vehicles/new?customerId=${selectedCustomerId}`}>
-                
-              </Link>}
+            {selectedCustomerId && !isEditing && (
+              <Button 
+                type="button" 
+                variant="outline" 
+                size="sm" 
+                asChild
+              >
+                <Link to={`/vehicles/new?customerId=${selectedCustomerId}`}>Add Vehicle</Link>
+              </Button>
+            )}
           </div>
         </div>
         <Select value={validSelectedVehicleId} onValueChange={onVehicleIdChange} required={vehicles.length > 0} disabled={!selectedCustomerId || isLoadingVehicles}>

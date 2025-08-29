@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useForm, FormProvider } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -754,19 +754,29 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
           <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-medium text-blue-900">No Customers Found</h3>
+                <h3 className="font-medium text-blue-900">Add Your First Customer</h3>
                 <p className="text-sm text-blue-700">
-                  You need customers to create invoices. Create some test data to get started.
+                  You need customers to create invoices. Add your first customer to get started.
                 </p>
               </div>
-              <Button
-                type="button"
-                onClick={handleCreateTestData}
-                variant="outline"
-                className="border-blue-300 text-blue-700 hover:bg-blue-100"
-              >
-                Create Test Data
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  asChild
+                  className="bg-blue-600 text-white hover:bg-blue-700"
+                >
+                  <Link to="/customers/new">Add Customer</Link>
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleCreateTestData}
+                  variant="outline"
+                  className="border-blue-300 text-blue-700 hover:bg-blue-100"
+                  size="sm"
+                >
+                  Create Sample Data
+                </Button>
+              </div>
             </div>
           </div>
         )}
