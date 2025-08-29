@@ -17,7 +17,19 @@ export const LoadingCoordinator: React.FC<LoadingCoordinatorProps> = ({
 }) => {
   const { loading: authLoading, isAuthenticated } = useAuthContext();
   const { selectedOrganizationId } = useOrganizationContext();
-  const { isLoadingData } = useDataContext();
+  
+  // Only use data context when authenticated
+  let isLoadingData = false;
+  try {
+    if (isAuthenticated) {
+      const dataContext = useDataContext();
+      isLoadingData = dataContext.isLoadingData || false;
+    }
+  } catch (error) {
+    // Data context not available yet, which is fine during auth phases
+    console.log('Data context not available yet:', error.message);
+  }
+  
   const [phase, setPhase] = useState<LoadingPhase>('auth');
 
   // Determine current loading phase
