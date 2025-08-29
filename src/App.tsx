@@ -7,7 +7,7 @@ import LoadingScreen from '@/components/LoadingScreen';
 import PrivateRoute from '@/components/PrivateRoute';
 import PublicRoute from '@/components/PublicRoute';
 import { AuthProvider } from '@/context/AuthProvider';
-import { DataProvider } from '@/context/data/DataProvider';
+import { DataProvider } from '@/context/data/DataContext';
 import PersistentRouter from '@/components/PersistentRouter';
 import { AppWithProgress } from '@/components/AppWithProgress';
 import { Toaster } from '@/components/ui/toaster';
