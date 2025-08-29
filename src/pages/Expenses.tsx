@@ -144,6 +144,9 @@ const Expenses = () => {
     <PageWrapper
       title="Expenses"
       headerActions={headerActions}
+      loadData={async () => {
+        // Data is loaded via DataContext, no explicit loading needed
+      }}
       skeletonType="cards"
     >
       <div className="space-y-6">

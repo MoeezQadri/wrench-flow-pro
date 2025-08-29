@@ -18,8 +18,7 @@ import { Task, Invoice, Vehicle, Mechanic, Customer, TaskStatus } from "@/types"
 import { resolvePromiseAndSetState } from "@/utils/async-helpers";
 import { useDataContext } from "@/context/data/DataContext";
 import { useAuthContext } from "@/context/AuthContext";
-import { PageContainer } from '@/components/PageContainer';
-import { usePageLoader } from '@/hooks/usePageLoader';
+import PageWrapper from '@/components/PageWrapper';
 
 const Tasks = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -53,16 +52,10 @@ const Tasks = () => {
   const canManageTasks = currentUser?.role === 'manager' || currentUser?.role === 'owner' || currentUser?.role === 'admin';
   const isForeman = currentUser?.role === 'foreman';
 
-  // Use unified page loader
-  const { loading, error, retry } = usePageLoader({
-    loadData: async () => {
-      await loadTasks();
-      setTasksList(tasks);
-    },
-    dependencies: [tasks],
-    loadingMessage: "Loading tasks...",
-    errorMessage: "Failed to load tasks"
-  });
+  // Sync local state with context data
+  React.useEffect(() => {
+    setTasksList(tasks);
+  }, [tasks]);
 
   // Apply filters to tasks
   const filteredTasks = useMemo(() => {
@@ -325,30 +318,29 @@ const Tasks = () => {
       }
     };
 
-    if (tasksList.length > 0 && !loading) {
+    if (tasksList.length > 0) {
       prefetchData();
     }
-  }, [tasksList, loading]);
+  }, [tasksList]);
 
   const shouldShowVehicleColumn = isForeman || currentUser?.role === 'manager' || currentUser?.role === 'owner';
   const shouldShowAssignmentColumn = isForeman || currentUser?.role === 'manager' || currentUser?.role === 'owner';
 
+  const headerActions = (canManageTasks || currentUser?.role === 'mechanic' || isForeman) ? (
+    <Button onClick={handleAddTask}>
+      <Plus className="mr-1 h-4 w-4" />
+      Add Task
+    </Button>
+  ) : undefined;
+
   return (
-    <PageContainer
+    <PageWrapper
       title="Tasks"
       subtitle="Manage workshop tasks and assignments"
-      loading={loading}
-      error={error}
-      onRetry={retry}
+      loadData={loadTasks}
       loadingMessage="Loading tasks..."
-      headerActions={
-        (canManageTasks || currentUser?.role === 'mechanic' || isForeman) && (
-          <Button onClick={handleAddTask}>
-            <Plus className="mr-1 h-4 w-4" />
-            Add Task
-          </Button>
-        )
-      }
+      headerActions={headerActions}
+      skeletonType="table"
     >
 
       {selectedTaskForTimeTracking && (
@@ -599,7 +591,7 @@ const Tasks = () => {
         taskTitle={selectedTaskForAssignment?.title || ""}
         onAssignmentComplete={handleAssignmentComplete}
       />
-    </PageContainer>
+    </PageWrapper>
   );
 };
 

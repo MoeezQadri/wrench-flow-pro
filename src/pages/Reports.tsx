@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar, Clock, DollarSign, FileText, CreditCard, TrendingUp } from "lucide-react";
+import PageWrapper from "@/components/PageWrapper";
 
 const Reports = () => {
   const reports = [
@@ -39,11 +40,14 @@ const Reports = () => {
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold tracking-tight">Reports</h1>
-      </div>
-      
+    <PageWrapper
+      title="Reports"
+      subtitle="View detailed reports and analytics"
+      loadData={async () => {
+        // Reports page doesn't need data loading
+      }}
+      skeletonType="grid"
+    >
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {reports.map((report, index) => (
           <Card key={index} className="overflow-hidden">
@@ -62,7 +66,7 @@ const Reports = () => {
           </Card>
         ))}
       </div>
-    </div>
+    </PageWrapper>
   );
 };
 

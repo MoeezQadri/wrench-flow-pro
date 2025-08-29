@@ -197,6 +197,9 @@ const Parts: React.FC = () => {
     <PageWrapper
       title="Parts Inventory"
       headerActions={headerActions}
+      loadData={async () => {
+        // Data is loaded via DataContext, no explicit loading needed
+      }}
       skeletonType="grid"
       className="container max-w-7xl mx-auto"
     >

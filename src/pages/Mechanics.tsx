@@ -135,6 +135,9 @@ const Mechanics = () => {
       title="Mechanics"
       subtitle={`Showing ${filteredMechanics.length} of ${totalMechanicsCount} mechanics${showActiveOnly ? ` (${activeMechanicsCount} active)` : ''}`}
       headerActions={headerActions}
+      loadData={async () => {
+        // Data is loaded via DataContext, no explicit loading needed
+      }}
       skeletonType="grid"
     >
       <div className="space-y-6">

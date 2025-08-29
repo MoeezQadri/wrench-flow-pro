@@ -100,7 +100,9 @@ const AttendancePage: React.FC = () => {
       title="Attendance Records"
       subtitle={subtitle}
       headerActions={headerActions}
-      loading={loading}
+      loadData={async () => {
+        // Data is loaded via DataContext, no explicit loading needed  
+      }}
       loadingMessage="Loading attendance records..."
       className="p-6"
     >
