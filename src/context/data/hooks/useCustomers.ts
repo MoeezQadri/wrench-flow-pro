@@ -7,36 +7,11 @@ import { useOrganizationFilter } from '@/hooks/useOrganizationFilter';
 import { useOrganizationAwareQuery } from '@/hooks/useOrganizationAwareQuery';
 import { fetchCustomerById } from '@/services/supabase-service';
 
-// Enhanced error logging utility
-const logCustomerOperation = (operation: string, data?: any, error?: any) => {
-  const timestamp = new Date().toISOString();
-  const logEntry = {
-    timestamp,
-    operation,
-    data: data ? JSON.stringify(data, null, 2) : null,
-    error: error ? {
-      message: error.message,
-      code: error.code,
-      details: error.details,
-      hint: error.hint,
-      stack: error.stack
-    } : null,
-    userAgent: navigator.userAgent,
-    url: window.location.href
-  };
-  
-  console.log(`[CustomerHook] ${operation}:`, logEntry);
-  
-  // Store in sessionStorage for debugging (keep last 50 entries)
-  try {
-    const existingLogs = JSON.parse(sessionStorage.getItem('customerOperationLogs') || '[]');
-    const updatedLogs = [...existingLogs, logEntry].slice(-50);
-    sessionStorage.setItem('customerOperationLogs', JSON.stringify(updatedLogs));
-  } catch (storageError) {
-    console.warn('Failed to store customer operation log:', storageError);
+// Simple logging for debugging
+const logCustomerOperation = (operation: string, data?: any) => {
+  if (operation.includes('SUCCESS')) {
+    console.log(`[CustomerHook] ${operation}:`, data);
   }
-  
-  return logEntry;
 };
 
 export const useCustomers = () => {
@@ -46,14 +21,6 @@ export const useCustomers = () => {
     const { applyOrganizationFilter } = useOrganizationAwareQuery();
     const { organizationId, isSuperAdmin, canAccessAllOrganizations } = useOrganizationFilter();
 
-    // Log initialization
-    useEffect(() => {
-        logCustomerOperation('HOOK_INITIALIZED', { 
-            organizationId, 
-            isSuperAdmin, 
-            canAccessAllOrganizations 
-        });
-    }, [organizationId, isSuperAdmin, canAccessAllOrganizations]);
 
     // Set up real-time subscription for customer data
     useEffect(() => {
@@ -138,7 +105,7 @@ export const useCustomers = () => {
         
         if (!customer || typeof customer !== 'object') {
             const errorMsg = 'Invalid customer data provided';
-            logCustomerOperation('ADD_CUSTOMER_VALIDATION_FAILED', customer, new Error(errorMsg));
+            logCustomerOperation('ADD_CUSTOMER_VALIDATION_FAILED', customer);
             console.error(errorMsg, customer);
             toast.error(errorMsg);
             throw new Error(errorMsg);
@@ -147,7 +114,7 @@ export const useCustomers = () => {
         // Validate required fields
         if (!customer.name?.trim()) {
             const errorMsg = 'Customer name is required';
-            logCustomerOperation('ADD_CUSTOMER_VALIDATION_FAILED', customer, new Error(errorMsg));
+            logCustomerOperation('ADD_CUSTOMER_VALIDATION_FAILED', customer);
             toast.error(errorMsg);
             throw new Error(errorMsg);
         }
@@ -180,7 +147,7 @@ export const useCustomers = () => {
             if (error) {
                 // Rollback optimistic update
                 setCustomers((prev) => (prev || []).filter(c => c.id !== tempId));
-                logCustomerOperation('ADD_CUSTOMER_FAILED', customerData, error);
+                logCustomerOperation('ADD_CUSTOMER_FAILED', customerData);
                 console.error('Error adding customer:', error);
                 const errorMsg = error.message?.includes('duplicate') ? 'Customer already exists' : 'Failed to add customer';
                 setError(errorMsg);
@@ -205,7 +172,7 @@ export const useCustomers = () => {
         } catch (error: any) {
             // Rollback optimistic update on error
             setCustomers((prev) => (prev || []).filter(c => c.id !== tempId));
-            logCustomerOperation('ADD_CUSTOMER_EXCEPTION', customerData, error);
+            logCustomerOperation('ADD_CUSTOMER_EXCEPTION', customerData);
             console.error('Error adding customer:', error);
             const errorMsg = error?.message?.includes('organization_id') 
                 ? 'Organization access error - please refresh and try again'
@@ -362,67 +329,28 @@ export const useCustomers = () => {
     };
 
     const loadCustomers = async (retryCount = 0) => {
-        logCustomerOperation('LOAD_CUSTOMERS_STARTED', { retryCount, organizationId });
+        if (loading && retryCount === 0) return; // Prevent duplicate calls
+        
         setLoading(true);
         setError(null);
 
         try {
-            console.log("Loading customers from Supabase...", { retryCount, organizationId });
-            
-            // Check if organization context is available
             if (!organizationId) {
-                logCustomerOperation('LOAD_CUSTOMERS_NO_ORG', { organizationId });
-                console.warn("No organization ID available, skipping customer load");
+                console.log("No organization ID, skipping customer load");
                 setCustomers([]);
+                setLoading(false);
                 return;
             }
 
-            const query = supabase.from('customers').select('*');
+            let query = supabase.from('customers').select('*');
+            query = applyOrganizationFilter(query);
             
-            // Apply organization filter with error handling
-            let result;
-            try {
-                result = await applyOrganizationFilter(query);
-            } catch (filterError: any) {
-                console.error('Error applying organization filter:', filterError);
-                throw new Error(`Filter error: ${filterError.message}`);
-            }
-
-            const { data: customersData, error: customersError } = result;
+            const { data: customersData, error: customersError } = await query;
             
             if (customersError) {
                 console.error('Error fetching customers:', customersError);
-                
-                // Specific error handling
-                if (customersError.message?.includes('JWT')) {
-                    const errorMsg = 'Authentication expired - please refresh the page';
-                    setError(errorMsg);
-                    toast.error(errorMsg);
-                    return;
-                }
-                
-                if (customersError.message?.includes('permission')) {
-                    const errorMsg = 'No permission to access customer data';
-                    setError(errorMsg);
-                    toast.error(errorMsg);
-                    return;
-                }
-                
-                // Retry logic for transient errors
-                if (retryCount < 3 && (
-                    customersError.message?.includes('timeout') || 
-                    customersError.message?.includes('network') ||
-                    customersError.message?.includes('connection')
-                )) {
-                    const delay = Math.min(1000 * Math.pow(2, retryCount), 5000); // Exponential backoff
-                    console.log(`Retrying customer load in ${delay}ms (attempt ${retryCount + 1})`);
-                    setTimeout(() => loadCustomers(retryCount + 1), delay);
-                    return;
-                }
-                
-                const errorMsg = `Failed to load customers: ${customersError.message}`;
-                setError(errorMsg);
-                toast.error('Failed to load customers');
+                setError('Failed to load customers');
+                if (retryCount === 0) toast.error('Failed to load customers');
                 throw customersError;
             } else {
                 const safeCustomersData = Array.isArray(customersData) ? customersData : [];

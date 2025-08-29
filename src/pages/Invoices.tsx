@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Invoice, Customer } from '@/types';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
@@ -12,8 +11,7 @@ import { useAuthContext } from '@/context/AuthContext';
 import { hasPermission } from '@/utils/permissions';
 import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
 import { calculateInvoiceBreakdown } from '@/utils/invoice-calculations';
-import { PageContainer } from '@/components/PageContainer';
-import { usePageLoader } from '@/hooks/usePageLoader';
+import { PageWrapper } from '@/components/PageWrapper';
 
 const Invoices: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -21,51 +19,19 @@ const Invoices: React.FC = () => {
   const [sortBy, setSortBy] = useState<string>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   
-  // Add error boundary for context
-  let contextData;
-  try {
-    contextData = useDataContext();
-  } catch (error) {
-    console.error('Failed to get data context:', error);
-    return (
-      <div className="p-4 text-center">
-        <div className="text-red-600">
-          Failed to load data context. Please refresh the page.
-        </div>
-      </div>
-    );
-  }
-
   const { 
     invoices: contextInvoices, 
     customers: contextCustomers,
     loadInvoices,
     loadCustomers
-  } = contextData;
+  } = useDataContext();
+  
   const { currentUser } = useAuthContext();
   const { formatCurrency } = useOrganizationSettings();
   
   // Check permissions
   const userCanManageInvoices = hasPermission(currentUser, 'invoices', 'manage') || hasPermission(currentUser, 'invoices', 'create');
   const userCanEditInvoices = hasPermission(currentUser, 'invoices', 'edit');
-
-  // Use unified page loader
-  const { loading, error, retry } = usePageLoader({
-    loadData: async () => {
-      console.log('Loading invoices and customers...');
-      await Promise.all([
-        loadInvoices(),
-        loadCustomers()
-      ]);
-      console.log("Invoice page data loaded:", {
-        invoicesCount: contextInvoices.length,
-        customersCount: contextCustomers.length
-      });
-    },
-    dependencies: [],
-    loadingMessage: "Loading invoices...",
-    errorMessage: "Failed to load invoices"
-  });
 
   // Use standardized calculation function for consistency
   const calculateInvoiceTotal = (invoice: Invoice): number => {
@@ -141,14 +107,15 @@ const Invoices: React.FC = () => {
     setSortOrder('desc');
   };
 
+  const loadData = async () => {
+    await Promise.all([loadInvoices(), loadCustomers()]);
+  };
+
   return (
-    <PageContainer
+    <PageWrapper
       title="Invoices"
       subtitle="Manage customer invoices"
-      loading={loading}
-      error={error}
-      onRetry={retry}
-      loadingMessage="Loading invoices..."
+      loadData={loadData}
       headerActions={
         userCanManageInvoices && (
           <Button asChild>
@@ -160,11 +127,10 @@ const Invoices: React.FC = () => {
         )
       }
     >
-
       {/* Search and Filter Controls */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4 p-4 bg-gray-50 rounded-lg">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4 p-4 bg-muted/50 rounded-lg">
         <div className="relative">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search invoices or customers..."
             value={searchTerm}
@@ -209,23 +175,23 @@ const Invoices: React.FC = () => {
       </div>
 
       {contextCustomers.length === 0 && (
-        <div className="p-4 mb-4 bg-yellow-50 border border-yellow-200 rounded-md">
-          <p className="text-yellow-700">
+        <div className="p-4 mb-4 bg-warning/10 border border-warning/20 rounded-md">
+          <p className="text-warning-foreground">
             No customers found. Please add customers before creating invoices.
           </p>
-          <Link to="/customers" className="text-blue-600 hover:underline mt-2 inline-block">
+          <Link to="/customers" className="text-primary hover:underline mt-2 inline-block">
             Go to Customers page
           </Link>
         </div>
       )}
 
       {/* Results Summary */}
-      <div className="mb-4 text-sm text-gray-600">
+      <div className="mb-4 text-sm text-muted-foreground">
         Showing {filteredAndSortedInvoices.length} of {contextInvoices.length} invoices
       </div>
 
       {filteredAndSortedInvoices.length === 0 ? (
-        <div className="text-center py-8 text-gray-500">
+        <div className="text-center py-8 text-muted-foreground">
           {contextInvoices.length === 0 
             ? "No invoices found. Create a new invoice to get started."
             : "No invoices match your search criteria."
@@ -233,7 +199,7 @@ const Invoices: React.FC = () => {
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="min-w-full bg-white">
+          <table className="min-w-full bg-card">
             <thead>
               <tr>
                 <th className="py-2 px-4 border-b text-left">Invoice #</th>
@@ -251,9 +217,9 @@ const Invoices: React.FC = () => {
                 const customerName = getCustomerName(invoice.customer_id);
 
                 return (
-                  <tr key={invoice.id} className="hover:bg-gray-50">
+                  <tr key={invoice.id} className="hover:bg-muted/50">
                     <td className="py-2 px-4 border-b">
-                      <Link to={`/invoices/${invoice.id}`} className="text-blue-600 hover:underline">
+                      <Link to={`/invoices/${invoice.id}`} className="text-primary hover:underline">
                         #{invoice.id.substring(0, 8)}
                       </Link>
                     </td>
@@ -265,9 +231,9 @@ const Invoices: React.FC = () => {
                     </td>
                     <td className="py-2 px-4 border-b">
                       <span className={`px-2 py-1 rounded text-xs ${
-                        invoice.status === 'paid' ? 'bg-green-100 text-green-800' :
-                        invoice.status === 'partial' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-red-100 text-red-800'
+                        invoice.status === 'paid' ? 'bg-success/10 text-success' :
+                        invoice.status === 'partial' ? 'bg-warning/10 text-warning' :
+                        'bg-destructive/10 text-destructive'
                       }`}>
                         {invoice.status}
                       </span>
@@ -279,14 +245,14 @@ const Invoices: React.FC = () => {
                       <div className="flex space-x-2">
                         <Link
                           to={`/invoices/${invoice.id}`}
-                          className="text-blue-600 hover:text-blue-800 underline"
+                          className="text-primary hover:text-primary/80 underline"
                         >
                           View
                         </Link>
                         {userCanEditInvoices && invoice.status !== 'paid' && invoice.status !== 'completed' && (
                           <Link
                             to={`/invoices/${invoice.id}/edit`}
-                            className="text-green-600 hover:text-green-800 underline"
+                            className="text-success hover:text-success/80 underline"
                           >
                             Edit
                           </Link>
@@ -300,7 +266,7 @@ const Invoices: React.FC = () => {
           </table>
         </div>
       )}
-    </PageContainer>
+    </PageWrapper>
   );
 };
 
