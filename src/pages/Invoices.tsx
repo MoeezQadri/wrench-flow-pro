@@ -12,9 +12,10 @@ import { useAuthContext } from '@/context/AuthContext';
 import { hasPermission } from '@/utils/permissions';
 import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
 import { calculateInvoiceBreakdown } from '@/utils/invoice-calculations';
+import { PageContainer } from '@/components/PageContainer';
+import { usePageLoader } from '@/hooks/usePageLoader';
 
 const Invoices: React.FC = () => {
-  const [loading, setLoading] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<string>('date');
@@ -48,31 +49,23 @@ const Invoices: React.FC = () => {
   const userCanManageInvoices = hasPermission(currentUser, 'invoices', 'manage') || hasPermission(currentUser, 'invoices', 'create');
   const userCanEditInvoices = hasPermission(currentUser, 'invoices', 'edit');
 
-  useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      try {
-        console.log('Loading invoices and customers...');
-        // Ensure invoices and customers are loaded
-        await Promise.all([
-          loadInvoices(),
-          loadCustomers()
-        ]);
-        
-        console.log("Invoice page data loaded:", {
-          invoicesCount: contextInvoices.length,
-          customersCount: contextCustomers.length
-        });
-      } catch (error) {
-        console.error('Error loading data:', error);
-        toast.error('Failed to load invoices');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadData();
-  }, []); // Remove function dependencies to prevent infinite loop
+  // Use unified page loader
+  const { loading, error, retry } = usePageLoader({
+    loadData: async () => {
+      console.log('Loading invoices and customers...');
+      await Promise.all([
+        loadInvoices(),
+        loadCustomers()
+      ]);
+      console.log("Invoice page data loaded:", {
+        invoicesCount: contextInvoices.length,
+        customersCount: contextCustomers.length
+      });
+    },
+    dependencies: [],
+    loadingMessage: "Loading invoices...",
+    errorMessage: "Failed to load invoices"
+  });
 
   // Use standardized calculation function for consistency
   const calculateInvoiceTotal = (invoice: Invoice): number => {
@@ -148,23 +141,25 @@ const Invoices: React.FC = () => {
     setSortOrder('desc');
   };
 
-  if (loading) {
-    return <div className="p-4 text-center">Loading invoices...</div>;
-  }
-
   return (
-    <div className="p-4">
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">Invoices</h1>
-        {userCanManageInvoices && (
+    <PageContainer
+      title="Invoices"
+      subtitle="Manage customer invoices"
+      loading={loading}
+      error={error}
+      onRetry={retry}
+      loadingMessage="Loading invoices..."
+      headerActions={
+        userCanManageInvoices && (
           <Button asChild>
             <Link to="/invoices/new">
               <Plus className="h-4 w-4 mr-2" />
               New Invoice
             </Link>
           </Button>
-        )}
-      </div>
+        )
+      }
+    >
 
       {/* Search and Filter Controls */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4 p-4 bg-gray-50 rounded-lg">
@@ -305,7 +300,7 @@ const Invoices: React.FC = () => {
           </table>
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 };
 

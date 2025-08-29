@@ -18,6 +18,8 @@ import { Task, Invoice, Vehicle, Mechanic, Customer, TaskStatus } from "@/types"
 import { resolvePromiseAndSetState } from "@/utils/async-helpers";
 import { useDataContext } from "@/context/data/DataContext";
 import { useAuthContext } from "@/context/AuthContext";
+import { PageContainer } from '@/components/PageContainer';
+import { usePageLoader } from '@/hooks/usePageLoader';
 
 const Tasks = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -28,7 +30,6 @@ const Tasks = () => {
   const [showMechanicAssignDialog, setShowMechanicAssignDialog] = useState(false);
   const [selectedTaskForInvoiceAssignment, setSelectedTaskForInvoiceAssignment] = useState<Task | null>(null);
   const [showInvoiceAssignDialog, setShowInvoiceAssignDialog] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   
   const [statusFilter, setStatusFilter] = useState<TaskStatus | 'all'>('all');
   const [mechanicFilter, setMechanicFilter] = useState<string>('all');
@@ -52,23 +53,16 @@ const Tasks = () => {
   const canManageTasks = currentUser?.role === 'manager' || currentUser?.role === 'owner' || currentUser?.role === 'admin';
   const isForeman = currentUser?.role === 'foreman';
 
-  // Load tasks
-  useEffect(() => {
-    const loadTasks = async () => {
-      try {
-        setIsLoading(true);
-        // Use tasks from context and sync with local state
-        setTasksList(tasks);
-      } catch (error) {
-        console.error("Error loading tasks:", error);
-        toast.error("Failed to load tasks");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadTasks();
-  }, [tasks]); // Re-sync when tasks from context change
+  // Use unified page loader
+  const { loading, error, retry } = usePageLoader({
+    loadData: async () => {
+      await loadTasks();
+      setTasksList(tasks);
+    },
+    dependencies: [tasks],
+    loadingMessage: "Loading tasks...",
+    errorMessage: "Failed to load tasks"
+  });
 
   // Apply filters to tasks
   const filteredTasks = useMemo(() => {
@@ -331,33 +325,31 @@ const Tasks = () => {
       }
     };
 
-    if (tasksList.length > 0 && !isLoading) {
+    if (tasksList.length > 0 && !loading) {
       prefetchData();
     }
-  }, [tasksList, isLoading]);
+  }, [tasksList, loading]);
 
   const shouldShowVehicleColumn = isForeman || currentUser?.role === 'manager' || currentUser?.role === 'owner';
   const shouldShowAssignmentColumn = isForeman || currentUser?.role === 'manager' || currentUser?.role === 'owner';
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-96">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold tracking-tight">Tasks</h1>
-        {(canManageTasks || currentUser?.role === 'mechanic' || isForeman) && (
+    <PageContainer
+      title="Tasks"
+      subtitle="Manage workshop tasks and assignments"
+      loading={loading}
+      error={error}
+      onRetry={retry}
+      loadingMessage="Loading tasks..."
+      headerActions={
+        (canManageTasks || currentUser?.role === 'mechanic' || isForeman) && (
           <Button onClick={handleAddTask}>
             <Plus className="mr-1 h-4 w-4" />
             Add Task
           </Button>
-        )}
-      </div>
+        )
+      }
+    >
 
       {selectedTaskForTimeTracking && (
         <TaskCheckInOut
@@ -607,7 +599,7 @@ const Tasks = () => {
         taskTitle={selectedTaskForAssignment?.title || ""}
         onAssignmentComplete={handleAssignmentComplete}
       />
-    </div>
+    </PageContainer>
   );
 };
 

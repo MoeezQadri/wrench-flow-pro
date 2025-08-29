@@ -20,6 +20,8 @@ import { objectsToCSV, downloadCSV } from '@/utils/csv-export';
 import { Vehicle } from '@/types';
 import { useDataContext } from '@/context/data/DataContext';
 import { useAuthContext } from '@/context/AuthContext';
+import { PageContainer } from '@/components/PageContainer';
+import { usePageLoader } from '@/hooks/usePageLoader';
 import { canManageCustomers, hasPermission } from '@/utils/permissions';
 
 // Define the form validation schema using Zod
@@ -95,10 +97,7 @@ const Customers = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [realtimeStatus, setRealtimeStatus] = useState<'connected' | 'disconnected' | 'connecting'>('connecting');
-  const {
-    toast
-  } = useToast();
+  const { toast } = useToast();
   const {
     customers,
     customersLoading,
@@ -109,31 +108,23 @@ const Customers = () => {
     addVehicle,
     refreshAllData
   } = useDataContext();
-  const {
-    currentUser
-  } = useAuthContext();
-  const {
-    formatCurrency
-  } = useOrganizationSettings();
+  const { currentUser } = useAuthContext();
+  const { formatCurrency } = useOrganizationSettings();
+
+  // Use unified page loader
+  const { loading, error, retry } = usePageLoader({
+    loadData: async () => {
+      // This will use the existing context loading
+      return Promise.resolve();
+    },
+    dependencies: [customersLoading, customersError],
+    loadingMessage: "Loading customers...",
+    autoLoad: false
+  });
 
   // Check permissions
   const userCanManageCustomers = canManageCustomers(currentUser);
   const userCanViewCustomers = hasPermission(currentUser, 'customers', 'view');
-
-  // Monitor real-time connection status
-  useEffect(() => {
-    const checkRealtimeStatus = () => {
-      // Simple check - if we have customers error, assume disconnected
-      if (customersError?.includes('Real-time') || customersError?.includes('Connection')) {
-        setRealtimeStatus('disconnected');
-      } else if (customersLoading) {
-        setRealtimeStatus('connecting');
-      } else {
-        setRealtimeStatus('connected');
-      }
-    };
-    checkRealtimeStatus();
-  }, [customersError, customersLoading]);
   // Initialize the form
   const form = useForm<CustomerFormValues>({
     resolver: zodResolver(formSchema),
@@ -271,83 +262,70 @@ const Customers = () => {
       });
     }
   };
-  return <div className="space-y-6 animate-fade-in">
-      <div className="flex justify-between items-center">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-3xl font-bold">Customers</h1>
-            {/* Real-time status indicator */}
-            
-          </div>
-          <p className="text-muted-foreground">Manage workshop customers</p>
-        </div>
-        <div className="flex gap-2">
+  return (
+    <PageContainer
+      title="Customers"
+      subtitle="Manage workshop customers"
+      loading={customersLoading}
+      error={customersError}
+      onRetry={handleRefreshData}
+      loadingMessage="Loading customers..."
+      headerActions={
+        <>
           <Button variant="outline" onClick={handleExportCSV}>
             <Download className="mr-2 h-4 w-4" />
             Export CSV
           </Button>
-          
-          {userCanManageCustomers && <Button onClick={() => setIsDialogOpen(true)}>
+          {userCanManageCustomers && (
+            <Button onClick={() => setIsDialogOpen(true)}>
               <PlusCircle className="mr-2 h-4 w-4" />
               New Customer
-            </Button>}
-        </div>
-      </div>
-
+            </Button>
+          )}
+        </>
+      }
+    >
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search customers..." className="pl-8" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+          <Input 
+            placeholder="Search customers..." 
+            className="pl-8" 
+            value={searchQuery} 
+            onChange={e => setSearchQuery(e.target.value)} 
+          />
         </div>
-
         <Button variant="outline">
           <SortDesc className="mr-2 h-4 w-4" />
           Sort
         </Button>
       </div>
 
-      {/* Loading State */}
-      {customersLoading && <Card className="p-12 text-center">
-          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-          <h3 className="mt-4 text-lg font-medium">Loading customers...</h3>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Please wait while we fetch your customer data.
-          </p>
-        </Card>}
-
-      {/* Error State */}
-      {customersError && !customersLoading && <Card className="p-12 text-center border-destructive/50 bg-destructive/5">
-          <div className="mx-auto h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center text-destructive">
-            <X className="h-6 w-6" />
-          </div>
-          <h3 className="mt-4 text-lg font-medium text-destructive">Error loading customers</h3>
-          <p className="mt-2 text-sm text-muted-foreground">
-            {customersError}
-          </p>
-          <Button variant="outline" onClick={handleRefreshData} className="mt-4">
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Try Again
-          </Button>
-        </Card>}
-
       {/* Empty State */}
-      {!customersLoading && !customersError && filteredCustomers.length === 0 && <Card className="p-12 text-center">
+      {filteredCustomers.length === 0 && (
+        <Card className="p-12 text-center">
           <Users className="mx-auto h-12 w-12 text-muted-foreground/60" />
           <h3 className="mt-4 text-lg font-medium">No customers found</h3>
           <p className="mt-2 text-sm text-muted-foreground">
             {searchQuery ? "Try adjusting your search to find what you're looking for." : "Get started by adding your first customer."}
           </p>
-          {!searchQuery && userCanManageCustomers && <Button onClick={() => setIsDialogOpen(true)} className="mt-4">
+          {!searchQuery && userCanManageCustomers && (
+            <Button onClick={() => setIsDialogOpen(true)} className="mt-4">
               <PlusCircle className="mr-2 h-4 w-4" />
               Add Customer
-            </Button>}
-        </Card>}
+            </Button>
+          )}
+        </Card>
+      )}
 
       {/* Customer Grid */}
-      {!customersLoading && !customersError && filteredCustomers.length > 0 && <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {filteredCustomers.map(customer => <CustomerCard key={customer.id} customer={customer} />)}
-        </div>}
-
+      {filteredCustomers.length > 0 && (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {filteredCustomers.map(customer => (
+            <CustomerCard key={customer.id} customer={customer} />
+          ))}
+        </div>
+      )}
       {/* New Customer Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
@@ -525,7 +503,8 @@ const Customers = () => {
           </Form>
         </DialogContent>
       </Dialog>
-    </div>;
+    </PageContainer>
+  );
 };
 
 // Extracted component for customer card
