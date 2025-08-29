@@ -117,7 +117,7 @@ const Customers = () => {
     loadData: async () => {
       await loadCustomers();
     },
-    dependencies: [customersLoading, customersError],
+    dependencies: [],
     loadingMessage: "Loading customers..."
   });
 
