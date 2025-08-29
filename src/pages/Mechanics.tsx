@@ -41,6 +41,7 @@ const Mechanics = () => {
     mechanics,
     addMechanic,
     updateMechanic,
+    loadMechanics,
   } = useDataContext();
   const { currentUser } = useAuthContext();
   const userCanManageMechanics = canManageMechanics(currentUser);
@@ -136,7 +137,7 @@ const Mechanics = () => {
       subtitle={`Showing ${filteredMechanics.length} of ${totalMechanicsCount} mechanics${showActiveOnly ? ` (${activeMechanicsCount} active)` : ''}`}
       headerActions={headerActions}
       loadData={async () => {
-        // Data is loaded via DataContext, no explicit loading needed
+        await loadMechanics();
       }}
       skeletonType="grid"
     >
