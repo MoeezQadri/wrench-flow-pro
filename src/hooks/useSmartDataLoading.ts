@@ -6,6 +6,10 @@ interface LoadedData {
   parts: boolean;
   tasks: boolean;
   mechanics: boolean;
+  vehicles: boolean;
+  vendors: boolean;
+  expenses: boolean;
+  attendance: boolean;
 }
 
 export const useSmartDataLoading = () => {
@@ -14,7 +18,11 @@ export const useSmartDataLoading = () => {
     customers: false,
     parts: false,
     tasks: false,
-    mechanics: false
+    mechanics: false,
+    vehicles: false,
+    vendors: false,
+    expenses: false,
+    attendance: false
   });
   
   const loadingInProgress = useRef<Set<keyof LoadedData>>(new Set());
@@ -72,7 +80,11 @@ export const useSmartDataLoading = () => {
         customers: false,
         parts: false,
         tasks: false,
-        mechanics: false
+        mechanics: false,
+        vehicles: false,
+        vendors: false,
+        expenses: false,
+        attendance: false
       });
     }
   }, []);

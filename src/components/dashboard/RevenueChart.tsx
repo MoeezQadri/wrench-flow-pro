@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { memo, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   LineChart,
@@ -26,8 +26,34 @@ interface RevenueChartProps {
   isLoading: boolean;
 }
 
-export function RevenueChart({ data, isLoading }: RevenueChartProps) {
+const RevenueChart = memo(function RevenueChart({ data, isLoading }: RevenueChartProps) {
   const { formatCurrency } = useOrganizationSettings();
+  
+  // Memoize chart configuration to prevent unnecessary re-renders
+  const chartConfig = useMemo(() => ({
+    margin: { top: 5, right: 30, left: 20, bottom: 5 },
+    animationDuration: 300,
+  }), []);
+  
+  // Memoize tooltip formatter to prevent recreation on each render
+  const tooltipFormatter = useMemo(() => 
+    (value: any, name: string) => [
+      formatCurrency(Number(value)), 
+      name === 'revenue' ? 'Revenue' : 'Expenses'
+    ], [formatCurrency]
+  );
+  
+  const labelFormatter = useMemo(() => 
+    (label: string) => {
+      const date = new Date(label);
+      return date.toLocaleDateString(undefined, { 
+        weekday: 'short',
+        month: 'short', 
+        day: 'numeric',
+        year: 'numeric'
+      });
+    }, []
+  );
   
   if (isLoading) {
     return (
@@ -52,7 +78,10 @@ export function RevenueChart({ data, isLoading }: RevenueChartProps) {
       <CardContent>
         <div className="h-[350px]">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data}>
+            <BarChart 
+              data={data} 
+              margin={chartConfig.margin}
+            >
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis 
                 dataKey="date" 
@@ -64,26 +93,27 @@ export function RevenueChart({ data, isLoading }: RevenueChartProps) {
               />
               <YAxis tick={{ fontSize: 12 }} />
               <Tooltip 
-                formatter={(value, name) => [
-                  formatCurrency(Number(value)), 
-                  name === 'revenue' ? 'Revenue' : 'Expenses'
-                ]}
-                labelFormatter={(label) => {
-                  const date = new Date(label);
-                  return date.toLocaleDateString(undefined, { 
-                    weekday: 'short',
-                    month: 'short', 
-                    day: 'numeric',
-                    year: 'numeric'
-                  });
-                }}
+                formatter={tooltipFormatter}
+                labelFormatter={labelFormatter}
               />
-              <Bar dataKey="revenue" name="revenue" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="expenses" name="expenses" fill="#ef4444" radius={[4, 4, 0, 0]} />
+              <Bar 
+                dataKey="revenue" 
+                name="revenue" 
+                fill="#3b82f6" 
+                radius={[4, 4, 0, 0]}
+              />
+              <Bar 
+                dataKey="expenses" 
+                name="expenses" 
+                fill="#ef4444" 
+                radius={[4, 4, 0, 0]}
+              />
             </BarChart>
           </ResponsiveContainer>
         </div>
       </CardContent>
     </Card>
   );
-}
+});
+
+export { RevenueChart };

@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, ReactNode, useEffect, useState, useCallback } from 'react';
 import type { Vehicle, Invoice } from '@/types';
 import { calculateInvoiceTotalWithBreakdown } from '@/utils/invoice-calculations';
 import { DataContextType } from './DataContextType';
@@ -15,6 +15,8 @@ import { usePayments } from './hooks/usePayments';
 import { useAttendance } from './hooks/useAttendance';
 import { usePayables } from './hooks/usePayables';
 import { useAuthContext } from '@/context/AuthContext';
+import { useRouteBasedLoading } from '@/hooks/useRouteBasedLoading';
+import { useSmartDataLoading } from '@/hooks/useSmartDataLoading';
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
@@ -24,6 +26,11 @@ interface DataProviderProps {
 
 const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     const { currentUser, loading: authLoading, isAuthenticated } = useAuthContext();
+    const { shouldLoadData, isDataCritical, currentRoute } = useRouteBasedLoading();
+    const { smartLoad, isLoaded, resetLoadedState } = useSmartDataLoading();
+    const [loadingProgress, setLoadingProgress] = useState(0);
+    const [isLoading, setIsLoading] = useState(false);
+    
     const mechanicsHook = useMechanics();
     const customersHook = useCustomers();
     const vehiclesHook = useVehicles();
@@ -36,42 +43,82 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     const attendanceHook = useAttendance();
     const payablesHook = usePayables();
 
-    const loadAllData = async () => {
+    const loadRouteSpecificData = useCallback(async () => {
         // Wait for authentication to be ready and user to be loaded
         if (authLoading || !isAuthenticated || !currentUser?.organization_id) {
             console.log("Skipping data load - auth not ready:", { authLoading, isAuthenticated, hasOrgId: !!currentUser?.organization_id });
             return;
         }
 
-        console.log("Starting to load all data for org:", currentUser.organization_id);
+        console.log(`Loading route-specific data for: ${currentRoute}`);
+        setIsLoading(true);
+        setLoadingProgress(0);
+
+        const dataLoaders = {
+            customers: () => smartLoad('customers', customersHook.loadCustomers),
+            invoices: () => smartLoad('invoices', invoicesHook.loadInvoices),
+            vehicles: () => smartLoad('vehicles', vehiclesHook.loadVehicles),
+            parts: () => smartLoad('parts', partsHook.loadParts),
+            tasks: () => smartLoad('tasks', tasksHook.loadTasks),
+            mechanics: () => smartLoad('mechanics', mechanicsHook.loadMechanics),
+            vendors: () => smartLoad('vendors', vendorsHook.loadVendors),
+            expenses: () => smartLoad('expenses', expensesHook.loadExpenses),
+            attendance: () => smartLoad('attendance', attendanceHook.loadAttendance),
+        };
+
         try {
-            await Promise.all([
-                mechanicsHook.loadMechanics(),
-                vendorsHook.loadVendors(),
-                customersHook.loadCustomers(),
-                vehiclesHook.loadVehicles(),
-                invoicesHook.loadInvoices(),
-                expensesHook.loadExpenses(),
-                tasksHook.loadTasks(),
-                partsHook.loadParts(),
-                paymentsHook.loadPayments(),
-                attendanceHook.loadAttendance(),
-                payablesHook.loadPayables()
-            ]);
-            console.log("All data loaded successfully, customers:", customersHook.customers);
+            // First load critical data
+            const criticalLoaders = Object.entries(dataLoaders).filter(([key]) => 
+                shouldLoadData(key as any) && isDataCritical(key as any)
+            );
+            
+            if (criticalLoaders.length > 0) {
+                console.log("Loading critical data:", criticalLoaders.map(([key]) => key));
+                await Promise.all(criticalLoaders.map(([, loader]) => loader()));
+                setLoadingProgress(50);
+            }
+
+            // Then load non-critical data
+            const nonCriticalLoaders = Object.entries(dataLoaders).filter(([key]) => 
+                shouldLoadData(key as any) && !isDataCritical(key as any)
+            );
+            
+            if (nonCriticalLoaders.length > 0) {
+                console.log("Loading non-critical data:", nonCriticalLoaders.map(([key]) => key));
+                // Load non-critical data with a small delay to prioritize UI responsiveness
+                setTimeout(async () => {
+                    await Promise.allSettled(nonCriticalLoaders.map(([, loader]) => loader()));
+                    setLoadingProgress(100);
+                }, 50);
+            } else {
+                setLoadingProgress(100);
+            }
+
+            console.log("Route-specific data loading completed");
         } catch (error) {
-            console.error("Error loading data:", error);
+            console.error("Error loading route-specific data:", error);
+        } finally {
+            setIsLoading(false);
+            setTimeout(() => setLoadingProgress(0), 500); // Reset progress after animation
         }
-    };
+    }, [authLoading, isAuthenticated, currentUser?.organization_id, currentRoute, shouldLoadData, isDataCritical, smartLoad]);
 
     useEffect(() => {
-        loadAllData();
-    }, [authLoading, isAuthenticated, currentUser?.organization_id]);
+        loadRouteSpecificData();
+    }, [loadRouteSpecificData]);
+
+    // Reset loaded state when organization changes
+    useEffect(() => {
+        if (currentUser?.organization_id) {
+            resetLoadedState();
+        }
+    }, [currentUser?.organization_id, resetLoadedState]);
 
     // Refresh all data manually
     const refreshAllData = async () => {
         console.log("Manual refresh of all data triggered");
-        await loadAllData();
+        resetLoadedState();
+        await loadRouteSpecificData();
     };
 
     const getCustomerAnalytics = async (customerId: string): Promise<{ lifetimeValue: number; totalInvoices: number; averageInvoiceValue: number; vehicles: Vehicle[]; invoiceHistory: Invoice[] }> => {
@@ -166,7 +213,11 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
             getPayablesByVendor: payablesHook.getPayablesByVendor,
             
             getCustomerAnalytics,
-            refreshAllData
+            refreshAllData,
+            
+            // Loading states for global use
+            isLoadingData: isLoading,
+            loadingProgress
         }}>
             {children}
         </DataContext.Provider>

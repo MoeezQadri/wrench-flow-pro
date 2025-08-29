@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { memo, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, FileText, Wrench, Users, Calendar, TrendingUp } from "lucide-react";
 import { useOrganizationSettings } from "@/hooks/useOrganizationSettings";
@@ -24,10 +24,11 @@ interface DashboardMetricsProps {
   isLoading: boolean;
 }
 
-export function DashboardMetrics({ data, isLoading }: DashboardMetricsProps) {
+const DashboardMetrics = memo(function DashboardMetrics({ data, isLoading }: DashboardMetricsProps) {
   const { formatCurrency } = useOrganizationSettings();
   
-  const metrics = [
+  // Memoize metrics array to prevent recreation on each render
+  const metrics = useMemo(() => [
     {
       title: "Total Revenue",
       value: formatCurrency(data.totalRevenue),
@@ -70,7 +71,7 @@ export function DashboardMetrics({ data, isLoading }: DashboardMetricsProps) {
       icon: TrendingUp,
       description: "Average revenue per job"
     }
-  ];
+  ], [data, formatCurrency]);
 
   if (isLoading) {
     return (
@@ -120,4 +121,6 @@ export function DashboardMetrics({ data, isLoading }: DashboardMetricsProps) {
       })}
     </div>
   );
-}
+});
+
+export { DashboardMetrics };

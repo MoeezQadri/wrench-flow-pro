@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { subDays } from 'date-fns';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,12 +17,24 @@ import { RevenueChart } from '@/components/dashboard/RevenueChart';
 import { fetchDashboardData, fetchChartData, DashboardData, ChartData } from '@/services/dashboard-service';
 import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
 import { OrganizationDisplay } from '@/components/organization/OrganizationDisplay';
+import { useDebounce } from '@/hooks/useDebounce';
+import { useDataCache } from '@/hooks/useDataCache';
 import { toast } from "sonner";
 
 const Dashboard = () => {
   const { formatCurrency, organizationInfo } = useOrganizationSettings();
   const [startDate, setStartDate] = useState<Date>(subDays(new Date(), 30));
   const [endDate, setEndDate] = useState<Date>(new Date());
+  const [isLoading, setIsLoading] = useState(false);
+  const [chartLoading, setChartLoading] = useState(false);
+  
+  // Debounce date changes to prevent rapid API calls
+  const debouncedStartDate = useDebounce(startDate, 300);
+  const debouncedEndDate = useDebounce(endDate, 300);
+  
+  // Use data cache with 5-minute TTL
+  const { fetchWithCache } = useDataCache<DashboardData | ChartData[]>('dashboard');
+  
   const [dashboardData, setDashboardData] = useState<DashboardData>({
     totalRevenue: 0,
     revenueChange: 0,
@@ -38,38 +50,72 @@ const Dashboard = () => {
     jobValueChange: 0
   });
   const [chartData, setChartData] = useState<ChartData[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
 
-  const loadDashboardData = async () => {
+  // Memoize cache keys based on date range
+  const cacheKey = useMemo(() => 
+    `${debouncedStartDate.toISOString()}-${debouncedEndDate.toISOString()}`, 
+    [debouncedStartDate, debouncedEndDate]
+  );
+
+  const loadDashboardData = useCallback(async (force = false) => {
     setIsLoading(true);
     try {
-      const [metricsData, chartDataResult] = await Promise.all([
-        fetchDashboardData(startDate, endDate),
-        fetchChartData(startDate, endDate)
-      ]);
+      const metricsData = await fetchWithCache(
+        `metrics-${cacheKey}`,
+        () => fetchDashboardData(debouncedStartDate, debouncedEndDate),
+        force
+      ) as DashboardData;
       
       setDashboardData(metricsData);
-      setChartData(chartDataResult);
     } catch (error) {
       console.error('Error loading dashboard data:', error);
       toast.error('Failed to load dashboard data');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [debouncedStartDate, debouncedEndDate, cacheKey, fetchWithCache]);
 
+  const loadChartData = useCallback(async (force = false) => {
+    setChartLoading(true);
+    try {
+      const chartDataResult = await fetchWithCache(
+        `chart-${cacheKey}`,
+        () => fetchChartData(debouncedStartDate, debouncedEndDate),
+        force
+      ) as ChartData[];
+      
+      setChartData(chartDataResult);
+    } catch (error) {
+      console.error('Error loading chart data:', error);
+      toast.error('Failed to load chart data');
+    } finally {
+      setChartLoading(false);
+    }
+  }, [debouncedStartDate, debouncedEndDate, cacheKey, fetchWithCache]);
+
+  // Load data when debounced dates change
   useEffect(() => {
     loadDashboardData();
-  }, [startDate, endDate]);
+  }, [loadDashboardData]);
 
-  const handleDateRangeChange = (newStartDate: Date, newEndDate: Date) => {
+  // Load chart data separately with intersection observer for lazy loading
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      loadChartData();
+    }, 100); // Small delay to prioritize metrics loading
+    
+    return () => clearTimeout(timer);
+  }, [loadChartData]);
+
+  const handleDateRangeChange = useCallback((newStartDate: Date, newEndDate: Date) => {
     setStartDate(newStartDate);
     setEndDate(newEndDate);
-  };
+  }, []);
 
-  const handleRefresh = () => {
-    loadDashboardData();
-  };
+  const handleRefresh = useCallback(() => {
+    loadDashboardData(true);
+    loadChartData(true);
+  }, [loadDashboardData, loadChartData]);
 
   return (
     <div className="space-y-6">
@@ -103,7 +149,7 @@ const Dashboard = () => {
       {/* Charts and Quick Actions */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         <div className="col-span-4">
-          <RevenueChart data={chartData} isLoading={isLoading} />
+          <RevenueChart data={chartData} isLoading={chartLoading} />
         </div>
         
         <Card className="col-span-3">
