@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -159,9 +159,17 @@ const Customers = () => {
     }
   }, [showVehicleFields]);
 
-  // Form submission handler
-  const onSubmit = async (values: CustomerFormValues) => {
+  // Form submission handler - using useCallback to prevent re-renders
+  const onSubmit = useCallback(async (values: CustomerFormValues) => {
     if (isSubmitting) return; // Prevent duplicate submissions
+    
+    // Immediately close dialog and reset form to prevent re-render interference
+    setIsDialogOpen(false);
+    form.reset({
+      customer: { name: "", email: "", phone: "", address: "" },
+      addVehicle: false,
+      vehicle: undefined
+    });
     
     setIsSubmitting(true);
     try {
@@ -181,7 +189,7 @@ const Customers = () => {
           customer_id: newCustomer.id,
           id: vehicleId
         };
-        const newVehicle = await addVehicle(vehicleData);
+        await addVehicle(vehicleData);
 
         // Display success message including vehicle
         toast({
@@ -195,29 +203,18 @@ const Customers = () => {
           description: `${newCustomer.name} has been added successfully.`
         });
       }
-
-      // Reset form and close dialog
-      form.reset({
-        customer: {
-          name: "",
-          email: "",
-          phone: "",
-          address: ""
-        },
-        addVehicle: false,
-        vehicle: undefined
-      });
-      setIsDialogOpen(false);
     } catch (error) {
       toast({
         title: "Error",
         description: "Failed to add customer. Please try again.",
         variant: "destructive"
       });
+      // Reopen dialog on error so user can retry
+      setIsDialogOpen(true);
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [addCustomer, addVehicle, form, isSubmitting]);
 
   // Filter customers based on search query - use customers from context directly
   const filteredCustomers = customers.filter(customer => {
