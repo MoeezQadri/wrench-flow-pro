@@ -100,10 +100,15 @@ export class ConnectionMonitor {
 
   public async testConnection(): Promise<boolean> {
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
       const response = await fetch(SUPABASE_URL + '/rest/v1/', {
         method: 'HEAD',
-        signal: AbortSignal.timeout(5000),
+        signal: controller.signal,
       });
+      
+      clearTimeout(timeoutId);
       return response.ok;
     } catch {
       return false;
@@ -111,9 +116,9 @@ export class ConnectionMonitor {
   }
 }
 
-// Loading recovery utilities
+// Simplified loading recovery utilities
 export class LoadingRecovery {
-  private static loadingTimers = new Map<string, NodeJS.Timeout>();
+  private static loadingTimers = new Map<string, any>();
   private static readonly LOADING_TIMEOUT = 15000; // 15 seconds
 
   static startLoadingTimer(key: string, onTimeout: () => void) {

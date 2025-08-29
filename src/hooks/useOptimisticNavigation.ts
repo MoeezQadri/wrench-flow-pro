@@ -5,7 +5,7 @@ import { useDebounce } from './useDebounce';
 export function useOptimisticNavigation() {
   const navigate = useNavigate();
   const pendingNavigation = useRef<string | null>(null);
-  const navigationTimeout = useRef<NodeJS.Timeout | null>(null);
+  const navigationTimeout = useRef<number | null>(null);
 
   const navigateOptimistically = useCallback((path: string, delay = 100) => {
     // Clear any pending navigation
@@ -22,7 +22,7 @@ export function useOptimisticNavigation() {
     // Clear pending after delay
     navigationTimeout.current = setTimeout(() => {
       pendingNavigation.current = null;
-    }, delay);
+    }, delay) as any;
   }, [navigate]);
 
   const debouncedNavigate = useDebounce(navigateOptimistically, 50);

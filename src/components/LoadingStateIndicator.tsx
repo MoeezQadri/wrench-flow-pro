@@ -26,7 +26,7 @@ export const LoadingStateIndicator: React.FC<LoadingStateIndicatorProps> = ({
   const [showRecovery, setShowRecovery] = useState(false);
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: any;
     
     if (isLoading) {
       setLoadingDuration(0);

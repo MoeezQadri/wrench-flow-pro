@@ -59,7 +59,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
   const initialDataLoaded = useRef(false);
   const userHasChangedForm = useRef(false);
   const submissionLock = useRef(false);
-  const submissionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const submissionTimeoutRef = useRef<any>(null);
   const submissionId = useRef<string | null>(null);
   
   // Use optimized hooks for invoice editing and data loading
