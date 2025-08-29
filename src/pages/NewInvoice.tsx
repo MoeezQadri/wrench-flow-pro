@@ -2,7 +2,7 @@
 import { ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import InvoiceForm from "@/components/InvoiceForm";
+import { InvoiceFormWithLoader } from "@/components/InvoiceFormWithLoader";
 
 const NewInvoice = () => {
   return (
@@ -16,7 +16,7 @@ const NewInvoice = () => {
         <h1 className="text-3xl font-bold tracking-tight">New Invoice</h1>
       </div>
 
-      <InvoiceForm />
+      <InvoiceFormWithLoader />
     </div>
   );
 };

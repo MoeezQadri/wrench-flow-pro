@@ -26,10 +26,8 @@ interface DataProviderProps {
 
 const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     const { currentUser, loading: authLoading, isAuthenticated } = useAuthContext();
-    const { shouldLoadData, isDataCritical, currentRoute } = useRouteBasedLoading();
-    const { smartLoad, isLoaded, resetLoadedState } = useSmartDataLoading();
+    const { shouldLoadData, currentRoute } = useRouteBasedLoading();
     const [loadingProgress, setLoadingProgress] = useState(0);
-    const [isLoading, setIsLoading] = useState(false);
     
     const mechanicsHook = useMechanics();
     const customersHook = useCustomers();
@@ -43,81 +41,53 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     const attendanceHook = useAttendance();
     const payablesHook = usePayables();
 
+    // Lightweight data loading - only load when needed, non-blocking
     const loadRouteSpecificData = useCallback(async () => {
-        // Wait for authentication to be ready and user to be loaded
+        // Skip if auth not ready - don't block navigation
         if (authLoading || !isAuthenticated || !currentUser?.organization_id) {
-            console.log("Skipping data load - auth not ready:", { authLoading, isAuthenticated, hasOrgId: !!currentUser?.organization_id });
             return;
         }
 
-        console.log(`Loading route-specific data for: ${currentRoute}`);
-        setIsLoading(true);
-        setLoadingProgress(0);
+        // Load data in background - don't block UI
+        const loadDataInBackground = async () => {
+            const dataLoaders = {
+                customers: customersHook.loadCustomers,
+                invoices: invoicesHook.loadInvoices,
+                vehicles: vehiclesHook.loadVehicles,
+                parts: partsHook.loadParts,
+                tasks: tasksHook.loadTasks,
+                mechanics: mechanicsHook.loadMechanics,
+                vendors: vendorsHook.loadVendors,
+                expenses: expensesHook.loadExpenses,
+                attendance: attendanceHook.loadAttendance,
+            };
 
-        const dataLoaders = {
-            customers: () => smartLoad('customers', customersHook.loadCustomers),
-            invoices: () => smartLoad('invoices', invoicesHook.loadInvoices),
-            vehicles: () => smartLoad('vehicles', vehiclesHook.loadVehicles),
-            parts: () => smartLoad('parts', partsHook.loadParts),
-            tasks: () => smartLoad('tasks', tasksHook.loadTasks),
-            mechanics: () => smartLoad('mechanics', mechanicsHook.loadMechanics),
-            vendors: () => smartLoad('vendors', vendorsHook.loadVendors),
-            expenses: () => smartLoad('expenses', expensesHook.loadExpenses),
-            attendance: () => smartLoad('attendance', attendanceHook.loadAttendance),
+            const requiredLoaders = Object.entries(dataLoaders).filter(([key]) => 
+                shouldLoadData(key as any)
+            );
+
+            if (requiredLoaders.length > 0) {
+                setLoadingProgress(25);
+                // Load all required data in parallel - don't wait
+                Promise.allSettled(requiredLoaders.map(([, loader]) => loader()))
+                    .then(() => setLoadingProgress(100))
+                    .finally(() => {
+                        setTimeout(() => setLoadingProgress(0), 300);
+                    });
+            }
         };
 
-        try {
-            // First load critical data
-            const criticalLoaders = Object.entries(dataLoaders).filter(([key]) => 
-                shouldLoadData(key as any) && isDataCritical(key as any)
-            );
-            
-            if (criticalLoaders.length > 0) {
-                console.log("Loading critical data:", criticalLoaders.map(([key]) => key));
-                await Promise.all(criticalLoaders.map(([, loader]) => loader()));
-                setLoadingProgress(50);
-            }
-
-            // Then load non-critical data
-            const nonCriticalLoaders = Object.entries(dataLoaders).filter(([key]) => 
-                shouldLoadData(key as any) && !isDataCritical(key as any)
-            );
-            
-            if (nonCriticalLoaders.length > 0) {
-                console.log("Loading non-critical data:", nonCriticalLoaders.map(([key]) => key));
-                // Load non-critical data with a small delay to prioritize UI responsiveness
-                setTimeout(async () => {
-                    await Promise.allSettled(nonCriticalLoaders.map(([, loader]) => loader()));
-                    setLoadingProgress(100);
-                }, 50);
-            } else {
-                setLoadingProgress(100);
-            }
-
-            console.log("Route-specific data loading completed");
-        } catch (error) {
-            console.error("Error loading route-specific data:", error);
-        } finally {
-            setIsLoading(false);
-            setTimeout(() => setLoadingProgress(0), 500); // Reset progress after animation
-        }
-    }, [authLoading, isAuthenticated, currentUser?.organization_id, currentRoute, shouldLoadData, isDataCritical, smartLoad]);
+        // Start background loading after a tiny delay
+        setTimeout(loadDataInBackground, 10);
+    }, [authLoading, isAuthenticated, currentUser?.organization_id, shouldLoadData]);
 
     useEffect(() => {
         loadRouteSpecificData();
     }, [loadRouteSpecificData]);
 
-    // Reset loaded state when organization changes
-    useEffect(() => {
-        if (currentUser?.organization_id) {
-            resetLoadedState();
-        }
-    }, [currentUser?.organization_id, resetLoadedState]);
-
     // Refresh all data manually
     const refreshAllData = async () => {
         console.log("Manual refresh of all data triggered");
-        resetLoadedState();
         await loadRouteSpecificData();
     };
 
@@ -216,7 +186,7 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
             refreshAllData,
             
             // Loading states for global use
-            isLoadingData: isLoading,
+            isLoadingData: loadingProgress > 0 && loadingProgress < 100,
             loadingProgress
         }}>
             {children}

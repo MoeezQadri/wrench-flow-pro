@@ -8,9 +8,9 @@ export function AppWithProgress({ children }: { children: React.ReactNode }) {
   return (
     <>
       <LoadingProgress 
-        isVisible={isLoadingData && loadingProgress > 0} 
+        isVisible={isLoadingData && loadingProgress > 0 && loadingProgress < 100} 
         progress={loadingProgress}
-        message={loadingProgress < 50 ? "Loading essential data..." : "Loading additional data..."}
+        message="Loading data..."
       />
       {children}
     </>
