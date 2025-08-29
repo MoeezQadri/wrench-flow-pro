@@ -23,7 +23,6 @@ export const useVehicles = () => {
             if (data && data.length > 0) {
                 const result = data[0] as Vehicle;
                 setVehicles((prev) => [...prev, result]);
-                toast.success('Vehicle added successfully');
             }
         } catch (error) {
             console.error('Error adding vehicle:', error);

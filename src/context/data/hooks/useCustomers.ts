@@ -40,8 +40,13 @@ export const useCustomers = () => {
                     if (payload.eventType === 'INSERT' && payload.new) {
                         const newCustomer = payload.new as Customer;
                         setCustomers(prev => {
+                            // Check if customer already exists to prevent duplicates from optimistic updates
                             const exists = prev.some(c => c.id === newCustomer.id);
-                            return exists ? prev : [...prev, newCustomer];
+                            if (exists) {
+                                // Update existing customer with real data from server
+                                return prev.map(c => c.id === newCustomer.id ? newCustomer : c);
+                            }
+                            return [...prev, newCustomer];
                         });
                     } else if (payload.eventType === 'UPDATE' && payload.new) {
                         const updatedCustomer = payload.new as Customer;
@@ -120,7 +125,6 @@ export const useCustomers = () => {
                 // Replace optimistic entry with real data
                 setCustomers((prev) => (prev || []).map(c => c.id === tempId ? result : c));
                 logCustomerOperation('ADD_CUSTOMER_SUCCESS', result);
-                toast.success('Customer added successfully');
                 console.log("Customer added successfully:", result);
                 return result;
             }
