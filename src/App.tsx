@@ -9,7 +9,7 @@ import PublicRoute from '@/components/PublicRoute';
 import { AuthProvider } from '@/context/AuthProvider';
 import { DataProvider } from '@/context/data/DataContext';
 import PersistentRouter from '@/components/PersistentRouter';
-import { AppWithProgress } from '@/components/AppWithProgress';
+
 import { Toaster } from '@/components/ui/toaster';
 
 // Auth pages
@@ -61,8 +61,7 @@ function App() {
     <Router>
       <AuthProvider>
         <DataProvider>
-          <AppWithProgress>
-            <PersistentRouter>
+          <PersistentRouter>
               <Suspense fallback={<LoadingScreen />}>
                 <Routes>
                   {/* Public authentication routes */}
@@ -117,8 +116,7 @@ function App() {
                 </Routes>
               </Suspense>
               <Toaster />
-            </PersistentRouter>
-          </AppWithProgress>
+          </PersistentRouter>
         </DataProvider>
       </AuthProvider>
     </Router>
