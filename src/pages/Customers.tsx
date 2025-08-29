@@ -524,15 +524,32 @@ const CustomerCard = ({
     getCustomerAnalytics,
     getVehiclesByCustomerId
   } = useDataContext();
+
   useEffect(() => {
+    let isMounted = true;
+    
     const loadData = async () => {
-      const analyticsData = await getCustomerAnalytics(customer.id);
-      const vehiclesData = await getVehiclesByCustomerId(customer.id);
-      setAnalytics(analyticsData);
-      setVehicles(vehiclesData);
+      try {
+        const [analyticsData, vehiclesData] = await Promise.all([
+          getCustomerAnalytics(customer.id),
+          getVehiclesByCustomerId(customer.id)
+        ]);
+        
+        if (isMounted) {
+          setAnalytics(analyticsData);
+          setVehicles(vehiclesData);
+        }
+      } catch (error) {
+        console.error('Error loading customer card data:', error);
+      }
     };
+    
     loadData();
-  }, [customer.id]);
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [customer.id, getCustomerAnalytics, getVehiclesByCustomerId]);
   return <Link to={`/customers/${customer.id}`}>
       <Card className="h-full hover:shadow-md transition-shadow duration-200">
         <CardContent className="p-6">
