@@ -54,12 +54,7 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
       // 1. Customer is selected AND we haven't loaded for this customer yet
       // 2. OR we're editing and haven't initially loaded vehicles yet
       // 3. OR the selected vehicle ID doesn't exist in current vehicles (editing case)
-      const needsLoading = selectedCustomerId && (
-        selectedCustomerId !== loadedCustomerRef.current || 
-        (isEditing && !hasInitiallyLoaded.current) ||
-        (selectedVehicleId && !vehicles.find(v => v.id === selectedVehicleId))
-      );
-      
+      const needsLoading = selectedCustomerId && (selectedCustomerId !== loadedCustomerRef.current || isEditing && !hasInitiallyLoaded.current || selectedVehicleId && !vehicles.find(v => v.id === selectedVehicleId));
       if (needsLoading) {
         setIsLoadingVehicles(true);
         try {
@@ -123,16 +118,12 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
 
   // During editing mode, allow selectedVehicleId even if vehicles haven't loaded yet (when vehicleInfo exists)
   // During normal mode, only use selectedVehicleId if it exists in the vehicles array
-  const validSelectedVehicleId = isEditing && vehicleInfo && selectedVehicleId 
-    ? selectedVehicleId 
-    : vehicles.find(v => v.id === selectedVehicleId) ? selectedVehicleId : "";
+  const validSelectedVehicleId = isEditing && vehicleInfo && selectedVehicleId ? selectedVehicleId : vehicles.find(v => v.id === selectedVehicleId) ? selectedVehicleId : "";
   if (isEditing) {
     // Find customer name from customers array
     const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
     const customerName = selectedCustomer?.name || "Loading customer...";
-
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    return <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <Label className="text-sm font-medium text-muted-foreground">Customer</Label>
           <div className="mt-2 p-3 border rounded-md bg-muted/50">
@@ -143,43 +134,22 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
         <div>
           <Label className="text-sm font-medium text-muted-foreground">Vehicle</Label>
           <div className="mt-2 p-3 border rounded-md bg-muted/50">
-            {vehicleInfo ? (
-              <p className="font-medium">
+            {vehicleInfo ? <p className="font-medium">
                 {vehicleInfo.year} {vehicleInfo.make} {vehicleInfo.model} ({vehicleInfo.license_plate})
-              </p>
-            ) : (
-              <p className="font-medium text-muted-foreground">Loading vehicle...</p>
-            )}
+              </p> : <p className="font-medium text-muted-foreground">Loading vehicle...</p>}
           </div>
         </div>
-      </div>
-    );
+      </div>;
   }
-
   return <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div>
         <div className="flex justify-between items-center mb-2 min-h-[32px]">
           <Label htmlFor="customer">Customer *</Label>
           <div className="flex gap-2">
-            <Button 
-              type="button" 
-              variant="ghost" 
-              size="sm" 
-              onClick={handleRefreshCustomers}
-              disabled={isLoadingCustomers}
-            >
-              Refresh
-            </Button>
-            {!isEditing && (
-              <Button 
-                type="button" 
-                variant="outline" 
-                size="sm" 
-                asChild
-              >
-                <Link to="/customers/new">Add Customer</Link>
-              </Button>
-            )}
+            
+            {!isEditing && <Button type="button" variant="outline" size="sm" asChild>
+                
+              </Button>}
           </div>
         </div>
         <Select value={selectedCustomerId} onValueChange={handleCustomerChange} required disabled={isEditing}>
@@ -200,16 +170,9 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
         <div className="flex justify-between items-center mb-2 min-h-[32px]">
           <Label htmlFor="vehicle">Vehicle *</Label>
           <div className="flex gap-2">
-            {selectedCustomerId && !isEditing && (
-              <Button 
-                type="button" 
-                variant="outline" 
-                size="sm" 
-                asChild
-              >
+            {selectedCustomerId && !isEditing && <Button type="button" variant="outline" size="sm" asChild>
                 <Link to={`/vehicles/new?customerId=${selectedCustomerId}`}>Add Vehicle</Link>
-              </Button>
-            )}
+              </Button>}
           </div>
         </div>
         <Select value={validSelectedVehicleId} onValueChange={onVehicleIdChange} required={vehicles.length > 0} disabled={!selectedCustomerId || isLoadingVehicles}>
