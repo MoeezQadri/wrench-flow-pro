@@ -29,7 +29,7 @@ const Parts: React.FC = () => {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   
-  const { parts, addPart, refreshAllData, vendors } = useDataContext();
+  const { parts, addPart, refreshAllData, vendors, loadParts, loadVendors } = useDataContext();
   const { currentUser } = useAuthContext();
   const { formatCurrency } = useOrganizationSettings();
   
@@ -198,7 +198,7 @@ const Parts: React.FC = () => {
       title="Parts Inventory"
       headerActions={headerActions}
       loadData={async () => {
-        // Data is loaded via DataContext, no explicit loading needed
+        await Promise.all([loadParts(), loadVendors()]);
       }}
       skeletonType="grid"
       className="container max-w-7xl mx-auto"

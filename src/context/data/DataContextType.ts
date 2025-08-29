@@ -13,6 +13,7 @@ export interface DataContextType {
     addVendor: (vendorData: any) => Promise<any>;
     removeVendor: (id: string) => Promise<void>;
     updateVendor: (id: string, updates: Partial<Vendor>) => Promise<void>;
+    loadVendors: () => Promise<void>;
 
     customers: Customer[];
     customersLoading: boolean;

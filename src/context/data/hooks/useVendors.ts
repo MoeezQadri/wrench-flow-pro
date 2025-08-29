@@ -7,6 +7,8 @@ import { useOrganizationAwareQuery } from '@/hooks/useOrganizationAwareQuery';
 
 export const useVendors = () => {
     const [vendors, setVendors] = useState<Vendor[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
     const { applyOrganizationFilter } = useOrganizationAwareQuery();
 
     const generateUUID = () => crypto.randomUUID();
@@ -85,18 +87,24 @@ export const useVendors = () => {
     };
 
     const loadVendors = async () => {
+        setLoading(true);
+        setError(null);
         try {
             const query = supabase.from('vendors').select('*');
             const { data: vendorsData, error: vendorsError } = await applyOrganizationFilter(query);
             if (vendorsError) {
                 console.error('Error fetching vendors:', vendorsError);
+                setError('Failed to load vendors');
                 toast.error('Failed to load vendors');
             } else {
                 setVendors(vendorsData || []);
             }
         } catch (error) {
             console.error('Error fetching vendors:', error);
+            setError('Failed to load vendors');
             toast.error('Failed to load vendors');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -106,6 +114,8 @@ export const useVendors = () => {
         addVendor,
         removeVendor,
         updateVendor,
-        loadVendors
+        loadVendors,
+        loading,
+        error
     };
 };
