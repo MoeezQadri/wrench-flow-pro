@@ -106,7 +106,8 @@ const Customers = () => {
     getVehiclesByCustomerId,
     addCustomer,
     addVehicle,
-    refreshAllData
+    refreshAllData,
+    loadCustomers
   } = useDataContext();
   const { currentUser } = useAuthContext();
   const { formatCurrency } = useOrganizationSettings();
@@ -114,12 +115,10 @@ const Customers = () => {
   // Use unified page loader
   const { loading, error, retry } = usePageLoader({
     loadData: async () => {
-      // This will use the existing context loading
-      return Promise.resolve();
+      await loadCustomers();
     },
     dependencies: [customersLoading, customersError],
-    loadingMessage: "Loading customers...",
-    autoLoad: false
+    loadingMessage: "Loading customers..."
   });
 
   // Check permissions
