@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -19,43 +18,36 @@ import { Textarea } from "@/components/ui/textarea";
 import { Attendance } from '@/types';
 import { useDataContext } from '@/context/data/DataContext';
 
-const attendanceSchema = z.object({
+const checkInSchema = z.object({
   mechanicId: z.string().min(1, { message: "Mechanic is required" }),
   date: z.string().min(1, { message: "Date is required" }),
   checkIn: z.string().min(1, { message: "Check-in time is required" }),
-  checkOut: z.string().optional(),
   status: z.enum(["pending", "approved", "rejected", "present", "late", "absent", "half-day"]).default('pending'),
-  notes: z.string().optional(),
-  created_at: z.string().optional(),
-  approved_by: z.string().optional()
+  notes: z.string().optional()
 });
 
-export type AttendanceFormValues = z.infer<typeof attendanceSchema>;
+export type CheckInFormValues = z.infer<typeof checkInSchema>;
 
-interface AttendanceFormProps {
+interface CheckInFormProps {
   onSubmit: (data: Omit<Attendance, 'id'>) => Promise<void>;
-  initialData?: Attendance;
 }
 
-const AttendanceForm: React.FC<AttendanceFormProps> = ({ onSubmit, initialData }) => {
+const CheckInForm: React.FC<CheckInFormProps> = ({ onSubmit }) => {
   const { mechanics } = useDataContext();
 
-  const form = useForm<AttendanceFormValues>({
-    resolver: zodResolver(attendanceSchema),
+  const form = useForm<CheckInFormValues>({
+    resolver: zodResolver(checkInSchema),
     defaultValues: {
-      mechanicId: initialData?.mechanic_id || "",
-      date: initialData?.date || new Date().toISOString().slice(0, 10),
-      checkIn: initialData?.check_in || "",
-      checkOut: initialData?.check_out || "",
-      status: initialData?.status || "pending",
-      notes: initialData?.notes || "",
-      created_at: initialData?.created_at || new Date().toISOString(),
-      approved_by: initialData?.approved_by || ""
+      mechanicId: "",
+      date: new Date().toISOString().slice(0, 10),
+      checkIn: new Date().toTimeString().slice(0, 5), // Current time as HH:MM
+      status: "pending",
+      notes: ""
     }
   });
 
-  const handleSubmit = async (data: AttendanceFormValues) => {
-    console.log("AttendanceForm handleSubmit called with data:", data);
+  const handleSubmit = async (data: CheckInFormValues) => {
+    console.log("CheckInForm handleSubmit called with data:", data);
     
     // Validate that we have a mechanic selected
     if (!data.mechanicId) {
@@ -68,21 +60,21 @@ const AttendanceForm: React.FC<AttendanceFormProps> = ({ onSubmit, initialData }
         mechanic_id: data.mechanicId,
         date: data.date,
         check_in: data.checkIn,
-        check_out: data.checkOut || undefined,
+        check_out: undefined, // No check-out time for check-in
         status: data.status as 'pending' | 'approved' | 'rejected',
         notes: data.notes || undefined,
         created_at: new Date().toISOString(),
-        approved_by: data.approved_by || undefined
+        approved_by: undefined
       };
 
-      console.log("AttendanceForm calling onSubmit with:", attendanceData);
+      console.log("CheckInForm calling onSubmit with:", attendanceData);
       await onSubmit(attendanceData);
-      console.log("AttendanceForm onSubmit completed successfully");
+      console.log("CheckInForm onSubmit completed successfully");
       form.reset();
-      toast.success("Attendance recorded successfully!");
+      toast.success("Check-in recorded successfully!");
     } catch (error: any) {
-      console.error("Error submitting attendance in form:", error);
-      const errorMessage = error?.message || "Failed to record attendance. Please try again.";
+      console.error("Error submitting check-in in form:", error);
+      const errorMessage = error?.message || "Failed to record check-in. Please try again.";
       toast.error(errorMessage);
       
       // Re-throw the error so the dialog knows not to close
@@ -153,20 +145,6 @@ const AttendanceForm: React.FC<AttendanceFormProps> = ({ onSubmit, initialData }
 
         <FormField
           control={form.control}
-          name="checkOut"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Check-out Time (Optional)</FormLabel>
-              <FormControl>
-                <Input type="time" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
           name="status"
           render={({ field }) => (
             <FormItem>
@@ -183,7 +161,8 @@ const AttendanceForm: React.FC<AttendanceFormProps> = ({ onSubmit, initialData }
                 <SelectContent>
                   <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="approved">Approved</SelectItem>
-                  <SelectItem value="rejected">Rejected</SelectItem>
+                  <SelectItem value="present">Present</SelectItem>
+                  <SelectItem value="late">Late</SelectItem>
                 </SelectContent>
               </Select>
               <FormMessage />
@@ -206,11 +185,11 @@ const AttendanceForm: React.FC<AttendanceFormProps> = ({ onSubmit, initialData }
         />
 
         <div className="flex justify-end">
-          <Button type="submit">Submit Attendance</Button>
+          <Button type="submit">Check In</Button>
         </div>
       </form>
     </Form>
   );
 };
 
-export default AttendanceForm;
+export default CheckInForm;

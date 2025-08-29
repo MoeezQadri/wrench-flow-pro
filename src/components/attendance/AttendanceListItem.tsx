@@ -12,13 +12,15 @@ interface AttendanceListItemProps {
   mechanic: Mechanic | undefined;
   onApprove: (id: string) => void;
   onReject: (id: string) => void;
+  onCheckOut?: (record: Attendance) => void;
 }
 
 const AttendanceListItem: React.FC<AttendanceListItemProps> = ({
   record,
   mechanic,
   onApprove,
-  onReject
+  onReject,
+  onCheckOut
 }) => {
   const { currentUser } = useAuthContext();
 
@@ -94,28 +96,44 @@ const AttendanceListItem: React.FC<AttendanceListItemProps> = ({
             )}
           </div>
           
-          {canApprove && record.status === 'pending' && (
-            <div className="flex gap-2 ml-4">
+          <div className="flex gap-2 ml-4">
+            {/* Check-out button for ongoing attendance */}
+            {!record.check_out && onCheckOut && (
               <Button
                 size="sm"
                 variant="outline"
-                className="text-green-600 border-green-200 hover:bg-green-50"
-                onClick={() => onApprove(record.id)}
+                className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                onClick={() => onCheckOut(record)}
               >
-                <Check className="h-4 w-4 mr-1" />
-                Approve
+                <Clock className="h-4 w-4 mr-1" />
+                Check Out
               </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="text-red-600 border-red-200 hover:bg-red-50"
-                onClick={() => onReject(record.id)}
-              >
-                <X className="h-4 w-4 mr-1" />
-                Reject
-              </Button>
-            </div>
-          )}
+            )}
+            
+            {/* Approval buttons for pending records */}
+            {canApprove && record.status === 'pending' && (
+              <>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-green-600 border-green-200 hover:bg-green-50"
+                  onClick={() => onApprove(record.id)}
+                >
+                  <Check className="h-4 w-4 mr-1" />
+                  Approve
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-red-600 border-red-200 hover:bg-red-50"
+                  onClick={() => onReject(record.id)}
+                >
+                  <X className="h-4 w-4 mr-1" />
+                  Reject
+                </Button>
+              </>
+            )}
+          </div>
           
           {record.status !== 'pending' && record.approved_by && (
             <div className="text-xs text-muted-foreground ml-4">

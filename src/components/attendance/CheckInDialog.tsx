@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,39 +9,37 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import AttendanceForm from "./AttendanceForm";
+import CheckInForm from "./CheckInForm";
 import { Attendance } from "@/types";
 
-interface AttendanceDialogProps {
+interface CheckInDialogProps {
   trigger?: React.ReactNode;
   title?: string;
   description?: string;
-  attendance?: Attendance;
   onSave: (attendance: Omit<Attendance, "id">) => Promise<void>;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }
 
-export function AttendanceDialog({
+export function CheckInDialog({
   trigger,
-  title = "Add Attendance Record",
-  description = "Record a new attendance entry for a mechanic.",
-  attendance,
+  title = "Check In",
+  description = "Record check-in time for a mechanic.",
   onSave,
   open,
   onOpenChange,
-}: AttendanceDialogProps) {
+}: CheckInDialogProps) {
   const handleSave = async (data: Omit<Attendance, "id">) => {
-    console.log("AttendanceDialog handleSave called with:", data);
+    console.log("CheckInDialog handleSave called with:", data);
     try {
       await onSave(data);
-      console.log("AttendanceDialog onSave completed successfully");
+      console.log("CheckInDialog onSave completed successfully");
       // Close dialog immediately after successful save
       if (onOpenChange) {
         onOpenChange(false);
       }
     } catch (error) {
-      console.error("AttendanceDialog onSave failed:", error);
+      console.error("CheckInDialog onSave failed:", error);
       // Don't close dialog on error, let user try again
     }
   };
@@ -55,10 +52,7 @@ export function AttendanceDialog({
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
-        <AttendanceForm
-          initialData={attendance}
-          onSubmit={handleSave}
-        />
+        <CheckInForm onSubmit={handleSave} />
       </DialogContent>
     </Dialog>
   );

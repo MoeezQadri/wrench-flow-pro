@@ -5,7 +5,8 @@ import { useDataContext } from '@/context/data/DataContext';
 import { useAuthContext } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Plus, AlertCircle } from 'lucide-react';
-import { AttendanceDialog } from '@/components/attendance/AttendanceDialog';
+import { CheckInDialog } from '@/components/attendance/CheckInDialog';
+import { CheckOutDialog } from '@/components/attendance/CheckOutDialog';
 import AttendanceListItem from '@/components/attendance/AttendanceListItem';
 import AttendanceSummary from '@/components/attendance/AttendanceSummary';
 import AttendanceFilters from '@/components/attendance/AttendanceFilters';
@@ -13,7 +14,9 @@ import { hasPermission } from '@/utils/permissions';
 import PageWrapper from '@/components/PageWrapper';
 
 const AttendancePage: React.FC = () => {
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isCheckInDialogOpen, setIsCheckInDialogOpen] = useState(false);
+  const [isCheckOutDialogOpen, setIsCheckOutDialogOpen] = useState(false);
+  const [checkOutAttendance, setCheckOutAttendance] = useState<Attendance | null>(null);
   const [filters, setFilters] = useState({
     status: 'all',
     date: '',
@@ -48,18 +51,37 @@ const AttendancePage: React.FC = () => {
     });
   }, [attendanceRecords, filters]);
 
-  const handleSaveAttendance = async (attendanceData: Omit<Attendance, 'id'>) => {
-    console.log("Attendance page handleSaveAttendance called with:", attendanceData);
+  const handleCheckIn = async (attendanceData: Omit<Attendance, 'id'>) => {
+    console.log("Attendance page handleCheckIn called with:", attendanceData);
     try {
       console.log("Calling addAttendance...");
       await addAttendance(attendanceData);
       console.log("addAttendance completed successfully");
-      // Dialog will be closed by AttendanceDialog component on success
+      // Dialog will be closed by CheckInDialog component on success
     } catch (error) {
-      console.error('Error saving attendance in page:', error);
+      console.error('Error saving check-in in page:', error);
       // Error is already handled in the hook and form, just log it here
       throw error; // Re-throw so dialog knows not to close
     }
+  };
+
+  const handleCheckOut = async (attendanceId: string, checkOutData: { check_out: string; notes?: string }) => {
+    console.log("Attendance page handleCheckOut called with:", attendanceId, checkOutData);
+    try {
+      console.log("Calling updateAttendance...");
+      await updateAttendance(attendanceId, checkOutData);
+      console.log("updateAttendance completed successfully");
+      // Dialog will be closed by CheckOutDialog component on success
+    } catch (error) {
+      console.error('Error saving check-out in page:', error);
+      // Error is already handled in the hook, just log it here
+      throw error; // Re-throw so dialog knows not to close
+    }
+  };
+
+  const handleOpenCheckOut = (record: Attendance) => {
+    setCheckOutAttendance(record);
+    setIsCheckOutDialogOpen(true);
   };
 
   const handleApproveAttendance = async (id: string) => {
@@ -89,9 +111,9 @@ const AttendancePage: React.FC = () => {
   const subtitle = `Track mechanic attendance and working hours${canApprove && pendingCount > 0 ? ` • ${pendingCount} records pending approval` : ''}`;
 
   const headerActions = userCanManageAttendance ? (
-    <Button onClick={() => setIsDialogOpen(true)}>
+    <Button onClick={() => setIsCheckInDialogOpen(true)}>
       <Plus className="h-4 w-4 mr-2" />
-      Record Attendance
+      Check In
     </Button>
   ) : undefined;
 
@@ -128,9 +150,9 @@ const AttendancePage: React.FC = () => {
               }
             </p>
             {attendanceRecords.length === 0 && userCanManageAttendance && (
-              <Button onClick={() => setIsDialogOpen(true)}>
+              <Button onClick={() => setIsCheckInDialogOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" />
-                Record First Attendance
+                Check In First Attendance
               </Button>
             )}
           </div>
@@ -146,17 +168,27 @@ const AttendancePage: React.FC = () => {
                   mechanic={mechanic}
                   onApprove={handleApproveAttendance}
                   onReject={handleRejectAttendance}
+                  onCheckOut={handleOpenCheckOut}
                 />
               );
             })
         )}
       </div>
 
-      <AttendanceDialog
-        open={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
-        onSave={handleSaveAttendance}
+      <CheckInDialog
+        open={isCheckInDialogOpen}
+        onOpenChange={setIsCheckInDialogOpen}
+        onSave={handleCheckIn}
       />
+
+      {checkOutAttendance && (
+        <CheckOutDialog
+          open={isCheckOutDialogOpen}
+          onOpenChange={setIsCheckOutDialogOpen}
+          attendance={checkOutAttendance}
+          onSave={handleCheckOut}
+        />
+      )}
       </div>
     </PageWrapper>
   );
