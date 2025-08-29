@@ -28,7 +28,8 @@ const AttendancePage: React.FC = () => {
     attendanceRecords,
     attendanceLoading: loading,
     addAttendance,
-    updateAttendance
+    updateAttendance,
+    loadAttendance
   } = useDataContext();
   const { currentUser } = useAuthContext();
 
@@ -123,7 +124,7 @@ const AttendancePage: React.FC = () => {
       subtitle={subtitle}
       headerActions={headerActions}
       loadData={async () => {
-        // Data is loaded via DataContext, no explicit loading needed  
+        await loadAttendance();
       }}
       loadingMessage="Loading attendance records..."
       className="p-6"
