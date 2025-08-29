@@ -23,7 +23,7 @@ import { toast } from "sonner";
 import { useDataContext } from "@/context/data/DataContext";
 import { getAssignedPartsForInvoice, getAssignedTasksForInvoice } from "@/services/supabase-service";
 import { createInvoiceOptimized } from "@/services/optimized-invoice-service";
-import { createTestCustomers } from "@/utils/test-data-helper";
+
 import { useOptimizedInvoiceEdit } from "@/hooks/useOptimizedInvoiceEdit";
 import { useSmartDataLoading } from "@/hooks/useSmartDataLoading";
 
@@ -486,9 +486,6 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
     return errors.length === 0;
   };
 
-  const handleCreateTestData = async () => {
-    await createTestCustomers();
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -759,24 +756,13 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
                   You need customers to create invoices. Add your first customer to get started.
                 </p>
               </div>
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  asChild
-                  className="bg-blue-600 text-white hover:bg-blue-700"
-                >
-                  <Link to="/customers/new">Add Customer</Link>
-                </Button>
-                <Button
-                  type="button"
-                  onClick={handleCreateTestData}
-                  variant="outline"
-                  className="border-blue-300 text-blue-700 hover:bg-blue-100"
-                  size="sm"
-                >
-                  Create Sample Data
-                </Button>
-              </div>
+              <Button
+                type="button"
+                asChild
+                className="bg-blue-600 text-white hover:bg-blue-700"
+              >
+                <Link to="/customers/new">Add Customer</Link>
+              </Button>
             </div>
           </div>
         )}
