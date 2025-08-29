@@ -7,10 +7,10 @@ import { useOrganizationFilter } from '@/hooks/useOrganizationFilter';
 import { useOrganizationAwareQuery } from '@/hooks/useOrganizationAwareQuery';
 import { fetchCustomerById } from '@/services/supabase-service';
 
-// Simple logging for debugging
+// Minimal logging
 const logCustomerOperation = (operation: string, data?: any) => {
   if (operation.includes('SUCCESS')) {
-    console.log(`[CustomerHook] ${operation}:`, data);
+    console.log(`Customer ${operation}:`, data?.customerCount || '');
   }
 };
 
@@ -22,80 +22,40 @@ export const useCustomers = () => {
     const { organizationId, isSuperAdmin, canAccessAllOrganizations } = useOrganizationFilter();
 
 
-    // Set up real-time subscription for customer data
+    // Simple real-time updates without excessive logging
     useEffect(() => {
-        if (!organizationId) {
-            console.log("No organization ID available for real-time subscription");
-            return;
-        }
+        if (!organizationId) return;
 
-        console.log("Setting up real-time subscription for customers in org:", organizationId);
-        
-        // Create a unique channel name to avoid conflicts
-        const channelName = `customers-changes-${organizationId}`;
         const channel = supabase
-            .channel(channelName)
+            .channel(`customers-${organizationId}`)
             .on(
                 'postgres_changes',
                 {
                     event: '*',
-                    schema: 'public',
+                    schema: 'public', 
                     table: 'customers',
                     filter: `organization_id=eq.${organizationId}`
                 },
                 (payload) => {
-                    console.log('Customer real-time update received:', payload);
-                    
-                    try {
-                        if (payload.eventType === 'INSERT' && payload.new) {
-                            const newCustomer = payload.new as Customer;
-                            setCustomers(prev => {
-                                const exists = (prev || []).some(c => c.id === newCustomer.id);
-                                if (exists) {
-                                    console.log("Customer already exists, skipping insert");
-                                    return prev || [];
-                                }
-                                console.log("Adding new customer from real-time:", newCustomer.name);
-                                return [...(prev || []), newCustomer];
-                            });
-                        } else if (payload.eventType === 'UPDATE' && payload.new) {
-                            const updatedCustomer = payload.new as Customer;
-                            setCustomers(prev => {
-                                const updated = (prev || []).map(customer => 
-                                    customer.id === updatedCustomer.id ? updatedCustomer : customer
-                                );
-                                console.log("Updated customer from real-time:", updatedCustomer.name);
-                                return updated;
-                            });
-                        } else if (payload.eventType === 'DELETE' && payload.old) {
-                            const deletedId = payload.old.id;
-                            setCustomers(prev => {
-                                const filtered = (prev || []).filter(customer => customer.id !== deletedId);
-                                console.log("Removed customer from real-time:", deletedId);
-                                return filtered;
-                            });
-                        }
-                    } catch (error) {
-                        console.error('Error handling real-time customer update:', error);
-                        // Don't show toast for real-time errors to avoid spam
+                    if (payload.eventType === 'INSERT' && payload.new) {
+                        const newCustomer = payload.new as Customer;
+                        setCustomers(prev => {
+                            const exists = prev.some(c => c.id === newCustomer.id);
+                            return exists ? prev : [...prev, newCustomer];
+                        });
+                    } else if (payload.eventType === 'UPDATE' && payload.new) {
+                        const updatedCustomer = payload.new as Customer;
+                        setCustomers(prev => 
+                            prev.map(c => c.id === updatedCustomer.id ? updatedCustomer : c)
+                        );
+                    } else if (payload.eventType === 'DELETE' && payload.old) {
+                        setCustomers(prev => prev.filter(c => c.id !== payload.old.id));
                     }
                 }
             )
-            .subscribe((status) => {
-                console.log("Real-time subscription status:", status);
-                if (status === 'SUBSCRIBED') {
-                    console.log("Successfully subscribed to customer changes");
-                } else if (status === 'CHANNEL_ERROR') {
-                    console.error("Error in real-time channel");
-                    setError("Real-time sync error - data may not be current");
-                } else if (status === 'TIMED_OUT') {
-                    console.warn("Real-time subscription timed out");
-                    setError("Connection timeout - data may not be current");
-                }
-            });
+            .subscribe();
 
         return () => {
-            console.log("Cleaning up customer real-time subscription");
             supabase.removeChannel(channel);
         };
     }, [organizationId]);
@@ -354,11 +314,7 @@ export const useCustomers = () => {
                 throw customersError;
             } else {
                 const safeCustomersData = Array.isArray(customersData) ? customersData : [];
-                logCustomerOperation('LOAD_CUSTOMERS_SUCCESS', { 
-                    customerCount: safeCustomersData.length, 
-                    organizationId 
-                });
-                console.log("Customers loaded successfully:", safeCustomersData.length, "customers found");
+                console.log('Customers loaded:', safeCustomersData.length, 'found');
                 setCustomers(safeCustomersData);
                 
                 if (safeCustomersData.length === 0) {

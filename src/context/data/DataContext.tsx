@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, ReactNode, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, ReactNode, useCallback } from 'react';
 import type { Vehicle, Invoice } from '@/types';
 import { calculateInvoiceTotalWithBreakdown } from '@/utils/invoice-calculations';
 import { DataContextType } from './DataContextType';
@@ -14,9 +14,6 @@ import { useParts } from './hooks/useParts';
 import { usePayments } from './hooks/usePayments';
 import { useAttendance } from './hooks/useAttendance';
 import { usePayables } from './hooks/usePayables';
-import { useAuthContext } from '@/context/AuthContext';
-import { useRouteBasedLoading } from '@/hooks/useRouteBasedLoading';
-import { useSmartDataLoading } from '@/hooks/useSmartDataLoading';
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
@@ -25,10 +22,6 @@ interface DataProviderProps {
 }
 
 const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
-    const { currentUser, loading: authLoading, isAuthenticated } = useAuthContext();
-    const { shouldLoadData, currentRoute } = useRouteBasedLoading();
-    const [loadingProgress, setLoadingProgress] = useState(0);
-    
     const mechanicsHook = useMechanics();
     const customersHook = useCustomers();
     const vehiclesHook = useVehicles();
@@ -41,55 +34,13 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     const attendanceHook = useAttendance();
     const payablesHook = usePayables();
 
-    // Lightweight data loading - only load when needed, non-blocking
-    const loadRouteSpecificData = useCallback(async () => {
-        // Skip if auth not ready - don't block navigation
-        if (authLoading || !isAuthenticated || !currentUser?.organization_id) {
-            return;
-        }
-
-        // Load data in background - don't block UI
-        const loadDataInBackground = async () => {
-            const dataLoaders = {
-                customers: customersHook.loadCustomers,
-                invoices: invoicesHook.loadInvoices,
-                vehicles: vehiclesHook.loadVehicles,
-                parts: partsHook.loadParts,
-                tasks: tasksHook.loadTasks,
-                mechanics: mechanicsHook.loadMechanics,
-                vendors: vendorsHook.loadVendors,
-                expenses: expensesHook.loadExpenses,
-                attendance: attendanceHook.loadAttendance,
-            };
-
-            const requiredLoaders = Object.entries(dataLoaders).filter(([key]) => 
-                shouldLoadData(key as any)
-            );
-
-            if (requiredLoaders.length > 0) {
-                setLoadingProgress(25);
-                // Load all required data in parallel - don't wait
-                Promise.allSettled(requiredLoaders.map(([, loader]) => loader()))
-                    .then(() => setLoadingProgress(100))
-                    .finally(() => {
-                        setTimeout(() => setLoadingProgress(0), 300);
-                    });
-            }
-        };
-
-        // Start background loading after a tiny delay
-        setTimeout(loadDataInBackground, 10);
-    }, [authLoading, isAuthenticated, currentUser?.organization_id, shouldLoadData]);
-
-    useEffect(() => {
-        loadRouteSpecificData();
-    }, [loadRouteSpecificData]);
-
-    // Refresh all data manually
-    const refreshAllData = async () => {
-        console.log("Manual refresh of all data triggered");
-        await loadRouteSpecificData();
-    };
+    const refreshAllData = useCallback(async () => {
+        // Simple refresh - reload key data
+        await Promise.allSettled([
+            customersHook.loadCustomers(),
+            invoicesHook.loadInvoices(),
+        ]);
+    }, [customersHook.loadCustomers, invoicesHook.loadInvoices]);
 
     const getCustomerAnalytics = async (customerId: string): Promise<{ lifetimeValue: number; totalInvoices: number; averageInvoiceValue: number; vehicles: Vehicle[]; invoiceHistory: Invoice[] }> => {
         const vehicles: Vehicle[] = await vehiclesHook.getVehiclesByCustomerId(customerId);
@@ -183,11 +134,7 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
             getPayablesByVendor: payablesHook.getPayablesByVendor,
             
             getCustomerAnalytics,
-            refreshAllData,
-            
-            // Loading states for global use
-            isLoadingData: loadingProgress > 0 && loadingProgress < 100,
-            loadingProgress
+            refreshAllData
         }}>
             {children}
         </DataContext.Provider>

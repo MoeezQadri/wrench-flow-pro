@@ -72,85 +72,45 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
 
   useEffect(() => {
-    setLoading(true);
     const { data: listener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      // Detect recovery flow to avoid authenticating app during password reset
-      const path = window.location.pathname;
-      const params = new URLSearchParams(window.location.search);
-      const isRecoveryFlow =
-        path === '/auth/reset-password' ||
-        (path === '/auth/confirm' && params.get('type') === 'recovery') ||
-        (params.get('access_token') && params.get('refresh_token') && params.get('type') === 'recovery');
-
       setSession(session);
-
-      if (session && isRecoveryFlow) {
-        // Allow password update without triggering redirects/auth state
-        setCurrentUser(null);
-        setSubscribed(false);
-        setSubscriptionTier(null);
-        setSubscriptionEnd(null);
-        setLoading(false);
-        return;
-      }
 
       if (session) {
         await fetchUser(session.user);
-        // Check subscription status after user is authenticated
-        setTimeout(() => {
-          checkSubscriptionStatus();
-        }, 0);
       } else {
         setCurrentUser(null);
+        setOrganization(null);
         setSubscribed(false);
         setSubscriptionTier(null);
         setSubscriptionEnd(null);
       }
-
       setLoading(false);
     });
 
-    // Initial session fetch fallback (safe-guard)
-    // supabase.auth.getSession()
-    //   .then(({ data }) => {
-    //     if (data.session) {
-    //       setSession(data.session);
-    //       fetchUser(data.session.user).then(() => setLoading(false));
-    //     } else {
-    //       setCurrentUser(null);
-    //       setLoading(false);
-    //     }
-    //   })
-    //   .catch((err) => {
-    //     console.error('Error getting session:', err);
-    //     setCurrentUser(null);
-    //     setLoading(false);
-    //   });
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        fetchUser(session.user);
+      } else {
+        setLoading(false);
+      }
+    });
 
-    return () => {
-      listener?.subscription?.unsubscribe();
-    };
+    return () => listener?.subscription?.unsubscribe();
   }, []);
 
 
   const fetchUser = async (user: SupabaseUser) => {
     try {
-      const timeout = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Fetch user timed out')), 5000)
-      );
-      const query = supabase
+      const { data: profile, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
         .single();
 
-      // Race query against timeout:
-      const { data: profile, error } = await Promise.race([query, timeout]) as any;
-      if (error) {
-        throw error;
-      }
-      const userRole = (profile?.role || 'viewer') as UserRole;
+      if (error) throw error;
 
+      const userRole = (profile?.role || 'viewer') as UserRole;
       const userDetails: User = {
         id: user.id,
         email: user.email || '',
@@ -165,14 +125,14 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       setCurrentUser(userDetails);
       
-      // Fetch organization if user has one
+      // Fetch organization and subscription
       if (profile?.organization_id) {
         await fetchOrganization(profile.organization_id);
+        checkSubscriptionStatus();
       }
     } catch (error: any) {
-      console.log("Error fetching user details:", error.message);
-    } finally {
-      setLoading(false);
+      console.error("Error fetching user details:", error.message);
+      setCurrentUser(null);
     }
   };
 

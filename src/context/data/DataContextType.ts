@@ -83,8 +83,4 @@ export interface DataContextType {
 
     getCustomerAnalytics: (customerId: string) => Promise<{ lifetimeValue: number; totalInvoices: number; averageInvoiceValue: number; vehicles: Vehicle[]; invoiceHistory: Invoice[] }>;
     refreshAllData: () => Promise<void>;
-    
-    // Global loading states
-    isLoadingData: boolean;
-    loadingProgress: number;
 }
