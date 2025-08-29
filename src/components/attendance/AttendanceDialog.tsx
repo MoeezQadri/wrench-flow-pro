@@ -37,7 +37,7 @@ export function AttendanceDialog({
     try {
       await onSave(data);
       console.log("AttendanceDialog onSave completed successfully");
-      // Only close dialog if save was successful
+      // Close dialog immediately after successful save
       if (onOpenChange) {
         onOpenChange(false);
       }

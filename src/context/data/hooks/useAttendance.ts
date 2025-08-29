@@ -191,7 +191,6 @@ export const useAttendance = () => {
                 const result = data[0] as Attendance;
                 // Replace optimistic entry with real data
                 setAttendanceRecords((prev) => (prev || []).map(a => a.id === tempId ? result : a));
-                toast.success('Attendance recorded successfully');
                 console.log("Attendance added successfully:", result);
                 return result;
             }
