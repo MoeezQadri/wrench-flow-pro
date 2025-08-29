@@ -12,9 +12,41 @@ export const supabase = createClient<Database>(
   SUPABASE_URL, 
   SUPABASE_PUBLISHABLE_KEY,
   {
+    db: {
+      schema: 'public',
+    },
+    auth: {
+      autoRefreshToken: true,
+      persistSession: true,
+    },
     global: {
       headers: {
         'Content-Type': 'application/json',
+      },
+      fetch: (url, options = {}) => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+        
+        const enhancedOptions = {
+          ...options,
+          signal: controller.signal,
+        };
+
+        return fetch(url, enhancedOptions)
+          .finally(() => clearTimeout(timeoutId))
+          .catch((error) => {
+            if (error.name === 'AbortError') {
+              throw new Error('Request timeout - please check your connection and try again');
+            }
+            throw error;
+          });
       }
+    },
+    realtime: {
+      params: {
+        eventsPerSecond: 10,
+      },
+      heartbeatIntervalMs: 30000,
+      reconnectAfterMs: (tries) => Math.min(tries * 1000, 30000),
     }
   });

@@ -298,10 +298,23 @@ export const useCustomers = () => {
         setLoading(true);
         setError(null);
 
+        // Set up loading timeout
+        const loadingTimeout = setTimeout(() => {
+            console.warn('Customer loading timeout detected');
+            setError('Loading is taking longer than expected. You can try refreshing the page.');
+            toast.error('Loading customers is taking too long. Try refreshing the page.', {
+                action: {
+                    label: 'Refresh',
+                    onClick: () => window.location.reload(),
+                },
+            });
+        }, 15000);
+
         try {
             if (!organizationId) {
                 console.log("No organization ID, skipping customer load");
                 setCustomers([]);
+                clearTimeout(loadingTimeout);
                 setLoading(false);
                 return;
             }
@@ -313,8 +326,16 @@ export const useCustomers = () => {
             
             if (customersError) {
                 console.error('Error fetching customers:', customersError);
-                setError('Failed to load customers');
-                if (retryCount === 0) toast.error('Failed to load customers');
+                
+                let errorMessage = 'Failed to load customers';
+                if (customersError.message?.includes('JWT')) {
+                    errorMessage = 'Session expired. Please refresh the page and log in again.';
+                } else if (customersError.message?.includes('timeout')) {
+                    errorMessage = 'Request timed out. Please check your connection and try again.';
+                }
+                
+                setError(errorMessage);
+                if (retryCount === 0) toast.error(errorMessage);
                 throw customersError;
             } else {
                 const safeCustomersData = Array.isArray(customersData) ? customersData : [];
@@ -328,20 +349,29 @@ export const useCustomers = () => {
         } catch (error: any) {
             console.error('Unexpected error fetching customers:', error);
             
+            let errorMessage = error?.message || 'Unexpected error loading customers';
+            if (error?.name === 'AbortError') {
+                errorMessage = 'Request timeout - please check your connection and try again';
+            }
+            
             // Retry logic for unexpected errors
-            if (retryCount < 2) {
-                const delay = 1000 * (retryCount + 1);
+            if (retryCount < 2 && navigator.onLine) {
+                const delay = Math.min(1000 * Math.pow(2, retryCount), 5000);
                 console.log(`Retrying customer load after error in ${delay}ms (attempt ${retryCount + 1})`);
+                clearTimeout(loadingTimeout);
                 setTimeout(() => loadCustomers(retryCount + 1), delay);
                 return;
             }
             
-            const errorMsg = error?.name === 'AbortError' 
-                ? 'Request cancelled - please try again'
-                : error?.message || 'Unexpected error loading customers';
-            setError(errorMsg);
-            toast.error('Failed to load customers - please try refreshing');
+            setError(errorMessage);
+            toast.error('Failed to load customers - please try refreshing', {
+                action: {
+                    label: 'Retry',
+                    onClick: () => loadCustomers(0),
+                },
+            });
         } finally {
+            clearTimeout(loadingTimeout);
             setLoading(false);
         }
     };

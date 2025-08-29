@@ -1,48 +1,27 @@
 
-import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import type { Part } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-import { useOrganizationAwareQuery } from '@/hooks/useOrganizationAwareQuery';
+import { useEnhancedRealtime } from '@/hooks/useEnhancedRealtime';
+import { useEnhancedDataLoading } from '@/hooks/useEnhancedDataLoading';
 
 export const useParts = () => {
-    const [parts, setParts] = useState<Part[]>([]);
-    const { applyOrganizationFilter } = useOrganizationAwareQuery();
+    const { 
+        data: parts, 
+        setData: setParts, 
+        loading, 
+        error, 
+        loadData: loadParts,
+        forceRefresh 
+    } = useEnhancedDataLoading<Part>('parts');
 
-    // Set up real-time subscription for parts updates
-    useEffect(() => {
-        const channel = supabase
-            .channel('schema-db-changes')
-            .on(
-                'postgres_changes',
-                {
-                    event: '*',
-                    schema: 'public',
-                    table: 'parts'
-                },
-                (payload) => {
-                    console.log('Real-time parts update:', payload);
-                    
-                    if (payload.eventType === 'INSERT') {
-                        const newPart = payload.new as Part;
-                        setParts((prev) => [...prev, newPart]);
-                    } else if (payload.eventType === 'UPDATE') {
-                        const updatedPart = payload.new as Part;
-                        setParts((prev) => prev.map((part) => 
-                            part.id === updatedPart.id ? updatedPart : part
-                        ));
-                    } else if (payload.eventType === 'DELETE') {
-                        const deletedPart = payload.old as Part;
-                        setParts((prev) => prev.filter((part) => part.id !== deletedPart.id));
-                    }
-                }
-            )
-            .subscribe();
-
-        return () => {
-            supabase.removeChannel(channel);
-        };
-    }, []);
+    // Set up enhanced real-time subscription
+    const { isSubscribed, forceReconnect } = useEnhancedRealtime(
+        'parts',
+        parts,
+        setParts,
+        { conflictResolution: 'server-wins' }
+    );
 
     const addPart = async (part: Part) => {
         try {
@@ -129,30 +108,23 @@ export const useParts = () => {
         }
     };
 
-    const loadParts = async () => {
-        try {
-            console.log('Loading parts from database...');
-            const query = supabase.from('parts').select('*');
-            const { data: partsData, error: partsError } = await applyOrganizationFilter(query);
-            if (partsError) {
-                console.error('Error fetching parts:', partsError);
-                toast.error('Failed to load parts');
-            } else {
-                console.log('Parts loaded successfully:', partsData);
-                setParts(partsData || []);
-            }
-        } catch (error) {
-            console.error('Error fetching parts:', error);
-            toast.error('Failed to load parts');
-        }
+
+    // Wrapper to match expected interface
+    const loadPartsWrapper = async () => {
+        await loadParts();
     };
 
     return {
         parts,
         setParts,
+        loading,
+        error,
+        isSubscribed,
         addPart,
         removePart,
         updatePart,
-        loadParts
+        loadParts: loadPartsWrapper,
+        forceRefresh,
+        forceReconnect
     };
 };
