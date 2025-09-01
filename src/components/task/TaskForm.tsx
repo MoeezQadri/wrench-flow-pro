@@ -323,7 +323,7 @@ const TaskForm = ({ defaultValues, onSubmit, formId, task }: TaskFormProps) => {
                   <SelectContent>
                     <SelectItem value="unassigned">None</SelectItem>
                     {mechanics.length === 0 && !isLoadingMechanics && !mechanicsError && (
-                      <SelectItem value="" disabled>No mechanics available</SelectItem>
+                      <SelectItem value="no-mechanics" disabled>No mechanics available</SelectItem>
                     )}
                     {mechanics.map((mechanic) => (
                       <SelectItem key={mechanic.id} value={mechanic.id}>
