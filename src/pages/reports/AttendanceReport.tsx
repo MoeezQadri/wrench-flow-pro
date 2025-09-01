@@ -54,8 +54,8 @@ const AttendanceReport = () => {
   });
 
   // Calculate statistics
-  const totalPresent = filteredAttendance.filter(a => a.status === "approved" && a.check_in && a.check_out).length;
-  const totalLate = filteredAttendance.filter(a => a.status === "approved" && a.notes?.toLowerCase().includes("late")).length;
+  const totalPresent = filteredAttendance.filter(a => a.status === "approved" || a.status === "present").length;
+  const totalLate = filteredAttendance.filter(a => a.status === "late").length;
   const totalAbsent = filteredAttendance.filter(a => a.status === "rejected" || (!a.check_in && !a.check_out)).length;
   const totalHalfDay = filteredAttendance.filter(a =>
     a.status === "approved" && a.notes?.toLowerCase().includes("half-day")).length;
@@ -94,7 +94,7 @@ const AttendanceReport = () => {
       let statusDisplay = "Present";
       if (record.status === "rejected" || (!record.check_in && !record.check_out)) {
         statusDisplay = "Absent";
-      } else if (record.notes?.toLowerCase().includes("late")) {
+      } else if (record.status === "late") {
         statusDisplay = "Late";
       } else if (record.notes?.toLowerCase().includes("half-day")) {
         statusDisplay = "Half-day";
@@ -232,7 +232,7 @@ const AttendanceReport = () => {
                   if (record.status === "rejected" || (!record.check_in && !record.check_out)) {
                     statusDisplay = "Absent";
                     statusClass = "bg-red-100 text-red-800";
-                  } else if (record.notes?.toLowerCase().includes("late")) {
+                  } else if (record.status === "late") {
                     statusDisplay = "Late";
                     statusClass = "bg-yellow-100 text-yellow-800";
                   } else if (record.notes?.toLowerCase().includes("half-day")) {
