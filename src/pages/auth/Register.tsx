@@ -240,10 +240,8 @@ const Register: React.FC = () => {
           });
         }, 1000);
         
-        // Navigate after showing messages
-        setTimeout(() => {
-          navigate('/');
-        }, 2500);
+        // Don't navigate immediately - let user stay to see success message
+        // They can navigate manually or wait for email verification
       } else {
         // Edge case: no data and no error
         console.warn('Registration completed but no data returned');
@@ -257,9 +255,7 @@ const Register: React.FC = () => {
           ),
         });
         
-        setTimeout(() => {
-          navigate('/');
-        }, 2000);
+        // Don't auto-navigate - let user verify email first
       }
     } catch (err: any) {
       const errorMessage = getErrorMessage(err);

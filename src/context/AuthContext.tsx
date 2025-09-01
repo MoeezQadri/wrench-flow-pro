@@ -72,31 +72,52 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
 
   useEffect(() => {
-    const { data: listener } = supabase.auth.onAuthStateChange(async (event, session) => {
+    let isInitialized = false;
+    
+    console.log('[AuthContext] Initializing auth state listener...');
+    
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('[AuthContext] Auth state changed:', { event, hasSession: !!session, userId: session?.user?.id });
+      
+      // Synchronous state updates only
       setSession(session);
-
-      if (session) {
-        await fetchUser(session.user);
+      
+      if (session?.user) {
+        // Defer async operations to prevent deadlock
+        setTimeout(() => {
+          fetchUser(session.user);
+        }, 0);
       } else {
+        // Clear user state immediately
         setCurrentUser(null);
         setOrganization(null);
         setSubscribed(false);
         setSubscriptionTier(null);
         setSubscriptionEnd(null);
       }
-      setLoading(false);
-    });
-
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        fetchUser(session.user);
-      } else {
+      
+      if (isInitialized) {
         setLoading(false);
       }
     });
 
-    return () => listener?.subscription?.unsubscribe();
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('[AuthContext] Initial session check:', { hasSession: !!session, userId: session?.user?.id });
+      
+      if (session?.user) {
+        fetchUser(session.user);
+      } else {
+        setLoading(false);
+      }
+      
+      isInitialized = true;
+    });
+
+    return () => {
+      console.log('[AuthContext] Cleaning up auth listener...');
+      listener?.subscription?.unsubscribe();
+    };
   }, []);
 
 
@@ -194,23 +215,49 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = async () => {
     try {
-      await supabase.auth.signOut();
+      console.log('[AuthContext] Logging out user...');
+      
+      // Clear state immediately
       setCurrentUser(null);
       setSession(null);
+      setOrganization(null);
+      setSubscribed(false);
+      setSubscriptionTier(null);
+      setSubscriptionEnd(null);
+      
+      // Then sign out from Supabase
+      await supabase.auth.signOut();
+      
+      console.log('[AuthContext] Logout completed');
     } catch (error: any) {
       console.error("Logout error:", error.message);
+      // Even if signOut fails, we've cleared local state
     }
   };
 
   const signIn = async (email: string, password: string) => {
     try {
+      console.log('[AuthContext] Attempting sign in for:', email);
+      
+      // Clear any existing session state first
+      setCurrentUser(null);
+      setSession(null);
+      setOrganization(null);
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      return { data: data.session, error };
+      if (error) {
+        console.error('[AuthContext] Sign in error:', error);
+        return { data: null, error };
+      }
+
+      console.log('[AuthContext] Sign in successful:', { hasSession: !!data.session, userId: data.session?.user?.id });
+      return { data: data.session, error: null };
     } catch (error) {
+      console.error('[AuthContext] Sign in exception:', error);
       return { data: null, error: error as Error };
     }
   };
@@ -298,9 +345,21 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const signOut = async () => {
     try {
+      console.log('[AuthContext] Sign out requested...');
+      
+      // Clear state first
+      setCurrentUser(null);
+      setSession(null);
+      setOrganization(null);
+      setSubscribed(false);
+      setSubscriptionTier(null);
+      setSubscriptionEnd(null);
+      
       const { error } = await supabase.auth.signOut();
+      console.log('[AuthContext] Sign out completed:', { error });
       return { error };
     } catch (error) {
+      console.error('[AuthContext] Sign out exception:', error);
       return { error: error as Error };
     }
   };

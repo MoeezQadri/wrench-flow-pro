@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import AuthDebugPanel from '@/components/AuthDebugPanel';
 
 interface LoginForm {
   email: string;
@@ -32,6 +33,8 @@ const Login: React.FC = () => {
     setLoading(true);
     setError('');
 
+    console.log('[Login] Attempting login for:', formData.email);
+
     if (!signIn) {
       setError('Authentication service unavailable');
       setLoading(false);
@@ -39,20 +42,34 @@ const Login: React.FC = () => {
     }
 
     try {
+      // Clear any existing session issues first
+      await supabase.auth.signOut();
+      
+      // Small delay to ensure clean state
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       const { data, error } = await signIn(formData.email, formData.password);
 
       if (error) {
-        if (error.message.includes('credentials')) {
+        console.error('[Login] Authentication error:', error);
+        if (error.message.includes('credentials') || error.message.includes('Invalid login')) {
           setError('Invalid email or password');
+        } else if (error.message.includes('Email not confirmed')) {
+          setError('Please check your email and click the verification link before logging in');
         } else {
           setError(error.message || 'An error occurred during login');
         }
       } else if (data) {
+        console.log('[Login] Login successful, navigating...');
         toast.success('Login successful');
-        navigate('/');
+        
+        // Small delay to ensure auth state is updated
+        setTimeout(() => {
+          navigate('/');
+        }, 100);
       }
     } catch (err: any) {
-      console.error('Login error:', err);
+      console.error('[Login] Login exception:', err);
       setError(err?.message || 'An unexpected error occurred');
     } finally {
       setLoading(false);
@@ -167,6 +184,11 @@ const Login: React.FC = () => {
               </p>
             </div>
           </div>
+
+          {/* Debug panel for troubleshooting */}
+          {error && error.includes('Invalid email or password') && (
+            <AuthDebugPanel />
+          )}
         </div>
       </div>
     </div>
