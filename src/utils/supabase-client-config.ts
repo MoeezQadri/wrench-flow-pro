@@ -1,53 +1,9 @@
-import { createClient } from '@supabase/supabase-js';
-import type { Database } from '@/integrations/supabase/types';
+import { supabase } from '@/integrations/supabase/client';
+
+// Use existing supabase client to avoid multiple instances
+export const supabaseEnhanced = supabase;
 
 const SUPABASE_URL = "https://zugmebtirwpdkblijlvx.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp1Z21lYnRpcndwZGtibGlqbHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM2MzU4MTEsImV4cCI6MjA1OTIxMTgxMX0.qSHZrBUacqnjqBH9XDY_6Bq-C5jYpdJTg9V_kN4ghiw";
-
-// Enhanced Supabase client with timeout and retry configuration
-export const supabaseEnhanced = createClient<Database>(
-  SUPABASE_URL, 
-  SUPABASE_PUBLISHABLE_KEY,
-  {
-    db: {
-      schema: 'public',
-    },
-    auth: {
-      autoRefreshToken: true,
-      persistSession: true,
-    },
-    global: {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      fetch: (url, options = {}) => {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
-        
-        const enhancedOptions = {
-          ...options,
-          signal: controller.signal,
-        };
-
-        return fetch(url, enhancedOptions)
-          .finally(() => clearTimeout(timeoutId))
-          .catch((error) => {
-            if (error.name === 'AbortError') {
-              throw new Error('Request timeout - please check your connection and try again');
-            }
-            throw error;
-          });
-      }
-    },
-    realtime: {
-      params: {
-        eventsPerSecond: 10,
-      },
-      heartbeatIntervalMs: 30000,
-      reconnectAfterMs: (tries) => Math.min(tries * 1000, 30000),
-    }
-  }
-);
 
 // Connection monitoring utilities
 export class ConnectionMonitor {

@@ -24,21 +24,35 @@ export const GlobalRecoveryButton: React.FC = () => {
   const [connectionStatus, setConnectionStatus] = React.useState(true);
   
   React.useEffect(() => {
-    const monitor = ConnectionMonitor.getInstance();
-    
-    const handleConnectionChange = (isOnline: boolean) => {
-      setConnectionStatus(isOnline);
-    };
-    
-    monitor.addListener(handleConnectionChange);
-    
-    // Initial status
-    setConnectionStatus(navigator.onLine);
-    
-    return () => {
-      // Note: In a real implementation, you'd want a way to remove listeners
-      // For now, this is acceptable as the component should persist throughout the app lifecycle
-    };
+    try {
+      const monitor = ConnectionMonitor.getInstance();
+      
+      const handleConnectionChange = (isOnline: boolean) => {
+        setConnectionStatus(isOnline);
+      };
+      
+      const removeListener = monitor.addListener(handleConnectionChange);
+      
+      // Initial status
+      setConnectionStatus(navigator.onLine);
+      
+      return removeListener;
+    } catch (error) {
+      console.warn('ConnectionMonitor failed to initialize:', error);
+      // Fallback to basic online/offline detection
+      setConnectionStatus(navigator.onLine);
+      
+      const handleOnline = () => setConnectionStatus(true);
+      const handleOffline = () => setConnectionStatus(false);
+      
+      window.addEventListener('online', handleOnline);
+      window.addEventListener('offline', handleOffline);
+      
+      return () => {
+        window.removeEventListener('online', handleOnline);
+        window.removeEventListener('offline', handleOffline);
+      };
+    }
   }, []);
 
   const recoveryActions = getRecoveryActions();
