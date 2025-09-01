@@ -67,6 +67,7 @@ export const useTasks = () => {
 
     const addTask = async (task: Task) => {
         try {
+            console.log('Adding task to database:', task);
             const dbTask = transformTaskForDB(task);
             const { data, error } = await supabase.from('tasks').insert(dbTask).select();
             if (error) {
@@ -76,8 +77,14 @@ export const useTasks = () => {
             }
             if (data && data.length > 0) {
                 const result = transformTask(data[0]);
-                setTasks((prev) => [...prev, result]);
+                console.log('Task added successfully, updating local state:', result);
+                setTasks((prev) => {
+                    const updated = [...prev, result];
+                    console.log('Updated tasks list:', updated.length);
+                    return updated;
+                });
                 toast.success('Task added successfully');
+                return result;
             }
         } catch (error) {
             console.error('Error adding task:', error);
@@ -105,6 +112,7 @@ export const useTasks = () => {
 
     const updateTask = async (id: string, updates: Partial<Task>) => {
         try {
+            console.log('Updating task in database:', id, updates);
             const dbUpdates = transformTaskForDB(updates as Task);
             const { data, error } = await supabase
                 .from('tasks')
@@ -120,8 +128,14 @@ export const useTasks = () => {
 
             if (data && data.length > 0) {
                 const result = transformTask(data[0]);
-                setTasks((prev) => prev.map((item) => item.id === id ? result : item));
+                console.log('Task updated successfully, updating local state:', result);
+                setTasks((prev) => {
+                    const updated = prev.map((item) => item.id === id ? result : item);
+                    console.log('Updated tasks list:', updated.length);
+                    return updated;
+                });
                 toast.success('Task updated successfully');
+                return result;
             }
         } catch (error) {
             console.error('Error updating task:', error);
@@ -132,6 +146,7 @@ export const useTasks = () => {
 
     const loadTasks = async () => {
         try {
+            console.log('Loading tasks from database...');
             const query = supabase.from('tasks').select('*');
             const { data: tasksData, error: tasksError } = await applyOrganizationFilter(query);
             if (tasksError) {
@@ -139,6 +154,7 @@ export const useTasks = () => {
                 toast.error('Failed to load tasks');
             } else {
                 const transformedTasks = (tasksData || []).map(transformTask);
+                console.log('Tasks loaded successfully:', transformedTasks.length);
                 setTasks(transformedTasks);
             }
         } catch (error) {

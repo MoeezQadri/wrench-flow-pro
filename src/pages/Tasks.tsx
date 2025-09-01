@@ -139,26 +139,27 @@ const Tasks = () => {
 
   const handleSaveTask = async (task: Task) => {
     try {
+      console.log("Saving task:", task);
+      
       // Check if this is an existing task or new task
       const existingTask = tasksList.find(t => t.id === task.id);
       
       if (existingTask) {
+        console.log("Updating existing task");
         await updateTask(task.id, task);
       } else {
+        console.log("Adding new task");
         await addTask(task);
       }
       
-      // Update local state as well for immediate UI update
-      setTasksList(prev => {
-        const index = prev.findIndex(t => t.id === task.id);
-        if (index >= 0) {
-          const updated = [...prev];
-          updated[index] = task;
-          return updated;
-        } else {
-          return [...prev, task];
-        }
-      });
+      // Force reload tasks from context after successful save
+      console.log("Reloading tasks after save");
+      await loadTasks();
+      
+      setIsDialogOpen(false);
+      setSelectedTask(undefined);
+      
+      toast.success(existingTask ? "Task updated successfully" : "Task created successfully");
     } catch (error) {
       console.error("Error saving task:", error);
       toast.error("Failed to save task");

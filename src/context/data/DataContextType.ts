@@ -46,9 +46,9 @@ export interface DataContextType {
     loadExpenses: () => Promise<void>;
 
     tasks: Task[];
-    addTask: (task: Task) => Promise<void>;
+    addTask: (task: Task) => Promise<Task>;
     removeTask: (id: string) => Promise<void>;
-    updateTask: (id: string, updates: Partial<Task>) => Promise<void>;
+    updateTask: (id: string, updates: Partial<Task>) => Promise<Task>;
     loadTasks: () => Promise<void>;
 
     parts: Part[];

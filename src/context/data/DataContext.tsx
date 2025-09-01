@@ -37,10 +37,12 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     const refreshAllData = useCallback(async () => {
         // Simple refresh - reload key data
         await Promise.allSettled([
+            mechanicsHook.loadMechanics(),
             customersHook.loadCustomers(),
             invoicesHook.loadInvoices(),
+            tasksHook.loadTasks(),
         ]);
-    }, [customersHook.loadCustomers, invoicesHook.loadInvoices]);
+    }, [mechanicsHook.loadMechanics, customersHook.loadCustomers, invoicesHook.loadInvoices, tasksHook.loadTasks]);
 
     const getCustomerAnalytics = async (customerId: string): Promise<{ lifetimeValue: number; totalInvoices: number; averageInvoiceValue: number; vehicles: Vehicle[]; invoiceHistory: Invoice[] }> => {
         const vehicles: Vehicle[] = await vehiclesHook.getVehiclesByCustomerId(customerId);

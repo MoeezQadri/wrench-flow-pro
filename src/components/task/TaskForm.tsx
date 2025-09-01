@@ -61,9 +61,12 @@ const TaskForm = ({ defaultValues, onSubmit, formId, task }: TaskFormProps) => {
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [invoices, setInvoices] = useState<any[]>([]);
   const [activeInvoices, setActiveInvoices] = useState<any[]>([]);
+  const [isLoadingMechanics, setIsLoadingMechanics] = useState(true);
+  const [mechanicsError, setMechanicsError] = useState<string | null>(null);
+  
   const {
     mechanics: mechanics_, customers: customers_, invoices: invoices_,
-    getVehiclesByCustomerId,
+    getVehiclesByCustomerId, loadMechanics,
   } = useDataContext();
   const [selectedCustomer, setSelectedCustomer] = useState<string>("");
 
@@ -89,19 +92,43 @@ const TaskForm = ({ defaultValues, onSubmit, formId, task }: TaskFormProps) => {
 
   useEffect(() => {
     const loadData = async () => {
-      setMechanics(mechanics_);
-      setCustomers(customers_);
-      setInvoices(invoices_);
-      
-      // Filter for active invoices only (open, in-progress)
-      const activeInvoicesList = invoices_.filter(invoice => 
-        invoice.status === 'open' || invoice.status === 'in-progress'
-      );
-      setActiveInvoices(activeInvoicesList);
+      try {
+        setIsLoadingMechanics(true);
+        setMechanicsError(null);
+        
+        // Ensure mechanics are loaded if they're empty
+        if (mechanics_.length === 0) {
+          console.log("Loading mechanics in TaskForm...");
+          await loadMechanics();
+        }
+        
+        setMechanics(mechanics_);
+        setCustomers(customers_);
+        setInvoices(invoices_);
+        
+        // Filter for active invoices only (open, in-progress)
+        const activeInvoicesList = invoices_.filter(invoice => 
+          invoice.status === 'open' || invoice.status === 'in-progress'
+        );
+        setActiveInvoices(activeInvoicesList);
+        
+        console.log("TaskForm data loaded:", {
+          mechanics: mechanics_.length,
+          customers: customers_.length,
+          invoices: invoices_.length,
+          activeInvoices: activeInvoicesList.length
+        });
+        
+      } catch (error) {
+        console.error("Error loading TaskForm data:", error);
+        setMechanicsError("Failed to load mechanics");
+      } finally {
+        setIsLoadingMechanics(false);
+      }
     };
 
     loadData();
-  }, [mechanics_, customers_, invoices_]);
+  }, [mechanics_, customers_, invoices_, loadMechanics]);
 
   useEffect(() => {
     const loadVehicles = async () => {
@@ -277,14 +304,27 @@ const TaskForm = ({ defaultValues, onSubmit, formId, task }: TaskFormProps) => {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Assigned Mechanic</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
+                <Select onValueChange={field.onChange} value={field.value} disabled={isLoadingMechanics}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select mechanic" />
+                      <SelectValue 
+                        placeholder={
+                          isLoadingMechanics 
+                            ? "Loading mechanics..." 
+                            : mechanicsError 
+                            ? "Error loading mechanics" 
+                            : mechanics.length === 0 
+                            ? "No mechanics available" 
+                            : "Select mechanic"
+                        } 
+                      />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
                     <SelectItem value="unassigned">None</SelectItem>
+                    {mechanics.length === 0 && !isLoadingMechanics && !mechanicsError && (
+                      <SelectItem value="" disabled>No mechanics available</SelectItem>
+                    )}
                     {mechanics.map((mechanic) => (
                       <SelectItem key={mechanic.id} value={mechanic.id}>
                         {mechanic.name}
@@ -292,6 +332,9 @@ const TaskForm = ({ defaultValues, onSubmit, formId, task }: TaskFormProps) => {
                     ))}
                   </SelectContent>
                 </Select>
+                {mechanicsError && (
+                  <p className="text-sm text-red-600">{mechanicsError}</p>
+                )}
                 <FormMessage />
               </FormItem>
             )}
