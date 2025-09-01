@@ -59,6 +59,8 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [loading, setLoading] = useState(true);
   const [session, setSession] = useState<any>(null);
+  const [loadingTimeout, setLoadingTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [loadingStartTime] = useState<number>(Date.now());
   
   // Subscription state
   const [subscribed, setSubscribed] = useState(false);
@@ -70,6 +72,29 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     || currentUser?.role === 'superadmin'
     || currentUser?.role === 'owner';
 
+  // Loading timeout management
+  useEffect(() => {
+    if (loading) {
+      console.log('[AuthContext] Starting loading timeout...');
+      
+      const timeout = setTimeout(() => {
+        const duration = Date.now() - loadingStartTime;
+        console.warn('[AuthContext] Loading timeout reached after', duration, 'ms - forcing completion');
+        setLoading(false);
+      }, 30000); // 30 second timeout
+      
+      setLoadingTimeout(timeout);
+      
+      return () => {
+        if (timeout) clearTimeout(timeout);
+      };
+    } else {
+      if (loadingTimeout) {
+        clearTimeout(loadingTimeout);
+        setLoadingTimeout(null);
+      }
+    }
+  }, [loading, loadingTimeout, loadingStartTime]);
 
   useEffect(() => {
     let isInitialized = false;
@@ -123,6 +148,7 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const fetchUser = async (user: SupabaseUser) => {
     try {
+      console.log('[AuthContext] Fetching user profile for:', user.id);
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('*')
@@ -145,15 +171,22 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       };
 
       setCurrentUser(userDetails);
+      console.log('[AuthContext] User profile loaded:', { userId: userDetails.id, role: userDetails.role });
       
       // Fetch organization and subscription
       if (profile?.organization_id) {
         await fetchOrganization(profile.organization_id);
         checkSubscriptionStatus();
       }
+      
+      // Loading complete
+      setLoading(false);
+      console.log('[AuthContext] Loading complete after user fetch');
     } catch (error: any) {
       console.error("Error fetching user details:", error.message);
       setCurrentUser(null);
+      setLoading(false);
+      console.log('[AuthContext] Loading complete after error');
     }
   };
 
@@ -388,7 +421,7 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   return (
     <AuthContext.Provider value={value}>
-      {!loading && children}
+      {children}
     </AuthContext.Provider>
   );
 };
