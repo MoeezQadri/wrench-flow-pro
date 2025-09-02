@@ -30,7 +30,6 @@ import CustomerDetails from '@/pages/CustomerDetails';
 import InvoiceDetails from '@/pages/InvoiceDetails';
 import EditInvoice from '@/pages/EditInvoice';
 import Vehicles from '@/pages/Vehicles';
-import NewVehicle from '@/pages/NewVehicle';
 
 // Lazy load other pages for performance
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
@@ -105,7 +104,6 @@ function App() {
                       <Route path="settings" element={<Settings />} />
                       <Route path="attendance" element={<Attendance />} />
                       <Route path="vehicles" element={<Vehicles />} />
-                      <Route path="vehicles/new" element={<NewVehicle />} />
                       <Route path="users" element={<Users />} />
                       <Route path="finance" element={<Finance />} />
                     </Route>
