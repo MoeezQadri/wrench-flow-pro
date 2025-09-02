@@ -30,10 +30,9 @@ import { useSmartDataLoading } from "@/hooks/useSmartDataLoading";
 interface InvoiceFormProps {
   isEditing?: boolean;
   invoiceData?: Invoice | null;
-  preselectedCustomerId?: string;
 }
 
-const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceData = null, preselectedCustomerId }) => {
+const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceData = null }) => {
   const navigate = useNavigate();
   const { formatCurrency, getCurrencySymbol } = useOrganizationSettings();
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
@@ -272,14 +271,6 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
       initialDataLoaded.current = true;
     }
   }, [invoiceData?.id]); // Only depend on invoice ID to prevent form reinitialization
-
-  // Set preselected customer when provided (from URL params)
-  useEffect(() => {
-    if (preselectedCustomerId && !isEditing && !selectedCustomerId) {
-      console.log("Setting preselected customer:", preselectedCustomerId);
-      setSelectedCustomerId(preselectedCustomerId);
-    }
-  }, [preselectedCustomerId, isEditing, selectedCustomerId]);
 
   // Load assigned parts and tasks - skip auto-assignment for editing invoices
   useEffect(() => {

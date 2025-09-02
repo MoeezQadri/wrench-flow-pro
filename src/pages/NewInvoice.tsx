@@ -1,13 +1,10 @@
 
 import { ArrowLeft } from "lucide-react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { InvoiceFormWithLoader } from "@/components/InvoiceFormWithLoader";
 
 const NewInvoice = () => {
-  const [searchParams] = useSearchParams();
-  const customerId = searchParams.get('customerId');
-
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2">
@@ -19,7 +16,7 @@ const NewInvoice = () => {
         <h1 className="text-3xl font-bold tracking-tight">New Invoice</h1>
       </div>
 
-      <InvoiceFormWithLoader preselectedCustomerId={customerId || undefined} />
+      <InvoiceFormWithLoader />
     </div>
   );
 };

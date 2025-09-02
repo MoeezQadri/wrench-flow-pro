@@ -10,10 +10,9 @@ const InvoiceForm = React.lazy(() => import('@/components/InvoiceForm'));
 interface InvoiceFormWithLoaderProps {
   isEditing?: boolean;
   invoiceData?: Invoice | null;
-  preselectedCustomerId?: string;
 }
 
-export function InvoiceFormWithLoader({ isEditing = false, invoiceData = null, preselectedCustomerId }: InvoiceFormWithLoaderProps) {
+export function InvoiceFormWithLoader({ isEditing = false, invoiceData = null }: InvoiceFormWithLoaderProps) {
   const { customers, parts, tasks, mechanics } = useDataContext();
   const { loadMultipleDataTypes, getLoadingState } = useIncrementalDataLoading();
   const [isReady, setIsReady] = useState(false);
@@ -50,7 +49,7 @@ export function InvoiceFormWithLoader({ isEditing = false, invoiceData = null, p
 
   return (
     <React.Suspense fallback={<InvoiceFormSkeleton />}>
-      <InvoiceForm isEditing={isEditing} invoiceData={invoiceData} preselectedCustomerId={preselectedCustomerId} />
+      <InvoiceForm isEditing={isEditing} invoiceData={invoiceData} />
     </React.Suspense>
   );
 }

@@ -66,14 +66,8 @@ const NewVehicle: React.FC = () => {
 
       toast.success("Vehicle created successfully!");
       
-      // Check if we came from invoice creation and redirect back with customer ID
-      const referrer = document.referrer;
-      if (referrer.includes('/invoices/new') && customerId) {
-        navigate(`/invoices/new?customerId=${customerId}`);
-      } else {
-        // Navigate back to the previous page or to vehicles list
-        navigate(-1);
-      }
+      // Navigate back to the previous page or to vehicles list
+      navigate(-1);
     } catch (error) {
       console.error('Error creating vehicle:', error);
       toast.error("Failed to create vehicle");
