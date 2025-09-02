@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { PlusCircle, RefreshCw } from "lucide-react";
 import { Customer, Vehicle } from "@/types";
 import { useDataContext } from '@/context/data/DataContext';
-import { Link } from "react-router-dom";
 import { toast } from "sonner";
+import VehicleDialog from "@/components/VehicleDialog";
 interface CustomerVehicleSelectionProps {
   selectedCustomerId: string;
   onCustomerIdChange: (customerId: string) => void;
@@ -31,12 +31,14 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [isLoadingVehicles, setIsLoadingVehicles] = useState(false);
   const [isLoadingCustomers, setIsLoadingCustomers] = useState(false);
+  const [vehicleDialogOpen, setVehicleDialogOpen] = useState(false);
   const loadedCustomerRef = useRef<string>("");
   const hasInitiallyLoaded = useRef(false);
   const {
     customers,
     getVehiclesByCustomerId,
-    loadCustomers
+    loadCustomers,
+    addVehicle
   } = useDataContext();
 
   // Load customers on mount if empty
@@ -99,6 +101,25 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
     }
     // Reset the loaded customer ref to allow loading vehicles for the new customer
     loadedCustomerRef.current = "";
+  };
+
+  const handleAddVehicle = () => {
+    setVehicleDialogOpen(true);
+  };
+
+  const handleVehicleSave = async (vehicle: Vehicle) => {
+    try {
+      await addVehicle(vehicle);
+      // Refresh vehicles for the current customer
+      const updatedVehicles = await getVehiclesByCustomerId(selectedCustomerId);
+      setVehicles(updatedVehicles);
+      // Select the newly created vehicle
+      onVehicleIdChange(vehicle.id);
+      toast.success("Vehicle added successfully!");
+    } catch (error) {
+      console.error("Error adding vehicle:", error);
+      toast.error("Failed to add vehicle");
+    }
   };
 
   // Find the selected vehicle to display its name - prefer from loaded vehicles, fallback to vehicleInfo
@@ -170,8 +191,9 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
         <div className="flex justify-between items-center mb-2 min-h-[32px]">
           <Label htmlFor="vehicle">Vehicle *</Label>
           <div className="flex gap-2">
-            {selectedCustomerId && !isEditing && <Button type="button" variant="outline" size="sm" asChild>
-                <Link to={`/vehicles/new?customerId=${selectedCustomerId}`}>Add Vehicle</Link>
+            {selectedCustomerId && !isEditing && <Button type="button" variant="outline" size="sm" onClick={handleAddVehicle}>
+                <PlusCircle className="h-4 w-4 mr-1" />
+                Add Vehicle
               </Button>}
           </div>
         </div>
@@ -188,6 +210,13 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
           </SelectContent>
         </Select>
       </div>
+      
+      <VehicleDialog
+        open={vehicleDialogOpen}
+        onOpenChange={setVehicleDialogOpen}
+        onSave={handleVehicleSave}
+        customerId={selectedCustomerId}
+      />
     </div>;
 };
 export default CustomerVehicleSelection;
