@@ -13,6 +13,7 @@ import { nanoid } from "nanoid";
 import { useOrganizationSettings } from "@/hooks/useOrganizationSettings";
 import { usePayments } from "@/context/data/hooks/usePayments";
 import { useOrganizationContext } from "@/hooks/useOrganizationContext";
+import { useAuthContext } from "@/context/AuthContext";
 import { toast } from "sonner";
 
 interface PaymentsSectionProps {
@@ -29,7 +30,11 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({ payments, setPayments
   const { formatCurrency } = useOrganizationSettings();
   const { setValue, watch } = useFormContext();
   const { addPayment, removePayment } = usePayments();
-  const selectedOrganizationId = ''; // Temporarily disabled
+  const { currentUser } = useAuthContext();
+  const { selectedOrganizationId } = useOrganizationContext();
+  
+  // Get organization ID from current user or selected organization
+  const organizationId = selectedOrganizationId || currentUser?.organization_id || '';
   const status = watch("status");
 
   // Determine if payments can be edited based on invoice status
@@ -49,7 +54,7 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({ payments, setPayments
     }
 
     try {
-      if (invoiceId && selectedOrganizationId) {
+      if (invoiceId && organizationId) {
         // If we have an invoice ID, save to database immediately
         const newPayment = await addPayment({
           invoice_id: invoiceId,
@@ -57,7 +62,7 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({ payments, setPayments
           method: paymentMethod,
           date: new Date().toISOString(),
           notes: paymentNotes || undefined,
-          organization_id: selectedOrganizationId
+          organization_id: organizationId
         });
         
         console.log("PAYMENTS_SECTION: Payment saved to database:", newPayment);
@@ -70,7 +75,8 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({ payments, setPayments
           amount: amount,
           date: new Date().toISOString(),
           method: paymentMethod,
-          notes: paymentNotes || null
+          notes: paymentNotes || null,
+          organization_id: organizationId
         };
 
         console.log("PAYMENTS_SECTION: Adding temporary payment:", tempPayment);
@@ -93,7 +99,7 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({ payments, setPayments
       console.error("Error adding payment:", error);
       // Error already handled by the hook with toast
     }
-  }, [paymentAmount, paymentMethod, paymentNotes, payments, total, invoiceId, selectedOrganizationId, addPayment, setPayments, setValue, formatCurrency]);
+  }, [paymentAmount, paymentMethod, paymentNotes, payments, total, invoiceId, organizationId, addPayment, setPayments, setValue, formatCurrency]);
 
   const handleRemovePayment = useCallback(async (paymentId: string) => {
     try {

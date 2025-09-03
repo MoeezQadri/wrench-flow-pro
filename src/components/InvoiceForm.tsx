@@ -625,7 +625,8 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
           discountType: discountType,
           discountValue: discountValue,
           notes: notes,
-          items: mergedItems
+          items: mergedItems,
+          payments: payments
         };
 
         console.log("Calling optimized invoice creation with:", invoiceCreationData);
@@ -966,15 +967,13 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
             </div>
           </div>
 
-          {/* Payments Section - Only show when editing */}
-          {isEditing && (
-            <PaymentsSection
-              payments={payments}
-              setPayments={setPayments}
-              total={totals.total}
-              invoiceId={invoiceData?.id}
-            />
-          )}
+          {/* Payments Section - Show for both new and edit invoices */}
+          <PaymentsSection
+            payments={payments}
+            setPayments={setPayments}
+            total={totals.total}
+            invoiceId={invoiceData?.id}
+          />
 
           {/* Submit Button */}
           <Button 

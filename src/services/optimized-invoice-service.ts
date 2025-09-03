@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import { Invoice, InvoiceItem, Part, Task } from '@/types';
+import { Invoice, InvoiceItem, Part, Task, Payment } from '@/types';
 import { toast } from 'sonner';
 
 export interface CreateInvoiceData {
@@ -11,6 +11,7 @@ export interface CreateInvoiceData {
   discountValue: number;
   notes: string;
   items: InvoiceItem[];
+  payments?: Payment[];
 }
 
 export interface BatchPartUpdate {
@@ -198,10 +199,36 @@ export const createInvoiceOptimized = async (invoiceData: CreateInvoiceData): Pr
       await processItemUpdatesOptimized(invoiceData.items, invoiceId, invoice.organization_id);
     }
 
+    // Batch insert payments if any exist
+    const paymentsToReturn: Payment[] = [];
+    if (invoiceData.payments && invoiceData.payments.length > 0) {
+      const paymentsToInsert = invoiceData.payments.map(payment => ({
+        id: crypto.randomUUID(),
+        invoice_id: invoiceId,
+        amount: payment.amount,
+        method: payment.method,
+        date: payment.date,
+        notes: payment.notes || null,
+        organization_id: invoice.organization_id
+      }));
+
+      const { data: insertedPayments, error: paymentsError } = await supabase
+        .from('payments')
+        .insert(paymentsToInsert)
+        .select('*');
+
+      if (paymentsError) {
+        console.error('Error creating payments:', paymentsError);
+        throw new Error(`Failed to create payments: ${paymentsError.message}`);
+      }
+
+      paymentsToReturn.push(...(insertedPayments || []));
+    }
+
     return {
       ...invoice,
       items: invoiceData.items,
-      payments: []
+      payments: paymentsToReturn
     } as Invoice;
 
   } catch (error) {

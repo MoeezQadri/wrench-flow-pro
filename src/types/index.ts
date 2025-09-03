@@ -47,6 +47,7 @@ export interface Payment {
   method: string;
   date: string;
   notes?: string;
+  organization_id?: string;
 }
 
 export interface Invoice {
