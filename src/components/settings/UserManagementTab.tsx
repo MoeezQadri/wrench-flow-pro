@@ -65,14 +65,11 @@ const UserManagementTab = () => {
     try {
       console.log('Loading users for organization:', currentUser.organization_id);
       
-      // For now, we'll just get the basic profile data
-      // In a production app, you'd want to create a proper view or function
-      // that joins profiles with auth.users to get email addresses
-      const { data: usersData, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('organization_id', currentUser.organization_id)
-        .order('created_at', { ascending: false });
+      // Use the new database function to get users with emails
+      const { data: usersData, error } = await supabase.rpc(
+        'get_organization_users_with_emails',
+        { org_id: currentUser.organization_id }
+      );
 
       console.log('Users query result:', { usersData, error });
 
@@ -80,11 +77,15 @@ const UserManagementTab = () => {
         console.error('Error loading users:', error);
         toast.error('Failed to load users');
       } else {
-        // For now, we'll use the current user's email for demonstration
-        // In production, you'd get each user's email from the join
+        // Transform the data to match our interface
         const transformedUsers = (usersData || []).map(user => ({
-          ...user,
-          email: user.id === currentUser?.id ? session?.user?.email : `user-${user.id.slice(0,8)}@example.com`
+          id: user.id,
+          name: user.name || '',
+          role: user.role,
+          is_active: user.is_active,
+          created_at: user.created_at,
+          lastLogin: user.lastLogin,
+          email: user.email
         }));
         console.log('Transformed users:', transformedUsers);
         setUsers(transformedUsers);
@@ -234,8 +235,10 @@ const UserManagementTab = () => {
   };
 
   const getUserStatus = (user: OrganizationUser) => {
-    // Check if user is pending invitation (no name set or never logged in)
-    const isPendingInvite = !user.name || user.name.trim() === '' || !user.lastLogin;
+    // Check if user is truly pending invitation:
+    // - Empty or null name AND never logged in (null lastLogin)
+    // This prevents showing active users as "Pending Invite" just because lastLogin is null
+    const isPendingInvite = (!user.name || user.name.trim() === '') && !user.lastLogin;
     
     if (!user.is_active) {
       return { status: 'Inactive', variant: 'destructive' as const };

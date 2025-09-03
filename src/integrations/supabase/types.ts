@@ -1100,6 +1100,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_current_user_organization: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_inactive_users: {
         Args: { days_inactive?: number }
         Returns: {
@@ -1108,6 +1112,20 @@ export type Database = {
           id: string
           last_login: string
           name: string
+        }[]
+      }
+      get_organization_users_with_emails: {
+        Args: { org_id?: string }
+        Returns: {
+          created_at: string
+          email: string
+          id: string
+          is_active: boolean
+          lastLogin: string
+          name: string
+          organization_id: string
+          role: string
+          updated_at: string
         }[]
       }
       get_user_profile: {
@@ -1129,6 +1147,10 @@ export type Database = {
         Returns: boolean
       }
       is_current_user_superadmin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      is_organization_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }

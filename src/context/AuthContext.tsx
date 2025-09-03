@@ -173,6 +173,18 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setCurrentUser(userDetails);
       console.log('[AuthContext] User profile loaded:', { userId: userDetails.id, role: userDetails.role });
       
+      // Update last login timestamp
+      try {
+        await supabase
+          .from('profiles')
+          .update({ lastLogin: new Date().toISOString() })
+          .eq('id', user.id);
+        console.log('[AuthContext] Last login timestamp updated');
+      } catch (loginError) {
+        console.error('[AuthContext] Failed to update last login:', loginError);
+        // Don't fail the entire login process if this fails
+      }
+      
       // Fetch organization and subscription
       if (profile?.organization_id) {
         await fetchOrganization(profile.organization_id);
