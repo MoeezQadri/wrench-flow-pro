@@ -9,7 +9,10 @@ interface PrivateRouteProps {
 }
 
 const PrivateRoute = ({ children }: PrivateRouteProps) => {
-  const { isAuthenticated, currentUser, isSuperAdmin, loading } = useAuthContext();
+  const authContext = useAuthContext();
+  const { isAuthenticated, currentUser, loading } = authContext;
+  // Safe access to isSuperAdmin with fallback
+  const isSuperAdmin = authContext.isSuperAdmin || false;
   const location = useLocation();
 
   // Save last valid route
