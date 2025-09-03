@@ -13,6 +13,7 @@ const SetupPassword = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   
+  const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -95,6 +96,15 @@ const SetupPassword = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!name.trim()) {
+      toast({
+        variant: "destructive",
+        title: "Name is required",
+        description: "Please enter your full name.",
+      });
+      return;
+    }
+
     const passwordError = validatePassword(password);
     if (passwordError) {
       toast({
@@ -135,7 +145,7 @@ const SetupPassword = () => {
             id: user.user.id,
             organization_id: metadata.organization_id,
             role: metadata.role || 'member',
-            name: '', // User can update this later in their profile
+            name: name.trim(),
             is_active: true
           });
 
@@ -192,6 +202,18 @@ const SetupPassword = () => {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Full Name</Label>
+              <Input
+                id="name"
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Enter your full name"
+                required
+              />
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="password">New Password</Label>
               <div className="relative">
@@ -258,7 +280,7 @@ const SetupPassword = () => {
             <Button 
               type="submit" 
               className="w-full" 
-              disabled={loading || !password || !confirmPassword}
+              disabled={loading || !name.trim() || !password || !confirmPassword}
             >
               {loading ? (
                 <>
