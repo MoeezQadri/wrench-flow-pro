@@ -6,7 +6,7 @@ import { Separator } from '@/components/ui/separator';
 import { useAuthContext } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Users, CreditCard, RefreshCw, Settings, CheckCircle, AlertCircle, Star, Crown, Zap, Building2, Calendar, ExternalLink } from 'lucide-react';
+import { Users, CreditCard, RefreshCw, CheckCircle, AlertCircle, Star, Crown, Zap, Building2, Calendar } from 'lucide-react';
 interface SubscriptionPlan {
   id: string;
   name: string;
@@ -29,7 +29,6 @@ const SubscriptionSettingsTab = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
-  const [managingSubscription, setManagingSubscription] = useState(false);
 
   // Only owners and admins can manage subscriptions organization-wide
   const canManageSubscription = currentUser?.role === 'owner' || currentUser?.role === 'admin';
@@ -100,24 +99,6 @@ const SubscriptionSettingsTab = () => {
       toast.error(`Failed to start checkout process: ${error.message || 'Unknown error'}`);
     } finally {
       setCheckoutLoading(null);
-    }
-  };
-  const handleManageSubscription = async () => {
-    setManagingSubscription(true);
-    try {
-      const {
-        data,
-        error
-      } = await supabase.functions.invoke('customer-portal');
-      if (error) throw error;
-
-      // Open customer portal in a new tab
-      window.open(data.url, '_blank');
-    } catch (error) {
-      console.error('Error opening customer portal:', error);
-      toast.error('Failed to open subscription management');
-    } finally {
-      setManagingSubscription(false);
     }
   };
   const formatDate = (dateString: string) => {
@@ -198,7 +179,7 @@ const SubscriptionSettingsTab = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium">Status:</span>
@@ -221,14 +202,6 @@ const SubscriptionSettingsTab = () => {
                   <span className="text-sm font-medium">Next Billing:</span>
                 </div>
                 <p className="text-sm text-muted-foreground">{formatDate(subscriptionEnd)}</p>
-              </div>}
-
-            {subscribed && <div className="flex items-end">
-                <Button variant="outline" onClick={handleManageSubscription} disabled={managingSubscription} className="w-full">
-                  <Settings className="w-4 h-4 mr-2" />
-                  {managingSubscription ? "Loading..." : "Manage Subscription"}
-                  <ExternalLink className="w-3 h-3 ml-2" />
-                </Button>
               </div>}
           </div>
         </CardContent>
