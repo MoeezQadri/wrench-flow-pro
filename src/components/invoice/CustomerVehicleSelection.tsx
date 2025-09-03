@@ -116,6 +116,9 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
       // Select the newly created vehicle using the ID returned from DB
       if (created?.id) {
         onVehicleIdChange(created.id);
+      } else {
+        // Fallback to the generated ID if database doesn't return one
+        onVehicleIdChange(vehicle.id);
       }
       toast.success("Vehicle added successfully!");
     } catch (error) {

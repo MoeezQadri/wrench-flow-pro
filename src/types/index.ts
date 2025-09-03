@@ -26,7 +26,7 @@ export interface Vehicle {
   vin?: string;
   color?: string;
   notes?: string;
-  organization_id: string; // Required for RLS
+  organization_id?: string; // Set automatically by database trigger
   created_at?: string;
   updated_at?: string;
 }

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import type { Vehicle } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,13 +7,18 @@ import { useOrganizationAwareQuery } from '@/hooks/useOrganizationAwareQuery';
 export const useVehicles = () => {
     const [vehicles, setVehicles] = useState<Vehicle[]>([]);
     const { applyOrganizationFilter } = useOrganizationAwareQuery();
-    const { selectedOrganizationId } = useOrganizationContext();
 
-    const addVehicle = async (vehicle: Vehicle) => {
+    const addVehicle = async (vehicle: Vehicle): Promise<Vehicle | null> => {
         try {
             const { data, error } = await supabase.from('vehicles').insert({
-                ...vehicle,
-                year: vehicle.year // Already string in Vehicle interface
+                customer_id: vehicle.customer_id,
+                make: vehicle.make,
+                model: vehicle.model,
+                year: vehicle.year,
+                license_plate: vehicle.license_plate,
+                vin: vehicle.vin,
+                color: vehicle.color
+                // organization_id will be set automatically by database trigger
             }).select();
             if (error) {
                 console.error('Error adding vehicle:', error);
@@ -24,7 +28,9 @@ export const useVehicles = () => {
             if (data && data.length > 0) {
                 const result = data[0] as Vehicle;
                 setVehicles((prev) => [...prev, result]);
+                return result;
             }
+            return null;
         } catch (error) {
             console.error('Error adding vehicle:', error);
             toast.error('Failed to add vehicle');
@@ -101,7 +107,8 @@ export const useVehicles = () => {
                 year: v.year, // Keep as string from database
                 license_plate: v.license_plate,
                 vin: v.vin,
-                color: v.color
+                color: v.color,
+                organization_id: v.organization_id
             }));
             
             console.log("Vehicles fetched from database:", mappedVehicles);
@@ -126,9 +133,10 @@ export const useVehicles = () => {
                 // Map the data to ensure year is treated as string
                 const mappedVehicles = (vehiclesData || []).map(v => ({
                     ...v,
-                    year: v.year // Keep as string from database
+                    year: v.year, // Keep as string from database
+                    organization_id: v.organization_id
                 }));
-                setVehicles(mappedVehicles);
+                setVehicles(mappedVehicles as Vehicle[]);
             }
         } catch (error) {
             console.error('Error fetching vehicles:', error);

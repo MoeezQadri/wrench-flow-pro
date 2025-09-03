@@ -14,7 +14,6 @@ import { Vehicle } from "@/types";
 import VehicleFormSection, { VehicleFormValues } from "./vehicle/VehicleFormSection";
 import { hasPermission } from "@/services/data-service";
 import { useAuthContext } from "@/context/AuthContext";
-import { useOrganizationContext } from "@/hooks/useOrganizationContext";
 
 const generateId = (prefix: string = 'id'): string => {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -32,8 +31,7 @@ const VehicleDialog = ({ open, onOpenChange, onSave, vehicle, customerId }: Vehi
   const isEditing = !!vehicle;
   const formId = "vehicle-form";
   const { currentUser } = useAuthContext();
-  const { selectedOrganizationId } = useOrganizationContext();
- 
+
   // Check if user has permission to manage vehicles
   const canManageVehicles = hasPermission(currentUser, 'vehicles', 'manage');
 
@@ -43,10 +41,6 @@ const VehicleDialog = ({ open, onOpenChange, onSave, vehicle, customerId }: Vehi
 
   const handleSubmit = async (data: VehicleFormValues) => {
     try {
-      if (!selectedOrganizationId) {
-        toast.error('No organization selected. Please select an organization and try again.');
-        return;
-      }
       const newVehicle: Vehicle = {
         id: vehicle?.id || generateId("vehicle"),
         customer_id: data.customer_id,
@@ -56,11 +50,11 @@ const VehicleDialog = ({ open, onOpenChange, onSave, vehicle, customerId }: Vehi
         license_plate: data.license_plate,
         vin: data.vin || "",
         color: data.color || "",
-        organization_id: selectedOrganizationId,
+        // organization_id will be set automatically by database trigger
         created_at: vehicle?.created_at || new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
- 
+
       onSave(newVehicle);
       toast.success(`Vehicle ${isEditing ? "updated" : "added"} successfully!`);
       onOpenChange(false);
