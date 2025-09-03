@@ -33,6 +33,13 @@ const ConfirmEmail = () => {
           return;
         }
 
+        // Handle invitation flow - redirect to password setup
+        if (type === 'invite') {
+          const setupUrl = `/auth/setup-password?access_token=${access_token}&refresh_token=${refresh_token}&type=invite`;
+          navigate(setupUrl, { replace: true });
+          return;
+        }
+
         // Handle email signup confirmation
         if (type !== 'signup') {
           throw new Error('Invalid confirmation link');

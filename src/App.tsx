@@ -17,6 +17,7 @@ import Register from '@/pages/auth/Register';
 import ForgotPassword from '@/pages/auth/ForgotPassword';
 import ConfirmEmail from '@/pages/auth/ConfirmEmail';
 import ResetPassword from '@/pages/auth/ResetPassword';
+import SetupPassword from '@/pages/auth/SetupPassword';
 
 // Non-lazy loaded reports
 import FinanceReport from '@/pages/reports/FinanceReport';
@@ -69,6 +70,7 @@ function App() {
                     <Route path="forgot-password" element={<ForgotPassword />} />
                     <Route path="confirm" element={<ConfirmEmail />} />
                     <Route path="reset-password" element={<ResetPassword />} />
+                    <Route path="setup-password" element={<SetupPassword />} />
                     <Route path="*" element={<Navigate to="/auth/login" replace />} />
                   </Route>
 

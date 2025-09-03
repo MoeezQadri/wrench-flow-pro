@@ -106,7 +106,7 @@ serve(async (req) => {
     }
 
     // Create invitation using Supabase's built-in invitation system
-    const redirectTo = `${req.headers.get("origin") || "http://localhost:3000"}/auth/callback`;
+    const redirectTo = `${req.headers.get("origin") || "http://localhost:3000"}/auth/confirm?type=invite`;
     
     const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
       redirectTo,
@@ -114,7 +114,7 @@ serve(async (req) => {
         role: role,
         organization_id: organizationId,
         invited_by: user.id,
-        name: "" // User will set this during signup
+        name: "" // User will set this during password setup
       }
     });
 
