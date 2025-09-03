@@ -50,6 +50,7 @@ const UserManagementTab = () => {
   const [newUserRole, setNewUserRole] = useState('member');
   const [editUserName, setEditUserName] = useState('');
   const [editUserRole, setEditUserRole] = useState('');
+  const [invitingUser, setInvitingUser] = useState(false);
 
   useEffect(() => {
     loadUsers();
@@ -104,6 +105,11 @@ const UserManagementTab = () => {
       return;
     }
 
+    setInvitingUser(true);
+    
+    // Close dialog immediately for better UX
+    setInviteDialogOpen(false);
+    
     try {
       const { data, error } = await supabase.functions.invoke('invite-user', {
         body: {
@@ -117,16 +123,20 @@ const UserManagementTab = () => {
         console.error('Error inviting user:', error);
         toast.error(error.message || 'Failed to send invitation');
       } else if (data?.success) {
-        toast.success(`Invitation sent to ${newUserEmail}`);
+        toast.success(`✅ Invitation email sent to ${newUserEmail}!`);
+        // Reset form
         setNewUserEmail('');
         setNewUserRole('member');
-        setInviteDialogOpen(false);
+        // Reload users to show the invited user
+        await loadUsers();
       } else {
         toast.error(data?.error || 'Failed to send invitation');
       }
     } catch (error) {
       console.error('Error inviting user:', error);
       toast.error('Failed to send invitation');
+    } finally {
+      setInvitingUser(false);
     }
   };
 
@@ -223,6 +233,45 @@ const UserManagementTab = () => {
     }
   };
 
+  const getUserStatus = (user: OrganizationUser) => {
+    // Check if user is pending invitation (no name set or never logged in)
+    const isPendingInvite = !user.name || user.name.trim() === '' || !user.lastLogin;
+    
+    if (!user.is_active) {
+      return { status: 'Inactive', variant: 'destructive' as const };
+    } else if (isPendingInvite) {
+      return { status: 'Pending Invite', variant: 'secondary' as const };
+    } else {
+      return { status: 'Active', variant: 'default' as const };
+    }
+  };
+
+  const handleResendInvite = async (userEmail: string) => {
+    if (!currentUser?.organization_id) return;
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('invite-user', {
+        body: {
+          email: userEmail,
+          role: 'member', // Default role for resend
+          organizationId: currentUser.organization_id
+        }
+      });
+
+      if (error) {
+        console.error('Error resending invitation:', error);
+        toast.error('Failed to resend invitation');
+      } else if (data?.success) {
+        toast.success(`✅ Invitation resent to ${userEmail}!`);
+      } else {
+        toast.error('Failed to resend invitation');
+      }
+    } catch (error) {
+      console.error('Error resending invitation:', error);
+      toast.error('Failed to resend invitation');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-48">
@@ -291,9 +340,9 @@ const UserManagementTab = () => {
                     <Button type="button" variant="outline" onClick={() => setInviteDialogOpen(false)}>
                       Cancel
                     </Button>
-                    <Button type="submit">
+                    <Button type="submit" disabled={invitingUser}>
                       <Mail className="mr-2 h-4 w-4" />
-                      Send Invitation
+                      {invitingUser ? 'Sending...' : 'Send Invitation'}
                     </Button>
                   </div>
                 </form>
@@ -305,7 +354,7 @@ const UserManagementTab = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
+                <TableHead>Name / Email</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Last Login</TableHead>
@@ -313,61 +362,87 @@ const UserManagementTab = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {users.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell className="font-medium">{user.name}</TableCell>
-                  <TableCell>
-                    <Badge className={getRoleBadgeColor(user.role)}>
-                      {availableRoles.find(r => r.value === user.role)?.label || user.role}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={user.is_active ? 'default' : 'secondary'}>
-                      {user.is_active ? 'Active' : 'Inactive'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          console.log('Edit button clicked, calling openEditDialog');
-                          openEditDialog(user);
-                        }}
-                        disabled={user.id === currentUser?.id && user.role === 'owner'} // Owner can't edit their own role
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      {user.id !== currentUser?.id && user.email && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleResetPassword(user.email!)}
-                          title="Send password reset email"
-                        >
-                          <KeyRound className="h-4 w-4" />
-                        </Button>
-                      )}
-                      {user.id !== currentUser?.id && user.is_active && user.role !== 'owner' && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDeactivateUser(user.id)}
-                          className="text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {users.map((user) => {
+                const userStatus = getUserStatus(user);
+                const isPendingInvite = userStatus.status === 'Pending Invite';
+                
+                return (
+                  <TableRow key={user.id}>
+                    <TableCell>
+                      <div className="space-y-1">
+                        <div className="font-medium">
+                          {user.name && user.name.trim() !== '' ? user.name : 'Invited User'}
+                        </div>
+                        {user.email && (
+                          <div className="text-sm text-muted-foreground">{user.email}</div>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={getRoleBadgeColor(user.role)}>
+                        {availableRoles.find(r => r.value === user.role)?.label || user.role}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={userStatus.variant}>
+                        {userStatus.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex space-x-2">
+                        {!isPendingInvite && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              console.log('Edit button clicked, calling openEditDialog');
+                              openEditDialog(user);
+                            }}
+                            disabled={user.id === currentUser?.id && user.role === 'owner'} // Owner can't edit their own role
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {isPendingInvite && user.email && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleResendInvite(user.email!)}
+                            title="Resend invitation email"
+                          >
+                            <Mail className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {user.id !== currentUser?.id && user.email && !isPendingInvite && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleResetPassword(user.email!)}
+                            title="Send password reset email"
+                          >
+                            <KeyRound className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {user.id !== currentUser?.id && user.is_active && user.role !== 'owner' && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDeactivateUser(user.id)}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </CardContent>
