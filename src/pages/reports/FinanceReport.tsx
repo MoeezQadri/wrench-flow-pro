@@ -128,16 +128,13 @@ const FinanceReport = () => {
 
   const handleExportRevenue = () => {
     const exportData = filteredRevenue.map(invoice => {
-      const invoiceTotal = invoice.invoice_items?.reduce(
-        (sum: number, item: { price: number; quantity: number }) => 
-          sum + (item.price * item.quantity), 
-        0
-      ) || 0;
+      // Calculate invoice total including taxes and discounts
+      const invoiceBreakdown = calculateInvoiceBreakdown(invoice);
       
       return {
         invoice_id: invoice.id?.slice(0, 8),
         date: new Date(invoice.date).toLocaleDateString(),
-        amount: formatCurrency(invoiceTotal),
+        amount: formatCurrency(invoiceBreakdown.total),
         status: invoice.status,
         items_count: invoice.invoice_items?.length || 0
       };

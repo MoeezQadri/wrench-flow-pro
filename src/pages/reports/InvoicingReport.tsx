@@ -189,8 +189,8 @@ const InvoicingReport = () => {
               ) : (
                 filteredInvoices.map((invoice) => {
                   const customer = customers.find(c => c.id === invoice.customer_id);
-                  const invoiceTotal = invoice.items?.reduce((sum: number, item: any) => 
-                    sum + (item.quantity * item.price), 0) || 0;
+                  const invoiceBreakdown = calculateInvoiceBreakdown(invoice);
+                  const invoiceTotal = invoiceBreakdown.total;
 
                   return (
                     <TableRow key={invoice.id}>

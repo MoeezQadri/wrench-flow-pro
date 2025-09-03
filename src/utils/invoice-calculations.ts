@@ -56,6 +56,14 @@ export const calculateInvoiceBreakdown = (invoice: Invoice): InvoiceCalculationB
 
   const total = afterDiscount + taxAmount;
 
+  console.log('Invoice calculation result:', {
+    subtotal,
+    discountAmount,
+    afterDiscount,
+    taxAmount,
+    total
+  });
+
   // Calculate actual paid amount from payments array
   const paidAmount = invoice.payments?.reduce((sum, payment) => sum + payment.amount, 0) || 0;
   const balanceDue = total - paidAmount;
