@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthContext } from '@/context/AuthContext';
-import { OrganizationSelector } from '@/components/layout/OrganizationSelector';
 
 export const useOrganizationContext = () => {
   const { currentUser } = useAuthContext();

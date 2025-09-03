@@ -30,6 +30,7 @@ export interface DataContextType {
     updateVehicle: (id: string, updates: Partial<Vehicle>) => Promise<void>;
     getVehiclesByCustomerId: (id: string) => Promise<Vehicle[]>;
     getVehicleById: (id: string) => Vehicle | null;
+    loadVehicles: () => Promise<void>;
 
     invoices: Invoice[];
     addInvoice: (invoiceData: any) => Promise<Invoice>;
