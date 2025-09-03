@@ -1,6 +1,6 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { isWithinInterval, parseISO, format, eachDayOfInterval } from "date-fns";
+import { calculateInvoiceBreakdown } from "@/utils/invoice-calculations";
 
 export interface DashboardData {
   totalRevenue: number;
@@ -62,9 +62,18 @@ export async function fetchDashboardData(startDate: Date, endDate: Date): Promis
 
     // Calculate metrics
     const totalRevenue = invoices?.reduce((sum, invoice) => {
-      const invoiceTotal = invoice.invoice_items?.reduce((itemSum: number, item: any) => 
-        itemSum + (item.quantity * item.price), 0) || 0;
-      return sum + invoiceTotal;
+      // Map invoice_items to items to match expected interface and add required fields
+      const invoiceWithItems = { 
+        ...invoice, 
+        items: invoice.invoice_items,
+        // Ensure all required Invoice fields are present
+        id: invoice.id || '',
+        customer_id: invoice.customer_id || '',
+        vehicle_id: invoice.vehicle_id || '',
+        status: invoice.status as any
+      } as any;
+      const invoiceBreakdown = calculateInvoiceBreakdown(invoiceWithItems);
+      return sum + invoiceBreakdown.total;
     }, 0) || 0;
 
     const totalInvoices = invoices?.length || 0;
@@ -105,7 +114,11 @@ export async function fetchChartData(startDate: Date, endDate: Date): Promise<Ch
       .from('invoices')
       .select(`
         date,
-        invoice_items(quantity, price)
+        tax_rate,
+        discount_type,
+        discount_value,
+        invoice_items(quantity, price),
+        payments(amount)
       `)
       .gte('date', startIso)
       .lte('date', endIso);
@@ -132,9 +145,18 @@ export async function fetchChartData(startDate: Date, endDate: Date): Promise<Ch
       const dayRevenue = invoices
         ?.filter(invoice => format(new Date(invoice.date || ''), 'yyyy-MM-dd') === dayStr)
         .reduce((sum, invoice) => {
-          const invoiceTotal = invoice.invoice_items?.reduce((itemSum: number, item: any) => 
-            itemSum + (item.quantity * item.price), 0) || 0;
-          return sum + invoiceTotal;
+          // Map invoice_items to items to match expected interface and add required fields
+          const invoiceWithItems = { 
+            ...invoice, 
+            items: invoice.invoice_items,
+            // Add minimal required fields for calculation
+            id: '',
+            customer_id: '',
+            vehicle_id: '',
+            status: 'open' as any
+          } as any;
+          const invoiceBreakdown = calculateInvoiceBreakdown(invoiceWithItems);
+          return sum + invoiceBreakdown.total;
         }, 0) || 0;
 
       // Calculate expenses for this day
