@@ -128,10 +128,11 @@ export async function fetchDashboardData(startDate: Date, endDate: Date): Promis
     const previousCompletedJobs = previousTasks?.filter(task => task.status === 'completed').length || 0;
     const previousAverageJobValue = previousInvoicesCount > 0 ? previousRevenue / previousInvoicesCount : 0;
 
-    // Calculate percentage changes (handle division by zero)
+    // Calculate percentage changes (handle division by zero and round to nearest integer)
     const calculateChange = (current: number, previous: number): number => {
       if (previous === 0) return current > 0 ? 100 : 0;
-      return ((current - previous) / previous) * 100;
+      const change = ((current - previous) / previous) * 100;
+      return Math.round(change);
     };
 
     return {
