@@ -190,18 +190,6 @@ const Dashboard = () => {
         </Card>
       </div>
 
-      {/* Recent Activity */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Activity</CardTitle>
-          <CardDescription>Latest updates from your garage operations</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
-            Activity feed coming soon...
-          </div>
-        </CardContent>
-      </Card>
       </div>
     </PageWrapper>
   );

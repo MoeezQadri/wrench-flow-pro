@@ -29,7 +29,14 @@ export async function fetchDashboardData(startDate: Date, endDate: Date): Promis
     const startIso = startDate.toISOString();
     const endIso = endDate.toISOString();
 
-    // Fetch invoices for the period
+    // Calculate previous period dates (same duration before current period)
+    const duration = endDate.getTime() - startDate.getTime();
+    const previousEndDate = new Date(startDate.getTime());
+    const previousStartDate = new Date(startDate.getTime() - duration);
+    const previousStartIso = previousStartDate.toISOString();
+    const previousEndIso = previousEndDate.toISOString();
+
+    // Fetch current period data
     const { data: invoices, error: invoicesError } = await supabase
       .from('invoices')
       .select(`
@@ -42,7 +49,6 @@ export async function fetchDashboardData(startDate: Date, endDate: Date): Promis
 
     if (invoicesError) throw invoicesError;
 
-    // Fetch tasks for the period
     const { data: tasks, error: tasksError } = await supabase
       .from('tasks')
       .select('*')
@@ -51,7 +57,6 @@ export async function fetchDashboardData(startDate: Date, endDate: Date): Promis
 
     if (tasksError) throw tasksError;
 
-    // Fetch customers for the period
     const { data: customers, error: customersError } = await supabase
       .from('customers')
       .select('*')
@@ -60,13 +65,34 @@ export async function fetchDashboardData(startDate: Date, endDate: Date): Promis
 
     if (customersError) throw customersError;
 
-    // Calculate metrics
+    // Fetch previous period data for comparison
+    const { data: previousInvoices } = await supabase
+      .from('invoices')
+      .select(`
+        *,
+        invoice_items(*),
+        payments(*)
+      `)
+      .gte('date', previousStartIso)
+      .lte('date', previousEndIso);
+
+    const { data: previousTasks } = await supabase
+      .from('tasks')
+      .select('*')
+      .gte('created_at', previousStartIso)
+      .lte('created_at', previousEndIso);
+
+    const { data: previousCustomers } = await supabase
+      .from('customers')
+      .select('*')
+      .gte('created_at', previousStartIso)
+      .lte('created_at', previousEndIso);
+
+    // Calculate current period metrics
     const totalRevenue = invoices?.reduce((sum, invoice) => {
-      // Map invoice_items to items to match expected interface and add required fields
       const invoiceWithItems = { 
         ...invoice, 
         items: invoice.invoice_items,
-        // Ensure all required Invoice fields are present
         id: invoice.id || '',
         customer_id: invoice.customer_id || '',
         vehicle_id: invoice.vehicle_id || '',
@@ -82,21 +108,45 @@ export async function fetchDashboardData(startDate: Date, endDate: Date): Promis
     const completedJobs = tasks?.filter(task => task.status === 'completed').length || 0;
     const averageJobValue = totalInvoices > 0 ? totalRevenue / totalInvoices : 0;
 
-    // For now, we'll use mock change percentages since we'd need previous period data
-    // In a real implementation, you'd fetch data for the previous period and compare
+    // Calculate previous period metrics
+    const previousRevenue = previousInvoices?.reduce((sum, invoice) => {
+      const invoiceWithItems = { 
+        ...invoice, 
+        items: invoice.invoice_items,
+        id: invoice.id || '',
+        customer_id: invoice.customer_id || '',
+        vehicle_id: invoice.vehicle_id || '',
+        status: invoice.status as any
+      } as any;
+      const invoiceBreakdown = calculateInvoiceBreakdown(invoiceWithItems);
+      return sum + invoiceBreakdown.total;
+    }, 0) || 0;
+
+    const previousInvoicesCount = previousInvoices?.length || 0;
+    const previousActiveTasks = previousTasks?.filter(task => task.status === 'in-progress').length || 0;
+    const previousNewCustomers = previousCustomers?.length || 0;
+    const previousCompletedJobs = previousTasks?.filter(task => task.status === 'completed').length || 0;
+    const previousAverageJobValue = previousInvoicesCount > 0 ? previousRevenue / previousInvoicesCount : 0;
+
+    // Calculate percentage changes (handle division by zero)
+    const calculateChange = (current: number, previous: number): number => {
+      if (previous === 0) return current > 0 ? 100 : 0;
+      return ((current - previous) / previous) * 100;
+    };
+
     return {
       totalRevenue,
-      revenueChange: 12.5,
+      revenueChange: calculateChange(totalRevenue, previousRevenue),
       totalInvoices,
-      invoicesChange: 8.3,
+      invoicesChange: calculateChange(totalInvoices, previousInvoicesCount),
       activeTasks,
-      tasksChange: -2.1,
+      tasksChange: calculateChange(activeTasks, previousActiveTasks),
       newCustomers,
-      customersChange: 15.7,
+      customersChange: calculateChange(newCustomers, previousNewCustomers),
       completedJobs,
-      jobsChange: 5.2,
+      jobsChange: calculateChange(completedJobs, previousCompletedJobs),
       averageJobValue,
-      jobValueChange: 3.8
+      jobValueChange: calculateChange(averageJobValue, previousAverageJobValue)
     };
   } catch (error) {
     console.error('Error fetching dashboard data:', error);
