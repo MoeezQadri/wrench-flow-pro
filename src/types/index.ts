@@ -26,6 +26,7 @@ export interface Vehicle {
   vin?: string;
   color?: string;
   notes?: string;
+  organization_id: string; // Required for RLS
   created_at?: string;
   updated_at?: string;
 }

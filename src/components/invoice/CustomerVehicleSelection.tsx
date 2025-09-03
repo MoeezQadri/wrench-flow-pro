@@ -109,12 +109,14 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
 
   const handleVehicleSave = async (vehicle: Vehicle) => {
     try {
-      await addVehicle(vehicle);
+      const created = await addVehicle(vehicle);
       // Refresh vehicles for the current customer
       const updatedVehicles = await getVehiclesByCustomerId(selectedCustomerId);
       setVehicles(updatedVehicles);
-      // Select the newly created vehicle
-      onVehicleIdChange(vehicle.id);
+      // Select the newly created vehicle using the ID returned from DB
+      if (created?.id) {
+        onVehicleIdChange(created.id);
+      }
       toast.success("Vehicle added successfully!");
     } catch (error) {
       console.error("Error adding vehicle:", error);

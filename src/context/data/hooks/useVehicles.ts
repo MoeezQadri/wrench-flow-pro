@@ -8,6 +8,7 @@ import { useOrganizationAwareQuery } from '@/hooks/useOrganizationAwareQuery';
 export const useVehicles = () => {
     const [vehicles, setVehicles] = useState<Vehicle[]>([]);
     const { applyOrganizationFilter } = useOrganizationAwareQuery();
+    const { selectedOrganizationId } = useOrganizationContext();
 
     const addVehicle = async (vehicle: Vehicle) => {
         try {
