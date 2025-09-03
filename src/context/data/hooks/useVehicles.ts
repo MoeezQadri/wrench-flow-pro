@@ -20,11 +20,13 @@ export const useVehicles = () => {
                 color: vehicle.color
                 // organization_id will be set automatically by database trigger
             }).select();
+            
             if (error) {
                 console.error('Error adding vehicle:', error);
                 toast.error('Failed to add vehicle');
                 throw error;
             }
+            
             if (data && data.length > 0) {
                 const result = data[0] as Vehicle;
                 setVehicles((prev) => [...prev, result]);
@@ -61,7 +63,7 @@ export const useVehicles = () => {
                 .from('vehicles')
                 .update({
                     ...updates,
-                    year: updates.year // Already string in Vehicle interface
+                    year: updates.year
                 })
                 .eq('id', id)
                 .select();
@@ -104,7 +106,7 @@ export const useVehicles = () => {
                 customer_id: v.customer_id,
                 make: v.make,
                 model: v.model,
-                year: v.year, // Keep as string from database
+                year: v.year,
                 license_plate: v.license_plate,
                 vin: v.vin,
                 color: v.color,
@@ -130,10 +132,9 @@ export const useVehicles = () => {
                 console.error('Error fetching vehicles:', vehiclesError);
                 toast.error('Failed to load vehicles');
             } else {
-                // Map the data to ensure year is treated as string
                 const mappedVehicles = (vehiclesData || []).map(v => ({
                     ...v,
-                    year: v.year, // Keep as string from database
+                    year: v.year,
                     organization_id: v.organization_id
                 }));
                 setVehicles(mappedVehicles as Vehicle[]);
