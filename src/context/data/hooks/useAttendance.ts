@@ -2,26 +2,17 @@ import { useState, useEffect, useCallback } from 'react';
 import type { Attendance } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-// import { useOrganizationFilter } from '@/hooks/useOrganizationFilter';
+import { useOrganizationFilter } from '@/hooks/useOrganizationFilter';
 import { useOrganizationAwareQuery } from '@/hooks/useOrganizationAwareQuery';
-// import { useAuthContext } from '@/context/AuthContext';
+import { useAuthContext } from '@/context/AuthContext';
 
 export const useAttendance = () => {
     const [attendanceRecords, setAttendanceRecords] = useState<Attendance[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const { applyOrganizationFilter } = useOrganizationAwareQuery();
-    // const { organizationId, isSuperAdmin } = useOrganizationFilter();
-    // const { currentUser, isAuthenticated } = useAuthContext();
-
-    // Enhanced debugging for auth and org context
-    console.log('[AttendanceHook] Context state:', {
-        currentUser: currentUser?.id,
-        isAuthenticated,
-        organizationId,
-        isSuperAdmin,
-        userOrgId: currentUser?.organization_id
-    });
+    const { organizationId, isSuperAdmin } = useOrganizationFilter();
+    const { currentUser, isAuthenticated } = useAuthContext();
 
     // Set up real-time subscription for attendance data
     useEffect(() => {
@@ -127,15 +118,6 @@ export const useAttendance = () => {
             throw new Error(errorMsg);
         }
 
-        // Enhanced organization ID validation with auth check
-        console.log("Organization ID check:", { 
-            organizationId, 
-            isAuthenticated, 
-            currentUser: currentUser?.id,
-            userOrgId: currentUser?.organization_id,
-            isSuperAdmin 
-        });
-        
         if (!isAuthenticated || !currentUser) {
             const errorMsg = 'You must be logged in to create attendance records';
             console.error(errorMsg);
@@ -334,7 +316,7 @@ export const useAttendance = () => {
         setError(null);
 
         try {
-            console.log("Loading attendance from Supabase...", { retryCount, organizationId });
+            console.log("Loading attendance from Supabase...", { retryCount });
             
             // Check if organization context is available
             if (!organizationId) {

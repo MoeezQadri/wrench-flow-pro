@@ -1,4 +1,4 @@
-import React, { createContext, useContext, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, ReactNode, useCallback, useEffect } from 'react';
 import type { Vehicle, Invoice } from '@/types';
 import { calculateInvoiceTotalWithBreakdown } from '@/utils/invoice-calculations';
 import { DataContextType } from './DataContextType';
@@ -13,6 +13,7 @@ import { useParts } from './hooks/useParts';
 import { usePayments } from './hooks/usePayments';
 import { useAttendance } from './hooks/useAttendance';
 import { usePayables } from './hooks/usePayables';
+import { useAuthContext } from '@/context/AuthContext';
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
