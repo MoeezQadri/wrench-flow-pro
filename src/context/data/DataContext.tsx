@@ -1,5 +1,4 @@
-
-import React, { createContext, useContext, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, ReactNode, useCallback, useEffect } from 'react';
 import type { Vehicle, Invoice } from '@/types';
 import { calculateInvoiceTotalWithBreakdown } from '@/utils/invoice-calculations';
 import { DataContextType } from './DataContextType';
@@ -14,6 +13,7 @@ import { useParts } from './hooks/useParts';
 import { usePayments } from './hooks/usePayments';
 import { useAttendance } from './hooks/useAttendance';
 import { usePayables } from './hooks/usePayables';
+import { useAuthContext } from '@/context/AuthContext';
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
@@ -22,6 +22,7 @@ interface DataProviderProps {
 }
 
 const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
+    const { isAuthenticated, currentUser } = useAuthContext();
     const mechanicsHook = useMechanics();
     const customersHook = useCustomers();
     const vehiclesHook = useVehicles();
@@ -34,8 +35,16 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     const attendanceHook = useAttendance();
     const payablesHook = usePayables();
 
+    // Auto-load essential data when user authenticates
+    useEffect(() => {
+        if (isAuthenticated && currentUser?.organization_id) {
+            console.log('[DataProvider] Loading essential data...');
+            customersHook.loadCustomers();
+            mechanicsHook.loadMechanics();
+        }
+    }, [isAuthenticated, currentUser?.organization_id]);
+
     const refreshAllData = useCallback(async () => {
-        // Simple refresh - reload key data
         await Promise.allSettled([
             mechanicsHook.loadMechanics(),
             customersHook.loadCustomers(),
@@ -44,17 +53,15 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
         ]);
     }, [mechanicsHook.loadMechanics, customersHook.loadCustomers, invoicesHook.loadInvoices, tasksHook.loadTasks]);
 
-    const getCustomerAnalytics = async (customerId: string): Promise<{ lifetimeValue: number; totalInvoices: number; averageInvoiceValue: number; vehicles: Vehicle[]; invoiceHistory: Invoice[] }> => {
+    const getCustomerAnalytics = async (customerId: string) => {
         const vehicles: Vehicle[] = await vehiclesHook.getVehiclesByCustomerId(customerId);
         const invoiceHistory: Invoice[] = invoicesHook.invoices.filter(inv => inv.customer_id === customerId);
-
         const lifetimeValue = invoiceHistory.reduce((sum, invoice) => {
             const { total } = calculateInvoiceTotalWithBreakdown(invoice);
             return sum + total;
         }, 0);
         const totalInvoices = invoiceHistory.length;
         const averageInvoiceValue = totalInvoices > 0 ? lifetimeValue / totalInvoices : 0;
-
         return { lifetimeValue, totalInvoices, averageInvoiceValue, vehicles, invoiceHistory };
     };
 
@@ -129,7 +136,6 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
             removeAttendance: attendanceHook.removeAttendance,
             loadAttendance: attendanceHook.loadAttendance,
 
-            // Payables
             payables: payablesHook.payables,
             addPayable: payablesHook.addPayable,
             updatePayable: payablesHook.updatePayable,

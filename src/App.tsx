@@ -8,7 +8,6 @@ import PrivateRoute from '@/components/PrivateRoute';
 import PublicRoute from '@/components/PublicRoute';
 import { AuthProvider } from '@/context/AuthProvider';
 import { DataProvider } from '@/context/data/DataProvider';
-import { InitialDataLoader } from '@/components/InitialDataLoader';
 
 import { Toaster } from '@/components/ui/toaster';
 
@@ -61,9 +60,8 @@ function App() {
     <Router>
       <AuthProvider>
         <DataProvider>
-          <InitialDataLoader>
-            <Suspense fallback={<LoadingScreen />}>
-              <Routes>
+          <Suspense fallback={<LoadingScreen />}>
+            <Routes>
                   {/* Public authentication routes */}
                   <Route path="/auth" element={<PublicRoute />}>
                     <Route path="login" element={<Login />} />
@@ -114,9 +112,8 @@ function App() {
               {/* 404 route */}
               <Route path="*" element={<NotFound />} />
             </Routes>
-            </Suspense>
-            <Toaster />
-          </InitialDataLoader>
+          </Suspense>
+          <Toaster />
         </DataProvider>
       </AuthProvider>
     </Router>
