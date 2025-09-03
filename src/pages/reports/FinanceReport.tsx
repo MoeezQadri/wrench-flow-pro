@@ -50,7 +50,11 @@ const getRevenueData = async (): Promise<any[]> => {
       id, 
       date, 
       status, 
-      invoice_items(price, quantity)
+      tax_rate,
+      discount_type,
+      discount_value,
+      invoice_items(price, quantity),
+      payments(amount)
     `);
   
   if (error) {
@@ -58,7 +62,11 @@ const getRevenueData = async (): Promise<any[]> => {
     throw error;
   }
   
-  return data || [];
+  // Map invoice_items to items to match expected interface
+  return (data || []).map(invoice => ({
+    ...invoice,
+    items: invoice.invoice_items
+  }));
 };
 
 const FinanceReport = () => {
@@ -110,12 +118,8 @@ const FinanceReport = () => {
   // Calculate totals
   const totalExpenses = filteredExpenses.reduce((sum, expense) => sum + Number(expense.amount), 0);
   const totalRevenue = filteredRevenue.reduce((sum, invoice) => {
-    const invoiceTotal = invoice.invoice_items?.reduce(
-      (itemSum: number, item: { price: number; quantity: number }) => 
-        itemSum + (item.price * item.quantity), 
-      0
-    ) || 0;
-    return sum + invoiceTotal;
+    const invoiceBreakdown = calculateInvoiceBreakdown(invoice);
+    return sum + invoiceBreakdown.total;
   }, 0);
 
   const netProfit = totalRevenue - totalExpenses;
@@ -241,11 +245,7 @@ const FinanceReport = () => {
             ) : (
               <div className="space-y-4">
                 {filteredRevenue.slice(0, 10).map((invoice, index) => {
-                  const invoiceTotal = invoice.invoice_items?.reduce(
-                    (sum: number, item: { price: number; quantity: number }) => 
-                      sum + (item.price * item.quantity), 
-                    0
-                  ) || 0;
+                  const invoiceBreakdown = calculateInvoiceBreakdown(invoice);
                   
                   return (
                     <div key={invoice.id || index} className="flex justify-between items-center py-2 border-b">
@@ -256,7 +256,7 @@ const FinanceReport = () => {
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="font-medium">{formatCurrency(invoiceTotal)}</p>
+                        <p className="font-medium">{formatCurrency(invoiceBreakdown.total)}</p>
                         <p className={`text-xs ${
                           invoice.status === 'paid' ? 'text-green-600' : 
                           invoice.status === 'overdue' ? 'text-red-600' : 'text-yellow-600'

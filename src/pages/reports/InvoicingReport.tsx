@@ -35,10 +35,8 @@ const InvoicingReport = () => {
   const overdueInvoices = filteredInvoices.filter(inv => inv.status === 'overdue').length;
 
   const totalRevenue = filteredInvoices.reduce((sum, invoice) => {
-    // Calculate invoice total from invoice items
-    const invoiceTotal = invoice.items?.reduce((itemSum: number, item: any) => 
-      itemSum + (item.quantity * item.price), 0) || 0;
-    return sum + invoiceTotal;
+    const invoiceBreakdown = calculateInvoiceBreakdown(invoice);
+    return sum + invoiceBreakdown.total;
   }, 0);
 
   const paidAmount = payments
