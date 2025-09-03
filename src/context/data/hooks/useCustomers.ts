@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import type { Customer } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { useOrganizationFilter } from '@/hooks/useOrganizationFilter';
+// import { useOrganizationFilter } from '@/hooks/useOrganizationFilter';
 import { useOrganizationAwareQuery } from '@/hooks/useOrganizationAwareQuery';
 import { fetchCustomerById } from '@/services/supabase-service';
 
@@ -19,7 +19,7 @@ export const useCustomers = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const { applyOrganizationFilter } = useOrganizationAwareQuery();
-    const { organizationId, isSuperAdmin, canAccessAllOrganizations } = useOrganizationFilter();
+    // const { organizationId, isSuperAdmin, canAccessAllOrganizations } = useOrganizationFilter();
 
 
     // Simple real-time updates without excessive logging

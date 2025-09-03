@@ -2,17 +2,17 @@ import { useState, useEffect, useCallback } from 'react';
 import type { Attendance } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { useOrganizationFilter } from '@/hooks/useOrganizationFilter';
+// import { useOrganizationFilter } from '@/hooks/useOrganizationFilter';
 import { useOrganizationAwareQuery } from '@/hooks/useOrganizationAwareQuery';
-import { useAuthContext } from '@/context/AuthContext';
+// import { useAuthContext } from '@/context/AuthContext';
 
 export const useAttendance = () => {
     const [attendanceRecords, setAttendanceRecords] = useState<Attendance[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const { applyOrganizationFilter } = useOrganizationAwareQuery();
-    const { organizationId, isSuperAdmin } = useOrganizationFilter();
-    const { currentUser, isAuthenticated } = useAuthContext();
+    // const { organizationId, isSuperAdmin } = useOrganizationFilter();
+    // const { currentUser, isAuthenticated } = useAuthContext();
 
     // Enhanced debugging for auth and org context
     console.log('[AttendanceHook] Context state:', {

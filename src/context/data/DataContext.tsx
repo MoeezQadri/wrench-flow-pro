@@ -1,4 +1,4 @@
-import React, { createContext, useContext, ReactNode, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, ReactNode, useCallback } from 'react';
 import type { Vehicle, Invoice } from '@/types';
 import { calculateInvoiceTotalWithBreakdown } from '@/utils/invoice-calculations';
 import { DataContextType } from './DataContextType';
@@ -13,7 +13,6 @@ import { useParts } from './hooks/useParts';
 import { usePayments } from './hooks/usePayments';
 import { useAttendance } from './hooks/useAttendance';
 import { usePayables } from './hooks/usePayables';
-import { useAuthContext } from '@/context/AuthContext';
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
@@ -22,7 +21,6 @@ interface DataProviderProps {
 }
 
 const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
-    const { isAuthenticated, currentUser } = useAuthContext();
     const mechanicsHook = useMechanics();
     const customersHook = useCustomers();
     const vehiclesHook = useVehicles();
@@ -34,15 +32,6 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     const paymentsHook = usePayments();
     const attendanceHook = useAttendance();
     const payablesHook = usePayables();
-
-    // Auto-load essential data when user authenticates - TEMPORARILY DISABLED
-    // useEffect(() => {
-    //     if (isAuthenticated && currentUser?.organization_id) {
-    //         console.log('[DataProvider] Loading essential data...');
-    //         customersHook.loadCustomers();
-    //         mechanicsHook.loadMechanics();
-    //     }
-    // }, [isAuthenticated, currentUser?.organization_id]);
 
     const refreshAllData = useCallback(async () => {
         await Promise.allSettled([
