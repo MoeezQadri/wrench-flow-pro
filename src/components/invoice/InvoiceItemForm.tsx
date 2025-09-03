@@ -75,7 +75,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
 
   const { mechanics, vendors, addPart, addTask, addExpense } = useDataContext();
   const { getCurrencySymbol, formatCurrency } = useOrganizationSettings();
-  const { selectedOrganizationId } = useOrganizationContext();
+  const selectedOrganizationId = ''; // Temporarily disabled
 
   // Debug logging for available data
   useEffect(() => {

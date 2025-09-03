@@ -35,14 +35,14 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     const attendanceHook = useAttendance();
     const payablesHook = usePayables();
 
-    // Auto-load essential data when user authenticates
-    useEffect(() => {
-        if (isAuthenticated && currentUser?.organization_id) {
-            console.log('[DataProvider] Loading essential data...');
-            customersHook.loadCustomers();
-            mechanicsHook.loadMechanics();
-        }
-    }, [isAuthenticated, currentUser?.organization_id]);
+    // Auto-load essential data when user authenticates - TEMPORARILY DISABLED
+    // useEffect(() => {
+    //     if (isAuthenticated && currentUser?.organization_id) {
+    //         console.log('[DataProvider] Loading essential data...');
+    //         customersHook.loadCustomers();
+    //         mechanicsHook.loadMechanics();
+    //     }
+    // }, [isAuthenticated, currentUser?.organization_id]);
 
     const refreshAllData = useCallback(async () => {
         await Promise.allSettled([

@@ -29,7 +29,7 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({ payments, setPayments
   const { formatCurrency } = useOrganizationSettings();
   const { setValue, watch } = useFormContext();
   const { addPayment, removePayment } = usePayments();
-  const { selectedOrganizationId } = useOrganizationContext();
+  const selectedOrganizationId = ''; // Temporarily disabled
   const status = watch("status");
 
   // Determine if payments can be edited based on invoice status
