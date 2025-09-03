@@ -10,6 +10,7 @@ import { subDays } from "date-fns";
 import { useDataContext } from "@/context/data/DataContext";
 import { isWithinInterval, parseISO } from "date-fns";
 import { useOrganizationSettings } from "@/hooks/useOrganizationSettings";
+import { calculateInvoiceBreakdown } from '@/utils/invoice-calculations';
 
 const InvoicingReport = () => {
   const [startDate, setStartDate] = useState<Date>(subDays(new Date(), 30));

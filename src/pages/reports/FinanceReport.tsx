@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { exportToCSV } from '@/utils/csv-export';
 import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
+import { calculateInvoiceBreakdown } from '@/utils/invoice-calculations';
 
 // Interface for expenses matching Supabase schema
 interface DatabaseExpense {

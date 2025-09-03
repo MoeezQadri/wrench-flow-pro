@@ -10,9 +10,9 @@ export const useAttendance = () => {
     const [attendanceRecords, setAttendanceRecords] = useState<Attendance[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const { applyOrganizationFilter } = useOrganizationAwareQuery();
     const { organizationId, isSuperAdmin } = useOrganizationFilter();
     const { currentUser, isAuthenticated } = useAuthContext();
+    const { applyOrganizationFilter } = useOrganizationAwareQuery();
 
     // Set up real-time subscription for attendance data
     useEffect(() => {
