@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Invoice } from "@/types";
 import { useDataContext } from "@/context/data/DataContext";
 import { useSmartDataLoading } from "@/hooks/useSmartDataLoading";
+import { PagePermissionGuard } from "@/components/PagePermissionGuard";
 
 const EditInvoice = () => {
   const { id } = useParams<{ id: string }>();
@@ -106,18 +107,20 @@ const EditInvoice = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-2">
-        <Button variant="outline" size="icon" asChild>
-          <Link to="/invoices">
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-        </Button>
-        <h1 className="text-3xl font-bold tracking-tight">Edit Invoice #{invoice.id.substring(0, 8)}</h1>
-      </div>
+    <PagePermissionGuard resource="invoices" action="edit">
+      <div className="space-y-6">
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="icon" asChild>
+            <Link to="/invoices">
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+          </Button>
+          <h1 className="text-3xl font-bold tracking-tight">Edit Invoice #{invoice.id.substring(0, 8)}</h1>
+        </div>
 
-      <InvoiceForm isEditing={true} invoiceData={invoice} />
-    </div>
+        <InvoiceForm isEditing={true} invoiceData={invoice} />
+      </div>
+    </PagePermissionGuard>
   );
 };
 

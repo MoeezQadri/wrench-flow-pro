@@ -91,7 +91,7 @@ function App() {
                       <Route path="invoices" element={<Invoices />} />
                       <Route path="invoices/new" element={<NewInvoice />} />
                       <Route path="invoices/:id" element={<InvoiceDetails />} />
-                      <Route path="invoices/:id/edit" element={<PrivateRoute requiredResource="invoices" requiredAction="edit"><EditInvoice /></PrivateRoute>} />
+                      <Route path="invoices/:id/edit" element={<EditInvoice />} />
                       <Route path="mechanics" element={<Mechanics />} />
                       <Route path="mechanics/:mechanicId/performance" element={<MechanicPerformance />} />
                       <Route path="tasks" element={<Tasks />} />
