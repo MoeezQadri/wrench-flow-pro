@@ -8,6 +8,7 @@ import { useDataContext } from '@/context/data/DataContext';
 import { toast } from 'sonner';
 import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
 import { useSmartDataLoading } from '@/hooks/useSmartDataLoading';
+import { PermissionGuard } from '@/components/PermissionGuard';
 
 const InvoiceDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -127,13 +128,15 @@ const InvoiceDetails: React.FC = () => {
             }`}>
               {invoice.status.toUpperCase()}
             </span>
-            {invoice.status !== 'paid' && invoice.status !== 'completed' && (
-              <Button variant="outline" size="sm" asChild>
-                <Link to={`/invoices/${invoice.id}/edit`}>
-                  Edit Invoice
-                </Link>
-              </Button>
-            )}
+            <PermissionGuard resource="invoices" action="edit">
+              {invoice.status !== 'paid' && invoice.status !== 'completed' && (
+                <Button variant="outline" size="sm" asChild>
+                  <Link to={`/invoices/${invoice.id}/edit`}>
+                    Edit Invoice
+                  </Link>
+                </Button>
+              )}
+            </PermissionGuard>
           </div>
         </div>
 

@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { VehicleTransferDialog } from '@/components/vehicle/VehicleTransferDialog';
+import { PermissionGuard } from '@/components/PermissionGuard';
 import { Car, Phone, Mail, MapPin, Calendar, DollarSign, ArrowLeft, FileText, Eye, MoreVertical, ArrowRightLeft, Edit, Trash2 } from 'lucide-react';
 
 const CustomerDetails: React.FC = () => {
@@ -200,19 +201,21 @@ const CustomerDetails: React.FC = () => {
                               {vehicle.color}
                             </Badge>
                           )}
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => handleTransferVehicle(vehicle)}>
-                                <ArrowRightLeft className="mr-2 h-4 w-4" />
-                                Transfer
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          <PermissionGuard resource="vehicles" action="manage">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleTransferVehicle(vehicle)}>
+                                  <ArrowRightLeft className="mr-2 h-4 w-4" />
+                                  Transfer
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </PermissionGuard>
                         </div>
                       </div>
                       
