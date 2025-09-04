@@ -2,13 +2,16 @@
 import React, { useEffect } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuthContext } from '@/context/AuthContext';
+import { hasPermission } from '@/utils/permissions';
 import LoadingScreen from '@/components/LoadingScreen';
 
 interface PrivateRouteProps {
   children?: React.ReactNode;
+  requiredResource?: string;
+  requiredAction?: 'view' | 'create' | 'edit' | 'delete' | 'manage';
 }
 
-const PrivateRoute = ({ children }: PrivateRouteProps) => {
+const PrivateRoute = ({ children, requiredResource, requiredAction = 'view' }: PrivateRouteProps) => {
   const authContext = useAuthContext();
   const { isAuthenticated, currentUser, loading } = authContext;
   // Safe access to isSuperAdmin with fallback
@@ -49,7 +52,6 @@ const PrivateRoute = ({ children }: PrivateRouteProps) => {
 
   // For admin routes, check appropriate permissions
   if (location.pathname.startsWith('/admin')) {
-    // This would use hasPermission to check admin access in a real implementation
     const isSuperOrAdmin =
       currentUser?.role === 'superuser' ||
       currentUser?.role === 'owner' ||
@@ -58,6 +60,31 @@ const PrivateRoute = ({ children }: PrivateRouteProps) => {
     if (!isSuperOrAdmin) {
       return <Navigate to="/" replace />;
     }
+  }
+
+  // Check specific resource permissions if required
+  if (requiredResource && !hasPermission(currentUser, requiredResource, requiredAction)) {
+    return <Navigate to="/" replace />;
+  }
+
+  // Page-specific permission checks based on route
+  const getRoutePermissions = (pathname: string): { resource: string; action: 'view' | 'create' | 'edit' | 'delete' | 'manage' } | null => {
+    if (pathname.startsWith('/expenses')) return { resource: 'expenses', action: 'view' as const };
+    if (pathname.startsWith('/settings')) return { resource: 'settings', action: 'view' as const };
+    if (pathname.startsWith('/users')) return { resource: 'users', action: 'view' as const };
+    if (pathname.startsWith('/mechanics')) return { resource: 'mechanics', action: 'view' as const };
+    if (pathname.startsWith('/customers')) return { resource: 'customers', action: 'view' as const };
+    if (pathname.startsWith('/tasks')) return { resource: 'tasks', action: 'view' as const };
+    if (pathname.startsWith('/parts')) return { resource: 'parts', action: 'view' as const };
+    if (pathname.startsWith('/vehicles')) return { resource: 'vehicles', action: 'view' as const };
+    if (pathname.startsWith('/invoices')) return { resource: 'invoices', action: 'view' as const };
+    if (pathname.startsWith('/attendance')) return { resource: 'attendance', action: 'view' as const };
+    return null;
+  };
+
+  const routePermissions = getRoutePermissions(location.pathname);
+  if (routePermissions && !hasPermission(currentUser, routePermissions.resource, routePermissions.action)) {
+    return <Navigate to="/" replace />;
   }
 
   // If there are children, render them, otherwise render the Outlet

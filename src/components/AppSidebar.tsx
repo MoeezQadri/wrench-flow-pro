@@ -18,6 +18,7 @@ import {
   ChevronUp,
 } from 'lucide-react';
 import { useAuthContext } from '@/context/AuthContext';
+import { hasPermission } from '@/utils/permissions';
 import {
   Sidebar,
   SidebarContent,
@@ -43,51 +44,71 @@ const navItems = [
     title: "Dashboard",
     href: "/",
     icon: LayoutDashboard,
+    resource: "dashboard",
+    action: "view" as const,
   },
   {
     title: "Invoices",
     href: "/invoices",
     icon: FileText,
+    resource: "invoices",
+    action: "view" as const,
   },
   {
     title: "Customers",
     href: "/customers",
     icon: Users,
+    resource: "customers",
+    action: "view" as const,
   },
   {
     title: "Vehicles",
     href: "/vehicles",
     icon: Car,
+    resource: "vehicles",
+    action: "view" as const,
   },
   {
     title: "Tasks",
     href: "/tasks",
     icon: ListChecks,
+    resource: "tasks",
+    action: "view" as const,
   },
   {
     title: "Mechanics",
     href: "/mechanics",
     icon: Wrench,
+    resource: "mechanics",
+    action: "view" as const,
   },
   {
     title: "Attendance",
     href: "/attendance",
     icon: Calendar,
+    resource: "attendance",
+    action: "view" as const,
   },
   {
     title: "Parts",
     href: "/parts",
     icon: Package,
+    resource: "parts",
+    action: "view" as const,
   },
   {
     title: "Expenses",
     href: "/expenses",
     icon: ShoppingCart,
+    resource: "expenses",
+    action: "view" as const,
   },
   {
     title: "Reports",
     href: "/reports",
     icon: BarChart3,
+    resource: "reports",
+    action: "view" as const,
   },
 ];
 
@@ -101,6 +122,22 @@ export function AppSidebar() {
     }
     return location.pathname.startsWith(path);
   };
+
+  // Filter navigation items based on user permissions
+  const getVisibleNavItems = () => {
+    return navItems.filter(item => {
+      // Dashboard is always visible
+      if (item.resource === 'dashboard') {
+        return true;
+      }
+      
+      // Check if user has permission to view this resource
+      return hasPermission(currentUser, item.resource, item.action);
+    });
+  };
+
+  const visibleNavItems = getVisibleNavItems();
+  const canAccessSettings = hasPermission(currentUser, 'settings', 'view');
 
   const handleLogout = async () => {
     try {
@@ -117,7 +154,7 @@ export function AppSidebar() {
           <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navItems.map((item) => (
+              {visibleNavItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild isActive={isActive(item.href)}>
                     <Link to={item.href}>
@@ -132,20 +169,22 @@ export function AppSidebar() {
         </SidebarGroup>
 
         <SidebarSeparator />
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={isActive('/settings')}>
-                  <Link to="/settings">
-                    <Settings className="w-4 h-4" />
-                    <span>Settings</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {canAccessSettings && (
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={isActive('/settings')}>
+                    <Link to="/settings">
+                      <Settings className="w-4 h-4" />
+                      <span>Settings</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
 
       <SidebarFooter>
