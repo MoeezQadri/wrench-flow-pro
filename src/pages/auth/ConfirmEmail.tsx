@@ -54,6 +54,17 @@ const ConfirmEmail = () => {
         if (error) throw error;
 
         if (data.user) {
+          // Check if this is an invited user by looking at user metadata
+          const userMetadata = data.user.user_metadata || {};
+          const isInvitedUser = userMetadata.invited_by || userMetadata.organization_id;
+          
+          if (isInvitedUser) {
+            // This is an invited user, redirect to password setup
+            const setupUrl = `/auth/setup-password?access_token=${access_token}&refresh_token=${refresh_token}&type=invite`;
+            navigate(setupUrl, { replace: true });
+            return;
+          }
+
           setStatus('success');
           toast({
             title: "Email confirmed successfully!",
