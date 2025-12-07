@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthContext } from '@/context/AuthContext';
@@ -20,11 +19,16 @@ const Login: React.FC = () => {
   const [error, setError] = useState<string>('');
   const { signIn, currentUser } = useAuthContext();
   const navigate = useNavigate();
-  const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginForm>();
 
   // Redirect if already logged in
   useEffect(() => {
     if (currentUser) {
+      console.log('[Login] Redirecting to home, user already logged in');
       navigate('/');
     }
   }, [currentUser, navigate]);
@@ -44,27 +48,37 @@ const Login: React.FC = () => {
     try {
       // Clear any existing session issues first
       await supabase.auth.signOut();
-      
+
+      await localStorage.removeItem('isSuperAdminLogin');
+
       // Small delay to ensure clean state
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
       const { data, error } = await signIn(formData.email, formData.password);
 
       if (error) {
         console.error('[Login] Authentication error:', error);
-        if (error.message.includes('credentials') || error.message.includes('Invalid login')) {
+        if (
+          error.message.includes('credentials') ||
+          error.message.includes('Invalid login')
+        ) {
           setError('Invalid email or password');
         } else if (error.message.includes('Email not confirmed')) {
-          setError('Please check your email and click the verification link before logging in');
+          setError(
+            'Please check your email and click the verification link before logging in'
+          );
         } else {
           setError(error.message || 'An error occurred during login');
         }
       } else if (data) {
         console.log('[Login] Login successful, navigating...');
         toast.success('Login successful');
-        
+
         // Small delay to ensure auth state is updated
         setTimeout(() => {
+          console.log(
+            '[Login timeout] Redirecting to home, user already logged in'
+          );
           navigate('/');
         }, 100);
       }
@@ -86,11 +100,15 @@ const Login: React.FC = () => {
             src="/lovable-uploads/ed35fded-80cf-4192-b64b-e97730ee6384.png"
             className="w-72 mb-8 text-white object-contain"
           />
-          <p className="text-xl mb-8 text-slate-800 text-left">Garage management software helping you streamline:</p>
+          <p className="text-xl mb-8 text-slate-800 text-left">
+            Garage management software helping you streamline:
+          </p>
           <div className="space-y-4 text-lg">
             <div className="flex items-center">
               <div className="w-2 h-2 rounded-full mr-3 bg-slate-800"></div>
-              <p className="text-slate-800">Streamline your garage processes </p>
+              <p className="text-slate-800">
+                Streamline your garage processes{' '}
+              </p>
             </div>
             <div className="flex items-center">
               <div className="w-2 h-2 rounded-full mr-3 bg-slate-800"></div>
@@ -116,17 +134,25 @@ const Login: React.FC = () => {
               />
             </div>
 
-            <h2 className="text-2xl font-bold text-center mb-6">Welcome Back</h2>
+            <h2 className="text-2xl font-bold text-center mb-6">
+              Welcome Back
+            </h2>
 
             {error && (
-              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+              <div
+                className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4"
+                role="alert"
+              >
                 <span className="block sm:inline">{error}</span>
               </div>
             )}
 
             <form onSubmit={handleSubmit(onSubmit)}>
               <div className="mb-4">
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="email"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   Email Address
                 </label>
                 <Input
@@ -136,41 +162,49 @@ const Login: React.FC = () => {
                     required: 'Email is required',
                     pattern: {
                       value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                      message: 'Invalid email address'
-                    }
+                      message: 'Invalid email address',
+                    },
                   })}
                   className="w-full"
                 />
                 {errors.email && (
-                  <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>
+                  <p className="text-red-500 text-xs mt-1">
+                    {errors.email.message}
+                  </p>
                 )}
               </div>
 
               <div className="mb-6">
                 <div className="flex justify-between items-center mb-1">
-                  <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="password"
+                    className="block text-sm font-medium text-gray-700"
+                  >
                     Password
                   </label>
-                  <Link to="/auth/forgot-password" className="text-sm text-gray-600 hover:underline">
+                  <Link
+                    to="/auth/forgot-password"
+                    className="text-sm text-gray-600 hover:underline"
+                  >
                     Forgot password?
                   </Link>
                 </div>
                 <Input
                   id="password"
                   type="password"
-                  {...register('password', { required: 'Password is required' })}
+                  {...register('password', {
+                    required: 'Password is required',
+                  })}
                   className="w-full"
                 />
                 {errors.password && (
-                  <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>
+                  <p className="text-red-500 text-xs mt-1">
+                    {errors.password.message}
+                  </p>
                 )}
               </div>
 
-              <Button
-                type="submit"
-                disabled={loading}
-                className="w-full"
-              >
+              <Button type="submit" disabled={loading} className="w-full">
                 {loading ? 'Logging in...' : 'Log in'}
               </Button>
             </form>
@@ -178,7 +212,10 @@ const Login: React.FC = () => {
             <div className="mt-6 text-center">
               <p className="text-gray-600">
                 Don't have an account?{' '}
-                <Link to="/auth/register" className="text-gray-700 hover:underline">
+                <Link
+                  to="/auth/register"
+                  className="text-gray-700 hover:underline"
+                >
                   Register
                 </Link>
               </p>

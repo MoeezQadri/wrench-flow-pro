@@ -1,16 +1,22 @@
-
-import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { AlertCircle, ArrowLeft, Mail } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { useToast } from '@/components/ui/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import React, { useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { AlertCircle, ArrowLeft, Mail } from "lucide-react";
+import { Link } from "react-router-dom";
+import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const ForgotPassword = () => {
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const { toast } = useToast();
@@ -21,7 +27,7 @@ const ForgotPassword = () => {
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.origin + '/auth/reset-password',
+        redirectTo: "https://app.mygaragepro.co/auth/reset-password",
       });
 
       if (error) {
@@ -34,11 +40,12 @@ const ForgotPassword = () => {
         description: "Check your email for a password reset link",
       });
     } catch (error: any) {
-      console.error('Error sending reset email:', error);
+      console.error("Error sending reset email:", error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message || "Failed to send reset email. Please try again.",
+        description:
+          error.message || "Failed to send reset email. Please try again.",
       });
     } finally {
       setIsLoading(false);
@@ -58,7 +65,8 @@ const ForgotPassword = () => {
           {emailSent ? (
             <div className="bg-green-50 p-4 rounded-md border border-green-200 mb-4">
               <p className="text-green-800">
-                If an account exists with this email, you will receive a password reset link shortly.
+                If an account exists with this email, you will receive a
+                password reset link shortly.
               </p>
             </div>
           ) : (
@@ -79,11 +87,7 @@ const ForgotPassword = () => {
                     />
                   </div>
                 </div>
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={isLoading}
-                >
+                <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? "Sending..." : "Send Reset Link"}
                 </Button>
               </div>

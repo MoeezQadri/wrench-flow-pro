@@ -51,7 +51,7 @@ export const GLOBAL_COUNTRIES: Country[] = [
   { code: 'CG', name: 'Congo', flag: '🇨🇬' },
   { code: 'CD', name: 'Congo (Democratic Republic)', flag: '🇨🇩' },
   { code: 'CR', name: 'Costa Rica', flag: '🇨🇷' },
-  { code: 'CI', name: 'Côte d\'Ivoire', flag: '🇨🇮' },
+  { code: 'CI', name: "Côte d'Ivoire", flag: '🇨🇮' },
   { code: 'HR', name: 'Croatia', flag: '🇭🇷' },
   { code: 'CU', name: 'Cuba', flag: '🇨🇺' },
   { code: 'CY', name: 'Cyprus', flag: '🇨🇾' },
@@ -379,3 +379,9 @@ export const GLOBAL_CURRENCIES: Currency[] = [
   { code: 'ZMW', symbol: 'ZK', name: 'Zambian Kwacha' },
   { code: 'ZWL', symbol: 'Z$', name: 'Zimbabwean Dollar' },
 ];
+
+export const USERS_ALLOWED_IN_PLAN = {
+  Basic: 2,
+  Professional: 10,
+  Enterprise: 50,
+};

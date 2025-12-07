@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+} from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import {
   Table,
   TableBody,
@@ -17,15 +17,15 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
+} from '@/components/ui/table';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from '@/components/ui/dropdown-menu';
 import {
   AlertTriangle,
   CheckCircle,
@@ -35,25 +35,26 @@ import {
   Trash,
   UserPlus,
   Users,
-} from "lucide-react";
-import { Label } from "@/components/ui/label";
+} from 'lucide-react';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from '@/components/ui/select';
 import { format } from 'date-fns';
 import {
   enableUserWithoutConfirmation,
-  cleanUserData
+  cleanUserData,
 } from '@/utils/supabase-helpers';
 import { toast } from 'sonner';
 import { UserWithConfirmation, Organization } from './types';
 import AddUserDialog from './AddUserDialog';
 import EditUserDialog from './EditUserDialog';
 import { UserRole } from '@/types';
+import InviteUserDialog from './InviteUserDialog';
 
 interface UserManagementProps {
   users: UserWithConfirmation[];
@@ -62,6 +63,7 @@ interface UserManagementProps {
   searchTerm: string;
   setSearchTerm: React.Dispatch<React.SetStateAction<string>>;
   isLoading: boolean;
+  loadData: () => Promise<void>;
 }
 
 const UserManagement: React.FC<UserManagementProps> = ({
@@ -70,19 +72,24 @@ const UserManagement: React.FC<UserManagementProps> = ({
   organizations,
   searchTerm,
   setSearchTerm,
-  isLoading
+  isLoading,
+  loadData,
 }) => {
   const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false);
   const [isEditUserDialogOpen, setIsEditUserDialogOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<UserWithConfirmation | null>(null);
+  const [selectedUser, setSelectedUser] = useState<UserWithConfirmation | null>(
+    null
+  );
 
   // Function to handle enabling a user without email confirmation
   const handleEnableUser = async (userId: string) => {
     try {
       await enableUserWithoutConfirmation(userId);
       // Update the user's email_confirmed status in the local state
-      const updatedUsers = users.map(user =>
-        user.id === userId ? { ...user, email_confirmed_at: new Date().toISOString() } : user
+      const updatedUsers = users.map((user) =>
+        user.id === userId
+          ? { ...user, email_confirmed_at: new Date().toISOString() }
+          : user
       );
       setUsers(updatedUsers);
       toast.success('User enabled successfully!');
@@ -110,38 +117,27 @@ const UserManagement: React.FC<UserManagementProps> = ({
 
   // Function to handle updating a user
   const handleUserUpdated = (updatedUser: UserWithConfirmation) => {
-    const updatedUsers = users.map(user =>
-      user.id === updatedUser.id ? updatedUser : user
+    console.log({ updatedUser });
+    console.log({ users });
+    setUsers((prevUsers) =>
+      prevUsers.map((user) =>
+        user.id === updatedUser.id ? { ...user, ...updatedUser } : user
+      )
     );
-    setUsers(updatedUsers);
-  };
-
-  // Function to handle role change
-  const handleRoleChange = (user: UserWithConfirmation, newRole: string) => {
-    const updatedUsers = users.map(u => 
-      u.id === user.id 
-        ? { ...u, role: newRole as UserRole }
-        : u
-    );
-    setUsers(updatedUsers);
-  };
-
-  // Function to handle organization change
-  const handleOrganizationChange = (user: UserWithConfirmation, newOrgId: string) => {
-    const updatedUsers = users.map(u => 
-      u.id === user.id 
-        ? { ...u, organization_id: newOrgId }
-        : u
-    );
-    setUsers(updatedUsers);
   };
 
   // Filter users by search term
-  const filteredUsers = users.filter(user =>
-    user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (user.organization_id && user.organization_id.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const filteredUsers = useMemo(() => {
+    return users.filter(
+      (user) =>
+        user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (user.organization_id &&
+          user.organization_id.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
+  }, [users, searchTerm]);
+
+  console.log({ filteredUsers });
 
   return (
     <div className="space-y-6">
@@ -159,7 +155,7 @@ const UserManagement: React.FC<UserManagementProps> = ({
               className="pl-10 w-64"
             />
           </div>
-          
+
           {/* Add New User Button */}
           <Button
             onClick={() => setIsAddUserDialogOpen(true)}
@@ -186,7 +182,7 @@ const UserManagement: React.FC<UserManagementProps> = ({
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-4">
@@ -194,15 +190,17 @@ const UserManagement: React.FC<UserManagementProps> = ({
                 <CheckCircle className="h-6 w-6 text-green-600" />
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-600">Active Users</p>
+                <p className="text-sm font-medium text-gray-600">
+                  Active Users
+                </p>
                 <p className="text-2xl font-bold">
-                  {users.filter(user => user.is_active).length}
+                  {users.filter((user) => user.is_active).length}
                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-4">
@@ -212,7 +210,12 @@ const UserManagement: React.FC<UserManagementProps> = ({
               <div>
                 <p className="text-sm font-medium text-gray-600">Unconfirmed</p>
                 <p className="text-2xl font-bold">
-                  {users.filter(user => user.role !== 'superuser' && !user.email_confirmed).length}
+                  {
+                    users.filter(
+                      (user) =>
+                        user.role !== 'superuser' && !user.email_confirmed
+                    ).length
+                  }
                 </p>
               </div>
             </div>
@@ -245,34 +248,51 @@ const UserManagement: React.FC<UserManagementProps> = ({
                 </TableHeader>
                 <TableBody>
                   {filteredUsers.map((user) => {
-                    const userOrg = organizations.find(org => org.id === user.organization_id);
-                    
+                    const userOrg = organizations.find(
+                      (org) => org.id === user.organization_id
+                    );
+
                     return (
-                      <TableRow key={user.id}>
+                      <TableRow key={`${user.id}`}>
                         <TableCell>
                           <div className="flex items-center gap-3">
                             <Avatar className="h-8 w-8">
                               <AvatarFallback>
-                                {user.name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase()}
+                                {user.name?.charAt(0).toUpperCase() ||
+                                  user.email?.charAt(0).toUpperCase()}
                               </AvatarFallback>
                             </Avatar>
                             <div>
-                              <p className="font-medium">{user.name || 'Unnamed User'}</p>
-                              <p className="text-sm text-gray-500">{user.email}</p>
+                              <p className="font-medium">
+                                {user.name || 'Unnamed User'}
+                              </p>
+                              <p className="text-sm text-gray-500">
+                                {user.email}
+                              </p>
                             </div>
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={user.role === 'superuser' ? 'destructive' : 'outline'}>
+                          <Badge
+                            variant={
+                              user.role === 'superuser'
+                                ? 'destructive'
+                                : 'outline'
+                            }
+                          >
                             {user.role}
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          {userOrg ? userOrg.name : user.organization_id || 'No Organization'}
+                          {userOrg
+                            ? userOrg.name
+                            : user.organization_id || 'No Organization'}
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <Badge variant={user.is_active ? 'default' : 'secondary'}>
+                            <Badge
+                              variant={user.is_active ? 'default' : 'secondary'}
+                            >
                               {user.is_active ? 'Active' : 'Inactive'}
                             </Badge>
                             {user.email_confirmed_at && (
@@ -283,10 +303,9 @@ const UserManagement: React.FC<UserManagementProps> = ({
                           </div>
                         </TableCell>
                         <TableCell>
-                          {user.last_login ? 
-                            format(new Date(user.last_login), 'MMM dd, yyyy') : 
-                            'Never'
-                          }
+                          {user.lastLogin
+                            ? format(new Date(user.lastLogin), 'MMM dd, yyyy')
+                            : 'Never'}
                         </TableCell>
                         <TableCell>
                           <DropdownMenu>
@@ -305,7 +324,7 @@ const UserManagement: React.FC<UserManagementProps> = ({
                                 <Edit className="h-4 w-4 mr-2" />
                                 Edit User
                               </DropdownMenuItem>
-                              
+
                               {!user.email_confirmed_at && (
                                 <DropdownMenuItem
                                   onClick={() => handleEnableUser(user.id)}
@@ -314,7 +333,7 @@ const UserManagement: React.FC<UserManagementProps> = ({
                                   Enable Without Confirmation
                                 </DropdownMenuItem>
                               )}
-                              
+
                               <DropdownMenuItem
                                 onClick={() => handleCleanUserData(user.id)}
                                 className="text-red-600"
@@ -336,13 +355,16 @@ const UserManagement: React.FC<UserManagementProps> = ({
       </Card>
 
       {/* Dialogs */}
-      <AddUserDialog
+      <InviteUserDialog
         open={isAddUserDialogOpen}
         onOpenChange={setIsAddUserDialogOpen}
-        organizations={organizations}
-        onUserAdded={handleUserAdded}
+        organizations={Array.from(
+          new Map(organizations.map((org) => [org.id, org])).values()
+        )}
+        loadData={loadData}
+        users={users}
       />
-      
+
       <EditUserDialog
         open={isEditUserDialogOpen}
         onOpenChange={setIsEditUserDialogOpen}

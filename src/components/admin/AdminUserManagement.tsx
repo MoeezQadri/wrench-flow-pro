@@ -4,7 +4,11 @@ import { Building, UserCog, RefreshCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuthContext } from '@/context/AuthContext';
 import { getOrganizations, getAllUsers } from '@/utils/supabase-helpers';
-import { UserWithConfirmation, Organization, UserManagementProps } from './types';
+import {
+  UserWithConfirmation,
+  Organization,
+  UserManagementProps,
+} from './types';
 import OrganizationManagement from './OrganizationManagement';
 import UserManagement from './UserManagement';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -20,47 +24,52 @@ const AdminUserManagement: React.FC<UserManagementProps> = ({
   setOrganizations,
   searchTerm,
   setSearchTerm,
-  isLoading
+  isLoading,
+  loadData,
 }) => {
   const [activeTab, setActiveTab] = useState('organizations');
   const [error, setError] = useState<string | null>(null);
   const { currentUser, session } = useAuthContext();
   const navigate = useNavigate();
-  
+  console.log({ users });
   // Function to fetch data from Supabase
   const fetchData = async (retryAuth = false) => {
     setError(null);
-    
+
     try {
-      
       // Log what session we're using
-      console.log('AdminUserManagement: Fetching data with auth token:', 
-        session?.access_token?.substring(0, 10) + '...' || 'No session token');
-      
+      console.log(
+        'AdminUserManagement: Fetching data with auth token:',
+        session?.access_token?.substring(0, 10) + '...' || 'No session token'
+      );
+
       // Fetch organizations
       console.log('Fetching organizations...');
       const orgsData = await getOrganizations();
       console.log(`Fetched ${orgsData?.length || 0} organizations`);
-      
+
       // Fetch all users with confirmation status
       console.log('Fetching users...');
       const usersData = await getAllUsers();
       console.log(`Fetched ${usersData?.length || 0} users`);
-      
+
       setError(null);
     } catch (error: any) {
       console.error('Error fetching data:', error);
-      
+
       // Check if this is an authentication error
-      if (error.message?.includes('401') || error.message?.includes('authentication failed')) {
+      if (
+        error.message?.includes('401') ||
+        error.message?.includes('authentication failed')
+      ) {
         setError(`Authentication failed. Please try logging in again.`);
         // For superadmin, offer retry option
         if (currentUser?.role === 'superuser') {
           toast.error('Authentication error. Try refreshing your session.', {
             action: {
               label: 'Refresh',
-              onClick: () => navigate('/superadmin/login')
-            }
+              onClick: () => navigate('/superadmin/login'),
+            },
           });
         }
       } else {
@@ -69,7 +78,7 @@ const AdminUserManagement: React.FC<UserManagementProps> = ({
       }
     }
   };
-  
+
   // Initial fetch on component mount
   useEffect(() => {
     if (session) {
@@ -79,12 +88,12 @@ const AdminUserManagement: React.FC<UserManagementProps> = ({
       setError('No active session. Please log in.');
     }
   }, [session]);
-  
+
   // Handle refresh button click
   const handleRefresh = () => {
     fetchData(true);
   };
-  
+
   return (
     <div className="space-y-6">
       {error && (
@@ -93,10 +102,10 @@ const AdminUserManagement: React.FC<UserManagementProps> = ({
           <AlertTitle>Error</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
           <div className="mt-4">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleRefresh} 
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefresh}
               className="flex items-center gap-2"
             >
               <RefreshCcw className="h-4 w-4" />
@@ -105,7 +114,7 @@ const AdminUserManagement: React.FC<UserManagementProps> = ({
           </div>
         </Alert>
       )}
-      
+
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="mb-4">
           <TabsTrigger value="organizations">
@@ -117,9 +126,9 @@ const AdminUserManagement: React.FC<UserManagementProps> = ({
             Users
           </TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="organizations" className="space-y-6">
-          <OrganizationManagement 
+          <OrganizationManagement
             organizations={organizations}
             setOrganizations={setOrganizations}
             searchTerm={searchTerm}
@@ -127,15 +136,16 @@ const AdminUserManagement: React.FC<UserManagementProps> = ({
             isLoading={isLoading}
           />
         </TabsContent>
-        
+
         <TabsContent value="users" className="space-y-6">
-          <UserManagement 
+          <UserManagement
             users={users}
             setUsers={setUsers}
             organizations={organizations}
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
             isLoading={isLoading}
+            loadData={loadData}
           />
         </TabsContent>
       </Tabs>

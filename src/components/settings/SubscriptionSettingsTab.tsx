@@ -1,12 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useAuthContext } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Users, CreditCard, RefreshCw, CheckCircle, AlertCircle, Star, Crown, Zap, Building2, Calendar } from 'lucide-react';
+import {
+  Users,
+  CreditCard,
+  RefreshCw,
+  CheckCircle,
+  AlertCircle,
+  Star,
+  Crown,
+  Zap,
+  Building2,
+  Calendar,
+} from 'lucide-react';
 interface SubscriptionPlan {
   id: string;
   name: string;
@@ -21,9 +38,10 @@ const SubscriptionSettingsTab = () => {
   const {
     currentUser,
     subscribed,
+    subscriptionSuspended,
     subscriptionTier,
     subscriptionEnd,
-    refreshSubscription
+    refreshSubscription,
   } = useAuthContext();
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,16 +49,18 @@ const SubscriptionSettingsTab = () => {
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
 
   // Only owners and admins can manage subscriptions organization-wide
-  const canManageSubscription = currentUser?.role === 'owner' || currentUser?.role === 'admin';
+  const canManageSubscription =
+    currentUser?.role === 'owner' || currentUser?.role === 'admin';
   useEffect(() => {
     loadPlans();
   }, []);
   const loadPlans = async () => {
     try {
-      const {
-        data,
-        error
-      } = await supabase.from('subscription_plans').select('*').eq('is_active', true).order('sort_order');
+      const { data, error } = await supabase
+        .from('subscription_plans')
+        .select('*')
+        .eq('is_active', true)
+        .order('sort_order');
       if (error) throw error;
       setPlans(data || []);
     } catch (error) {
@@ -62,29 +82,36 @@ const SubscriptionSettingsTab = () => {
       setRefreshing(false);
     }
   };
-  const handleSubscribe = async (planId: string, billingFrequency: 'monthly' | 'yearly' = 'monthly') => {
-    console.log('Subscribe button clicked', { planId, billingFrequency, currentUser });
-    
+  const handleSubscribe = async (
+    planId: string,
+    billingFrequency: 'monthly' | 'yearly' = 'monthly'
+  ) => {
+    console.log('Subscribe button clicked', {
+      planId,
+      billingFrequency,
+      currentUser,
+    });
+
     if (!currentUser) {
       toast.error('Please log in to subscribe');
       return;
     }
-    
+
     setCheckoutLoading(planId);
     try {
       console.log('Invoking create-checkout function...');
-      const {
-        data,
-        error
-      } = await supabase.functions.invoke('create-checkout', {
-        body: {
-          planId,
-          billingFrequency
+      const { data, error } = await supabase.functions.invoke(
+        'create-checkout',
+        {
+          body: {
+            planId,
+            billingFrequency,
+          },
         }
-      });
-      
+      );
+
       console.log('Create-checkout response:', { data, error });
-      
+
       if (error) throw error;
 
       if (data?.url) {
@@ -96,7 +123,9 @@ const SubscriptionSettingsTab = () => {
       }
     } catch (error) {
       console.error('Error creating checkout session:', error);
-      toast.error(`Failed to start checkout process: ${error.message || 'Unknown error'}`);
+      toast.error(
+        `Failed to start checkout process: ${error.message || 'Unknown error'}`
+      );
     } finally {
       setCheckoutLoading(null);
     }
@@ -105,13 +134,20 @@ const SubscriptionSettingsTab = () => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
-      day: 'numeric'
+      day: 'numeric',
     });
   };
-  const getStatusColor = (): "default" | "secondary" | "destructive" | "outline" => {
+  const getStatusColor = ():
+    | 'default'
+    | 'secondary'
+    | 'destructive'
+    | 'outline' => {
     if (!subscribed) return 'destructive';
-    if (subscriptionEnd) {
-      const daysUntilExpiry = Math.ceil((new Date(subscriptionEnd).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+    if (subscriptionEnd || subscriptionSuspended) {
+      const daysUntilExpiry = Math.ceil(
+        (new Date(subscriptionEnd).getTime() - new Date().getTime()) /
+          (1000 * 60 * 60 * 24)
+      );
       if (daysUntilExpiry <= 7) return 'secondary';
     }
     return 'default';
@@ -131,23 +167,30 @@ const SubscriptionSettingsTab = () => {
     }
   };
   if (!canManageSubscription) {
-    return <Card>
+    return (
+      <Card>
         <CardHeader>
           <CardTitle>Subscription Information</CardTitle>
           <CardDescription>
-            Only organization owners and administrators can view and manage subscription settings.
+            Only organization owners and administrators can view and manage
+            subscription settings.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="text-center text-muted-foreground py-8">
             <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>Contact your organization administrator to view subscription details.</p>
+            <p>
+              Contact your organization administrator to view subscription
+              details.
+            </p>
           </div>
         </CardContent>
-      </Card>;
+      </Card>
+    );
   }
   if (loading) {
-    return <div className="space-y-6">
+    return (
+      <div className="space-y-6">
         <div className="animate-pulse space-y-4">
           <div className="h-8 bg-muted rounded w-1/3"></div>
           <div className="h-4 bg-muted rounded w-2/3"></div>
@@ -156,24 +199,38 @@ const SubscriptionSettingsTab = () => {
             <div className="h-32 bg-muted rounded"></div>
           </div>
         </div>
-      </div>;
+      </div>
+    );
   }
-  return <div className="space-y-6">
+  return (
+    <div className="space-y-6">
       {/* Current Subscription Status */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="flex items-center gap-2">
-                {subscribed ? <CheckCircle className="w-5 h-5 text-green-500" /> : <AlertCircle className="w-5 h-5 text-orange-500" />}
+                {subscribed && !subscriptionSuspended ? (
+                  <CheckCircle className="w-5 h-5 text-green-500" />
+                ) : (
+                  <AlertCircle className="w-5 h-5 text-orange-500" />
+                )}
                 Current Subscription
               </CardTitle>
               <CardDescription>
-                Your organization's current subscription status and plan details.
+                Your organization's current subscription status and plan
+                details.
               </CardDescription>
             </div>
-            <Button variant="outline" size="sm" onClick={handleRefreshSubscription} disabled={refreshing}>
-              <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefreshSubscription}
+              disabled={refreshing}
+            >
+              <RefreshCw
+                className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`}
+              />
               Refresh
             </Button>
           </div>
@@ -186,23 +243,34 @@ const SubscriptionSettingsTab = () => {
                 <Badge variant={getStatusColor()}>
                   {subscribed ? 'Active' : 'No Active Subscription'}
                 </Badge>
+                {subscriptionSuspended && (
+                  <Badge variant={'destructive'}>{'Suspended'}</Badge>
+                )}
               </div>
-              {subscriptionTier && <div className="flex items-center gap-2">
+              {subscriptionTier && (
+                <div className="flex items-center gap-2">
                   <span className="text-sm font-medium">Plan:</span>
                   <div className="flex items-center gap-2">
                     {getPlanIcon(subscriptionTier)}
                     <Badge variant="outline">{subscriptionTier}</Badge>
                   </div>
-                </div>}
+                </div>
+              )}
             </div>
 
-            {subscriptionEnd && <div className="space-y-2">
+            {subscriptionEnd && (
+              <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Calendar className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">Next Billing:</span>
+                  <span className="text-sm font-medium">
+                    {subscriptionSuspended ? 'Active until:' : `Next Billing:`}
+                  </span>
                 </div>
-                <p className="text-sm text-muted-foreground">{formatDate(subscriptionEnd)}</p>
-              </div>}
+                <p className="text-sm text-muted-foreground">
+                  {formatDate(subscriptionEnd)}
+                </p>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -213,32 +281,46 @@ const SubscriptionSettingsTab = () => {
       <div>
         <div className="mb-6">
           <h3 className="text-lg font-semibold">
-            {subscribed ? "Upgrade or Change Plan" : "Choose Your Plan"}
+            {subscribed ? 'Upgrade or Change Plan' : 'Choose Your Plan'}
           </h3>
           <p className="text-sm text-muted-foreground">
-            {subscribed ? "Upgrade or downgrade your current subscription plan." : "Select a subscription plan that works best for your garage management needs."}
+            {subscribed
+              ? 'Upgrade or downgrade your current subscription plan.'
+              : 'Select a subscription plan that works best for your garage management needs.'}
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {plans.map(plan => {
-          const isCurrentPlan = subscriptionTier === plan.name;
-          const isPopular = plan.name === 'Professional';
-          const features = Array.isArray(plan.features) ? plan.features : typeof plan.features === 'string' ? JSON.parse(plan.features) : [];
-          return <Card key={plan.id} className={`relative ${isCurrentPlan ? 'ring-2 ring-primary' : ''}`}>
-                {isPopular && <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+          {plans.map((plan) => {
+            const isCurrentPlan = subscriptionTier === plan.name;
+            const isPopular = plan.name === 'Professional';
+            const features = Array.isArray(plan.features)
+              ? plan.features
+              : typeof plan.features === 'string'
+                ? JSON.parse(plan.features)
+                : [];
+            return (
+              <Card
+                key={plan.id}
+                className={`relative ${isCurrentPlan ? 'ring-2 ring-primary' : ''}`}
+              >
+                {isPopular && (
+                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                     <Badge className="bg-primary text-primary-foreground">
                       <Star className="w-3 h-3 mr-1" />
                       Popular
                     </Badge>
-                  </div>}
-                
-                {isCurrentPlan && <div className="absolute -top-3 right-4">
+                  </div>
+                )}
+
+                {isCurrentPlan && (
+                  <div className="absolute -top-3 right-4">
                     <Badge variant="secondary">
                       <CheckCircle className="w-3 h-3 mr-1" />
                       Current
                     </Badge>
-                  </div>}
+                  </div>
+                )}
 
                 <CardHeader className="pb-4">
                   <div className="flex items-center gap-2">
@@ -247,7 +329,9 @@ const SubscriptionSettingsTab = () => {
                   </div>
                   <div className="text-2xl font-bold">
                     ${plan.price_monthly}
-                    <span className="text-sm font-normal text-muted-foreground">/month</span>
+                    <span className="text-sm font-normal text-muted-foreground">
+                      /month
+                    </span>
                   </div>
                   {plan.price_yearly && plan.price_yearly > 0 && (
                     <div className="text-lg text-muted-foreground">
@@ -255,32 +339,49 @@ const SubscriptionSettingsTab = () => {
                       <span className="text-sm">/year</span>
                       {plan.price_monthly && (
                         <span className="text-xs text-green-600 ml-1">
-                          (Save {Math.round(((plan.price_monthly * 12 - plan.price_yearly) / (plan.price_monthly * 12)) * 100)}%)
+                          (Save{' '}
+                          {Math.round(
+                            ((plan.price_monthly * 12 - plan.price_yearly) /
+                              (plan.price_monthly * 12)) *
+                              100
+                          )}
+                          %)
                         </span>
                       )}
                     </div>
                   )}
-                  <CardDescription className="text-xs">{plan.description}</CardDescription>
+                  <CardDescription className="text-xs">
+                    {plan.description}
+                  </CardDescription>
                 </CardHeader>
 
                 <CardContent className="pt-0">
                   <ul className="space-y-2 mb-4">
-                    {features.slice(0, 4).map((feature: string, index: number) => <li key={index} className="flex items-center gap-2 text-xs">
-                        <CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" />
-                        <span>{feature}</span>
-                      </li>)}
-                    {features.length > 4 && <li className="text-xs text-muted-foreground">
+                    {features
+                      .slice(0, 4)
+                      .map((feature: string, index: number) => (
+                        <li
+                          key={index}
+                          className="flex items-center gap-2 text-xs"
+                        >
+                          <CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" />
+                          <span>{feature}</span>
+                        </li>
+                      ))}
+                    {features.length > 4 && (
+                      <li className="text-xs text-muted-foreground">
                         +{features.length - 4} more features
-                      </li>}
+                      </li>
+                    )}
                   </ul>
 
                   {plan.name.toLowerCase() !== 'trial' && (
                     <div className="space-y-2">
-                      <Button 
+                      <Button
                         onClick={() => handleSubscribe(plan.id, 'monthly')}
                         disabled={checkoutLoading === plan.id || isCurrentPlan}
                         className="w-full text-sm"
-                        variant={isCurrentPlan ? "outline" : "default"}
+                        variant={isCurrentPlan ? 'outline' : 'default'}
                       >
                         {checkoutLoading === plan.id ? (
                           <>
@@ -288,16 +389,18 @@ const SubscriptionSettingsTab = () => {
                             Loading...
                           </>
                         ) : isCurrentPlan ? (
-                          "Current Plan"
+                          'Current Plan'
                         ) : (
                           `$${plan.price_monthly}/month`
                         )}
                       </Button>
-                      
+
                       {plan.price_yearly && plan.price_yearly > 0 && (
-                        <Button 
+                        <Button
                           onClick={() => handleSubscribe(plan.id, 'yearly')}
-                          disabled={checkoutLoading === plan.id || isCurrentPlan}
+                          disabled={
+                            checkoutLoading === plan.id || isCurrentPlan
+                          }
                           className="w-full text-sm"
                           variant="outline"
                         >
@@ -311,7 +414,14 @@ const SubscriptionSettingsTab = () => {
                               <span>${plan.price_yearly}/year</span>
                               {plan.price_monthly && (
                                 <span className="text-xs text-green-600">
-                                  Save {Math.round(((plan.price_monthly * 12 - plan.price_yearly) / (plan.price_monthly * 12)) * 100)}%
+                                  Save{' '}
+                                  {Math.round(
+                                    ((plan.price_monthly * 12 -
+                                      plan.price_yearly) /
+                                      (plan.price_monthly * 12)) *
+                                      100
+                                  )}
+                                  %
                                 </span>
                               )}
                             </div>
@@ -321,8 +431,9 @@ const SubscriptionSettingsTab = () => {
                     </div>
                   )}
                 </CardContent>
-              </Card>;
-        })}
+              </Card>
+            );
+          })}
         </div>
       </div>
 
@@ -336,7 +447,8 @@ const SubscriptionSettingsTab = () => {
               Advanced Analytics
             </h4>
             <p className="text-sm text-muted-foreground">
-              Get detailed insights into your garage operations with advanced reporting.
+              Get detailed insights into your garage operations with advanced
+              reporting.
             </p>
           </div>
           <div className="space-y-2">
@@ -381,11 +493,13 @@ const SubscriptionSettingsTab = () => {
               Enhanced Security
             </h4>
             <p className="text-sm text-muted-foreground">
-              Advanced data backup and security features to protect your business.
+              Advanced data backup and security features to protect your
+              business.
             </p>
           </div>
         </div>
       </div>
-    </div>;
+    </div>
+  );
 };
 export default SubscriptionSettingsTab;

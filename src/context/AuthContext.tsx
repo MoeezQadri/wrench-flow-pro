@@ -1,5 +1,10 @@
-
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from 'react';
 import { Session, User as SupabaseUser } from '@supabase/supabase-js';
 import { User, UserRole } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
@@ -31,11 +36,19 @@ interface AuthContextType {
   isSuperAdmin: boolean;
   session: any;
   setSession: React.Dispatch<React.SetStateAction<any>>;
-  signIn: (email: string, password: string) => Promise<{
+  signIn: (
+    email: string,
+    password: string
+  ) => Promise<{
     error: Error | null;
     data: Session | null;
   }>;
-  signUp: (email: string, password: string, name: string, organizationName: string) => Promise<{
+  signUp: (
+    email: string,
+    password: string,
+    name: string,
+    organizationName: string
+  ) => Promise<{
     error: Error | null;
     data: User | null;
   }>;
@@ -43,6 +56,7 @@ interface AuthContextType {
   refreshProfile: () => Promise<void>;
   // Subscription related
   subscribed: boolean;
+  subscriptionSuspended: boolean;
   subscriptionTier: string | null;
   subscriptionEnd: string | null;
   refreshSubscription: () => Promise<void>;
@@ -59,32 +73,40 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [loading, setLoading] = useState(true);
   const [session, setSession] = useState<any>(null);
-  const [loadingTimeout, setLoadingTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [loadingTimeout, setLoadingTimeout] = useState<NodeJS.Timeout | null>(
+    null
+  );
   const [loadingStartTime] = useState<number>(Date.now());
-  
+
   // Subscription state
   const [subscribed, setSubscribed] = useState(false);
+  const [subscriptionSuspended, setSubscriptionSuspended] = useState(false);
   const [subscriptionTier, setSubscriptionTier] = useState<string | null>(null);
   const [subscriptionEnd, setSubscriptionEnd] = useState<string | null>(null);
 
   const isAuthenticated = !!currentUser;
-  const isSuperAdmin = currentUser?.role === 'superuser'
-    || currentUser?.role === 'superadmin'
-    || currentUser?.role === 'owner';
+  const isSuperAdmin =
+    currentUser?.role === 'superuser' ||
+    currentUser?.role === 'superadmin' ||
+    currentUser?.role === 'owner';
 
   // Loading timeout management
   useEffect(() => {
     if (loading) {
       console.log('[AuthContext] Starting loading timeout...');
-      
+
       const timeout = setTimeout(() => {
         const duration = Date.now() - loadingStartTime;
-        console.warn('[AuthContext] Loading timeout reached after', duration, 'ms - forcing completion');
+        console.warn(
+          '[AuthContext] Loading timeout reached after',
+          duration,
+          'ms - forcing completion'
+        );
         setLoading(false);
       }, 30000); // 30 second timeout
-      
+
       setLoadingTimeout(timeout);
-      
+
       return () => {
         if (timeout) clearTimeout(timeout);
       };
@@ -98,44 +120,54 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   useEffect(() => {
     let isInitialized = false;
-    
+
     console.log('[AuthContext] Initializing auth state listener...');
-    
-    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('[AuthContext] Auth state changed:', { event, hasSession: !!session, userId: session?.user?.id });
-      
-      // Synchronous state updates only
-      setSession(session);
-      
-      if (session?.user) {
-        // Defer async operations to prevent deadlock
-        setTimeout(() => {
-          fetchUser(session.user);
-        }, 0);
-      } else {
-        // Clear user state immediately
-        setCurrentUser(null);
-        setOrganization(null);
-        setSubscribed(false);
-        setSubscriptionTier(null);
-        setSubscriptionEnd(null);
+
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        console.log('[AuthContext] Auth state changed:', {
+          event,
+          hasSession: !!session,
+          userId: session?.user?.id,
+        });
+
+        // Synchronous state updates only
+        setSession(session);
+
+        if (session?.user) {
+          // Defer async operations to prevent deadlock
+          setTimeout(() => {
+            fetchUser(session.user);
+          }, 0);
+        } else {
+          // Clear user state immediately
+          setCurrentUser(null);
+          setOrganization(null);
+          setSubscribed(false);
+          setSubscriptionSuspended(false);
+          setSubscriptionTier(null);
+          setSubscriptionEnd(null);
+        }
+
+        if (isInitialized) {
+          setLoading(false);
+        }
       }
-      
-      if (isInitialized) {
-        setLoading(false);
-      }
-    });
+    );
 
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('[AuthContext] Initial session check:', { hasSession: !!session, userId: session?.user?.id });
-      
+      console.log('[AuthContext] Initial session check:', {
+        hasSession: !!session,
+        userId: session?.user?.id,
+      });
+
       if (session?.user) {
         fetchUser(session.user);
       } else {
         setLoading(false);
       }
-      
+
       isInitialized = true;
     });
 
@@ -144,7 +176,6 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       listener?.subscription?.unsubscribe();
     };
   }, []);
-
 
   const fetchUser = async (user: SupabaseUser) => {
     try {
@@ -171,8 +202,11 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       };
 
       setCurrentUser(userDetails);
-      console.log('[AuthContext] User profile loaded:', { userId: userDetails.id, role: userDetails.role });
-      
+      console.log('[AuthContext] User profile loaded:', {
+        userId: userDetails.id,
+        role: userDetails.role,
+      });
+
       // Update last login timestamp
       try {
         await supabase
@@ -184,18 +218,18 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.error('[AuthContext] Failed to update last login:', loginError);
         // Don't fail the entire login process if this fails
       }
-      
+
       // Fetch organization and subscription
       if (profile?.organization_id) {
         await fetchOrganization(profile.organization_id);
         checkSubscriptionStatus();
       }
-      
+
       // Loading complete
       setLoading(false);
       console.log('[AuthContext] Loading complete after user fetch');
     } catch (error: any) {
-      console.error("Error fetching user details:", error.message);
+      console.error('Error fetching user details:', error.message);
       setCurrentUser(null);
       setLoading(false);
       console.log('[AuthContext] Loading complete after error');
@@ -224,15 +258,18 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const checkSubscriptionStatus = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke('check-subscription');
+      const { data, error } =
+        await supabase.functions.invoke('check-subscription');
       if (error) throw error;
-      
+      console.log('[AuthContext] Subscription status:', data);
       setSubscribed(data.subscribed || false);
+      setSubscriptionSuspended(data.suspended || false);
       setSubscriptionTier(data.subscription_tier || null);
       setSubscriptionEnd(data.subscription_end || null);
     } catch (error) {
       console.error('Error checking subscription status:', error);
       setSubscribed(false);
+      setSubscriptionSuspended(false);
       setSubscriptionTier(null);
       setSubscriptionEnd(null);
     }
@@ -254,28 +291,30 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         provider: 'google',
       });
     } catch (error: any) {
-      console.error("Login error:", error.message);
+      console.error('Login error:', error.message);
     }
   };
 
   const logout = async () => {
     try {
       console.log('[AuthContext] Logging out user...');
-      
+
       // Clear state immediately
       setCurrentUser(null);
       setSession(null);
       setOrganization(null);
       setSubscribed(false);
+      setSubscriptionSuspended(false);
       setSubscriptionTier(null);
       setSubscriptionEnd(null);
-      
+
       // Then sign out from Supabase
       await supabase.auth.signOut();
-      
+
+      localStorage.clear();
       console.log('[AuthContext] Logout completed');
     } catch (error: any) {
-      console.error("Logout error:", error.message);
+      console.error('Logout error:', error.message);
       // Even if signOut fails, we've cleared local state
     }
   };
@@ -283,12 +322,12 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const signIn = async (email: string, password: string) => {
     try {
       console.log('[AuthContext] Attempting sign in for:', email);
-      
+
       // Clear any existing session state first
       setCurrentUser(null);
       setSession(null);
       setOrganization(null);
-      
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -299,7 +338,10 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return { data: null, error };
       }
 
-      console.log('[AuthContext] Sign in successful:', { hasSession: !!data.session, userId: data.session?.user?.id });
+      console.log('[AuthContext] Sign in successful:', {
+        hasSession: !!data.session,
+        userId: data.session?.user?.id,
+      });
       return { data: data.session, error: null };
     } catch (error) {
       console.error('[AuthContext] Sign in exception:', error);
@@ -307,7 +349,12 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const signUp = async (email: string, password: string, name: string, organizationName: string) => {
+  const signUp = async (
+    email: string,
+    password: string,
+    name: string,
+    organizationName: string
+  ) => {
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -339,12 +386,15 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
           if (orgError) {
             console.error('Error with organization assignment:', orgError);
-            return { data: null, error: new Error('Failed to process organization assignment') };
+            return {
+              data: null,
+              error: new Error('Failed to process organization assignment'),
+            };
           }
 
           // Type guard for organization result
           const orgData = orgResult as any;
-          
+
           // Handle specific error cases from database function
           if (orgData?.success === false) {
             if (orgData?.error === 'organization_exists') {
@@ -353,16 +403,30 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               const message = `This email is already registered with "${orgData.existing_organization}". Each user can only belong to one organization at a time.`;
               return { data: null, error: new Error(message) };
             } else {
-              return { data: null, error: new Error(orgData.message || 'Failed to create organization') };
+              return {
+                data: null,
+                error: new Error(
+                  orgData.message || 'Failed to create organization'
+                ),
+              };
             }
           }
-          
+
           if (!orgData?.success) {
-            return { data: null, error: new Error('Failed to create organization') };
+            return {
+              data: null,
+              error: new Error('Failed to create organization'),
+            };
           }
-          
-          const userRole = (orgData?.role === 'owner' ? 'owner' : orgData?.role === 'admin' ? 'admin' : 'member') as UserRole;
-          
+
+          const userRole = (
+            orgData?.role === 'owner'
+              ? 'owner'
+              : orgData?.role === 'admin'
+                ? 'admin'
+                : 'member'
+          ) as UserRole;
+
           const customUser: User = {
             id: data.user.id,
             email: data.user.email || email,
@@ -374,7 +438,7 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             created_at: data.user.created_at,
             updated_at: data.user.updated_at,
           };
-          
+
           return { data: customUser, error: null };
         } catch (orgError) {
           console.error('Error handling organization:', orgError);
@@ -391,15 +455,16 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const signOut = async () => {
     try {
       console.log('[AuthContext] Sign out requested...');
-      
+
       // Clear state first
       setCurrentUser(null);
       setSession(null);
       setOrganization(null);
       setSubscribed(false);
+      setSubscriptionSuspended(false);
       setSubscriptionTier(null);
       setSubscriptionEnd(null);
-      
+
       const { error } = await supabase.auth.signOut();
       console.log('[AuthContext] Sign out completed:', { error });
       return { error };
@@ -426,22 +491,19 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signOut,
     refreshProfile,
     subscribed,
+    subscriptionSuspended,
     subscriptionTier,
     subscriptionEnd,
     refreshSubscription,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 const useAuthContext = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error("useAuthContext must be used within an AuthProvider");
+    throw new Error('useAuthContext must be used within an AuthProvider');
   }
   return context;
 };
