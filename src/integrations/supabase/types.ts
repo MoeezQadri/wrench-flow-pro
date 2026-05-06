@@ -53,6 +53,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "attendance_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "user_with_role"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "attendance_mechanic_id_fkey"
             columns: ["mechanic_id"]
             isOneToOne: false
@@ -417,7 +424,15 @@ export type Database = {
           updated_at?: string | null
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "mechanics_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_with_role"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       organizations: {
         Row: {
@@ -676,7 +691,15 @@ export type Database = {
           role?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "user_with_role"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       subscribers: {
         Row: {
@@ -712,7 +735,15 @@ export type Database = {
           updated_at?: string
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "subscribers_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_with_role"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       subscription_plans: {
         Row: {
@@ -854,7 +885,15 @@ export type Database = {
           password_hash?: string
           username?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "superadmins__id_fkey"
+            columns: ["_id"]
+            isOneToOne: false
+            referencedRelation: "user_with_role"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tasks: {
         Row: {
@@ -1056,7 +1095,69 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      profiles_with_email: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          id: string | null
+          is_active: boolean | null
+          lastLogin: string | null
+          name: string | null
+          organization_id: string | null
+          role: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "user_with_role"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_with_role: {
+        Row: {
+          aud: string | null
+          banned_until: string | null
+          confirmation_sent_at: string | null
+          confirmation_token: string | null
+          confirmed_at: string | null
+          created_at: string | null
+          deleted_at: string | null
+          email: string | null
+          email_change: string | null
+          email_change_confirm_status: number | null
+          email_change_sent_at: string | null
+          email_change_token_current: string | null
+          email_change_token_new: string | null
+          email_confirmed_at: string | null
+          encrypted_password: string | null
+          id: string | null
+          instance_id: string | null
+          invited_at: string | null
+          is_anonymous: boolean | null
+          is_sso_user: boolean | null
+          is_super_admin: boolean | null
+          last_sign_in_at: string | null
+          phone: string | null
+          phone_change: string | null
+          phone_change_sent_at: string | null
+          phone_change_token: string | null
+          phone_confirmed_at: string | null
+          raw_app_meta_data: Json | null
+          raw_user_meta_data: Json | null
+          reauthentication_sent_at: string | null
+          reauthentication_token: string | null
+          recovery_sent_at: string | null
+          recovery_token: string | null
+          role: string | null
+          updated_at: string | null
+          user_role: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       add_column_if_not_exists: {
@@ -1067,14 +1168,8 @@ export type Database = {
         }
         Returns: undefined
       }
-      clean_user_data: {
-        Args: { user_id: string }
-        Returns: undefined
-      }
-      cleanup_expired_superadmin_sessions: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
+      clean_user_data: { Args: { user_id: string }; Returns: undefined }
+      cleanup_expired_superadmin_sessions: { Args: never; Returns: number }
       column_exists: {
         Args: { p_column_name: string; p_table_name: string }
         Returns: boolean
@@ -1092,18 +1187,9 @@ export type Database = {
         Args: { p_expires_at: string; p_superadmin_id: string; p_token: string }
         Returns: string
       }
-      current_user_org: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      current_user_org_secure: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      get_current_user_organization: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      current_user_org: { Args: never; Returns: string }
+      current_user_org_secure: { Args: never; Returns: string }
+      get_current_user_organization: { Args: never; Returns: string }
       get_inactive_users: {
         Args: { days_inactive?: number }
         Returns: {
@@ -1146,14 +1232,8 @@ export type Database = {
         Args: { token_to_invalidate: string }
         Returns: boolean
       }
-      is_current_user_superadmin: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      is_organization_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
+      is_current_user_superadmin: { Args: never; Returns: boolean }
+      is_organization_admin: { Args: never; Returns: boolean }
       log_superadmin_activity: {
         Args: {
           p_action_type: string
@@ -1168,18 +1248,9 @@ export type Database = {
         Args: { password_hash: string; username: string }
         Returns: Json
       }
-      superadmin_login_new: {
-        Args: { userid: string }
-        Returns: Json
-      }
-      user_is_superadmin: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      verify_superadmin_token: {
-        Args: { token: string }
-        Returns: boolean
-      }
+      superadmin_login_new: { Args: { userid: string }; Returns: Json }
+      user_is_superadmin: { Args: never; Returns: boolean }
+      verify_superadmin_token: { Args: { token: string }; Returns: boolean }
       verify_superadmin_token_new: {
         Args: { superadmin_token: string }
         Returns: boolean

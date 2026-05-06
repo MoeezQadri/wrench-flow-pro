@@ -1,4 +1,3 @@
-
 import { Link, useLocation } from 'react-router-dom';
 import {
   Calendar,
@@ -41,80 +40,80 @@ import {
 
 const navItems = [
   {
-    title: "Dashboard",
-    href: "/",
+    title: 'Dashboard',
+    href: '/',
     icon: LayoutDashboard,
-    resource: "dashboard",
-    action: "view" as const,
+    resource: 'dashboard',
+    action: 'view' as const,
   },
   {
-    title: "Invoices",
-    href: "/invoices",
+    title: 'Invoices',
+    href: '/invoices',
     icon: FileText,
-    resource: "invoices",
-    action: "view" as const,
+    resource: 'invoices',
+    action: 'view' as const,
   },
   {
-    title: "Customers",
-    href: "/customers",
+    title: 'Customers',
+    href: '/customers',
     icon: Users,
-    resource: "customers",
-    action: "view" as const,
+    resource: 'customers',
+    action: 'view' as const,
   },
   {
-    title: "Vehicles",
-    href: "/vehicles",
+    title: 'Vehicles',
+    href: '/vehicles',
     icon: Car,
-    resource: "vehicles",
-    action: "view" as const,
+    resource: 'vehicles',
+    action: 'view' as const,
   },
   {
-    title: "Tasks",
-    href: "/tasks",
+    title: 'Tasks',
+    href: '/tasks',
     icon: ListChecks,
-    resource: "tasks",
-    action: "view" as const,
+    resource: 'tasks',
+    action: 'view' as const,
   },
   {
-    title: "Mechanics",
-    href: "/mechanics",
+    title: 'Mechanics',
+    href: '/mechanics',
     icon: Wrench,
-    resource: "mechanics",
-    action: "view" as const,
+    resource: 'mechanics',
+    action: 'view' as const,
   },
   {
-    title: "Attendance",
-    href: "/attendance",
+    title: 'Attendance',
+    href: '/attendance',
     icon: Calendar,
-    resource: "attendance",
-    action: "view" as const,
+    resource: 'attendance',
+    action: 'view' as const,
   },
   {
-    title: "Parts",
-    href: "/parts",
+    title: 'Parts',
+    href: '/parts',
     icon: Package,
-    resource: "parts",
-    action: "view" as const,
+    resource: 'parts',
+    action: 'view' as const,
   },
   {
-    title: "Expenses",
-    href: "/expenses",
+    title: 'Expenses',
+    href: '/expenses',
     icon: ShoppingCart,
-    resource: "expenses",
-    action: "view" as const,
+    resource: 'expenses',
+    action: 'view' as const,
   },
   {
-    title: "Reports",
-    href: "/reports",
+    title: 'Reports',
+    href: '/reports',
     icon: BarChart3,
-    resource: "reports",
-    action: "view" as const,
+    resource: 'reports',
+    action: 'view' as const,
   },
 ];
 
 export function AppSidebar() {
   const location = useLocation();
-  const { currentUser, logout } = useAuthContext();
+  const { currentUser, logout, subscribed } = useAuthContext();
 
   const isActive = (path: string) => {
     if (path === '/') {
@@ -125,12 +124,12 @@ export function AppSidebar() {
 
   // Filter navigation items based on user permissions
   const getVisibleNavItems = () => {
-    return navItems.filter(item => {
+    return navItems.filter((item) => {
       // Dashboard is always visible
       if (item.resource === 'dashboard') {
         return true;
       }
-      
+
       // Check if user has permission to view this resource
       return hasPermission(currentUser, item.resource, item.action);
     });
@@ -147,6 +146,7 @@ export function AppSidebar() {
     }
   };
 
+  console.log(subscribed);
   return (
     <Sidebar>
       <SidebarContent>
@@ -156,11 +156,27 @@ export function AppSidebar() {
             <SidebarMenu>
               {visibleNavItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={isActive(item.href)}>
-                    <Link to={item.href}>
-                      <item.icon className="w-4 h-4" />
-                      <span>{item.title}</span>
-                    </Link>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActive(item.href)}
+                    disabled={!subscribed}
+                    className={
+                      !subscribed
+                        ? 'opacity-50 pointer-events-none cursor-not-allowed'
+                        : ''
+                    }
+                  >
+                    {subscribed ? (
+                      <Link to={item.href}>
+                        <item.icon className="w-4 h-4" />
+                        <span>{item.title}</span>
+                      </Link>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <item.icon className="w-4 h-4" />
+                        <span>{item.title}</span>
+                      </div>
+                    )}
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -196,7 +212,9 @@ export function AppSidebar() {
                   <UserRound className="h-4 w-4" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{currentUser.name}</p>
+                  <p className="text-sm font-medium truncate">
+                    {currentUser.name}
+                  </p>
                   <p className="text-xs text-muted-foreground capitalize truncate">
                     {currentUser.role === 'owner' ? 'Admin' : currentUser.role}
                   </p>
@@ -212,7 +230,10 @@ export function AppSidebar() {
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout} className="flex items-center gap-2 text-destructive">
+              <DropdownMenuItem
+                onClick={handleLogout}
+                className="flex items-center gap-2 text-destructive"
+              >
                 <LogOut className="h-4 w-4" />
                 Logout
               </DropdownMenuItem>

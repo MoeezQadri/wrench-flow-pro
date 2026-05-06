@@ -1,18 +1,23 @@
-
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { useToast } from '@/components/ui/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { AlertCircle, Check, Lock } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { AlertCircle, Check, Lock } from "lucide-react";
 
 const ResetPassword = () => {
   const [searchParams] = useSearchParams();
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -23,36 +28,41 @@ const ResetPassword = () => {
   useEffect(() => {
     // Verify the reset token when component mounts
     const verifyToken = async () => {
-      const access_token = searchParams.get('access_token');
-      const refresh_token = searchParams.get('refresh_token');
-      
+      const hashParams = new URLSearchParams(
+        window.location.hash.replace(/^#/, "")
+      );
+      const access_token = hashParams.get("access_token");
+      const refresh_token = hashParams.get("refresh_token");
+
       if (!access_token || !refresh_token) {
         setIsValidToken(false);
-        setError('Invalid reset link. Please request a new password reset.');
+        setError("Invalid reset link. Please request a new password reset.");
         return;
       }
 
       try {
         // Verify token validity without triggering full authentication
         // We'll only set the session during the actual password update
-        const tokenParts = access_token.split('.');
+        const tokenParts = access_token.split(".");
         if (tokenParts.length !== 3) {
-          throw new Error('Invalid token format');
+          throw new Error("Invalid token format");
         }
 
         // Basic JWT structure validation
         const payload = JSON.parse(atob(tokenParts[1]));
         const now = Math.floor(Date.now() / 1000);
-        
+
         if (payload.exp && payload.exp < now) {
-          throw new Error('Token has expired');
+          throw new Error("Token has expired");
         }
 
         setIsValidToken(true);
       } catch (err: any) {
-        console.error('Invalid reset token:', err);
+        console.error("Invalid reset token:", err);
         setIsValidToken(false);
-        setError('Invalid or expired reset link. Please request a new password reset.');
+        setError(
+          "Invalid or expired reset link. Please request a new password reset."
+        );
       }
     };
 
@@ -71,24 +81,24 @@ const ResetPassword = () => {
 
     // Basic validation
     if (password.length < 6) {
-      setError('Password must be at least 6 characters long');
+      setError("Password must be at least 6 characters long");
       setIsLoading(false);
       return;
     }
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
+      setError("Passwords do not match");
       setIsLoading(false);
       return;
     }
 
     try {
       // Set session for password update, then sign out
-      const access_token = searchParams.get('access_token');
-      const refresh_token = searchParams.get('refresh_token');
-      
+      const access_token = searchParams.get("access_token");
+      const refresh_token = searchParams.get("refresh_token");
+
       if (!access_token || !refresh_token) {
-        throw new Error('Missing reset tokens');
+        throw new Error("Missing reset tokens");
       }
 
       // Set session for password update
@@ -110,22 +120,27 @@ const ResetPassword = () => {
       setSuccess(true);
       toast({
         title: "Password reset successful",
-        description: "Your password has been updated. Please login with your new password.",
+        description:
+          "Your password has been updated. Please login with your new password.",
       });
 
       // Redirect to login after a short delay
       setTimeout(() => {
-        navigate('/auth/login', { 
-          state: { message: 'Password reset successful. Please login with your new password.' }
+        navigate("/auth/login", {
+          state: {
+            message:
+              "Password reset successful. Please login with your new password.",
+          },
         });
       }, 3000);
     } catch (err: any) {
-      console.error('Error resetting password:', err);
-      setError(err.message || 'Failed to reset password. Please try again.');
+      console.error("Error resetting password:", err);
+      setError(err.message || "Failed to reset password. Please try again.");
       toast({
         variant: "destructive",
         title: "Reset failed",
-        description: err.message || 'Failed to reset password. Please try again.',
+        description:
+          err.message || "Failed to reset password. Please try again.",
       });
     } finally {
       setIsLoading(false);
@@ -164,8 +179,8 @@ const ResetPassword = () => {
               <AlertCircle className="h-5 w-5 text-red-600 mr-2 mt-0.5" />
               <p className="text-red-800">{error}</p>
             </div>
-            <Button 
-              onClick={() => navigate('/auth/forgot-password')} 
+            <Button
+              onClick={() => navigate("/auth/forgot-password")}
               className="w-full"
             >
               Request New Reset Link
@@ -192,13 +207,17 @@ const ResetPassword = () => {
               <p className="text-red-800">{error}</p>
             </div>
           )}
-          
+
           {success ? (
             <div className="bg-green-50 p-4 rounded-md border border-green-200 mb-4 flex items-start">
               <Check className="h-5 w-5 text-green-600 mr-2 mt-0.5" />
               <div>
-                <p className="text-green-800">Your password has been reset successfully!</p>
-                <p className="text-green-700 mt-2">Redirecting to login page...</p>
+                <p className="text-green-800">
+                  Your password has been reset successfully!
+                </p>
+                <p className="text-green-700 mt-2">
+                  Redirecting to login page...
+                </p>
               </div>
             </div>
           ) : (
@@ -219,7 +238,7 @@ const ResetPassword = () => {
                     />
                   </div>
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="confirmPassword">Confirm Password</Label>
                   <div className="relative">
@@ -235,7 +254,7 @@ const ResetPassword = () => {
                     />
                   </div>
                 </div>
-                
+
                 <Button
                   type="submit"
                   className="w-full"

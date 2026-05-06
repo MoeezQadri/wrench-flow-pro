@@ -1,4 +1,3 @@
-
 import { User, UserRole } from '@/types';
 
 export interface UserWithConfirmation extends Profile {
@@ -11,7 +10,7 @@ export interface Profile {
   email: string;
   role: UserRole;
   is_active: boolean;
-  last_login?: string;
+  lastLogin?: string;
   created_at?: string;
   organization_id?: string;
   email_confirmed?: boolean;
@@ -22,15 +21,21 @@ export interface Organization {
   name: string;
   subscription_level: string;
   subscription_status: string;
+  suspended?: boolean;
+  next_billing_date?: string;
   logo?: string;
   trial_ends_at?: string;
   address?: string;
   phone?: string;
   email?: string;
+  user_id?: string;
   country?: string;
   currency?: string;
   created_at: string;
   updated_at?: string;
+  total_billed?: string;
+  billing_interval?: string;
+  user_role?: UserRole;
 }
 
 export interface RoleResource {
@@ -50,6 +55,7 @@ export interface UserManagementProps {
   searchTerm: string;
   setSearchTerm: React.Dispatch<React.SetStateAction<string>>;
   isLoading: boolean;
+  loadData: () => Promise<void>;
 }
 
 export interface OrganizationManagementProps {
