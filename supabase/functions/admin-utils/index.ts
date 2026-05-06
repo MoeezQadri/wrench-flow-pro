@@ -582,6 +582,28 @@ serve(async (req) => {
           }
         );
       }
+      case 'check_email_exists': {
+        if (!params?.email) {
+          return new Response(
+            JSON.stringify({ error: 'Email parameter is required' }),
+            {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 400,
+            }
+          );
+        }
+        try {
+          const result = await checkEmailExists(params.email);
+          return new Response(JSON.stringify(result), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        } catch (error) {
+          return new Response(JSON.stringify({ error: error.message }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 500,
+          });
+        }
+      }
       default:
         return new Response(
           JSON.stringify({
