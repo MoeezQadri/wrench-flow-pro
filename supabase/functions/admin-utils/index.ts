@@ -593,7 +593,7 @@ serve(async (req) => {
           );
         }
         try {
-          const result = await checkEmailExists(params.email);
+          const result = await checkEmailExists(params.email, params.organization_name);
           return new Response(JSON.stringify(result), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           });

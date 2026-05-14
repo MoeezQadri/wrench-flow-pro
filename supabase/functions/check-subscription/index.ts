@@ -15,6 +15,47 @@ const logStep = (step: string, details?: any) => {
   console.log(`[CHECK-SUBSCRIPTION] ${step}${detailsStr}`);
 };
 
+const TRIAL_DAYS = 14;
+
+async function checkTrialStatus(supabaseClient: any, userId: string) {
+  const { data: profile } = await supabaseClient
+    .from('profiles')
+    .select('organization_id')
+    .eq('id', userId)
+    .single();
+
+  if (!profile?.organization_id) {
+    return { subscribed: false };
+  }
+
+  const { data: org } = await supabaseClient
+    .from('organizations')
+    .select('created_at')
+    .eq('id', profile.organization_id)
+    .single();
+
+  if (!org?.created_at) {
+    return { subscribed: false };
+  }
+
+  const createdAt = new Date(org.created_at);
+  const trialEnd = new Date(
+    createdAt.getTime() + TRIAL_DAYS * 24 * 60 * 60 * 1000
+  );
+  const now = new Date();
+
+  if (now <= trialEnd) {
+    return {
+      subscribed: true,
+      subscription_tier: 'Trial',
+      subscription_end: trialEnd.toISOString(),
+      suspended: false,
+    };
+  }
+
+  return { subscribed: false };
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -50,6 +91,26 @@ serve(async (req) => {
       throw new Error('User not authenticated or email not available');
     logStep('User authenticated', { userId: user.id, email: user.email });
 
+    const OWNER_EMAILS = [
+      'gearheadgarage.pk@gmail.com',
+      'daniyal.reviewer@gmail.com',
+    ];
+    if (OWNER_EMAILS.includes(user.email)) {
+      logStep('Owner account detected, granting Enterprise access');
+      return new Response(
+        JSON.stringify({
+          subscribed: true,
+          subscription_tier: 'Enterprise',
+          subscription_end: null,
+          suspended: false,
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        }
+      );
+    }
+
     const stripe = new Stripe(stripeKey, { apiVersion: '2023-10-16' });
     const customers = await stripe.customers.list({
       email: user.email,
@@ -57,20 +118,10 @@ serve(async (req) => {
     });
 
     if (customers.data.length === 0) {
-      logStep('No customer found, updating unsubscribed state');
-      // await supabaseClient.from('subscribers').upsert(
-      //   {
-      //     email: user.email,
-      //     user_id: user.id,
-      //     stripe_customer_id: null,
-      //     subscribed: false,
-      //     subscription_tier: null,
-      //     subscription_end: null,
-      //     updated_at: new Date().toISOString(),
-      //   },
-      //   { onConflict: 'email' }
-      // );
-      return new Response(JSON.stringify({ subscribed: false }), {
+      logStep('No Stripe customer found, checking trial eligibility');
+      const trialResult = await checkTrialStatus(supabaseClient, user.id);
+      logStep('Trial check result', trialResult);
+      return new Response(JSON.stringify(trialResult), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
       });
@@ -126,7 +177,21 @@ serve(async (req) => {
         subscriptionTier,
       });
     } else {
-      logStep('No active subscription found');
+      logStep('No active subscription found, checking trial eligibility');
+      const trialResult = await checkTrialStatus(supabaseClient, user.id);
+      if (trialResult.subscribed) {
+        logStep('User is within trial period', trialResult);
+        return new Response(
+          JSON.stringify({
+            ...trialResult,
+            suspended: subscriber?.suspended || false,
+          }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200,
+          }
+        );
+      }
     }
 
     // await supabaseClient.from("subscribers").upsert({

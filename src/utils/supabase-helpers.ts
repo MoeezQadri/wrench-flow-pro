@@ -285,12 +285,12 @@ export const updateUser = async (params: {
 /**
  * Check if an email already exists and its status
  */
-export const checkEmailExists = async (email: string) => {
+export const checkEmailExists = async (email: string, organizationName?: string) => {
   try {
     const { data, error } = await supabase.functions.invoke('admin-utils', {
       body: {
         action: 'check_email_exists',
-        params: { email },
+        params: { email, organization_name: organizationName },
       },
     });
 

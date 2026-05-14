@@ -261,7 +261,7 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const { data, error } =
         await supabase.functions.invoke('check-subscription');
       if (error) throw error;
-      console.log('[AuthContext] Subscription status:', data);
+      console.log('[AuthContext] Subscription status:', { data });
       setSubscribed(data.subscribed || false);
       setSubscriptionSuspended(data.suspended || false);
       setSubscriptionTier(data.subscription_tier || null);

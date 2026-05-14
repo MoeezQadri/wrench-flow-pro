@@ -130,8 +130,24 @@ export async function enableUserWithoutConfirmation(userId) {
     throw error;
   }
 }
-export async function checkEmailExists(email) {
+export async function checkEmailExists(email, organizationName?) {
   const supabaseAdmin = await getSupabaseAdmin();
+
+  // Check organization name uniqueness if provided
+  let organizationExists = false;
+  if (organizationName) {
+    const { data: orgData, error: orgError } = await supabaseAdmin
+      .from('organizations')
+      .select('id')
+      .ilike('name', organizationName.trim())
+      .maybeSingle();
+    if (orgError) {
+      console.error('Error checking organization:', orgError);
+    } else {
+      organizationExists = !!orgData;
+    }
+  }
+
   const perPage = 100;
   let page = 1;
   let user = null;
@@ -148,15 +164,16 @@ export async function checkEmailExists(email) {
       (u) => u.email.toLowerCase() === email.toLowerCase()
     );
     if (user) break;
-    // If less than a full page returned, we've hit the end
     if (data.users.length < perPage) break;
     page++;
   }
+
   if (!user)
     return {
       exists: false,
+      organization_exists: organizationExists,
     };
-  // Check profile for is_active
+
   const { data: profile, error: profileError } = await supabaseAdmin
     .from('profiles')
     .select('is_active')
@@ -166,12 +183,14 @@ export async function checkEmailExists(email) {
     console.error('Error fetching profile:', profileError);
     return {
       exists: true,
-      is_active: true, // default to true if uncertain
+      is_active: true,
+      organization_exists: organizationExists,
     };
   }
   return {
     exists: true,
     is_active: profile.is_active,
+    organization_exists: organizationExists,
   };
 }
 export async function updateUser(input) {
