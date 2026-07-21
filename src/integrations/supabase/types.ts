@@ -440,7 +440,6 @@ export type Database = {
           country: string | null
           created_at: string
           currency: string | null
-          email: string | null
           id: string
           logo: string | null
           name: string
@@ -455,7 +454,6 @@ export type Database = {
           country?: string | null
           created_at?: string
           currency?: string | null
-          email?: string | null
           id?: string
           logo?: string | null
           name: string
@@ -470,7 +468,6 @@ export type Database = {
           country?: string | null
           created_at?: string
           currency?: string | null
-          email?: string | null
           id?: string
           logo?: string | null
           name?: string
@@ -668,6 +665,7 @@ export type Database = {
           lastLogin: string | null
           name: string | null
           organization_id: string
+          orgid: string | null
           role: string | null
           updated_at: string | null
         }
@@ -678,6 +676,7 @@ export type Database = {
           lastLogin?: string | null
           name?: string | null
           organization_id: string
+          orgid?: string | null
           role?: string | null
           updated_at?: string | null
         }
@@ -688,6 +687,7 @@ export type Database = {
           lastLogin?: string | null
           name?: string | null
           organization_id?: string
+          orgid?: string | null
           role?: string | null
           updated_at?: string | null
         }
@@ -706,10 +706,12 @@ export type Database = {
           created_at: string
           email: string
           id: string
+          organization_id: string | null
           stripe_customer_id: string | null
           subscribed: boolean
           subscription_end: string | null
           subscription_tier: string | null
+          suspended: boolean | null
           updated_at: string
           user_id: string | null
         }
@@ -717,10 +719,12 @@ export type Database = {
           created_at?: string
           email: string
           id?: string
+          organization_id?: string | null
           stripe_customer_id?: string | null
           subscribed?: boolean
           subscription_end?: string | null
           subscription_tier?: string | null
+          suspended?: boolean | null
           updated_at?: string
           user_id?: string | null
         }
@@ -728,14 +732,30 @@ export type Database = {
           created_at?: string
           email?: string
           id?: string
+          organization_id?: string | null
           stripe_customer_id?: string | null
           subscribed?: boolean
           subscription_end?: string | null
           subscription_tier?: string | null
+          suspended?: boolean | null
           updated_at?: string
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_organization"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_organization"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_with_profiles"
+            referencedColumns: ["organization_id"]
+          },
           {
             foreignKeyName: "subscribers_user_id_fkey"
             columns: ["user_id"]
@@ -1095,6 +1115,37 @@ export type Database = {
       }
     }
     Views: {
+      organizations_with_profiles: {
+        Row: {
+          address: string | null
+          country: string | null
+          created_at: string | null
+          currency: string | null
+          is_active: boolean | null
+          lastLogin: string | null
+          logo: string | null
+          organization_id: string | null
+          organization_name: string | null
+          phone: string | null
+          profile_email: string | null
+          profile_id: string | null
+          profile_name: string | null
+          role: string | null
+          subscription_level: string | null
+          subscription_status: string | null
+          trial_ends_at: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "user_with_role"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles_with_email: {
         Row: {
           created_at: string | null
@@ -1234,6 +1285,7 @@ export type Database = {
       }
       is_current_user_superadmin: { Args: never; Returns: boolean }
       is_organization_admin: { Args: never; Returns: boolean }
+      is_super_admin: { Args: never; Returns: boolean }
       log_superadmin_activity: {
         Args: {
           p_action_type: string
