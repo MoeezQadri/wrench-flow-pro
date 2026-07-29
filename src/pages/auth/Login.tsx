@@ -91,12 +91,15 @@ const Login: React.FC = () => {
         console.log('[Login] Login successful, navigating...');
         toast.success('Login successful');
 
+        const postLoginUrl = getPostLoginUrl();
+
         // Small delay to ensure auth state is updated
         setTimeout(() => {
           console.log(
-            '[Login timeout] Redirecting to home, user already logged in'
+            '[Login timeout] Redirecting to',
+            postLoginUrl
           );
-          navigate('/');
+          navigate(postLoginUrl);
         }, 100);
       }
     } catch (err: any) {
