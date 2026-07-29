@@ -138,6 +138,35 @@ serve(async (req) => {
     }
 
     // Fast path: existing active subscriber row for this org
+    const { data: orgSubscribers } = await supabaseClient
+      .from('subscribers')
+      .select('*')
+      .eq('organization_id', organizationId)
+      .eq('subscribed', true)
+      .order('updated_at', { ascending: false })
+      .limit(1);
+
+    const orgSub = orgSubscribers?.[0];
+    const nowMs = Date.now();
+    const cachedEndMs = orgSub?.subscription_end ? new Date(orgSub.subscription_end).getTime() : null;
+    const cachedActive = orgSub && (cachedEndMs === null || cachedEndMs > nowMs);
+    if (orgSub && cachedActive) {
+      logStep('Fast path: org subscriber found', { tier: orgSub.subscription_tier });
+      return json({
+        subscribed: true,
+        subscription_tier: orgSub.subscription_tier,
+        subscription_end: orgSub.subscription_end,
+        suspended: orgSub.suspended || false,
+      });
+    }
+    if (orgSub && !cachedActive) {
+      logStep('Cached subscriber expired, falling through to Stripe', {
+        subscription_end: orgSub.subscription_end,
+      });
+    }
+
+    // Stripe path: check candidate emails for active subscriptions
+    const stripe = new Stripe(stripeKey, { apiVersion: '2023-10-16' });
 
     for (const cand of candidates) {
       const customers = await stripe.customers.list({
