@@ -19,17 +19,34 @@ const Login: React.FC = () => {
   const [error, setError] = useState<string>('');
   const { signIn, currentUser } = useAuthContext();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const {
     register,
     handleSubmit,
     formState: { errors },
   } = useForm<LoginForm>();
 
+  const getPostLoginUrl = () => {
+    const next = searchParams.get('next');
+    const tab = searchParams.get('tab');
+    const plan = searchParams.get('plan');
+
+    if (next) {
+      const params = new URLSearchParams();
+      if (tab) params.set('tab', tab);
+      if (plan) params.set('plan', plan);
+      const query = params.toString();
+      return query ? `${next}?${query}` : next;
+    }
+
+    return '/';
+  };
+
   // Redirect if already logged in
   useEffect(() => {
     if (currentUser) {
-      console.log('[Login] Redirecting to home, user already logged in');
-      navigate('/');
+      console.log('[Login] Redirecting after login, user already logged in');
+      navigate(getPostLoginUrl());
     }
   }, [currentUser, navigate]);
 
