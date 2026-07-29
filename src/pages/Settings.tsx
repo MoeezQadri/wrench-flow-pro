@@ -15,12 +15,19 @@ import {
 
 const Settings = () => {
   const [activeTab, setActiveTab] = useState('organization');
-  const { currentUser, subscribed } = useAuthContext();
+  const { currentUser, organization, subscribed } = useAuthContext();
 
   // Check if current user has permission to manage users and roles
   const userCanManageUsers = canManageUsers(currentUser);
   const userCanManageSettings = canManageSettings(currentUser);
   const userCanManageSubscription = canManageSubscription(currentUser);
+
+  const plan = (organization?.subscription_level || '').toLowerCase();
+  const isAdminOrOwner =
+    currentUser?.role === 'owner' || currentUser?.role === 'admin';
+  const showAutomationTab =
+    isAdminOrOwner && (plan === 'professional' || plan === 'enterprise');
+
   useEffect(() => {
     if (!subscribed) setActiveTab('subscription');
   }, [subscribed]);
@@ -62,6 +69,15 @@ const Settings = () => {
               Users
             </TabsTrigger>
           )}
+          {showAutomationTab && (
+            <TabsTrigger
+              value="automation"
+              className="data-[state=active]:bg-muted"
+            >
+              <Sparkles className="w-4 h-4 mr-2" />
+              Automation Setup
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {/* Organization Settings Tab */}
@@ -85,6 +101,13 @@ const Settings = () => {
         {userCanManageUsers && (
           <TabsContent value="users" className="space-y-6">
             <UserManagementTab />
+          </TabsContent>
+        )}
+
+        {/* Automation Setup Tab - Professional & Enterprise admins/owners only */}
+        {showAutomationTab && (
+          <TabsContent value="automation" className="space-y-6">
+            <AutomationSetupTab />
           </TabsContent>
         )}
       </Tabs>
