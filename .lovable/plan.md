@@ -1,47 +1,28 @@
-## Recommended subscription flow from an external marketing site
+## Problem
 
-### Current state
-- `create-checkout` requires an authenticated user and an organization, so the external site cannot call Stripe directly.
-- New users already get a 14-day trial and are redirected to `/settings` if they have no active subscription.
-- The app has no public `/pricing` or `/subscribe` landing page.
+`OWNER_EMAILS` bypass in `supabase/functions/check-subscription/index.ts` only fires when the caller's own email is in the list. Invited sub-users in the same organization don't match, so they:
 
-### Proposed flow
-1. External marketing site CTA links to a single in-app entry point: `https://app.mygaragepro.co/subscribe?plan=<plan>`.
-2. If the visitor is **not logged in**, they are sent to `/auth/register?next=/settings?tab=subscription&plan=<plan>`.
-3. After registration and email confirmation, they land on **Settings > Subscription** with the chosen plan highlighted.
-4. If the visitor is **already logged in**, they go straight to **Settings > Subscription**.
-5. The user then manually clicks the plan CTA inside the app to start Stripe checkout.
+1. Skip the bypass block.
+2. Find no `subscribers` row for the org (owner uses bypass and never wrote one).
+3. Find no active Stripe subscription for any admin email (owners are bypass-only, not paid in Stripe).
+4. Fall back to the 14-day trial from org `created_at` — which for older orgs is expired, so they see "not subscribed".
 
-### Implementation steps
+## Fix
 
-1. **Add a `/subscribe` redirect route**
-   - Create a small public component at `/subscribe`.
-   - If unauthenticated: redirect to `/auth/register?next=/settings?tab=subscription&plan=<plan>`.
-   - If authenticated: redirect to `/settings?tab=subscription&plan=<plan>`.
-   - Register the route in `src/App.tsx` outside the protected layout.
+Extend the bypass so it applies **org-wide**, not just for the caller.
 
-2. **Respect `next` query param on auth pages**
-   - Update `PublicRoute.tsx` so that an already-authenticated user hitting `/auth/login` or `/auth/register` with a `next` param is redirected to that URL instead of `/`.
+In `supabase/functions/check-subscription/index.ts`, after resolving `organizationId` (around line 109), before the fast-path subscribers lookup:
 
-3. **Preserve intent through email confirmation**
-   - Update `Register.tsx` to read `next` and `plan` from the URL and include them in the Supabase `emailRedirectTo`.
-   - Update `ConfirmEmail.tsx` to parse those params after confirmation and redirect to `/settings?tab=subscription&plan=<plan>`.
+1. Query `profiles` for all `owner`/`admin` rows in the org.
+2. Resolve their emails via `supabaseClient.auth.admin.getUserById(id)`.
+3. If any of those emails is in `OWNER_EMAILS`, return the same Enterprise payload the caller-bypass path returns.
 
-4. **Surface the plan hint in Settings**
-   - Update `Settings.tsx` to read the `tab` query param and default to the `subscription` tab.
-   - Update `SubscriptionSettingsTab.tsx` to read the `plan` query param, scroll the matching card into view, and pre-select annual/monthly (no auto-checkout).
+The existing admin-candidate resolution later in the function already does this lookup — we just need to do the email resolution once, earlier, and short-circuit on an owner-bypass hit. Then reuse the same `candidates` array for the Stripe loop below to avoid a second round of `getUserById` calls.
 
-5. **External site CTA URLs**
-   - Generic: `https://app.mygaragepro.co/subscribe`
-   - With plan hint: `https://app.mygaragepro.co/subscribe?plan=basic` (also `professional`, `enterprise`).
-   - These URLs must be updated on the external marketing site; this project only provides the in-app destination.
+No schema changes, no frontend changes. Single edge function edit; deploys automatically.
 
-### Technical notes
-- No backend/Supabase changes are required.
-- No Stripe products need to be created; `create-checkout` still builds the session from the `subscription_plans` table.
-- The flow matches your chosen behavior: account first, then show Subscription settings (no automatic checkout).
+## Verification
 
-### Verification
-- Logged-out visitor: `/subscribe?plan=professional` -> register page -> confirm email -> Settings opens on Subscription tab with Professional highlighted.
-- Logged-in visitor: `/subscribe?plan=basic` -> Settings opens on Subscription tab with Basic highlighted.
-- Already-authenticated user visiting `/auth/register?next=/settings?tab=subscription` is redirected to `/settings?tab=subscription`.
+- Log in as an invited sub-user whose org owner is `gearheadgarage.pk@gmail.com` or `daniyal.reviewer@gmail.com` → subscription resolves to Enterprise.
+- Log in as an unrelated org's user → still hits trial/Stripe path unchanged.
+- Check edge function logs for a new `Org owner is bypass account, granting Enterprise access` line.
