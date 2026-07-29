@@ -118,7 +118,10 @@ serve(async (req) => {
       .limit(1);
 
     const orgSub = orgSubscribers?.[0];
-    if (orgSub) {
+    const nowMs = Date.now();
+    const cachedEndMs = orgSub?.subscription_end ? new Date(orgSub.subscription_end).getTime() : null;
+    const cachedActive = orgSub && (cachedEndMs === null || cachedEndMs > nowMs);
+    if (orgSub && cachedActive) {
       logStep('Fast path: org subscriber found', {
         tier: orgSub.subscription_tier,
       });
@@ -127,6 +130,11 @@ serve(async (req) => {
         subscription_tier: orgSub.subscription_tier,
         subscription_end: orgSub.subscription_end,
         suspended: orgSub.suspended || false,
+      });
+    }
+    if (orgSub && !cachedActive) {
+      logStep('Cached subscriber expired, falling through to Stripe', {
+        subscription_end: orgSub.subscription_end,
       });
     }
 
