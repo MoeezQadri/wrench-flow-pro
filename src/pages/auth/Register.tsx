@@ -192,7 +192,14 @@ const Register: React.FC = () => {
       });
       
       console.log('Calling signUp function...');
-      const { data, error } = await signUp(email, password, name.trim(), organizationName.trim());
+      const redirectTo = getConfirmationRedirectUrl();
+      const { data, error } = await signUp(
+        email,
+        password,
+        name.trim(),
+        organizationName.trim(),
+        redirectTo
+      );
       
       console.log('SignUp result:', { data, error });
       
