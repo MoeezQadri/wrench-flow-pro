@@ -288,6 +288,7 @@ const SubscriptionSettingsTab = () => {
         subscriptionTier={subscriptionTier}
         checkoutLoading={checkoutLoading}
         onSubscribe={handleSubscribe}
+        highlightedPlan={highlightedPlan}
       />
 
       {/* Subscription Benefits */}
