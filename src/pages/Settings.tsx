@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Building, CreditCard, User, Users } from 'lucide-react';
+import { Building, CreditCard, User, Users, Sparkles } from 'lucide-react';
 import OrganizationSettingsTab from '@/components/settings/OrganizationSettingsTab';
 import SubscriptionSettingsTab from '@/components/settings/SubscriptionSettingsTab';
 import AccountSettingsTab from '@/components/settings/AccountSettingsTab';
 import UserManagementTab from '@/components/settings/UserManagementTab';
+import AutomationSetupTab from '@/components/settings/AutomationSetupTab';
 import { useAuthContext } from '@/context/AuthContext';
 import {
   canManageUsers,
