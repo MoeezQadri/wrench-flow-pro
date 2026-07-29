@@ -31,9 +31,12 @@ const PrivateRoute = ({ children, requiredResource, requiredAction = 'view' }: P
     return <LoadingScreen />;
   }
 
-  // If not authenticated, redirect to login
+  // If not authenticated, redirect to login (preserve destination query params)
   if (!isAuthenticated) {
-    return <Navigate to="/auth/login" state={{ from: location }} replace />;
+    const loginUrl = location.search
+      ? `/auth/login${location.search}`
+      : '/auth/login';
+    return <Navigate to={loginUrl} state={{ from: location }} replace />;
   }
 
   // For superadmin routes, check if user has superadmin access
