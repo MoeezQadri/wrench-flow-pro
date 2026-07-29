@@ -258,7 +258,7 @@ export const addVehicle = async (vehicleData: Omit<Vehicle, 'id' | 'created_at' 
   try {
     const { data, error } = await supabase
       .from('vehicles')
-      .insert(vehicleData)
+      .insert(vehicleData as any)
       .select()
       .single();
 
