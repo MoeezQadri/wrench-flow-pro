@@ -24,6 +24,7 @@ import {
   Building2,
   Calendar,
 } from 'lucide-react';
+import PricingPlans from './PricingPlans';
 interface SubscriptionPlan {
   id: string;
   name: string;
