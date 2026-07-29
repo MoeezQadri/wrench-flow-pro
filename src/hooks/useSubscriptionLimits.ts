@@ -8,68 +8,95 @@ export const useSubscriptionLimits = () => {
     
     switch (level.toLowerCase()) {
       case 'trial':
+      case 'free':
+        // 14-day full access — every feature unlocked
         return {
-          maxUsers: 2,
+          maxUsers: 1,
           maxInvoices: 50,
           maxCustomers: 25,
           maxVehicles: 25,
           features: {
-            reports: false,
-            analytics: false,
-            api: false,
-            customBranding: false,
+            reports: true,
+            analytics: true,
+            automatedReminders: true,
+            smsEmailDelivery: true,
+            reviewRequests: true,
+            reactivationCampaigns: true,
+            bookingForm: true,
+            customBranding: true,
+            api: true,
           }
         };
       case 'basic':
         return {
-          maxUsers: 5,
+          maxUsers: 3,
           maxInvoices: 500,
-          maxCustomers: 100,
-          maxVehicles: 100,
+          maxCustomers: 200,
+          maxVehicles: 200,
           features: {
             reports: true,
-            analytics: false,
-            api: false,
+            analytics: true,
+            automatedReminders: false,
+            smsEmailDelivery: false,
+            reviewRequests: false,
+            reactivationCampaigns: false,
+            bookingForm: false,
             customBranding: false,
+            api: false,
           }
         };
       case 'professional':
         return {
-          maxUsers: 20,
+          maxUsers: 10,
           maxInvoices: 2000,
-          maxCustomers: 500,
-          maxVehicles: 500,
+          maxCustomers: 1000,
+          maxVehicles: 1000,
           features: {
             reports: true,
             analytics: true,
+            automatedReminders: true,
+            smsEmailDelivery: true,
+            reviewRequests: true,
+            reactivationCampaigns: false,
+            bookingForm: false,
+            customBranding: false,
             api: false,
-            customBranding: true,
           }
         };
       case 'enterprise':
         return {
-          maxUsers: -1, // unlimited
+          maxUsers: 50,
           maxInvoices: -1,
           maxCustomers: -1,
           maxVehicles: -1,
           features: {
             reports: true,
             analytics: true,
-            api: true,
+            automatedReminders: true,
+            smsEmailDelivery: true,
+            reviewRequests: true,
+            reactivationCampaigns: true,
+            bookingForm: true,
             customBranding: true,
+            api: true,
           }
         };
       default:
         return {
           maxUsers: 1,
-          maxInvoices: 10,
-          maxCustomers: 5,
-          maxVehicles: 5,
+          maxInvoices: 50,
+          maxCustomers: 25,
+          maxVehicles: 25,
           features: {
             reports: false,
             analytics: false,
-            api: false,
+            automatedReminders: false,
+            smsEmailDelivery: false,
+            reviewRequests: false,
+            reactivationCampaigns: false,
+            bookingForm: false,
             customBranding: false,
+            api: false,
           }
         };
     }
