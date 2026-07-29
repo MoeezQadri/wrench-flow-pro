@@ -19,8 +19,21 @@ const PublicRoute = ({ children, redirectPath = '/' }: PublicRouteProps) => {
   const isRecoveryConfirm = location.pathname === '/auth/confirm' && params.get('type') === 'recovery';
   const hasRecoveryTokens = params.get('access_token') && params.get('refresh_token') && params.get('type') === 'recovery';
   
-  // If user is authenticated and NOT in a recovery flow, redirect to dashboard
+  // If user is authenticated and NOT in a recovery flow, redirect to intended destination
   if (isAuthenticated && !isPasswordResetFlow && !isEmailConfirmFlow && !isRecoveryConfirm && !hasRecoveryTokens) {
+    const next = params.get('next');
+    const tab = params.get('tab');
+    const plan = params.get('plan');
+
+    if (next) {
+      const nextParams = new URLSearchParams();
+      if (tab) nextParams.set('tab', tab);
+      if (plan) nextParams.set('plan', plan);
+      const query = nextParams.toString();
+      const target = query ? `${next}?${query}` : next;
+      return <Navigate to={target} state={{ from: location }} replace />;
+    }
+
     const lastRoute = localStorage.getItem('lastRoute');
     const safeRedirect = lastRoute && lastRoute !== '/auth/login' ? lastRoute : redirectPath;
     return <Navigate to={safeRedirect} state={{ from: location }} replace />;
