@@ -380,8 +380,10 @@ export const GLOBAL_CURRENCIES: Currency[] = [
   { code: 'ZWL', symbol: 'Z$', name: 'Zimbabwean Dollar' },
 ];
 
-export const USERS_ALLOWED_IN_PLAN = {
-  Basic: 2,
-  Professional: 10,
-  Enterprise: 50,
+export const USERS_ALLOWED_IN_PLAN: Record<string, number> = {
+  trial: 1,
+  free: 1,
+  basic: 3,
+  professional: 10,
+  enterprise: 50,
 };
