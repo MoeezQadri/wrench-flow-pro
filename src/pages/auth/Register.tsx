@@ -17,7 +17,20 @@ const Register: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const { signUp } = useAuthContext();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
+
+  const next = searchParams.get('next') || '/settings';
+  const tab = searchParams.get('tab') || 'subscription';
+  const plan = searchParams.get('plan') || '';
+
+  const getConfirmationRedirectUrl = () => {
+    const params = new URLSearchParams();
+    params.set('next', next);
+    params.set('tab', tab);
+    if (plan) params.set('plan', plan);
+    return `/auth/confirm?${params.toString()}`;
+  };
 
   const getErrorMessage = (error: any): string => {
     if (!error) return 'An unexpected error occurred';
