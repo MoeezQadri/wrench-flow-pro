@@ -133,6 +133,7 @@ const PricingPlans: React.FC<PricingPlansProps> = ({
   subscriptionTier,
   checkoutLoading,
   onSubscribe,
+  highlightedPlan,
 }) => {
   const [billing, setBilling] = useState<'monthly' | 'yearly'>('monthly');
 
