@@ -23,6 +23,7 @@ import ForgotPassword from '@/pages/auth/ForgotPassword';
 import ConfirmEmail from '@/pages/auth/ConfirmEmail';
 import ResetPassword from '@/pages/auth/ResetPassword';
 import SetupPassword from '@/pages/auth/SetupPassword';
+import SubscribeRedirect from '@/pages/SubscribeRedirect';
 
 // Non-lazy loaded reports
 import FinanceReport from '@/pages/reports/FinanceReport';
