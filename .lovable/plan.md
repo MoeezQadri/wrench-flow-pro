@@ -1,28 +1,20 @@
-## Problem
+## Current behavior
 
-`OWNER_EMAILS` bypass in `supabase/functions/check-subscription/index.ts` only fires when the caller's own email is in the list. Invited sub-users in the same organization don't match, so they:
+Subscription expiry is already organization-scoped in `supabase/functions/check-subscription/index.ts`:
 
-1. Skip the bypass block.
-2. Find no `subscribers` row for the org (owner uses bypass and never wrote one).
-3. Find no active Stripe subscription for any admin email (owners are bypass-only, not paid in Stripe).
-4. Fall back to the 14-day trial from org `created_at` — which for older orgs is expired, so they see "not subscribed".
+1. The function resolves the caller's `organization_id` from `profiles`.
+2. It looks up the `subscribers` cache row for that organization and checks both `subscribed = true` AND `subscription_end > now()`.
+3. If the cached subscription is expired, it falls through to Stripe and checks active subscriptions for any owner/admin in the organization.
+4. If no active Stripe subscription is found, every user in the org falls back to the 14-day trial based on `organizations.created_at`.
+5. The hardcoded owner bypass (`OWNER_EMAILS`) returns `subscription_end: null`, so it never expires.
 
-## Fix
+## Result
 
-Extend the bypass so it applies **org-wide**, not just for the caller.
+- When a paid subscription expires, **all users in the same organization** lose paid access together.
+- When any owner/admin renews or starts a subscription, **all users in the organization** regain access.
+- No code changes are required.
 
-In `supabase/functions/check-subscription/index.ts`, after resolving `organizationId` (around line 109), before the fast-path subscribers lookup:
+## Technical details
 
-1. Query `profiles` for all `owner`/`admin` rows in the org.
-2. Resolve their emails via `supabaseClient.auth.admin.getUserById(id)`.
-3. If any of those emails is in `OWNER_EMAILS`, return the same Enterprise payload the caller-bypass path returns.
-
-The existing admin-candidate resolution later in the function already does this lookup — we just need to do the email resolution once, earlier, and short-circuit on an owner-bypass hit. Then reuse the same `candidates` array for the Stripe loop below to avoid a second round of `getUserById` calls.
-
-No schema changes, no frontend changes. Single edge function edit; deploys automatically.
-
-## Verification
-
-- Log in as an invited sub-user whose org owner is `gearheadgarage.pk@gmail.com` or `daniyal.reviewer@gmail.com` → subscription resolves to Enterprise.
-- Log in as an unrelated org's user → still hits trial/Stripe path unchanged.
-- Check edge function logs for a new `Org owner is bypass account, granting Enterprise access` line.
+- File: `supabase/functions/check-subscription/index.ts`
+- Key logic: fast-path cache check at lines 141–166, Stripe fallback at lines 168–223, trial fallback at lines 225–228.
