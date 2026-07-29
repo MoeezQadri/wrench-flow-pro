@@ -238,7 +238,7 @@ export const addCustomer = async (customerData: Omit<Customer, 'id' | 'created_a
   try {
     const { data, error } = await supabase
       .from('customers')
-      .insert(customerData)
+      .insert(customerData as any)
       .select()
       .single();
 

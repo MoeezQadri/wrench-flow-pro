@@ -21,22 +21,22 @@ const AdminDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   
   // Fetch data when component mounts
+  const fetchData = async () => {
+    try {
+      setIsLoading(true);
+      const orgsData = await getOrganizations();
+      const usersData = await getAllUsers();
+
+      setOrganizations(orgsData || []);
+      setUsers(usersData || []);
+    } catch (error) {
+      console.error("Error fetching admin data:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setIsLoading(true);
-        const orgsData = await getOrganizations();
-        const usersData = await getAllUsers();
-        
-        setOrganizations(orgsData || []);
-        setUsers(usersData || []);
-      } catch (error) {
-        console.error("Error fetching admin data:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
     fetchData();
   }, []);
   
@@ -101,6 +101,7 @@ const AdminDashboard = () => {
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
             isLoading={isLoading}
+            loadData={fetchData}
           />
         </TabsContent>
         

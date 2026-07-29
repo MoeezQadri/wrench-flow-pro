@@ -21,7 +21,7 @@ export const useMechanics = () => {
 
         console.log('Adding mechanic:', newMechanic);
         try {
-            const { data, error } = await supabase.from('mechanics').insert(newMechanic).select();
+            const { data, error } = await supabase.from('mechanics').insert(newMechanic as any).select();
             if (error) {
                 console.error('Error adding mechanic:', error);
                 toast.error('Failed to add mechanic');
@@ -68,7 +68,7 @@ export const useMechanics = () => {
         try {
             const { data, error } = await supabase
                 .from('mechanics')
-                .update(updatedData)
+                .update(updatedData as any)
                 .eq('id', id)
                 .select();
 

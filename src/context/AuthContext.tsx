@@ -73,7 +73,7 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [loading, setLoading] = useState(true);
   const [session, setSession] = useState<any>(null);
-  const [loadingTimeout, setLoadingTimeout] = useState<NodeJS.Timeout | null>(
+  const [loadingTimeout, setLoadingTimeout] = useState<ReturnType<typeof setTimeout> | null>(
     null
   );
   const [loadingStartTime] = useState<number>(Date.now());
