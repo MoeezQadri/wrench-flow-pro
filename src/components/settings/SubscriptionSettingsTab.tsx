@@ -45,6 +45,8 @@ const SubscriptionSettingsTab = () => {
     subscriptionEnd,
     refreshSubscription,
   } = useAuthContext();
+  const [searchParams] = useSearchParams();
+  const highlightedPlan = searchParams.get('plan') || undefined;
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
