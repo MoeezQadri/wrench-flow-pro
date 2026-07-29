@@ -1,73 +1,51 @@
+Switch the app's billing integration from the current Stripe account to a different/new Stripe account.
 
-# Automation Setup Request (Professional & Enterprise)
+## Current state
+- The app uses a bring-your-own-key Stripe integration via Supabase Edge Functions.
+- Secrets in use: `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`.
+- Edge functions that touch Stripe: `create-checkout`, `stripe-webhook`, `customer-portal`, `suspend-subscription`, `check-subscription`, `get_all_subscriptions`.
+- Checkout sessions are created dynamically from the `subscription_plans` table; no hardcoded Stripe Price IDs exist in code.
+- The webhook endpoint is `https://zugmebtirwpdkblijlvx.supabase.co/functions/v1/stripe-webhook`.
 
-Add a settings section where org admins/owners on Professional or Enterprise plans can request automation setup. Submissions are stored in the DB and emailed to `info@mygaragepro.co`.
+## What needs to change
 
-## Email transport note
+### 1. Update Supabase secrets
+- Rotate `STRIPE_SECRET_KEY` to the new Stripe account's secret key (`sk_live_...` or `sk_test_...`).
+- Rotate `STRIPE_WEBHOOK_SECRET` to the new Stripe account's webhook signing secret.
+- No code changes are required for this step; the edge functions read these secrets at runtime.
 
-This project uses an external Supabase (not Lovable-managed Cloud), so the built-in Lovable Emails infrastructure is unavailable. To keep this "managed"-style, I'll wire the delivery through the **Resend** connector (verified sending domain on Resend, single API key). If you'd rather not use Resend, we can fall back to DB-only and you check requests in Settings.
+### 2. Reconfigure the webhook in the new Stripe account
+- In the new Stripe Dashboard, register the endpoint: `https://zugmebtirwpdkblijlvx.supabase.co/functions/v1/stripe-webhook`.
+- Select the event `checkout.session.completed`.
+- Copy the new webhook signing secret and save it as `STRIPE_WEBHOOK_SECRET`.
 
-## UX
+### 3. Recreate products/prices if needed
+- The current `create-checkout` function dynamically creates a Stripe price on checkout using `subscription_plans.price_monthly` / `price_yearly`.
+- No migration of Stripe Product/Price IDs is needed unless you want to switch to pre-created Stripe Price IDs.
+- If you want to keep the same plan names and prices, no database changes are needed.
 
-New tab in Settings: **Automation Setup** — visible only when:
-- `currentUser.role` is `owner` or `admin`, AND
-- `organization.subscription_level` is `professional` or `enterprise`.
+### 4. Decide how to handle existing subscriptions
+- Existing subscriptions in the old Stripe account will continue billing there unless you cancel them.
+- The app checks subscriptions by looking up the Stripe customer by email, so users with active subscriptions only in the old account will no longer be detected as subscribed after the switch.
+- Recommended approach:
+  - Cancel old subscriptions at period end (or immediately) in the old Stripe dashboard.
+  - Ask affected users to resubscribe through the new checkout flow.
+  - Alternatively, manually update `organizations.subscription_status` / `subscription_level` for users with active time remaining on the old account.
 
-Otherwise hidden from the sidebar and route-guarded.
+### 5. Verify after the switch
+- Run a test checkout in the new Stripe account (test mode first, then live).
+- Confirm the webhook reaches `stripe-webhook` and updates the organization's subscription status.
+- Confirm `customer-portal` opens for customers created in the new account.
+- Check `check-subscription` returns the correct tier for a subscribed user.
 
-Form fields:
-- Automations requested (checkboxes): time/mileage reminders, SMS delivery, email delivery, review requests (Google/Yelp), customer reactivation, lapsed-customer outreach, website booking form, custom branding.
-- Preferred contact time (text) + phone number (validated).
-- Notes (textarea, max 2000 chars).
-- Auto-included from context (read-only display): org name, plan, requester name + email.
+## Out of scope unless requested
+- Migrating subscription data from the old Stripe account.
+- Changing plan pricing or feature gates.
+- Switching to Lovable's built-in Stripe/Paddle payments integration.
 
-On submit:
-1. Client validates with zod, calls edge function `request-automation-setup`.
-2. Function verifies JWT, loads caller's profile + org, re-checks plan + role server-side.
-3. Inserts row into `automation_requests`.
-4. Sends email via Resend gateway to `info@mygaragepro.co` with request details and a reply-to of the requester.
-5. Returns success; UI shows a confirmation card ("We'll be in touch within 1 business day") and lists the org's past requests with status (`new`, `in_progress`, `completed`).
-
-## Data model
-
-New table `public.automation_requests`:
-- `id uuid pk`
-- `organization_id text not null` (auto-set by `set_row_org_id()` trigger)
-- `requested_by uuid not null` (auth user id)
-- `requester_email text`, `requester_name text`
-- `automations text[] not null`
-- `preferred_contact_time text`
-- `phone text`
-- `notes text`
-- `status text default 'new'` (`new` | `in_progress` | `completed`)
-- `created_at`, `updated_at timestamptz`
-
-Grants + RLS:
-- `GRANT SELECT, INSERT ON public.automation_requests TO authenticated;`
-- `GRANT ALL ... TO service_role;`
-- Enable RLS.
-- SELECT/INSERT policy: `organization_id = current_user_org_secure() AND is_organization_admin()`.
-- UPDATE policy: superadmin only (support toggles status).
-- Attach `set_row_org_id` BEFORE INSERT trigger.
-
-## Edge function
-
-`supabase/functions/request-automation-setup/index.ts`:
-- CORS + JWT validation via `SUPABASE_JWKS`.
-- Zod validation of body.
-- Re-check role/plan server-side by fetching the caller's profile + organization with service-role client.
-- Insert row; on success POST to `https://connector-gateway.lovable.dev/resend/emails` using `LOVABLE_API_KEY` + `RESEND_API_KEY`, from `automations@<verified-domain>`, to `info@mygaragepro.co`, reply-to requester email, HTML body listing all fields.
-- Surface provider errors verbatim (log status + body) but still return success if the DB insert succeeded, so a Resend outage doesn't lose the request.
-
-## Files
-
-- Migration: create table, grants, RLS, trigger.
-- `supabase/functions/request-automation-setup/index.ts` (new).
-- `src/components/settings/AutomationSetupTab.tsx` (new) — form + past requests list.
-- `src/pages/Settings.tsx` — add tab, gated by role + plan.
-- `src/hooks/useAutomationRequests.ts` (new) — thin fetch/submit wrapper.
-
-## Prereqs to confirm before I build
-
-1. OK to add the **Resend connector** (I'll trigger the connect flow — you'll pick or create the connection and verify your sending domain in Resend)? If no, I'll switch to DB-only with an in-app "Requests" inbox visible to superadmins.
-2. Sending domain to use on the `from:` address (e.g. `automations@mygaragepro.co`) — must be verified in Resend.
+## Steps to implement
+1. Obtain the new Stripe account's `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`.
+2. Use `secrets--update_secret` to rotate both secrets in Supabase.
+3. Register the webhook endpoint in the new Stripe dashboard.
+4. Optionally cancel or grandfather existing subscriptions from the old account.
+5. Run end-to-end checkout and webhook verification.
