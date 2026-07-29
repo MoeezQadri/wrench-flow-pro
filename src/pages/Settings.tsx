@@ -17,14 +17,16 @@ import {
 const Settings = () => {
   const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState('organization');
-  const { currentUser, organization, subscribed } = useAuthContext();
+  const { currentUser, organization, subscribed, subscriptionTier } = useAuthContext();
 
   // Check if current user has permission to manage users and roles
   const userCanManageUsers = canManageUsers(currentUser);
   const userCanManageSettings = canManageSettings(currentUser);
   const userCanManageSubscription = canManageSubscription(currentUser);
 
-  const plan = (organization?.subscription_level || '').toLowerCase();
+  const plan = (
+    (subscribed && subscriptionTier) || organization?.subscription_level || ''
+  ).toLowerCase();
   const isAdminOrOwner =
     currentUser?.role === 'owner' || currentUser?.role === 'admin';
   const showAutomationTab =
