@@ -90,6 +90,9 @@ function App() {
                 />
               </Route>
 
+              {/* Public subscription entry point from external marketing site */}
+              <Route path="/subscribe" element={<SubscribeRedirect />} />
+
               {/* Super Admin Routes */}
               <Route path="/superadmin/login" element={<SuperAdminLogin />} />
               <Route path="/superadmin" element={<PrivateRoute />}>
