@@ -68,6 +68,51 @@ export type Database = {
           },
         ]
       }
+      automation_requests: {
+        Row: {
+          automations: string[]
+          created_at: string
+          id: string
+          notes: string | null
+          organization_id: string
+          phone: string | null
+          preferred_contact_time: string | null
+          requested_by: string
+          requester_email: string | null
+          requester_name: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          automations?: string[]
+          created_at?: string
+          id?: string
+          notes?: string | null
+          organization_id: string
+          phone?: string | null
+          preferred_contact_time?: string | null
+          requested_by: string
+          requester_email?: string | null
+          requester_name?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          automations?: string[]
+          created_at?: string
+          id?: string
+          notes?: string | null
+          organization_id?: string
+          phone?: string | null
+          preferred_contact_time?: string | null
+          requested_by?: string
+          requester_email?: string | null
+          requester_name?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       blog_posts: {
         Row: {
           content: string
