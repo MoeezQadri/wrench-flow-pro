@@ -47,7 +47,8 @@ interface AuthContextType {
     email: string,
     password: string,
     name: string,
-    organizationName: string
+    organizationName: string,
+    redirectTo?: string
   ) => Promise<{
     error: Error | null;
     data: User | null;
