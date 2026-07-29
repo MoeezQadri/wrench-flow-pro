@@ -108,6 +108,35 @@ serve(async (req) => {
     }
     logStep('Resolved organization', { organizationId });
 
+    // Resolve org owners/admins early so we can apply the owner-email bypass
+    // to every sub-account in the same organization.
+    const { data: adminProfiles } = await supabaseClient
+      .from('profiles')
+      .select('id, role')
+      .eq('organization_id', organizationId)
+      .in('role', ['owner', 'admin']);
+
+    const adminIds: string[] = (adminProfiles || []).map((p: any) => p.id);
+    if (!adminIds.includes(user.id)) adminIds.push(user.id);
+
+    const candidates: { userId: string; email: string }[] = [];
+    for (const id of adminIds) {
+      const { data: u } = await supabaseClient.auth.admin.getUserById(id);
+      const email = u?.user?.email;
+      if (email) candidates.push({ userId: id, email });
+    }
+    logStep('Admin candidates', { count: candidates.length });
+
+    if (candidates.some((c) => OWNER_EMAILS.includes(c.email))) {
+      logStep('Org owner is bypass account, granting Enterprise access');
+      return json({
+        subscribed: true,
+        subscription_tier: 'Enterprise',
+        subscription_end: null,
+        suspended: false,
+      });
+    }
+
     // Fast path: existing active subscriber row for this org
     const { data: orgSubscribers } = await supabaseClient
       .from('subscribers')
@@ -122,9 +151,7 @@ serve(async (req) => {
     const cachedEndMs = orgSub?.subscription_end ? new Date(orgSub.subscription_end).getTime() : null;
     const cachedActive = orgSub && (cachedEndMs === null || cachedEndMs > nowMs);
     if (orgSub && cachedActive) {
-      logStep('Fast path: org subscriber found', {
-        tier: orgSub.subscription_tier,
-      });
+      logStep('Fast path: org subscriber found', { tier: orgSub.subscription_tier });
       return json({
         subscribed: true,
         subscription_tier: orgSub.subscription_tier,
@@ -138,26 +165,8 @@ serve(async (req) => {
       });
     }
 
-    // Stripe path: check owner/admin emails in this org
+    // Stripe path: check candidate emails for active subscriptions
     const stripe = new Stripe(stripeKey, { apiVersion: '2023-10-16' });
-
-    const { data: adminProfiles } = await supabaseClient
-      .from('profiles')
-      .select('id, role')
-      .eq('organization_id', organizationId)
-      .in('role', ['owner', 'admin']);
-
-    const adminIds: string[] = (adminProfiles || []).map((p: any) => p.id);
-    // Always include the caller as a fallback candidate (covers legacy owner records)
-    if (!adminIds.includes(user.id)) adminIds.push(user.id);
-
-    const candidates: { userId: string; email: string }[] = [];
-    for (const id of adminIds) {
-      const { data: u } = await supabaseClient.auth.admin.getUserById(id);
-      const email = u?.user?.email;
-      if (email) candidates.push({ userId: id, email });
-    }
-    logStep('Admin candidates', { count: candidates.length });
 
     for (const cand of candidates) {
       const customers = await stripe.customers.list({
