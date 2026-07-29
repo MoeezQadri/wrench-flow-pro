@@ -471,7 +471,16 @@ const Register: React.FC = () => {
           <div className="mt-6 text-center">
             <p>
               Already have an account?{' '}
-              <Link to="/auth/login" className="text-blue-600 hover:underline">
+              <Link
+                to={(() => {
+                  const params = new URLSearchParams();
+                  params.set('next', next);
+                  params.set('tab', tab);
+                  if (plan) params.set('plan', plan);
+                  return `/auth/login?${params.toString()}`;
+                })()}
+                className="text-blue-600 hover:underline"
+              >
                 Login
               </Link>
             </p>
