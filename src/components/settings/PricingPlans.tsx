@@ -137,6 +137,17 @@ const PricingPlans: React.FC<PricingPlansProps> = ({
 }) => {
   const [billing, setBilling] = useState<'monthly' | 'yearly'>('monthly');
 
+  useEffect(() => {
+    if (!highlightedPlan) return;
+    const timer = setTimeout(() => {
+      const el = document.querySelector(`[data-plan-highlight="${highlightedPlan.toLowerCase()}"]`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [highlightedPlan, plans]);
+
   const findPlanId = (matchName: string): string | undefined => {
     const p = plans.find(
       (pl) => pl.name?.toLowerCase() === matchName.toLowerCase()
