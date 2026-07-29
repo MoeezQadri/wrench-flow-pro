@@ -106,7 +106,7 @@ export const useCustomers = () => {
             console.log("Adding customer:", customerData);
             const { data, error } = await supabase
                 .from('customers')
-                .insert(customerData)
+                .insert(customerData as any)
                 .select();
             
             if (error) {
@@ -225,7 +225,7 @@ export const useCustomers = () => {
             console.log("Updating customer:", id, updates);
             const { data, error } = await supabase
                 .from('customers')
-                .update(updates)
+                .update(updates as any)
                 .eq('id', id)
                 .select();
 

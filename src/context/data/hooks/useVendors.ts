@@ -64,7 +64,7 @@ export const useVendors = () => {
         try {
             const { data, error } = await supabase
                 .from('vendors')
-                .update(updates)
+                .update(updates as any)
                 .eq('id', id)
                 .select();
 

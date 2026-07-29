@@ -156,7 +156,7 @@ export const useAttendance = () => {
             console.log("Adding attendance:", newAttendanceData);
             const { data, error } = await supabase
                 .from('attendance')
-                .insert(newAttendanceData)
+                .insert(newAttendanceData as any)
                 .select();
             
             if (error) {
@@ -227,7 +227,7 @@ export const useAttendance = () => {
             console.log("Updating attendance:", id, updates);
             const { data, error } = await supabase
                 .from('attendance')
-                .update(updates)
+                .update(updates as any)
                 .eq('id', id)
                 .select();
 

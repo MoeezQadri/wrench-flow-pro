@@ -64,7 +64,7 @@ export const useVehicles = () => {
                 .update({
                     ...updates,
                     year: updates.year
-                })
+                } as any)
                 .eq('id', id)
                 .select();
 

@@ -12,7 +12,7 @@ export const useUniversalTimeout = (config: TimeoutConfig = {
   escalationTimeout: 30000, // 30 seconds  
   maxTimeout: 60000 // 1 minute
 }) => {
-  const timeouts = useRef<Map<string, NodeJS.Timeout>>(new Map());
+  const timeouts = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const startTimes = useRef<Map<string, number>>(new Map());
   const { reportFailure, setShowRecoveryPanel } = useGlobalRecovery();
 
