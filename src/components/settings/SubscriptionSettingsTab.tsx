@@ -12,6 +12,7 @@ import { Separator } from '@/components/ui/separator';
 import { useAuthContext } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useSearchParams } from 'react-router-dom';
 import {
   Users,
   CreditCard,
@@ -44,6 +45,8 @@ const SubscriptionSettingsTab = () => {
     subscriptionEnd,
     refreshSubscription,
   } = useAuthContext();
+  const [searchParams] = useSearchParams();
+  const highlightedPlan = searchParams.get('plan') || undefined;
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -285,6 +288,7 @@ const SubscriptionSettingsTab = () => {
         subscriptionTier={subscriptionTier}
         checkoutLoading={checkoutLoading}
         onSubscribe={handleSubscribe}
+        highlightedPlan={highlightedPlan}
       />
 
       {/* Subscription Benefits */}

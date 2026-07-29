@@ -47,7 +47,8 @@ interface AuthContextType {
     email: string,
     password: string,
     name: string,
-    organizationName: string
+    organizationName: string,
+    redirectTo?: string
   ) => Promise<{
     error: Error | null;
     data: User | null;
@@ -353,14 +354,19 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     email: string,
     password: string,
     name: string,
-    organizationName: string
+    organizationName: string,
+    redirectTo?: string
   ) => {
     try {
+      const confirmationUrl = redirectTo?.startsWith('http')
+        ? redirectTo
+        : `${window.location.origin}${redirectTo || '/'}`;
+
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/`,
+          emailRedirectTo: confirmationUrl,
           data: {
             name,
           },

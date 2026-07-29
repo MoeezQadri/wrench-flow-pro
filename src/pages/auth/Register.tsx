@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthContext } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
@@ -17,7 +17,20 @@ const Register: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const { signUp } = useAuthContext();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
+
+  const next = searchParams.get('next') || '/settings';
+  const tab = searchParams.get('tab') || 'subscription';
+  const plan = searchParams.get('plan') || '';
+
+  const getConfirmationRedirectUrl = () => {
+    const params = new URLSearchParams();
+    params.set('next', next);
+    params.set('tab', tab);
+    if (plan) params.set('plan', plan);
+    return `/auth/confirm?${params.toString()}`;
+  };
 
   const getErrorMessage = (error: any): string => {
     if (!error) return 'An unexpected error occurred';
@@ -179,7 +192,14 @@ const Register: React.FC = () => {
       });
       
       console.log('Calling signUp function...');
-      const { data, error } = await signUp(email, password, name.trim(), organizationName.trim());
+      const redirectTo = getConfirmationRedirectUrl();
+      const { data, error } = await signUp(
+        email,
+        password,
+        name.trim(),
+        organizationName.trim(),
+        redirectTo
+      );
       
       console.log('SignUp result:', { data, error });
       
@@ -248,7 +268,9 @@ const Register: React.FC = () => {
         setTimeout(() => {
           toast({
             title: "Next Steps",
-            description: "After email verification, you'll be able to access your organization dashboard and start managing your garage operations.",
+            description: plan
+              ? `After email verification, you'll be taken to Subscription settings to review the ${plan} plan.`
+              : "After email verification, you'll be able to access your organization dashboard and start managing your garage operations.",
             duration: 4000,
           });
         }, 1000);
@@ -449,7 +471,16 @@ const Register: React.FC = () => {
           <div className="mt-6 text-center">
             <p>
               Already have an account?{' '}
-              <Link to="/auth/login" className="text-blue-600 hover:underline">
+              <Link
+                to={(() => {
+                  const params = new URLSearchParams();
+                  params.set('next', next);
+                  params.set('tab', tab);
+                  if (plan) params.set('plan', plan);
+                  return `/auth/login?${params.toString()}`;
+                })()}
+                className="text-blue-600 hover:underline"
+              >
                 Login
               </Link>
             </p>

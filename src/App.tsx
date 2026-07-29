@@ -23,6 +23,7 @@ import ForgotPassword from '@/pages/auth/ForgotPassword';
 import ConfirmEmail from '@/pages/auth/ConfirmEmail';
 import ResetPassword from '@/pages/auth/ResetPassword';
 import SetupPassword from '@/pages/auth/SetupPassword';
+import SubscribeRedirect from '@/pages/SubscribeRedirect';
 
 // Non-lazy loaded reports
 import FinanceReport from '@/pages/reports/FinanceReport';
@@ -88,6 +89,9 @@ function App() {
                   element={<Navigate to="/auth/login" replace />}
                 />
               </Route>
+
+              {/* Public subscription entry point from external marketing site */}
+              <Route path="/subscribe" element={<SubscribeRedirect />} />
 
               {/* Super Admin Routes */}
               <Route path="/superadmin/login" element={<SuperAdminLogin />} />

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -32,6 +32,7 @@ interface PricingPlansProps {
   subscriptionTier?: string | null;
   checkoutLoading: string | null;
   onSubscribe: (planId: string, billing: 'monthly' | 'yearly') => void;
+  highlightedPlan?: string;
 }
 
 type TierKey = 'Free' | 'Basic' | 'Professional' | 'Enterprise';
@@ -132,8 +133,20 @@ const PricingPlans: React.FC<PricingPlansProps> = ({
   subscriptionTier,
   checkoutLoading,
   onSubscribe,
+  highlightedPlan,
 }) => {
   const [billing, setBilling] = useState<'monthly' | 'yearly'>('monthly');
+
+  useEffect(() => {
+    if (!highlightedPlan) return;
+    const timer = setTimeout(() => {
+      const el = document.querySelector(`[data-plan-highlight="${highlightedPlan.toLowerCase()}"]`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [highlightedPlan, plans]);
 
   const findPlanId = (matchName: string): string | undefined => {
     const p = plans.find(
@@ -192,12 +205,18 @@ const PricingPlans: React.FC<PricingPlansProps> = ({
           const priceSuffix = billing === 'monthly' ? '/mo' : '/yr';
           const loading = planId ? checkoutLoading === planId : false;
 
+          const isHighlighted =
+            highlightedPlan?.toLowerCase() === tier.matchName.toLowerCase();
+
           return (
             <Card
               key={tier.key}
+              data-plan-highlight={tier.matchName.toLowerCase()}
               className={`relative flex flex-col ${
                 isCurrentPlan ? 'ring-2 ring-primary' : ''
-              } ${tier.popular ? 'border-primary shadow-md' : ''}`}
+              } ${isHighlighted ? 'ring-2 ring-blue-400 shadow-lg' : ''} ${
+                tier.popular ? 'border-primary shadow-md' : ''
+              }`}
             >
               {tier.popular && (
                 <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">

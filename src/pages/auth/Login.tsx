@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthContext } from '@/context/AuthContext';
 import Logo from '@/components/Logo';
 import { Button } from '@/components/ui/button';
@@ -19,17 +19,34 @@ const Login: React.FC = () => {
   const [error, setError] = useState<string>('');
   const { signIn, currentUser } = useAuthContext();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const {
     register,
     handleSubmit,
     formState: { errors },
   } = useForm<LoginForm>();
 
+  const getPostLoginUrl = () => {
+    const next = searchParams.get('next');
+    const tab = searchParams.get('tab');
+    const plan = searchParams.get('plan');
+
+    if (next) {
+      const params = new URLSearchParams();
+      if (tab) params.set('tab', tab);
+      if (plan) params.set('plan', plan);
+      const query = params.toString();
+      return query ? `${next}?${query}` : next;
+    }
+
+    return '/';
+  };
+
   // Redirect if already logged in
   useEffect(() => {
     if (currentUser) {
-      console.log('[Login] Redirecting to home, user already logged in');
-      navigate('/');
+      console.log('[Login] Redirecting after login, user already logged in');
+      navigate(getPostLoginUrl());
     }
   }, [currentUser, navigate]);
 
@@ -74,12 +91,15 @@ const Login: React.FC = () => {
         console.log('[Login] Login successful, navigating...');
         toast.success('Login successful');
 
+        const postLoginUrl = getPostLoginUrl();
+
         // Small delay to ensure auth state is updated
         setTimeout(() => {
           console.log(
-            '[Login timeout] Redirecting to home, user already logged in'
+            '[Login timeout] Redirecting to',
+            postLoginUrl
           );
-          navigate('/');
+          navigate(postLoginUrl);
         }, 100);
       }
     } catch (err: any) {

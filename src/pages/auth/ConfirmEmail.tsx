@@ -21,6 +21,20 @@ const ConfirmEmail = () => {
         const refresh_token = searchParams.get('refresh_token');
         const type = searchParams.get('type');
 
+        // Preserve post-confirmation destination if provided
+        const next = searchParams.get('next') || '/';
+        const tab = searchParams.get('tab');
+        const plan = searchParams.get('plan');
+
+        const buildPostConfirmUrl = () => {
+          if (!next || next === '/') return '/';
+          const params = new URLSearchParams();
+          if (tab) params.set('tab', tab);
+          if (plan) params.set('plan', plan);
+          const query = params.toString();
+          return query ? `${next}?${query}` : next;
+        };
+
         if (!access_token || !refresh_token) {
           throw new Error('Invalid confirmation link');
         }
@@ -65,15 +79,16 @@ const ConfirmEmail = () => {
             return;
           }
 
+          const postConfirmUrl = buildPostConfirmUrl();
           setStatus('success');
           toast({
             title: "Email confirmed successfully!",
-            description: "Welcome to the platform. Redirecting to dashboard...",
+            description: "Welcome to the platform. Redirecting you now...",
           });
 
-          // Redirect to dashboard after a short delay
+          // Redirect after a short delay
           setTimeout(() => {
-            navigate('/', { replace: true });
+            navigate(postConfirmUrl, { replace: true });
           }, 2000);
         } else {
           throw new Error('Failed to confirm email');
