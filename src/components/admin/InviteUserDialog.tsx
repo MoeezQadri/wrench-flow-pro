@@ -94,10 +94,8 @@ const InviteUserDialog: React.FC<InviteUserDialogProps> = ({
     const orgUsers = users.filter((u: any) => u.organization_id === org.id);
 
     // Check against plan limit
-    const maxUsers =
-      USERS_ALLOWED_IN_PLAN[
-        org.subscription_level as keyof typeof USERS_ALLOWED_IN_PLAN
-      ] ?? 0;
+    const planKey = String(org.subscription_level || '').toLowerCase();
+    const maxUsers = USERS_ALLOWED_IN_PLAN[planKey] ?? 0;
     if (orgUsers.length >= maxUsers) {
       toast({
         title: 'Error',
