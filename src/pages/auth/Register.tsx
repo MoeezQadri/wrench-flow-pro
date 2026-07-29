@@ -268,7 +268,9 @@ const Register: React.FC = () => {
         setTimeout(() => {
           toast({
             title: "Next Steps",
-            description: "After email verification, you'll be able to access your organization dashboard and start managing your garage operations.",
+            description: plan
+              ? `After email verification, you'll be taken to Subscription settings to review the ${plan} plan.`
+              : "After email verification, you'll be able to access your organization dashboard and start managing your garage operations.",
             duration: 4000,
           });
         }, 1000);
