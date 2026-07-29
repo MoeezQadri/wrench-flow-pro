@@ -34,8 +34,10 @@ const statusVariant = (s: string) =>
   s === 'completed' ? 'default' : s === 'in_progress' ? 'secondary' : 'outline';
 
 const AutomationSetupTab: React.FC = () => {
-  const { currentUser, organization } = useAuthContext();
-  const plan = (organization?.subscription_level || '').toLowerCase();
+  const { currentUser, organization, subscribed, subscriptionTier } = useAuthContext();
+  const plan = (
+    (subscribed && subscriptionTier) || organization?.subscription_level || ''
+  ).toLowerCase();
   const isEnterprise = plan === 'enterprise';
 
   const [selected, setSelected] = useState<string[]>([]);
