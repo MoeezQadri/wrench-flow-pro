@@ -205,12 +205,18 @@ const PricingPlans: React.FC<PricingPlansProps> = ({
           const priceSuffix = billing === 'monthly' ? '/mo' : '/yr';
           const loading = planId ? checkoutLoading === planId : false;
 
+          const isHighlighted =
+            highlightedPlan?.toLowerCase() === tier.matchName.toLowerCase();
+
           return (
             <Card
               key={tier.key}
+              data-plan-highlight={tier.matchName.toLowerCase()}
               className={`relative flex flex-col ${
                 isCurrentPlan ? 'ring-2 ring-primary' : ''
-              } ${tier.popular ? 'border-primary shadow-md' : ''}`}
+              } ${isHighlighted ? 'ring-2 ring-blue-400 shadow-lg' : ''} ${
+                tier.popular ? 'border-primary shadow-md' : ''
+              }`}
             >
               {tier.popular && (
                 <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
