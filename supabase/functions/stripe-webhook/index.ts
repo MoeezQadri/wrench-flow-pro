@@ -13,7 +13,6 @@ const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET');
 serve(async (req) => {
   let event;
 
-  // Verify webhook signature
   try {
     const signature = req.headers.get('stripe-signature')!;
     const body = await req.text();
@@ -27,7 +26,6 @@ serve(async (req) => {
     return new Response('Invalid signature', { status: 400 });
   }
 
-  // Only handle checkout completed
   if (event.type !== 'checkout.session.completed') {
     return new Response('Ignored', { status: 200 });
   }
@@ -65,36 +63,79 @@ serve(async (req) => {
     return new Response('No organization found for user', { status: 400 });
   }
 
-  // 2. Get subscription plan name from the session
+  // 2. Resolve plan name (prefer Stripe subscription nickname/product, fallback to metadata)
   const subscriptionId = session.subscription;
-
-  let planName = null;
+  let planName: string | null = null;
+  let subscriptionEnd: string | null = null;
 
   if (subscriptionId) {
-    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-    planName = subscription.items.data[0]?.price?.nickname || null;
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
+      expand: ['items.data.price.product'],
+    });
+    const priceItem = subscription.items.data[0];
+    planName =
+      priceItem?.price?.nickname ||
+      (priceItem?.price?.product as any)?.name ||
+      null;
+    if (subscription.current_period_end) {
+      subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
+    }
   }
 
-  // Fallback if no nickname
   if (!planName) {
     planName = session?.metadata?.plan_name ?? 'unknown';
   }
 
-  // 3. Update organization fields
-  const { error: updateError } = await supabase
+  const normalizedPlan = String(planName).toLowerCase();
+
+  // 3. Update organization by id (previous code filtered on a non-existent column)
+  const { error: updateError, data: updatedOrg } = await supabase
     .from('organizations')
     .update({
       subscription_status: 'active',
-      subscription_level: planName,
+      subscription_level: normalizedPlan,
+      updated_at: new Date().toISOString(),
     })
     .eq('id', organizationId)
-    .eq('profile_email', userEmail);
+    .select('id')
+    .maybeSingle();
+
   if (updateError) {
     console.error('Error updating organization:', updateError);
     return new Response('Update failed', { status: 500 });
   }
 
-  console.log(`Organization ${organizationId} updated → active / ${planName}`);
+  if (!updatedOrg) {
+    console.error(`No organization row matched id=${organizationId}`);
+    return new Response('Organization not found', { status: 404 });
+  }
+
+  // 4. Upsert subscribers cache so check-subscription fast path is correct
+  const stripeCustomerId =
+    typeof session.customer === 'string' ? session.customer : session.customer?.id ?? null;
+
+  const { error: subError } = await supabase
+    .from('subscribers')
+    .upsert(
+      {
+        user_id: userId,
+        email: userEmail ?? session.customer_details?.email ?? '',
+        stripe_customer_id: stripeCustomerId,
+        subscribed: true,
+        subscription_tier: normalizedPlan,
+        subscription_end: subscriptionEnd,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'email' }
+    );
+
+  if (subError) {
+    console.error('Error upserting subscriber:', subError);
+  }
+
+  console.log(
+    `Organization ${organizationId} updated → active / ${normalizedPlan} (user=${userId})`
+  );
 
   return new Response('Success', { status: 200 });
 });
