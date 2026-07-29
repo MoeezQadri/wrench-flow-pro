@@ -1,7 +1,6 @@
 import { serve } from 'https://deno.land/std@0.190.0/http/server.ts';
 import Stripe from 'https://esm.sh/stripe@14.21.0';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
-import { getSubscriber } from '../_shared/organization-management.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -9,7 +8,6 @@ const corsHeaders = {
     'authorization, x-client-info, apikey, content-type',
 };
 
-// Helper logging function for enhanced debugging
 const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[CHECK-SUBSCRIPTION] ${step}${detailsStr}`);
@@ -17,34 +15,26 @@ const logStep = (step: string, details?: any) => {
 
 const TRIAL_DAYS = 14;
 
-async function checkTrialStatus(supabaseClient: any, userId: string) {
-  const { data: profile } = await supabaseClient
-    .from('profiles')
-    .select('organization_id')
-    .eq('id', userId)
-    .single();
+function tierFromAmount(amount: number): string {
+  if (amount === 0) return 'Trial';
+  if (amount <= 2900) return 'Basic';
+  if (amount <= 7900) return 'Professional';
+  return 'Enterprise';
+}
 
-  if (!profile?.organization_id) {
-    return { subscribed: false };
-  }
-
+async function checkTrialStatus(supabaseClient: any, organizationId: string) {
   const { data: org } = await supabaseClient
     .from('organizations')
     .select('created_at')
-    .eq('id', profile.organization_id)
+    .eq('id', organizationId)
     .single();
 
-  if (!org?.created_at) {
-    return { subscribed: false };
-  }
+  if (!org?.created_at) return { subscribed: false };
 
-  const createdAt = new Date(org.created_at);
   const trialEnd = new Date(
-    createdAt.getTime() + TRIAL_DAYS * 24 * 60 * 60 * 1000
+    new Date(org.created_at).getTime() + TRIAL_DAYS * 24 * 60 * 60 * 1000
   );
-  const now = new Date();
-
-  if (now <= trialEnd) {
+  if (new Date() <= trialEnd) {
     return {
       subscribed: true,
       subscription_tier: 'Trial',
@@ -52,7 +42,6 @@ async function checkTrialStatus(supabaseClient: any, userId: string) {
       suspended: false,
     };
   }
-
   return { subscribed: false };
 }
 
@@ -61,168 +50,168 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Use the service role key to perform writes (upsert) in Supabase
   const supabaseClient = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     { auth: { persistSession: false } }
   );
 
+  const json = (body: any, status = 200) =>
+    new Response(JSON.stringify(body), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status,
+    });
+
   try {
     logStep('Function started');
 
     const stripeKey = Deno.env.get('STRIPE_SECRET_KEY');
     if (!stripeKey) throw new Error('STRIPE_SECRET_KEY is not set');
-    logStep('Stripe key verified');
 
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) throw new Error('No authorization header provided');
-    logStep('Authorization header found');
-
     const token = authHeader.replace('Bearer ', '');
-    logStep('Authenticating user with token');
 
     const { data: userData, error: userError } =
       await supabaseClient.auth.getUser(token);
-    if (userError)
-      throw new Error(`Authentication error: ${userError.message}`);
+    if (userError) throw new Error(`Authentication error: ${userError.message}`);
     const user = userData.user;
-    if (!user?.email)
-      throw new Error('User not authenticated or email not available');
+    if (!user?.email) throw new Error('User not authenticated');
     logStep('User authenticated', { userId: user.id, email: user.email });
 
+    // Preserve hardcoded owner bypass
     const OWNER_EMAILS = [
       'gearheadgarage.pk@gmail.com',
       'daniyal.reviewer@gmail.com',
     ];
     if (OWNER_EMAILS.includes(user.email)) {
       logStep('Owner account detected, granting Enterprise access');
-      return new Response(
-        JSON.stringify({
-          subscribed: true,
-          subscription_tier: 'Enterprise',
-          subscription_end: null,
-          suspended: false,
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200,
-        }
-      );
-    }
-
-    const stripe = new Stripe(stripeKey, { apiVersion: '2023-10-16' });
-    const customers = await stripe.customers.list({
-      email: user.email,
-      limit: 1,
-    });
-
-    if (customers.data.length === 0) {
-      logStep('No Stripe customer found, checking trial eligibility');
-      const trialResult = await checkTrialStatus(supabaseClient, user.id);
-      logStep('Trial check result', trialResult);
-      return new Response(JSON.stringify(trialResult), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
+      return json({
+        subscribed: true,
+        subscription_tier: 'Enterprise',
+        subscription_end: null,
+        suspended: false,
       });
     }
 
-    const customerId = customers.data[0].id;
-    logStep('Found Stripe customer', { customerId });
+    // Resolve caller's organization
+    const { data: profile } = await supabaseClient
+      .from('profiles')
+      .select('organization_id')
+      .eq('id', user.id)
+      .single();
 
-    const subscriber = await getSubscriber(user.id);
-    if (!subscriber) {
-      logStep('No subscriber record found');
+    const organizationId = profile?.organization_id;
+    if (!organizationId) {
+      logStep('No organization for user');
+      return json({ subscribed: false });
+    }
+    logStep('Resolved organization', { organizationId });
+
+    // Fast path: existing active subscriber row for this org
+    const { data: orgSubscribers } = await supabaseClient
+      .from('subscribers')
+      .select('*')
+      .eq('organization_id', organizationId)
+      .eq('subscribed', true)
+      .order('updated_at', { ascending: false })
+      .limit(1);
+
+    const orgSub = orgSubscribers?.[0];
+    if (orgSub) {
+      logStep('Fast path: org subscriber found', {
+        tier: orgSub.subscription_tier,
+      });
+      return json({
+        subscribed: true,
+        subscription_tier: orgSub.subscription_tier,
+        subscription_end: orgSub.subscription_end,
+        suspended: orgSub.suspended || false,
+      });
     }
 
-    const subscriptions = await stripe.subscriptions.list({
-      customer: customerId,
-      status: 'active',
-      limit: 1,
-    });
-    const hasActiveSub =
-      subscriptions.data.length > 0 &&
-      subscriptions.data[0].status === 'active';
-    let subscriptionTier = null;
-    let subscriptionEnd = null;
+    // Stripe path: check owner/admin emails in this org
+    const stripe = new Stripe(stripeKey, { apiVersion: '2023-10-16' });
 
-    if (hasActiveSub) {
-      const subscription = subscriptions.data[0];
-      subscriptionEnd = new Date(
+    const { data: adminProfiles } = await supabaseClient
+      .from('profiles')
+      .select('id, role')
+      .eq('organization_id', organizationId)
+      .in('role', ['owner', 'admin']);
+
+    const adminIds: string[] = (adminProfiles || []).map((p: any) => p.id);
+    // Always include the caller as a fallback candidate (covers legacy owner records)
+    if (!adminIds.includes(user.id)) adminIds.push(user.id);
+
+    const candidates: { userId: string; email: string }[] = [];
+    for (const id of adminIds) {
+      const { data: u } = await supabaseClient.auth.admin.getUserById(id);
+      const email = u?.user?.email;
+      if (email) candidates.push({ userId: id, email });
+    }
+    logStep('Admin candidates', { count: candidates.length });
+
+    for (const cand of candidates) {
+      const customers = await stripe.customers.list({
+        email: cand.email,
+        limit: 1,
+      });
+      if (customers.data.length === 0) continue;
+      const customerId = customers.data[0].id;
+
+      const subs = await stripe.subscriptions.list({
+        customer: customerId,
+        status: 'active',
+        limit: 1,
+      });
+      if (subs.data.length === 0) continue;
+
+      const subscription = subs.data[0];
+      const subscriptionEnd = new Date(
         subscription.current_period_end * 1000
       ).toISOString();
-      logStep('Active subscription found', {
-        subscriptionId: subscription.id,
-        endDate: subscriptionEnd,
-      });
-
-      // Determine subscription tier from price
       const priceId = subscription.items.data[0].price.id;
       const price = await stripe.prices.retrieve(priceId);
-      const amount = price.unit_amount || 0;
-      if (amount === 0) {
-        subscriptionTier = 'Trial';
-      } else if (amount <= 2900) {
-        // $29 and below
-        subscriptionTier = 'Basic';
-      } else if (amount <= 7900) {
-        // $79 and below
-        subscriptionTier = 'Professional';
-      } else {
-        subscriptionTier = 'Enterprise';
-      }
-      logStep('Determined subscription tier', {
-        priceId,
-        amount,
-        subscriptionTier,
+      const tier = tierFromAmount(price.unit_amount || 0);
+      logStep('Active org subscription via admin', {
+        email: cand.email,
+        tier,
       });
-    } else {
-      logStep('No active subscription found, checking trial eligibility');
-      const trialResult = await checkTrialStatus(supabaseClient, user.id);
-      if (trialResult.subscribed) {
-        logStep('User is within trial period', trialResult);
-        return new Response(
-          JSON.stringify({
-            ...trialResult,
-            suspended: subscriber?.suspended || false,
-          }),
+
+      // Cache into subscribers table for future fast-path lookups
+      try {
+        await supabaseClient.from('subscribers').upsert(
           {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 200,
-          }
+            user_id: cand.userId,
+            email: cand.email,
+            stripe_customer_id: customerId,
+            organization_id: organizationId,
+            subscribed: true,
+            subscription_tier: tier,
+            subscription_end: subscriptionEnd,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'email' }
         );
+      } catch (e) {
+        logStep('Failed to upsert subscriber cache', { error: String(e) });
       }
+
+      return json({
+        subscribed: true,
+        subscription_tier: tier,
+        subscription_end: subscriptionEnd,
+        suspended: false,
+      });
     }
 
-    // await supabaseClient.from("subscribers").upsert({
-    //   email: user.email,
-    //   user_id: user.id,
-    //   stripe_customer_id: customerId,
-    //   subscribed: hasActiveSub,
-    //   subscription_tier: subscriptionTier,
-    //   subscription_end: subscriptionEnd,
-    //   updated_at: new Date().toISOString(),
-    // }, { onConflict: 'email' });
-
-    // logStep("Updated database with subscription info", { subscribed: hasActiveSub, subscriptionTier });
-    return new Response(
-      JSON.stringify({
-        subscribed: hasActiveSub,
-        subscription_tier: subscriptionTier,
-        subscription_end: subscriptionEnd,
-        suspended: subscriber?.suspended || false,
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      }
-    );
+    // Fall back to trial based on org creation date
+    logStep('No active subscription found for org, checking trial');
+    const trialResult = await checkTrialStatus(supabaseClient, organizationId);
+    return json(trialResult);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep('ERROR in check-subscription', { message: errorMessage });
-    return new Response(JSON.stringify({ error: errorMessage }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 500,
-    });
+    logStep('ERROR', { message: errorMessage });
+    return json({ error: errorMessage }, 500);
   }
 });
