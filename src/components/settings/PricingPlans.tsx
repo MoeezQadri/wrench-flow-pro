@@ -32,6 +32,7 @@ interface PricingPlansProps {
   subscriptionTier?: string | null;
   checkoutLoading: string | null;
   onSubscribe: (planId: string, billing: 'monthly' | 'yearly') => void;
+  highlightedPlan?: string;
 }
 
 type TierKey = 'Free' | 'Basic' | 'Professional' | 'Enterprise';
