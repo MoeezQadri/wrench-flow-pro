@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Building, CreditCard, User, Users, Sparkles } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import OrganizationSettingsTab from '@/components/settings/OrganizationSettingsTab';
 import SubscriptionSettingsTab from '@/components/settings/SubscriptionSettingsTab';
 import AccountSettingsTab from '@/components/settings/AccountSettingsTab';
@@ -14,6 +15,7 @@ import {
 } from '@/utils/permissions';
 
 const Settings = () => {
+  const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState('organization');
   const { currentUser, organization, subscribed } = useAuthContext();
 
@@ -29,8 +31,13 @@ const Settings = () => {
     isAdminOrOwner && (plan === 'professional' || plan === 'enterprise');
 
   useEffect(() => {
-    if (!subscribed) setActiveTab('subscription');
-  }, [subscribed]);
+    const tabFromUrl = searchParams.get('tab');
+    if (tabFromUrl) {
+      setActiveTab(tabFromUrl);
+    } else if (!subscribed) {
+      setActiveTab('subscription');
+    }
+  }, [subscribed, searchParams]);
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
