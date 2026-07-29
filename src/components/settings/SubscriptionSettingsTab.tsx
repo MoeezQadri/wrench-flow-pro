@@ -24,6 +24,7 @@ import {
   Building2,
   Calendar,
 } from 'lucide-react';
+import PricingPlans from './PricingPlans';
 interface SubscriptionPlan {
   id: string;
   name: string;
@@ -278,164 +279,13 @@ const SubscriptionSettingsTab = () => {
       <Separator />
 
       {/* Available Subscription Plans */}
-      <div>
-        <div className="mb-6">
-          <h3 className="text-lg font-semibold">
-            {subscribed ? 'Upgrade or Change Plan' : 'Choose Your Plan'}
-          </h3>
-          <p className="text-sm text-muted-foreground">
-            {subscribed
-              ? 'Upgrade or downgrade your current subscription plan.'
-              : 'Select a subscription plan that works best for your garage management needs.'}
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {plans.map((plan) => {
-            const isCurrentPlan = subscriptionTier === plan.name;
-            const isPopular = plan.name === 'Professional';
-            const features = Array.isArray(plan.features)
-              ? plan.features
-              : typeof plan.features === 'string'
-                ? JSON.parse(plan.features)
-                : [];
-            return (
-              <Card
-                key={plan.id}
-                className={`relative ${isCurrentPlan ? 'ring-2 ring-primary' : ''}`}
-              >
-                {isPopular && (
-                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                    <Badge className="bg-primary text-primary-foreground">
-                      <Star className="w-3 h-3 mr-1" />
-                      Popular
-                    </Badge>
-                  </div>
-                )}
-
-                {isCurrentPlan && (
-                  <div className="absolute -top-3 right-4">
-                    <Badge variant="secondary">
-                      <CheckCircle className="w-3 h-3 mr-1" />
-                      Current
-                    </Badge>
-                  </div>
-                )}
-
-                <CardHeader className="pb-4">
-                  <div className="flex items-center gap-2">
-                    {getPlanIcon(plan.name)}
-                    <CardTitle className="text-lg">{plan.name}</CardTitle>
-                  </div>
-                  <div className="text-2xl font-bold">
-                    ${plan.price_monthly}
-                    <span className="text-sm font-normal text-muted-foreground">
-                      /month
-                    </span>
-                  </div>
-                  {plan.price_yearly && plan.price_yearly > 0 && (
-                    <div className="text-lg text-muted-foreground">
-                      ${plan.price_yearly}
-                      <span className="text-sm">/year</span>
-                      {plan.price_monthly && (
-                        <span className="text-xs text-green-600 ml-1">
-                          (Save{' '}
-                          {Math.round(
-                            ((plan.price_monthly * 12 - plan.price_yearly) /
-                              (plan.price_monthly * 12)) *
-                              100
-                          )}
-                          %)
-                        </span>
-                      )}
-                    </div>
-                  )}
-                  <CardDescription className="text-xs">
-                    {plan.description}
-                  </CardDescription>
-                </CardHeader>
-
-                <CardContent className="pt-0">
-                  <ul className="space-y-2 mb-4">
-                    {features
-                      .slice(0, 4)
-                      .map((feature: string, index: number) => (
-                        <li
-                          key={index}
-                          className="flex items-center gap-2 text-xs"
-                        >
-                          <CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" />
-                          <span>{feature}</span>
-                        </li>
-                      ))}
-                    {features.length > 4 && (
-                      <li className="text-xs text-muted-foreground">
-                        +{features.length - 4} more features
-                      </li>
-                    )}
-                  </ul>
-
-                  {plan.name.toLowerCase() !== 'trial' && (
-                    <div className="space-y-2">
-                      <Button
-                        onClick={() => handleSubscribe(plan.id, 'monthly')}
-                        disabled={checkoutLoading === plan.id || isCurrentPlan}
-                        className="w-full text-sm"
-                        variant={isCurrentPlan ? 'outline' : 'default'}
-                      >
-                        {checkoutLoading === plan.id ? (
-                          <>
-                            <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                            Loading...
-                          </>
-                        ) : isCurrentPlan ? (
-                          'Current Plan'
-                        ) : (
-                          `$${plan.price_monthly}/month`
-                        )}
-                      </Button>
-
-                      {plan.price_yearly && plan.price_yearly > 0 && (
-                        <Button
-                          onClick={() => handleSubscribe(plan.id, 'yearly')}
-                          disabled={
-                            checkoutLoading === plan.id || isCurrentPlan
-                          }
-                          className="w-full text-sm"
-                          variant="outline"
-                        >
-                          {checkoutLoading === plan.id ? (
-                            <>
-                              <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                              Loading...
-                            </>
-                          ) : (
-                            <div className="flex flex-col">
-                              <span>${plan.price_yearly}/year</span>
-                              {plan.price_monthly && (
-                                <span className="text-xs text-green-600">
-                                  Save{' '}
-                                  {Math.round(
-                                    ((plan.price_monthly * 12 -
-                                      plan.price_yearly) /
-                                      (plan.price_monthly * 12)) *
-                                      100
-                                  )}
-                                  %
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </Button>
-                      )}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      </div>
+      <PricingPlans
+        plans={plans}
+        subscribed={subscribed}
+        subscriptionTier={subscriptionTier}
+        checkoutLoading={checkoutLoading}
+        onSubscribe={handleSubscribe}
+      />
 
       {/* Subscription Benefits */}
       <div className="bg-muted/50 rounded-lg p-6">
