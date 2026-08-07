@@ -227,9 +227,11 @@ const Register: React.FC = () => {
           });
         } else {
           toast({
-            title: isUserExists ? "Account Already Exists" : isOrgExists ? "Organization Unavailable" : "Registration Failed",
+            title: isRateLimited ? "Please Try Again Shortly" : isUserExists ? "Account Already Exists" : isOrgExists ? "Organization Unavailable" : "Registration Failed",
             description: errorMessage,
             variant: "destructive",
+            duration: isRateLimited ? 10000 : undefined,
+
             action: isUserExists ? (
               <div className="flex items-center gap-1 text-sm">
                 <AlertCircle className="h-4 w-4" />
