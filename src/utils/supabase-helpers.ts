@@ -295,16 +295,20 @@ export const checkEmailExists = async (email: string, organizationName?: string)
     });
 
     if (error) {
-      console.error('Error checking email:', error);
-      throw error;
+      // Non-fatal: this is only a convenience pre-check. If the edge function is
+      // unreachable (network hiccup, cold start, blocked request), we let the
+      // signup continue — the database enforces duplicates server-side.
+      console.warn('Email pre-check unavailable:', error);
+      return null;
     }
 
     return data;
   } catch (error) {
-    console.error('Failed to check email:', error);
-    throw error;
+    console.warn('Email pre-check failed, continuing without it:', error);
+    return null;
   }
 };
+
 
 /**
  * get all subscriptions associated from stripe.
