@@ -378,6 +378,36 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (invokeError && !result) {
         console.error('[AuthContext] register-organization failed:', invokeError);
+
+        // supabase.functions.invoke surfaces ANY non-2xx response as an
+        // invocation error with no data. The real reason (validation,
+        // email/organization already taken, rate limit, ...) lives in the
+        // response body, so read it before assuming we are offline.
+        const ctx = (invokeError as any)?.context;
+        let serverMessage: string | null = null;
+        let serverCode: string | null = null;
+
+        try {
+          if (ctx && typeof ctx.json === 'function') {
+            const body = await ctx.clone?.().json?.() ?? await ctx.json();
+            serverMessage = body?.message ?? null;
+            serverCode = body?.error ?? null;
+          } else if (ctx && typeof ctx.text === 'function') {
+            const parsed = JSON.parse(await ctx.text());
+            serverMessage = parsed?.message ?? null;
+            serverCode = parsed?.error ?? null;
+          }
+        } catch (parseError) {
+          console.warn('[AuthContext] could not parse error body:', parseError);
+        }
+
+        if (serverMessage) {
+          const err = new Error(serverMessage);
+          (err as any).code = serverCode;
+          return { data: null, error: err };
+        }
+
+        // No response body at all => genuinely could not reach the function.
         return {
           data: null,
           error: new Error(
@@ -385,6 +415,7 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           ),
         };
       }
+
 
       const payload = result as any;
 

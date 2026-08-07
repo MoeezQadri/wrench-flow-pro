@@ -36,6 +36,25 @@ const Register: React.FC = () => {
     if (!error) return 'An unexpected error occurred';
     
     const message = error.message || error.toString();
+    const code = error.code || '';
+
+    // Server-side registration errors carry an explicit code — trust their
+    // message instead of guessing from substrings.
+    if (code === 'email_exists' ||
+        code === 'email_pending_activation' ||
+        code === 'organization_exists' ||
+        code === 'validation_error') {
+      return message;
+    }
+
+    // Email / signup rate limiting (confirmation email throughput)
+    if (/rate limit|rate_limit|too_many_requests|too many/i.test(message)) {
+      return 'Too many signup attempts right now. Please wait a few minutes and try again.';
+    }
+
+    if (code === 'signup_failed' || code === 'server_error') {
+      return message;
+    }
 
     // Handle confirmation-email delivery failures (SMTP misconfiguration / provider rejection)
     if (message.includes('Error sending confirmation email') ||
@@ -43,6 +62,10 @@ const Register: React.FC = () => {
         message.includes('unexpected_failure')) {
       return 'We could not send your confirmation email, so your account was not created. This is a mail server issue on our side — please try again in a few minutes or contact support.';
     }
+
+
+    
+
 
 
     
@@ -92,11 +115,12 @@ const Register: React.FC = () => {
       return 'There was an issue setting up your organization. Please try again or contact support.';
     }
     
-    // Handle network/connection errors
-    if (message.includes('Network') || 
-        message.includes('fetch') ||
-        message.includes('connection')) {
+    // Handle genuine network/connection errors only
+    if (message.includes('Failed to fetch') ||
+        message.includes('NetworkError') ||
+        message.includes('could not reach the registration service')) {
       return 'Network error. Please check your internet connection and try again.';
+
     }
     
     // Handle generic auth errors
@@ -181,6 +205,8 @@ const Register: React.FC = () => {
         const isUserExists = errorMessage.includes('already exists') || errorMessage.includes('already registered');
         const isCrossOrgError = errorMessage.includes('another organization') || errorMessage.includes('user_exists_in_organization');
         const isOrgExists = errorMessage.includes('organization') && errorMessage.includes('taken');
+        const isRateLimited = errorMessage.includes('Too many signup attempts');
+
         
         // Special handling for cross-organization registration
         if (isCrossOrgError) {
@@ -201,9 +227,11 @@ const Register: React.FC = () => {
           });
         } else {
           toast({
-            title: isUserExists ? "Account Already Exists" : isOrgExists ? "Organization Unavailable" : "Registration Failed",
+            title: isRateLimited ? "Please Try Again Shortly" : isUserExists ? "Account Already Exists" : isOrgExists ? "Organization Unavailable" : "Registration Failed",
             description: errorMessage,
             variant: "destructive",
+            duration: isRateLimited ? 10000 : undefined,
+
             action: isUserExists ? (
               <div className="flex items-center gap-1 text-sm">
                 <AlertCircle className="h-4 w-4" />
