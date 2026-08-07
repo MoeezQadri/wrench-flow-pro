@@ -205,6 +205,8 @@ const Register: React.FC = () => {
         const isUserExists = errorMessage.includes('already exists') || errorMessage.includes('already registered');
         const isCrossOrgError = errorMessage.includes('another organization') || errorMessage.includes('user_exists_in_organization');
         const isOrgExists = errorMessage.includes('organization') && errorMessage.includes('taken');
+        const isRateLimited = errorMessage.includes('Too many signup attempts');
+
         
         // Special handling for cross-organization registration
         if (isCrossOrgError) {
