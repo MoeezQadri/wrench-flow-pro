@@ -16,10 +16,24 @@ const ConfirmEmail = () => {
   useEffect(() => {
     const confirmEmail = async () => {
       try {
-        // Get tokens from URL parameters
-        const access_token = searchParams.get('access_token');
-        const refresh_token = searchParams.get('refresh_token');
-        const type = searchParams.get('type');
+        // Supabase returns the tokens in the URL *hash* for the implicit flow
+        // (#access_token=...&type=signup) and as ?code=... for PKCE. Reading
+        // only the query string missed both, which made every valid
+        // confirmation link look "invalid".
+        const hash = new URLSearchParams(
+          window.location.hash.startsWith('#')
+            ? window.location.hash.slice(1)
+            : window.location.hash
+        );
+
+        const pick = (key: string) => hash.get(key) ?? searchParams.get(key);
+
+        const access_token = pick('access_token');
+        const refresh_token = pick('refresh_token');
+        const code = pick('code');
+        const token_hash = pick('token_hash') ?? pick('token');
+        const type = pick('type');
+        const errorDescription = pick('error_description') ?? pick('error');
 
         // Preserve post-confirmation destination if provided
         const next = searchParams.get('next') || '/';
@@ -35,64 +49,94 @@ const ConfirmEmail = () => {
           return query ? `${next}?${query}` : next;
         };
 
-        if (!access_token || !refresh_token) {
-          throw new Error('Invalid confirmation link');
+        if (errorDescription) {
+          throw new Error(
+            decodeURIComponent(errorDescription).replace(/\+/g, ' ')
+          );
         }
 
-        // Handle password recovery flow
+        // Recovery / invite flows are handled by dedicated pages.
         if (type === 'recovery') {
-          // Redirect to reset password page with tokens
-          const resetUrl = `/auth/reset-password?access_token=${access_token}&refresh_token=${refresh_token}&type=recovery`;
-          navigate(resetUrl, { replace: true });
+          const params = new URLSearchParams({ type: 'recovery' });
+          if (access_token) params.set('access_token', access_token);
+          if (refresh_token) params.set('refresh_token', refresh_token);
+          if (token_hash) params.set('token_hash', token_hash);
+          navigate(`/auth/reset-password?${params.toString()}`, { replace: true });
           return;
         }
 
-        // Handle invitation flow - redirect to password setup
         if (type === 'invite') {
-          const setupUrl = `/auth/setup-password?access_token=${access_token}&refresh_token=${refresh_token}&type=invite`;
-          navigate(setupUrl, { replace: true });
+          const params = new URLSearchParams({ type: 'invite' });
+          if (access_token) params.set('access_token', access_token);
+          if (refresh_token) params.set('refresh_token', refresh_token);
+          if (token_hash) params.set('token_hash', token_hash);
+          navigate(`/auth/setup-password?${params.toString()}`, { replace: true });
           return;
         }
 
-        // Handle email signup confirmation
-        if (type !== 'signup') {
-          throw new Error('Invalid confirmation link');
+        // Establish the session. Any of these paths can be the live one
+        // depending on the link format Supabase generated.
+        let user = null as any;
+
+        if (access_token && refresh_token) {
+          const { data, error } = await supabase.auth.setSession({
+            access_token,
+            refresh_token,
+          });
+          if (error) throw error;
+          user = data.user;
+        } else if (code) {
+          const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+          if (error) throw error;
+          user = data.user;
+        } else if (token_hash) {
+          const { data, error } = await supabase.auth.verifyOtp({
+            token_hash,
+            type: 'signup',
+          });
+          if (error) throw error;
+          user = data.user;
+        } else {
+          // detectSessionInUrl may already have consumed the hash and signed
+          // the user in before this effect ran — that is still a success.
+          const { data } = await supabase.auth.getSession();
+          user = data.session?.user ?? null;
+          if (!user) {
+            throw new Error(
+              'This confirmation link is invalid or has already been used. Please log in, or request a new confirmation email.'
+            );
+          }
         }
 
-        // Set the session using the tokens
-        const { data, error } = await supabase.auth.setSession({
-          access_token,
-          refresh_token,
-        });
-
-        if (error) throw error;
-
-        if (data.user) {
-          // Check if this is an invited user by looking at user metadata
-          const userMetadata = data.user.user_metadata || {};
-          const isInvitedUser = userMetadata.invited_by || userMetadata.organization_id;
-          
-          if (isInvitedUser) {
-            // This is an invited user, redirect to password setup
-            const setupUrl = `/auth/setup-password?access_token=${access_token}&refresh_token=${refresh_token}&type=invite`;
-            navigate(setupUrl, { replace: true });
-            return;
-          }
-
-          const postConfirmUrl = buildPostConfirmUrl();
-          setStatus('success');
-          toast({
-            title: "Email confirmed successfully!",
-            description: "Welcome to the platform. Redirecting you now...",
-          });
-
-          // Redirect after a short delay
-          setTimeout(() => {
-            navigate(postConfirmUrl, { replace: true });
-          }, 2000);
-        } else {
+        if (!user) {
           throw new Error('Failed to confirm email');
         }
+
+        // Only genuinely invited users go through password setup. Self-service
+        // registrations now also carry organization_id in their metadata, so
+        // that alone must not route them here.
+        const userMetadata = user.user_metadata || {};
+        const isInvitedUser =
+          !!userMetadata.invited_by && userMetadata.role !== 'owner';
+
+        if (isInvitedUser) {
+          const params = new URLSearchParams({ type: 'invite' });
+          if (access_token) params.set('access_token', access_token);
+          if (refresh_token) params.set('refresh_token', refresh_token);
+          navigate(`/auth/setup-password?${params.toString()}`, { replace: true });
+          return;
+        }
+
+        const postConfirmUrl = buildPostConfirmUrl();
+        setStatus('success');
+        toast({
+          title: 'Email confirmed successfully!',
+          description: 'Welcome to the platform. Redirecting you now...',
+        });
+
+        setTimeout(() => {
+          navigate(postConfirmUrl, { replace: true });
+        }, 2000);
       } catch (error: any) {
         console.error('Error confirming email:', error);
         setStatus('error');
@@ -107,6 +151,7 @@ const ConfirmEmail = () => {
 
     confirmEmail();
   }, [searchParams, navigate, toast]);
+
 
   const handleRetryConfirmation = () => {
     navigate('/auth/register', { replace: true });
