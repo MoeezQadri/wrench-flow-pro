@@ -36,6 +36,25 @@ const Register: React.FC = () => {
     if (!error) return 'An unexpected error occurred';
     
     const message = error.message || error.toString();
+    const code = error.code || '';
+
+    // Server-side registration errors carry an explicit code — trust their
+    // message instead of guessing from substrings.
+    if (code === 'email_exists' ||
+        code === 'email_pending_activation' ||
+        code === 'organization_exists' ||
+        code === 'validation_error') {
+      return message;
+    }
+
+    // Email / signup rate limiting (confirmation email throughput)
+    if (/rate limit|rate_limit|too_many_requests|too many/i.test(message)) {
+      return 'Too many signup attempts right now. Please wait a few minutes and try again.';
+    }
+
+    if (code === 'signup_failed' || code === 'server_error') {
+      return message;
+    }
 
     // Handle confirmation-email delivery failures (SMTP misconfiguration / provider rejection)
     if (message.includes('Error sending confirmation email') ||
@@ -43,6 +62,10 @@ const Register: React.FC = () => {
         message.includes('unexpected_failure')) {
       return 'We could not send your confirmation email, so your account was not created. This is a mail server issue on our side — please try again in a few minutes or contact support.';
     }
+
+
+    
+
 
 
     
