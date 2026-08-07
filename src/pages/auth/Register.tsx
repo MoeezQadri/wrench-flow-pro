@@ -36,6 +36,15 @@ const Register: React.FC = () => {
     if (!error) return 'An unexpected error occurred';
     
     const message = error.message || error.toString();
+
+    // Handle confirmation-email delivery failures (SMTP misconfiguration / provider rejection)
+    if (message.includes('Error sending confirmation email') ||
+        message.includes('Error sending email') ||
+        message.includes('unexpected_failure')) {
+      return 'We could not send your confirmation email, so your account was not created. This is a mail server issue on our side — please try again in a few minutes or contact support.';
+    }
+
+
     
     // Handle specific cross-organization registration errors
     if (message.includes('user_exists_in_organization') || 
