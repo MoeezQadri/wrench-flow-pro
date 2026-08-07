@@ -362,97 +362,53 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         ? redirectTo
         : `${window.location.origin}${redirectTo || '/'}`;
 
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: confirmationUrl,
-          data: {
-            name,
+      // All validation, organization creation and user creation happen
+      // server-side and in the right order: the account is only created once
+      // every check has passed, and anything created is rolled back on failure.
+      const { data: result, error: invokeError } =
+        await supabase.functions.invoke('register-organization', {
+          body: {
+            email: email.trim(),
+            password,
+            name: name.trim(),
+            organizationName: organizationName.trim(),
+            redirectTo: confirmationUrl,
           },
-        },
-      });
+        });
 
-      if (error) {
-        return { data: null, error };
+      if (invokeError && !result) {
+        console.error('[AuthContext] register-organization failed:', invokeError);
+        return {
+          data: null,
+          error: new Error(
+            'We could not reach the registration service. Please check your connection and try again.'
+          ),
+        };
       }
 
-      // If user was created successfully, handle organization assignment
-      if (data.user) {
-        try {
-          // Call our database function to handle organization creation/assignment
-          const { data: orgResult, error: orgError } = await supabase.rpc(
-            'create_organization_and_assign_user',
-            {
-              p_user_id: data.user.id,
-              p_organization_name: organizationName.trim(),
-              p_user_name: name,
-            }
-          );
+      const payload = result as any;
 
-          if (orgError) {
-            console.error('Error with organization assignment:', orgError);
-            return {
-              data: null,
-              error: new Error('Failed to process organization assignment'),
-            };
-          }
-
-          // Type guard for organization result
-          const orgData = orgResult as any;
-
-          // Handle specific error cases from database function
-          if (orgData?.success === false) {
-            if (orgData?.error === 'organization_exists') {
-              return { data: null, error: new Error(orgData.message) };
-            } else if (orgData?.error === 'user_exists_in_organization') {
-              const message = `This email is already registered with "${orgData.existing_organization}". Each user can only belong to one organization at a time.`;
-              return { data: null, error: new Error(message) };
-            } else {
-              return {
-                data: null,
-                error: new Error(
-                  orgData.message || 'Failed to create organization'
-                ),
-              };
-            }
-          }
-
-          if (!orgData?.success) {
-            return {
-              data: null,
-              error: new Error('Failed to create organization'),
-            };
-          }
-
-          const userRole = (
-            orgData?.role === 'owner'
-              ? 'owner'
-              : orgData?.role === 'admin'
-                ? 'admin'
-                : 'member'
-          ) as UserRole;
-
-          const customUser: User = {
-            id: data.user.id,
-            email: data.user.email || email,
-            name: name,
-            role: userRole,
-            organization_id: orgData?.organization_id || null,
-            is_active: true,
-            lastLogin: undefined,
-            created_at: data.user.created_at,
-            updated_at: data.user.updated_at,
-          };
-
-          return { data: customUser, error: null };
-        } catch (orgError) {
-          console.error('Error handling organization:', orgError);
-          return { data: null, error: new Error('Failed to process signup') };
-        }
+      if (!payload?.success) {
+        const message =
+          payload?.message || 'Registration failed. Please try again.';
+        return { data: null, error: new Error(message) };
       }
 
-      return { data: null, error: null };
+      const userRole = (payload.user?.role || 'owner') as UserRole;
+
+      const customUser: User = {
+        id: payload.user.id,
+        email: payload.user.email || email,
+        name: payload.user.name || name,
+        role: userRole,
+        organization_id: payload.organization_id || null,
+        is_active: true,
+        lastLogin: undefined,
+        created_at: payload.user.created_at,
+        updated_at: payload.user.updated_at,
+      };
+
+      return { data: customUser, error: null };
     } catch (error) {
       return { data: null, error: error as Error };
     }

@@ -153,48 +153,8 @@ const Register: React.FC = () => {
     }
 
     try {
-      // Pre-check if email already exists
-      console.log('Checking if email exists...');
-      const emailCheckResult = await checkEmailExists(email.trim(), organizationName.trim());
-
-      if (emailCheckResult?.organization_exists) {
-        const errorMessage = 'This organization name is already taken. Please contact the organization administrator to request access, or choose a different organization name.';
-        setError(errorMessage);
-        toast({
-          title: "Organization Already Exists",
-          description: errorMessage,
-          variant: "destructive",
-          duration: 8000,
-        });
-        setLoading(false);
-        return;
-      }
-
-      if (emailCheckResult?.exists) {
-        const errorMessage = emailCheckResult.is_active
-          ? 'This email is already registered and cannot be used to register again. Please login or use "Forgot Password" if needed.'
-          : 'This email is registered but not yet activated. Please check your inbox or use "Forgot Password" to complete activation.';
-
-        setError(errorMessage);
-        toast({
-          title: emailCheckResult.is_active ? "Email Already Registered" : "Email Pending Activation",
-          description: errorMessage,
-          variant: "destructive",
-          duration: 8000,
-          action: (
-            <div className="flex items-center gap-1 text-sm">
-              <AlertCircle className="h-4 w-4" />
-              <Link to="/auth/login" className="underline hover:no-underline">
-                Go to Login
-              </Link>
-            </div>
-          ),
-        });
-        setLoading(false);
-        return;
-      }
-      
-      // Show loading toast
+      // Show loading toast. All duplicate-email / duplicate-organization checks
+      // now happen server-side before any account is created.
       toast({
         title: "Creating Account",
         description: "Please wait while we set up your account...",

@@ -50,6 +50,11 @@ port = 54327
 #[edge_functions]
 #port = 54329
 
+[functions.register-organization]
+enabled = true
+verify_jwt = false
+
+
 [functions.stripe-webhook]
 enabled = true
 verify_jwt = true
