@@ -53,7 +53,7 @@ port = 54327
 [functions.register-organization]
 enabled = true
 verify_jwt = false
-entrypoint = "./functions/register-organization/index.ts"
+
 
 [functions.stripe-webhook]
 enabled = true
