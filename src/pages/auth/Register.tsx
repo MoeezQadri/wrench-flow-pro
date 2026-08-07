@@ -115,11 +115,12 @@ const Register: React.FC = () => {
       return 'There was an issue setting up your organization. Please try again or contact support.';
     }
     
-    // Handle network/connection errors
-    if (message.includes('Network') || 
-        message.includes('fetch') ||
-        message.includes('connection')) {
+    // Handle genuine network/connection errors only
+    if (message.includes('Failed to fetch') ||
+        message.includes('NetworkError') ||
+        message.includes('could not reach the registration service')) {
       return 'Network error. Please check your internet connection and try again.';
+
     }
     
     // Handle generic auth errors
