@@ -89,7 +89,9 @@ const Login: React.FC = () => {
         }
       } else if (data) {
         console.log('[Login] Login successful, navigating...');
+        trackLogin('email');
         toast.success('Login successful');
+
 
         const postLoginUrl = getPostLoginUrl();
 
