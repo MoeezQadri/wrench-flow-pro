@@ -77,3 +77,35 @@ export const trackSelectPlan = (params: {
       },
     ],
   });
+
+export const trackPurchase = (params: {
+  transactionId?: string;
+  planName?: string;
+  value?: number;
+}) =>
+  trackEvent('purchase', {
+    transaction_id: params.transactionId || 'unknown',
+    currency: 'USD',
+    value: params.value ?? 0,
+    items: [
+      {
+        item_name: params.planName || 'subscription',
+        item_category: 'subscription',
+        quantity: 1,
+      },
+    ],
+  });
+
+export const trackPaymentFailed = (params: {
+  reason?: string;
+  planName?: string;
+}) =>
+  trackEvent('payment_failed', {
+    reason: params.reason || 'unknown',
+    plan_name: params.planName || 'unknown',
+  });
+
+export const trackPaymentCanceled = (params: { planName?: string }) =>
+  trackEvent('payment_canceled', {
+    plan_name: params.planName || 'unknown',
+  });
