@@ -9,6 +9,7 @@ import { Suspense, lazy } from 'react';
 // Import immediately loaded components
 import Layout from '@/components/Layout';
 import LoadingScreen from '@/components/LoadingScreen';
+import AnalyticsTracker from '@/components/AnalyticsTracker';
 import PrivateRoute from '@/components/PrivateRoute';
 import PublicRoute from '@/components/PublicRoute';
 import { AuthProvider } from '@/context/AuthContext';
@@ -72,6 +73,7 @@ const SuperAdminDataDebug = lazy(
 function App() {
   return (
     <Router>
+      <AnalyticsTracker />
       <AuthProvider>
         <DataProvider>
           <Suspense fallback={<LoadingScreen />}>

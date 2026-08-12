@@ -8,6 +8,7 @@ import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import AuthDebugPanel from '@/components/AuthDebugPanel';
+import { trackLogin } from '@/lib/analytics';
 
 interface LoginForm {
   email: string;
@@ -89,7 +90,9 @@ const Login: React.FC = () => {
         }
       } else if (data) {
         console.log('[Login] Login successful, navigating...');
+        trackLogin('email');
         toast.success('Login successful');
+
 
         const postLoginUrl = getPostLoginUrl();
 

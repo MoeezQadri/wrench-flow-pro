@@ -26,6 +26,8 @@ import {
   Calendar,
 } from 'lucide-react';
 import PricingPlans from './PricingPlans';
+import { trackSelectPlan, trackViewPlans } from '@/lib/analytics';
+
 interface SubscriptionPlan {
   id: string;
   name: string;
@@ -58,6 +60,13 @@ const SubscriptionSettingsTab = () => {
   useEffect(() => {
     loadPlans();
   }, []);
+
+  useEffect(() => {
+    if (!loading && canManageSubscription) {
+      trackViewPlans(subscriptionTier || undefined);
+    }
+  }, [loading, canManageSubscription, subscriptionTier]);
+
   const loadPlans = async () => {
     try {
       const { data, error } = await supabase
@@ -100,6 +109,17 @@ const SubscriptionSettingsTab = () => {
       toast.error('Please log in to subscribe');
       return;
     }
+
+    const selectedPlan = plans.find((p) => p.id === planId);
+    trackSelectPlan({
+      planId,
+      planName: selectedPlan?.name,
+      billingFrequency,
+      price:
+        billingFrequency === 'yearly'
+          ? selectedPlan?.price_yearly ?? selectedPlan?.price_monthly
+          : selectedPlan?.price_monthly,
+    });
 
     setCheckoutLoading(planId);
     try {
