@@ -72,6 +72,7 @@ const SuperAdminDataDebug = lazy(
 function App() {
   return (
     <Router>
+      <AnalyticsTracker />
       <AuthProvider>
         <DataProvider>
           <Suspense fallback={<LoadingScreen />}>
