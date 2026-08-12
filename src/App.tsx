@@ -10,6 +10,8 @@ import { Suspense, lazy } from 'react';
 import Layout from '@/components/Layout';
 import LoadingScreen from '@/components/LoadingScreen';
 import AnalyticsTracker from '@/components/AnalyticsTracker';
+import PaymentSuccess from '@/pages/PaymentSuccess';
+import PaymentCanceled from '@/pages/PaymentCanceled';
 import PrivateRoute from '@/components/PrivateRoute';
 import PublicRoute from '@/components/PublicRoute';
 import { AuthProvider } from '@/context/AuthContext';
@@ -109,6 +111,9 @@ function App() {
               {/* Protected routes within the main layout */}
               <Route path="/" element={<Layout />}>
                 <Route element={<PrivateRoute />}>
+                  {/* Payment result pages must stay reachable while unsubscribed */}
+                  <Route path="payment/success" element={<PaymentSuccess />} />
+                  <Route path="payment/canceled" element={<PaymentCanceled />} />
                   <Route element={<SubscriptionRoute />}>
                     <Route index element={<Dashboard />} />
                     <Route path="customers" element={<Customers />} />
