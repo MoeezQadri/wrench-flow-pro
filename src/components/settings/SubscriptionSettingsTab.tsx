@@ -110,6 +110,17 @@ const SubscriptionSettingsTab = () => {
       return;
     }
 
+    const selectedPlan = plans.find((p) => p.id === planId);
+    trackSelectPlan({
+      planId,
+      planName: selectedPlan?.name,
+      billingFrequency,
+      price:
+        billingFrequency === 'yearly'
+          ? selectedPlan?.price_yearly ?? selectedPlan?.price_monthly
+          : selectedPlan?.price_monthly,
+    });
+
     setCheckoutLoading(planId);
     try {
       console.log('Invoking create-checkout function...');
