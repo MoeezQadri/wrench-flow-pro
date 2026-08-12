@@ -26,6 +26,8 @@ import {
   Calendar,
 } from 'lucide-react';
 import PricingPlans from './PricingPlans';
+import { trackSelectPlan, trackViewPlans } from '@/lib/analytics';
+
 interface SubscriptionPlan {
   id: string;
   name: string;
