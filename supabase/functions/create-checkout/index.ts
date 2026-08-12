@@ -127,8 +127,8 @@ serve(async (req) => {
         },
       ],
       mode: 'subscription',
-      success_url: `${req.headers.get('origin')}/settings?success=true&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${req.headers.get('origin')}/settings?canceled=true`,
+      success_url: `${req.headers.get('origin')}/payment/success?session_id={CHECKOUT_SESSION_ID}&plan=${encodeURIComponent(plan.name)}`,
+      cancel_url: `${req.headers.get('origin')}/payment/canceled?plan=${encodeURIComponent(plan.name)}`,
       metadata: {
         plan_id: planId,
         plan_name: plan.name,
