@@ -10,6 +10,8 @@ import { Suspense, lazy } from 'react';
 import Layout from '@/components/Layout';
 import LoadingScreen from '@/components/LoadingScreen';
 import AnalyticsTracker from '@/components/AnalyticsTracker';
+import PaymentSuccess from '@/pages/PaymentSuccess';
+import PaymentCanceled from '@/pages/PaymentCanceled';
 import PrivateRoute from '@/components/PrivateRoute';
 import PublicRoute from '@/components/PublicRoute';
 import { AuthProvider } from '@/context/AuthContext';
