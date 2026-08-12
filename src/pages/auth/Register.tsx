@@ -245,9 +245,11 @@ const Register: React.FC = () => {
         }
       } else if (data) {
         console.log('Registration successful:', data);
+        trackSignUp('email');
         
         // Clear any existing error state
         setError('');
+
         
         // Show prominent success message
         toast({
