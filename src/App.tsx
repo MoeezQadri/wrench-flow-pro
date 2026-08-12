@@ -109,6 +109,9 @@ function App() {
               {/* Protected routes within the main layout */}
               <Route path="/" element={<Layout />}>
                 <Route element={<PrivateRoute />}>
+                  {/* Payment result pages must stay reachable while unsubscribed */}
+                  <Route path="payment/success" element={<PaymentSuccess />} />
+                  <Route path="payment/canceled" element={<PaymentCanceled />} />
                   <Route element={<SubscriptionRoute />}>
                     <Route index element={<Dashboard />} />
                     <Route path="customers" element={<Customers />} />
