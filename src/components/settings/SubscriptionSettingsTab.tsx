@@ -60,6 +60,13 @@ const SubscriptionSettingsTab = () => {
   useEffect(() => {
     loadPlans();
   }, []);
+
+  useEffect(() => {
+    if (!loading && canManageSubscription) {
+      trackViewPlans(subscriptionTier || undefined);
+    }
+  }, [loading, canManageSubscription, subscriptionTier]);
+
   const loadPlans = async () => {
     try {
       const { data, error } = await supabase
