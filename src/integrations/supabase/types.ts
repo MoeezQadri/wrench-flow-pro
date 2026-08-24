@@ -224,6 +224,36 @@ export type Database = {
         }
         Relationships: []
       }
+      demo_leads: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          name: string
+          phone: string | null
+          shop_name: string | null
+          source: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          name: string
+          phone?: string | null
+          shop_name?: string | null
+          source?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          phone?: string | null
+          shop_name?: string | null
+          source?: string
+        }
+        Relationships: []
+      }
       expenses: {
         Row: {
           amount: number
