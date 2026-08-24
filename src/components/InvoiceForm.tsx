@@ -552,7 +552,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
           id: invoiceData.id,
           customer_id: selectedCustomerId,
           vehicle_id: selectedVehicleId,
-          date: date,
+          date: toOrgDayStart(date),
           status: status,
           tax_rate: taxRate,
           discount_type: discountType,
