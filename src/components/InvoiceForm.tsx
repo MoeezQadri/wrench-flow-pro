@@ -75,7 +75,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
       status: 'open' as InvoiceStatus,
       discountType: 'none' as 'none' | 'percentage' | 'fixed',
       discountValue: 0,
-      taxRate: 7.5,
+      taxRate: orgDefaultTaxRate,
       date: new Date(),
       invoiceId: invoiceData?.id || null
     }
