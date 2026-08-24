@@ -22,6 +22,7 @@ const Vehicles: React.FC = () => {
   
   // Check permissions
   const userCanManageVehicles = hasPermission(currentUser, 'vehicles', 'manage') || hasPermission(currentUser, 'vehicles', 'create');
+  const canAddVehicle = userCanManageVehicles;
   const userCanEditVehicles = hasPermission(currentUser, 'vehicles', 'edit');
   const userCanDeleteVehicles = hasPermission(currentUser, 'vehicles', 'delete');
 
@@ -172,7 +173,7 @@ const Vehicles: React.FC = () => {
     <div className="p-4">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Vehicles</h1>
-        {userCanManageVehicles && (
+        {canAddVehicle && (
           <Button onClick={handleAddNewVehicle} className="flex items-center gap-2">
             <Plus className="h-4 w-4" />
             Add New Vehicle
