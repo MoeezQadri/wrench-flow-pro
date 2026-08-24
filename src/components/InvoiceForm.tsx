@@ -35,11 +35,14 @@ interface InvoiceFormProps {
 const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceData = null }) => {
   const navigate = useNavigate();
   const { formatCurrency, getCurrencySymbol } = useOrganizationSettings();
+  const { organization } = useAuthContext();
+  // Organization-wide default, set in Settings → Organization (owners/admins)
+  const orgDefaultTaxRate = Number(organization?.default_tax_rate ?? 0);
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
   const [selectedVehicleId, setSelectedVehicleId] = useState("");
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(orgToday());
   const [status, setStatus] = useState<InvoiceStatus>('open');
-  const [taxRate, setTaxRate] = useState(7.5);
+  const [taxRate, setTaxRate] = useState(orgDefaultTaxRate);
   const [discountType, setDiscountType] = useState<'none' | 'percentage' | 'fixed'>('none');
   const [discountValue, setDiscountValue] = useState(0);
   const [notes, setNotes] = useState("");
