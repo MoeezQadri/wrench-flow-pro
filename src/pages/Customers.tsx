@@ -31,13 +31,13 @@ const customerSchema = z.object({
   }),
   email: z.string().email({
     message: "Please enter a valid email address"
-  }),
+  }).optional().or(z.literal("")),
   phone: z.string().min(7, {
     message: "Phone number must be at least 7 characters long"
   }),
   address: z.string().min(5, {
     message: "Address must be at least 5 characters long"
-  })
+  }).optional().or(z.literal(""))
 });
 const vehicleSchema = z.object({
   make: z.string().min(1, {
@@ -364,7 +364,7 @@ const Customers = () => {
                     <FormField control={form.control} name="customer.email" render={({
                     field
                   }) => <FormItem>
-                          <FormLabel>Email *</FormLabel>
+                          <FormLabel>Email</FormLabel>
                           <FormControl>
                             <Input placeholder="customer@example.com" {...field} />
                           </FormControl>
@@ -386,7 +386,7 @@ const Customers = () => {
                     <FormField control={form.control} name="customer.address" render={({
                     field
                   }) => <FormItem className="sm:col-span-1">
-                          <FormLabel>Address *</FormLabel>
+                          <FormLabel>Address</FormLabel>
                           <FormControl>
                             <Textarea placeholder="123 Main St, Anytown" {...field} />
                           </FormControl>

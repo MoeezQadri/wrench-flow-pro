@@ -39,6 +39,10 @@ const CustomerQuickAddDialog = ({ open, onOpenChange, onSave }: CustomerQuickAdd
       toast.error("Customer name is required");
       return;
     }
+    if (!phone.trim()) {
+      toast.error("Phone number is required");
+      return;
+    }
 
     setSaving(true);
     try {
@@ -76,7 +80,7 @@ const CustomerQuickAddDialog = ({ open, onOpenChange, onSave }: CustomerQuickAdd
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="quick-customer-phone">Phone</Label>
+              <Label htmlFor="quick-customer-phone">Phone *</Label>
               <Input
                 id="quick-customer-phone"
                 value={phone}
