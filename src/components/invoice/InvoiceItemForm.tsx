@@ -73,7 +73,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
   // Custom labor data
   const [laborRate, setLaborRate] = useState(50);
 
-  const { mechanics, vendors, addPart, addTask, addExpense } = useDataContext();
+  const { mechanics, vendors, addPart, addExpense } = useDataContext();
   const { getCurrencySymbol, formatCurrency } = useOrganizationSettings();
   const selectedOrganizationId = ''; // Temporarily disabled
 
