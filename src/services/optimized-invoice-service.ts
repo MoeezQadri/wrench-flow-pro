@@ -354,34 +354,16 @@ const processItemUpdatesOptimized = async (items: InvoiceItem[], invoiceId: stri
           invoiceId
         });
       }
-    } else if (item.type === 'labor') {
-      if (item.creates_task && item.custom_labor_data) {
-        customTaskCreations.push({
-          id: crypto.randomUUID(),
-          title: item.description,
-          description: item.description,
-          status: 'completed',
-          location: 'workshop',
-          hours_estimated: item.quantity,
-          hours_spent: item.quantity,
-          price: item.price * item.quantity,
-          labor_rate: item.custom_labor_data.labor_rate,
-          skill_level: item.custom_labor_data.skill_level,
-          invoice_id: invoiceId,
-          organization_id: organizationId,
-          completed_at: new Date().toISOString(),
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        });
-      } else if (item.task_id) {
-        taskUpdates.push({
-          taskId: item.task_id,
-          invoiceId,
-          price: item.price
-        });
-      }
+    } else if (item.type === 'labor' && item.task_id) {
+      // Existing task selected on the line: just link it and refresh the price
+      taskUpdates.push({
+        taskId: item.task_id,
+        invoiceId,
+        price: item.price
+      });
     }
   });
+
 
   // Execute all operations in parallel
   const operations = [];
