@@ -92,8 +92,10 @@ export const useVehicles = () => {
             const query = supabase
                 .from('vehicles')
                 .select('*')
-                .eq('customer_id', customerId);
+                .eq('customer_id', customerId)
+                .order('created_at', { ascending: false });
             const { data, error } = await applyOrganizationFilter(query);
+
             
             if (error) {
                 console.error('Error fetching vehicles:', error);
