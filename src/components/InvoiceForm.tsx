@@ -246,25 +246,23 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
       setSelectedCustomerId(invoiceData.customer_id);
       setSelectedVehicleId(invoiceData.vehicle_id);
       
-      // Handle date more safely
+      // Render the stored timestamp as the organization's calendar day
       let formattedDate;
       if (invoiceData.date) {
-        // If it's already a date string in YYYY-MM-DD format, use it directly
         if (typeof invoiceData.date === 'string' && invoiceData.date.match(/^\d{4}-\d{2}-\d{2}$/)) {
           formattedDate = invoiceData.date;
         } else {
-          // Otherwise, extract date part
-          formattedDate = invoiceData.date.toString().split('T')[0];
+          formattedDate = toOrgDateInputValue(invoiceData.date as unknown as string) || orgToday();
         }
       } else {
-        formattedDate = new Date().toISOString().slice(0, 10);
+        formattedDate = orgToday();
       }
       
       console.log("Formatted date for form:", formattedDate);
       setDate(formattedDate);
       
       setStatus(invoiceData.status);
-      setTaxRate(invoiceData.tax_rate || 7.5);
+      setTaxRate(invoiceData.tax_rate ?? orgDefaultTaxRate);
       setDiscountType(invoiceData.discount_type || 'none');
       setDiscountValue(invoiceData.discount_value || 0);
       setNotes(invoiceData.notes || "");
