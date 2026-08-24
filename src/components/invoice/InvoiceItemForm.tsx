@@ -57,8 +57,8 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
   const [selectedPartId, setSelectedPartId] = useState("");
   const [selectedTaskId, setSelectedTaskId] = useState("");
   
-  // Custom creation flags
-  const [createsTask, setCreatesTask] = useState(false);
+  // Labor lines are always recorded as tasks (no opt-in), see labor handling in handleSave
+
   
   // Vendor selection for parts
   const [selectedVendorId, setSelectedVendorId] = useState("");
