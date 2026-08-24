@@ -194,8 +194,9 @@ const updatePartsAndTasksForInvoice = async (items: InvoiceItem[], invoiceId: st
       }
     }
 
-    // Handle custom task creation
-    if (item.type === 'labor' && item.creates_task && item.custom_labor_data) {
+    // Handle custom task creation (skipped when the line already points at a task,
+    // so repeated saves update instead of inserting duplicates)
+    if (item.type === 'labor' && item.creates_task && item.custom_labor_data && !item.task_id) {
       try {
         console.log('Creating new task template from custom item:', item);
         
