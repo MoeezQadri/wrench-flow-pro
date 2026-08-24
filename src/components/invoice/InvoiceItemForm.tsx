@@ -127,7 +127,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
         setSelectedPartId("");
         setSelectedTaskId("");
         
-        setCreatesTask(false);
+
         setPartNumber("");
         setManufacturer("");
         setCategory("");
