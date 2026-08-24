@@ -83,6 +83,15 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
     }
   });
 
+  // The organization may load after the first render: adopt its default tax rate
+  // and timezone-correct today's date for brand new invoices only.
+  useEffect(() => {
+    if (isEditing || userHasChangedForm.current) return;
+    setTaxRate(orgDefaultTaxRate);
+    form.setValue('taxRate', orgDefaultTaxRate);
+    setDate(orgToday());
+  }, [orgDefaultTaxRate, organization?.timezone, isEditing]);
+
   const {
     customers,
     parts,
