@@ -319,8 +319,9 @@ export const useCustomers = () => {
                 return;
             }
 
-            let query = supabase.from('customers').select('*');
+            let query = supabase.from('customers').select('*').order('created_at', { ascending: false });
             query = applyOrganizationFilter(query);
+
             
             const { data: customersData, error: customersError } = await query;
             
