@@ -32,10 +32,12 @@ const VehicleDialog = ({ open, onOpenChange, onSave, vehicle, customerId }: Vehi
   const formId = "vehicle-form";
   const { currentUser } = useAuthContext();
 
-  // Check if user has permission to manage vehicles
-  const canManageVehicles = hasPermission(currentUser, 'vehicles', 'manage');
+  // Users who can create OR manage vehicles may use this dialog
+  const canAddVehicles =
+    hasPermission(currentUser, 'vehicles', 'manage') ||
+    hasPermission(currentUser, 'vehicles', 'create');
 
-  if (!canManageVehicles) {
+  if (!canAddVehicles) {
     return null;
   }
 
