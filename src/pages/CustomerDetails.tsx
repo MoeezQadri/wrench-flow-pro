@@ -11,8 +11,9 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { VehicleTransferDialog } from '@/components/vehicle/VehicleTransferDialog';
+import VehicleDialog from '@/components/VehicleDialog';
 import { PermissionGuard } from '@/components/PermissionGuard';
-import { Car, Phone, Mail, MapPin, Calendar, DollarSign, ArrowLeft, FileText, Eye, MoreVertical, ArrowRightLeft, Edit, Trash2 } from 'lucide-react';
+import { Car, Plus, Phone, Mail, MapPin, Calendar, DollarSign, ArrowLeft, FileText, Eye, MoreVertical, ArrowRightLeft, Edit, Trash2 } from 'lucide-react';
 import { formatOrgDate } from '@/utils/datetime';
 
 const CustomerDetails: React.FC = () => {
@@ -24,12 +25,14 @@ const CustomerDetails: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [transferDialogOpen, setTransferDialogOpen] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
+  const [vehicleDialogOpen, setVehicleDialogOpen] = useState(false);
   const {
     getCustomerById,
     getVehiclesByCustomerId,
     invoices: allInvoices,
     customers,
-    updateVehicle
+    updateVehicle,
+    addVehicle
   } = useDataContext();
 
   useEffect(() => {
@@ -60,6 +63,17 @@ const CustomerDetails: React.FC = () => {
   const handleTransferVehicle = (vehicle: Vehicle) => {
     setSelectedVehicle(vehicle);
     setTransferDialogOpen(true);
+  };
+
+  const refreshVehicles = async () => {
+    if (!id) return;
+    const updatedVehicles = await getVehiclesByCustomerId(id);
+    setVehicles(updatedVehicles);
+  };
+
+  const handleSaveVehicle = async (vehicle: Vehicle) => {
+    await addVehicle({ ...vehicle, customer_id: id || vehicle.customer_id });
+    await refreshVehicles();
   };
 
   const handleVehicleTransfer = async (vehicleId: string, newCustomerId: string) => {
@@ -176,6 +190,14 @@ const CustomerDetails: React.FC = () => {
           <CardDescription>
             All vehicles registered to this customer
           </CardDescription>
+          <PermissionGuard resource="vehicles" action="create">
+            <div className="pt-2">
+              <Button size="sm" onClick={() => setVehicleDialogOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Vehicle
+              </Button>
+            </div>
+          </PermissionGuard>
         </CardHeader>
         <CardContent>
           {vehicles.length === 0 ? (
@@ -185,6 +207,12 @@ const CustomerDetails: React.FC = () => {
               <p className="mt-2 text-sm text-muted-foreground">
                 This customer doesn't have any vehicles registered yet.
               </p>
+              <PermissionGuard resource="vehicles" action="create">
+                <Button className="mt-4" onClick={() => setVehicleDialogOpen(true)}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Vehicle
+                </Button>
+              </PermissionGuard>
             </div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -312,6 +340,14 @@ const CustomerDetails: React.FC = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Add Vehicle Dialog */}
+      <VehicleDialog
+        open={vehicleDialogOpen}
+        onOpenChange={setVehicleDialogOpen}
+        onSave={handleSaveVehicle}
+        customerId={id}
+      />
 
       {/* Vehicle Transfer Dialog */}
       <VehicleTransferDialog
