@@ -37,7 +37,7 @@ const Layout = () => {
               </div>
               {currentUser?.organization_id && (
                 <span className="ml-2 text-muted-foreground hidden md:block">
-                  | {currentUser.role === 'owner' && 'Admin'} Dashboard
+                  | {currentUser.role === 'owner' && 'Owner'} Dashboard
                 </span>
               )}
             </div>

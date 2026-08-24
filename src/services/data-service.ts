@@ -75,18 +75,7 @@ export const calculateDashboardMetrics = async (): Promise<DashboardMetrics> => 
   };
 };
 
-// Mock function to simulate checking permissions
-export const hasPermission = (user: any, resource: string, permission: string): boolean => {
-  // Replace this with actual permission checking logic
-  if (user?.role === 'owner') return true; // Owner has all permissions
-
-  // Example: Only managers can manage tasks
-  if (resource === 'tasks' && permission === 'manage' && user?.role === 'manager') {
-    return true;
-  }
-
-  return false;
-};
+// Permission checks live in `@/utils/permissions` — import `hasPermission` from there.
 
 // Export all the missing functions that are being imported
 export const fetchAttendance = async (): Promise<Attendance[]> => {

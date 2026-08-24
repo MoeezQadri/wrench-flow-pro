@@ -11,9 +11,7 @@ import TaskDialog from "@/components/task/TaskDialog";
 import TaskCheckInOut from "@/components/task/TaskCheckInOut";
 import MechanicAssignmentDialog from "@/components/task/MechanicAssignmentDialog";
 import AssignToInvoiceDialog from "@/components/task/AssignToInvoiceDialog";
-import {
-  hasPermission,
-} from "@/services/data-service";
+import { hasPermission } from "@/utils/permissions";
 import { Task, Invoice, Vehicle, Mechanic, Customer, TaskStatus } from "@/types";
 import { resolvePromiseAndSetState } from "@/utils/async-helpers";
 import { useDataContext } from "@/context/data/DataContext";
@@ -49,7 +47,7 @@ const Tasks = () => {
   
   // Check permissions
   const canViewTasks = hasPermission(currentUser, 'tasks', 'view');
-  const canManageTasks = currentUser?.role === 'manager' || currentUser?.role === 'owner' || currentUser?.role === 'admin';
+  const canManageTasks = hasPermission(currentUser, 'tasks', 'manage');
   const isForeman = currentUser?.role === 'foreman';
 
   // Sync local state with context data
@@ -324,8 +322,8 @@ const Tasks = () => {
     }
   }, [tasksList]);
 
-  const shouldShowVehicleColumn = isForeman || currentUser?.role === 'manager' || currentUser?.role === 'owner';
-  const shouldShowAssignmentColumn = isForeman || currentUser?.role === 'manager' || currentUser?.role === 'owner';
+  const shouldShowVehicleColumn = isForeman || canManageTasks;
+  const shouldShowAssignmentColumn = isForeman || canManageTasks;
 
   const headerActions = (canManageTasks || currentUser?.role === 'mechanic' || isForeman) ? (
     <Button onClick={handleAddTask}>

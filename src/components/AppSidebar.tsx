@@ -216,7 +216,7 @@ export function AppSidebar() {
                     {currentUser.name}
                   </p>
                   <p className="text-xs text-muted-foreground capitalize truncate">
-                    {currentUser.role === 'owner' ? 'Admin' : currentUser.role}
+                    {currentUser.role}
                   </p>
                 </div>
                 <ChevronUp className="h-4 w-4 text-muted-foreground" />
