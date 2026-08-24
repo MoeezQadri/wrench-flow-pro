@@ -266,6 +266,8 @@ export interface Organization {
   website?: string;
   country?: string;
   currency?: string;
+  timezone?: string;
+  default_tax_rate?: number;
   subscription_level?: string;
   subscription_status?: string;
   logo?: string;
