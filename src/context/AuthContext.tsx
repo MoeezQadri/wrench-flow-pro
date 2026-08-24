@@ -248,12 +248,15 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (error) {
         console.error('Error fetching organization:', error);
         setOrganization(null);
+        setOrgTimezone(null);
       } else {
         setOrganization(org);
+        setOrgTimezone((org as { timezone?: string | null })?.timezone ?? null);
       }
     } catch (error) {
       console.error('Error fetching organization:', error);
       setOrganization(null);
+      setOrgTimezone(null);
     }
   };
 
