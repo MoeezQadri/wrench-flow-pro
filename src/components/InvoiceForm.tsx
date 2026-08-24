@@ -552,10 +552,8 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
 
         console.log("INVOICE_FORM: Updating invoice data:", updatedInvoiceData);
         
-        // Remove payments from invoice data - they're handled separately
-        const { payments: _, ...invoiceDataWithoutPayments } = updatedInvoiceData;
-        
-        const result = await updateInvoiceWithHook(invoiceDataWithoutPayments as Invoice);
+        // Payments are persisted as part of the update
+        const result = await updateInvoiceWithHook(updatedInvoiceData as unknown as Invoice);
         
         if (result) {
           console.log("Invoice update result:", result);
