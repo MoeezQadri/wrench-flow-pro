@@ -20,6 +20,8 @@ interface Organization {
   address?: string;
   country?: string;
   currency?: string;
+  timezone?: string;
+  default_tax_rate?: number;
   logo?: string;
   created_at?: string;
   updated_at?: string;
