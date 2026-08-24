@@ -515,12 +515,14 @@ export type Database = {
           country: string | null
           created_at: string
           currency: string | null
+          default_tax_rate: number
           id: string
           logo: string | null
           name: string
           phone: string | null
           subscription_level: string
           subscription_status: string
+          timezone: string | null
           trial_ends_at: string | null
           updated_at: string
         }
@@ -529,12 +531,14 @@ export type Database = {
           country?: string | null
           created_at?: string
           currency?: string | null
+          default_tax_rate?: number
           id?: string
           logo?: string | null
           name: string
           phone?: string | null
           subscription_level?: string
           subscription_status?: string
+          timezone?: string | null
           trial_ends_at?: string | null
           updated_at?: string
         }
@@ -543,12 +547,14 @@ export type Database = {
           country?: string | null
           created_at?: string
           currency?: string | null
+          default_tax_rate?: number
           id?: string
           logo?: string | null
           name?: string
           phone?: string | null
           subscription_level?: string
           subscription_status?: string
+          timezone?: string | null
           trial_ends_at?: string | null
           updated_at?: string
         }
