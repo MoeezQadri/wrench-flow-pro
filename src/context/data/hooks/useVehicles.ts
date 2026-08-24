@@ -92,8 +92,10 @@ export const useVehicles = () => {
             const query = supabase
                 .from('vehicles')
                 .select('*')
-                .eq('customer_id', customerId);
+                .eq('customer_id', customerId)
+                .order('created_at', { ascending: false });
             const { data, error } = await applyOrganizationFilter(query);
+
             
             if (error) {
                 console.error('Error fetching vehicles:', error);
@@ -122,7 +124,34 @@ export const useVehicles = () => {
         }
     };
 
+    // Server-side vehicle search (per customer) for large vehicle lists
+    const searchVehicles = async (customerId: string, term: string, limit: number = 20): Promise<Vehicle[]> => {
+        const trimmed = (term || '').trim().replace(/[%,()]/g, ' ').trim();
+        if (!customerId || !trimmed) return [];
+
+        try {
+            const query = supabase
+                .from('vehicles')
+                .select('*')
+                .eq('customer_id', customerId)
+                .or(`make.ilike.%${trimmed}%,model.ilike.%${trimmed}%,license_plate.ilike.%${trimmed}%`)
+                .order('created_at', { ascending: false })
+                .limit(limit);
+            const { data, error } = await applyOrganizationFilter(query);
+
+            if (error) {
+                console.error('Error searching vehicles:', error);
+                return [];
+            }
+            return (data || []) as Vehicle[];
+        } catch (error) {
+            console.error('Error searching vehicles:', error);
+            return [];
+        }
+    };
+
     const getVehicleById = (id: string) => vehicles.find(vehicle => vehicle.id === id) || null;
+
 
     const loadVehicles = async () => {
         try {
@@ -152,7 +181,9 @@ export const useVehicles = () => {
         removeVehicle,
         updateVehicle,
         getVehiclesByCustomerId,
+        searchVehicles,
         getVehicleById,
+
         loadVehicles
     };
 };
