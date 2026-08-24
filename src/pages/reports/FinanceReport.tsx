@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { exportToCSV } from '@/utils/csv-export';
 import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
 import { calculateInvoiceBreakdown } from '@/utils/invoice-calculations';
+import { formatOrgDate } from '@/utils/datetime';
 
 // Interface for expenses matching Supabase schema
 interface DatabaseExpense {
@@ -137,7 +138,7 @@ const FinanceReport = () => {
       
       return {
         invoice_id: invoice.id?.slice(0, 8),
-        date: new Date(invoice.date).toLocaleDateString(),
+        date: formatOrgDate(invoice.date),
         amount: formatCurrency(invoiceBreakdown.total),
         status: invoice.status,
         items_count: invoice.invoice_items?.length || 0
@@ -150,7 +151,7 @@ const FinanceReport = () => {
 
   const handleExportExpenses = () => {
     const exportData = filteredExpenses.map(expense => ({
-      date: new Date(expense.date).toLocaleDateString(),
+      date: formatOrgDate(expense.date),
       category: expense.category,
       description: expense.description || '',
       amount: formatCurrency(expense.amount),
@@ -252,7 +253,7 @@ const FinanceReport = () => {
                       <div>
                         <p className="font-medium">Invoice #{invoice.id?.slice(0, 8)}</p>
                         <p className="text-sm text-muted-foreground">
-                          {new Date(invoice.date).toLocaleDateString()}
+                          {formatOrgDate(invoice.date)}
                         </p>
                       </div>
                       <div className="text-right">
@@ -292,7 +293,7 @@ const FinanceReport = () => {
                     <div>
                       <p className="font-medium">{expense.category}</p>
                       <p className="text-sm text-muted-foreground">
-                        {new Date(expense.date).toLocaleDateString()}
+                        {formatOrgDate(expense.date)}
                       </p>
                       {expense.description && (
                         <p className="text-xs text-muted-foreground">{expense.description}</p>

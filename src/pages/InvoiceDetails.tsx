@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
 import { useSmartDataLoading } from '@/hooks/useSmartDataLoading';
 import { PermissionGuard } from '@/components/PermissionGuard';
+import { formatOrgDate } from '@/utils/datetime';
 
 const InvoiceDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -170,7 +171,7 @@ const InvoiceDetails: React.FC = () => {
           <h3 className="font-medium text-gray-700 mb-2">Invoice Information</h3>
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
-              <span className="text-gray-600">Date:</span> {new Date(invoice.date).toLocaleDateString()}
+              <span className="text-gray-600">Date:</span> {formatOrgDate(invoice.date)}
             </div>
             <div>
               <span className="text-gray-600">Tax Rate:</span> {invoice.tax_rate}%
@@ -273,7 +274,7 @@ const InvoiceDetails: React.FC = () => {
                   {invoice.payments.map((payment, index) => (
                     <tr key={payment.id || index}>
                       <td className="px-4 py-2 whitespace-nowrap text-sm">
-                        {new Date(payment.date).toLocaleDateString()}
+                        {formatOrgDate(payment.date)}
                       </td>
                       <td className="px-4 py-2 whitespace-nowrap text-sm font-medium text-green-600">
                         {formatCurrency(payment.amount)}

@@ -15,6 +15,7 @@ import { usePayments } from "@/context/data/hooks/usePayments";
 import { useOrganizationContext } from "@/hooks/useOrganizationContext";
 import { useAuthContext } from "@/context/AuthContext";
 import { toast } from "sonner";
+import { formatOrgDate } from '@/utils/datetime';
 
 interface PaymentsSectionProps {
   payments: Payment[];
@@ -200,7 +201,7 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({ payments, setPayments
                   <TableCell>
                     {(() => {
                       try {
-                        return new Date(payment.date).toLocaleDateString();
+                        return formatOrgDate(payment.date);
                       } catch {
                         return String(payment.date);
                       }
