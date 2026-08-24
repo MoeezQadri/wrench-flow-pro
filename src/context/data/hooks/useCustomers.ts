@@ -442,6 +442,8 @@ export const useCustomers = () => {
         getCustomerById,
         loadCustomers,
         refreshCustomers,
+        searchCustomers,
         getDebugInfo
+
     };
 };
