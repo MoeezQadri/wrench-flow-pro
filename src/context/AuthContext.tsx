@@ -8,6 +8,7 @@ import React, {
 import { Session, User as SupabaseUser } from '@supabase/supabase-js';
 import { User, UserRole } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
+import { setOrgTimezone } from '@/utils/datetime';
 
 interface Organization {
   id: string;
