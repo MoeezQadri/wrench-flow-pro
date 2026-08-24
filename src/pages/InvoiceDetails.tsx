@@ -281,8 +281,9 @@ const InvoiceDetails: React.FC = () => {
                       <td className="px-4 py-2 whitespace-nowrap text-sm capitalize">
                         {payment.method === "cash" ? "Cash" : 
                          payment.method === "card" ? "Card" : 
-                         payment.method === "bank_transfer" ? "Bank Transfer" :
-                         payment.method === "check" ? "Check" : payment.method}
+                         payment.method === "bank-transfer" || payment.method === "bank_transfer" ? "Bank Transfer" :
+                         payment.method === "check" ? "Check" :
+                         payment.method === "other" ? "Other" : payment.method}
                       </td>
                       <td className="px-4 py-2 whitespace-nowrap text-sm">
                         {payment.notes || '-'}
