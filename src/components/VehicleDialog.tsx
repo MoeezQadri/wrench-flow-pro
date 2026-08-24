@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Vehicle } from "@/types";
 import VehicleFormSection, { VehicleFormValues } from "./vehicle/VehicleFormSection";
-import { hasPermission } from "@/services/data-service";
+import { hasPermission } from "@/utils/permissions";
 import { useAuthContext } from "@/context/AuthContext";
 
 const generateId = (prefix: string = 'id'): string => {

@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuthContext } from '@/context/AuthContext';
-import { hasPermission } from '@/services/data-service';
+import { hasPermission } from '@/utils/permissions';
 import { BarChart, Users, CreditCard, PieChart, LineChart, Gauge } from 'lucide-react';
 import AdminMetricsPanel from '@/components/admin/AdminMetricsPanel';
 import AdminUserManagement from '@/components/admin/AdminUserManagement';

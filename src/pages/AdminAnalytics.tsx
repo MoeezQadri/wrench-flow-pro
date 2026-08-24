@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { useAuthContext } from '@/context/AuthContext';
-import { hasPermission } from '@/services/data-service';
+import { hasPermission } from '@/utils/permissions';
 import SubscriptionAnalytics from '@/components/analytics/SubscriptionAnalytics';
 import { PieChart, LineChart, BarChart, Users, Settings } from 'lucide-react';
 
