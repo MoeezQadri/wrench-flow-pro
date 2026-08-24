@@ -23,14 +23,17 @@ export interface DataContextType {
     getCustomerById: (id: string) => Promise<Customer | null>;
     loadCustomers: () => Promise<void>;
     refreshCustomers: () => Promise<void>;
+    searchCustomers: (term: string, limit?: number) => Promise<Customer[]>;
 
     vehicles: Vehicle[];
     addVehicle: (vehicle: Vehicle) => Promise<Vehicle | null>;
     removeVehicle: (id: string) => Promise<void>;
     updateVehicle: (id: string, updates: Partial<Vehicle>) => Promise<void>;
     getVehiclesByCustomerId: (id: string) => Promise<Vehicle[]>;
+    searchVehicles: (customerId: string, term: string, limit?: number) => Promise<Vehicle[]>;
     getVehicleById: (id: string) => Vehicle | null;
     loadVehicles: () => Promise<void>;
+
 
     invoices: Invoice[];
     addInvoice: (invoiceData: any) => Promise<Invoice>;
