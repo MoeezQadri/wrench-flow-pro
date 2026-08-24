@@ -1,12 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, RefreshCw } from "lucide-react";
 import { Customer, Vehicle } from "@/types";
 import { useDataContext } from '@/context/data/DataContext';
 import { toast } from "sonner";
 import VehicleDialog from "@/components/VehicleDialog";
+import CustomerQuickAddDialog from "@/components/customer/CustomerQuickAddDialog";
+import { SearchableSelect, SearchableOption } from "@/components/ui/searchable-select";
+
 interface CustomerVehicleSelectionProps {
   selectedCustomerId: string;
   onCustomerIdChange: (customerId: string) => void;
@@ -20,6 +22,19 @@ interface CustomerVehicleSelectionProps {
     license_plate: string;
   };
 }
+
+const customerToOption = (customer: Customer): SearchableOption => ({
+  value: customer.id,
+  label: customer.name,
+  description: [customer.phone, customer.email].filter(Boolean).join(' • ') || undefined,
+});
+
+const vehicleToOption = (vehicle: Vehicle): SearchableOption => ({
+  value: vehicle.id,
+  label: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
+  description: vehicle.license_plate || undefined,
+});
+
 const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
   selectedCustomerId,
   onCustomerIdChange,
@@ -32,38 +47,60 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
   const [isLoadingVehicles, setIsLoadingVehicles] = useState(false);
   const [isLoadingCustomers, setIsLoadingCustomers] = useState(false);
   const [vehicleDialogOpen, setVehicleDialogOpen] = useState(false);
+  const [customerDialogOpen, setCustomerDialogOpen] = useState(false);
+  const [extraCustomers, setExtraCustomers] = useState<Customer[]>([]);
   const loadedCustomerRef = useRef<string>("");
   const hasInitiallyLoaded = useRef(false);
   const {
     customers,
     getVehiclesByCustomerId,
+    searchVehicles,
     loadCustomers,
-    addVehicle
+    searchCustomers,
+    addVehicle,
+    addCustomer,
+    getCustomerById
   } = useDataContext();
 
   // Load customers on mount if empty
   useEffect(() => {
     if (customers.length === 0 && !isLoadingCustomers) {
-      console.log("No customers found, attempting to reload...");
-      handleRefreshCustomers();
+      handleRefreshCustomers(true);
     }
   }, [customers.length]);
 
-  // Load vehicles when customer is selected - optimized to prevent unnecessary calls
+  // When editing (or after picking a searched customer), make sure the selected
+  // customer is available locally so its name renders.
+  useEffect(() => {
+    const hydrateSelectedCustomer = async () => {
+      if (!selectedCustomerId) return;
+      const known =
+        customers.some(c => c.id === selectedCustomerId) ||
+        extraCustomers.some(c => c.id === selectedCustomerId);
+      if (known) return;
+
+      const fetched = await getCustomerById(selectedCustomerId);
+      if (fetched) {
+        setExtraCustomers(prev => [...prev.filter(c => c.id !== fetched.id), fetched]);
+      }
+    };
+
+    hydrateSelectedCustomer();
+  }, [selectedCustomerId, customers, extraCustomers, getCustomerById]);
+
+  // Load vehicles when customer is selected
   useEffect(() => {
     const loadVehicles = async () => {
-      // Load vehicles when:
-      // 1. Customer is selected AND we haven't loaded for this customer yet
-      // 2. OR we're editing and haven't initially loaded vehicles yet
-      // 3. OR the selected vehicle ID doesn't exist in current vehicles (editing case)
-      const needsLoading = selectedCustomerId && (selectedCustomerId !== loadedCustomerRef.current || isEditing && !hasInitiallyLoaded.current || selectedVehicleId && !vehicles.find(v => v.id === selectedVehicleId));
+      const needsLoading = selectedCustomerId && (
+        selectedCustomerId !== loadedCustomerRef.current ||
+        (isEditing && !hasInitiallyLoaded.current) ||
+        (selectedVehicleId && !vehicles.find(v => v.id === selectedVehicleId))
+      );
+
       if (needsLoading) {
         setIsLoadingVehicles(true);
         try {
-          console.log("Loading vehicles for customer:", selectedCustomerId);
           const fetchedVehicles = await getVehiclesByCustomerId(selectedCustomerId);
-          console.log("Vehicles loaded:", fetchedVehicles);
-          console.log("Selected vehicle ID:", selectedVehicleId);
           setVehicles(fetchedVehicles);
           loadedCustomerRef.current = selectedCustomerId;
           hasInitiallyLoaded.current = true;
@@ -81,12 +118,12 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
     };
     loadVehicles();
   }, [selectedCustomerId, selectedVehicleId, getVehiclesByCustomerId, isEditing]);
-  const handleRefreshCustomers = async () => {
+
+  const handleRefreshCustomers = async (silent = false) => {
     setIsLoadingCustomers(true);
     try {
-      console.log("Refreshing customers...");
       await loadCustomers();
-      toast.success("Customers refreshed");
+      if (!silent) toast.success("Customers refreshed");
     } catch (error) {
       console.error("Error refreshing customers:", error);
       toast.error("Failed to refresh customers");
@@ -94,26 +131,42 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
       setIsLoadingCustomers(false);
     }
   };
+
   const handleCustomerChange = (value: string) => {
     onCustomerIdChange(value);
     if (!isEditing) {
-      onVehicleIdChange(""); // Reset vehicle selection when customer changes, but not when editing
+      onVehicleIdChange("");
     }
-    // Reset the loaded customer ref to allow loading vehicles for the new customer
     loadedCustomerRef.current = "";
   };
 
-  const handleAddVehicle = () => {
-    setVehicleDialogOpen(true);
-  };
+  const handleCustomerSearch = useCallback(async (term: string): Promise<SearchableOption[]> => {
+    const results = await searchCustomers(term);
+    if (results.length > 0) {
+      setExtraCustomers(prev => {
+        const map = new Map(prev.map(c => [c.id, c]));
+        results.forEach(c => map.set(c.id, c));
+        return Array.from(map.values());
+      });
+    }
+    return results.map(customerToOption);
+  }, [searchCustomers]);
+
+  const handleVehicleSearch = useCallback(async (term: string): Promise<SearchableOption[]> => {
+    if (!selectedCustomerId) return [];
+    const results = await searchVehicles(selectedCustomerId, term);
+    return results.map(vehicleToOption);
+  }, [searchVehicles, selectedCustomerId]);
+
+  const handleAddVehicle = () => setVehicleDialogOpen(true);
 
   const handleVehicleSave = async (vehicle: Vehicle) => {
     try {
       const created = await addVehicle(vehicle);
-      // Refresh vehicles for the current customer
+      loadedCustomerRef.current = "";
       const updatedVehicles = await getVehiclesByCustomerId(selectedCustomerId);
       setVehicles(updatedVehicles);
-      // Select the newly created vehicle - use the database-returned ID if available
+      loadedCustomerRef.current = selectedCustomerId;
       const vehicleIdToSelect = created?.id || vehicle.id;
       onVehicleIdChange(vehicleIdToSelect);
       toast.success("Vehicle added successfully!");
@@ -123,29 +176,40 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
     }
   };
 
-  // Find the selected vehicle to display its name - prefer from loaded vehicles, fallback to vehicleInfo
-  const selectedVehicle = vehicles.find(v => v.id === selectedVehicleId);
-
-  // Get display text for the selected vehicle
-  const getVehicleDisplayText = () => {
-    if (selectedVehicle) {
-      return `${selectedVehicle.year} ${selectedVehicle.make} ${selectedVehicle.model} (${selectedVehicle.license_plate})`;
-    } else if (isEditing && vehicleInfo && selectedVehicleId) {
-      // When editing, use the vehicle info from the invoice data if vehicles haven't loaded yet
-      return `${vehicleInfo.year} ${vehicleInfo.make} ${vehicleInfo.model} (${vehicleInfo.license_plate})`;
+  const handleCustomerSave = async (customer: Partial<Customer>) => {
+    const created = await addCustomer(customer as Customer);
+    if (created) {
+      setExtraCustomers(prev => [...prev.filter(c => c.id !== created.id), created]);
+      onCustomerIdChange(created.id);
+      onVehicleIdChange("");
+      loadedCustomerRef.current = "";
+      toast.success("Customer added and selected");
     }
-    return null;
   };
-  const vehicleDisplayText = getVehicleDisplayText();
 
-  // During editing mode, allow selectedVehicleId even if vehicles haven't loaded yet (when vehicleInfo exists)
-  // During normal mode, only use selectedVehicleId if it exists in the vehicles array
-  const validSelectedVehicleId = isEditing && vehicleInfo && selectedVehicleId ? selectedVehicleId : vehicles.find(v => v.id === selectedVehicleId) ? selectedVehicleId : "";
+  const allCustomers = React.useMemo(() => {
+    const map = new Map<string, Customer>();
+    customers.forEach(c => map.set(c.id, c));
+    extraCustomers.forEach(c => { if (!map.has(c.id)) map.set(c.id, c); });
+    return Array.from(map.values());
+  }, [customers, extraCustomers]);
+
+  const customerOptions = React.useMemo(
+    () => allCustomers.map(customerToOption),
+    [allCustomers]
+  );
+  const vehicleOptions = React.useMemo(() => vehicles.map(vehicleToOption), [vehicles]);
+
+  const selectedVehicle = vehicles.find(v => v.id === selectedVehicleId);
+  const vehicleFallbackLabel = !selectedVehicle && isEditing && vehicleInfo && selectedVehicleId
+    ? `${vehicleInfo.year} ${vehicleInfo.make} ${vehicleInfo.model} (${vehicleInfo.license_plate})`
+    : undefined;
+
   if (isEditing) {
-    // Find customer name from customers array
-    const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
+    const selectedCustomer = allCustomers.find(c => c.id === selectedCustomerId);
     const customerName = selectedCustomer?.name || "Loading customer...";
-    return <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <Label className="text-sm font-medium text-muted-foreground">Customer</Label>
           <div className="mt-2 p-3 border rounded-md bg-muted/50">
@@ -156,68 +220,103 @@ const CustomerVehicleSelection: React.FC<CustomerVehicleSelectionProps> = ({
         <div>
           <Label className="text-sm font-medium text-muted-foreground">Vehicle</Label>
           <div className="mt-2 p-3 border rounded-md bg-muted/50">
-            {vehicleInfo ? <p className="font-medium">
+            {vehicleInfo ? (
+              <p className="font-medium">
                 {vehicleInfo.year} {vehicleInfo.make} {vehicleInfo.model} ({vehicleInfo.license_plate})
-              </p> : <p className="font-medium text-muted-foreground">Loading vehicle...</p>}
+              </p>
+            ) : (
+              <p className="font-medium text-muted-foreground">Loading vehicle...</p>
+            )}
           </div>
         </div>
-      </div>;
+      </div>
+    );
   }
-  return <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div>
         <div className="flex justify-between items-center mb-2 min-h-[32px]">
           <Label htmlFor="customer">Customer *</Label>
           <div className="flex gap-2">
-            
-            {!isEditing && <Button type="button" variant="outline" size="sm" asChild>
-                
-              </Button>}
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => handleRefreshCustomers()}
+              disabled={isLoadingCustomers}
+              aria-label="Refresh customers"
+            >
+              <RefreshCw className={`h-4 w-4 ${isLoadingCustomers ? 'animate-spin' : ''}`} />
+            </Button>
+            <Button type="button" variant="outline" size="sm" onClick={() => setCustomerDialogOpen(true)}>
+              <PlusCircle className="h-4 w-4 mr-1" />
+              Add Customer
+            </Button>
           </div>
         </div>
-        <Select value={selectedCustomerId} onValueChange={handleCustomerChange} required disabled={isEditing}>
-          <SelectTrigger id="customer">
-            <SelectValue placeholder={isLoadingCustomers ? "Loading customers..." : "Select a customer"} />
-          </SelectTrigger>
-          <SelectContent>
-            {customers.length === 0 ? <SelectItem value="no-customers" disabled>
-                {isLoadingCustomers ? "Loading customers..." : "No customers available - click Refresh or Add New"}
-              </SelectItem> : customers.map(customer => <SelectItem key={customer.id} value={customer.id}>
-                  {customer.name}
-                </SelectItem>)}
-          </SelectContent>
-        </Select>
+        <SearchableSelect
+          id="customer"
+          value={selectedCustomerId}
+          onChange={handleCustomerChange}
+          options={customerOptions}
+          onSearch={handleCustomerSearch}
+          placeholder="Select a customer"
+          searchPlaceholder="Search by name, phone or email..."
+          emptyText="No customers match your search"
+          loading={isLoadingCustomers && customerOptions.length === 0}
+        />
+        <p className="mt-1 text-xs text-muted-foreground">
+          Type to search all customers, not just the recent ones.
+        </p>
       </div>
 
       <div>
         <div className="flex justify-between items-center mb-2 min-h-[32px]">
           <Label htmlFor="vehicle">Vehicle *</Label>
           <div className="flex gap-2">
-            {selectedCustomerId && !isEditing && <Button type="button" variant="outline" size="sm" onClick={handleAddVehicle}>
-                <PlusCircle className="h-4 w-4 mr-1" />
-                Add Vehicle
-              </Button>}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleAddVehicle}
+              disabled={!selectedCustomerId}
+              title={!selectedCustomerId ? "Select a customer first" : "Add a vehicle"}
+            >
+              <PlusCircle className="h-4 w-4 mr-1" />
+              Add Vehicle
+            </Button>
           </div>
         </div>
-        <Select value={validSelectedVehicleId} onValueChange={onVehicleIdChange} required={vehicles.length > 0} disabled={!selectedCustomerId || isLoadingVehicles}>
-          <SelectTrigger id="vehicle">
-            <SelectValue placeholder={!selectedCustomerId ? "Select a customer first" : isLoadingVehicles ? "Loading vehicles..." : "Select a vehicle"} />
-          </SelectTrigger>
-          <SelectContent>
-            {vehicles.length === 0 ? <SelectItem value="no-vehicles" disabled>
-                {selectedCustomerId ? isLoadingVehicles ? "Loading vehicles..." : "No vehicles found for this customer" : "Please select a customer first"}
-              </SelectItem> : vehicles.map(vehicle => <SelectItem key={vehicle.id} value={vehicle.id}>
-                  {vehicle.year} {vehicle.make} {vehicle.model} ({vehicle.license_plate})
-                </SelectItem>)}
-          </SelectContent>
-        </Select>
+        <SearchableSelect
+          id="vehicle"
+          value={selectedVehicleId}
+          onChange={onVehicleIdChange}
+          options={vehicleOptions}
+          onSearch={handleVehicleSearch}
+          placeholder={!selectedCustomerId ? "Select a customer first" : "Select a vehicle"}
+          searchPlaceholder="Search by make, model or plate..."
+          emptyText={selectedCustomerId ? "No vehicles found for this customer" : "Select a customer first"}
+          disabled={!selectedCustomerId}
+          loading={isLoadingVehicles}
+          selectedLabel={vehicleFallbackLabel}
+        />
       </div>
-      
+
       <VehicleDialog
         open={vehicleDialogOpen}
         onOpenChange={setVehicleDialogOpen}
         onSave={handleVehicleSave}
         customerId={selectedCustomerId}
       />
-    </div>;
+
+      <CustomerQuickAddDialog
+        open={customerDialogOpen}
+        onOpenChange={setCustomerDialogOpen}
+        onSave={handleCustomerSave}
+      />
+    </div>
+  );
 };
+
 export default CustomerVehicleSelection;
