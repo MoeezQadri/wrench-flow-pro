@@ -358,7 +358,6 @@ const OrganizationSettingsTab = () => {
               {applyingTaxRate ? 'Updating...' : 'Apply to unpaid invoices'}
             </AlertDialogAction>
           </AlertDialogFooter>
-        </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </>
