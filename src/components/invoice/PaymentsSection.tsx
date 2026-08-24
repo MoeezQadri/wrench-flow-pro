@@ -160,8 +160,9 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({ payments, setPayments
                 <SelectContent>
                   <SelectItem value="cash">Cash</SelectItem>
                   <SelectItem value="card">Card</SelectItem>
-                  <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                  <SelectItem value="bank-transfer">Bank Transfer</SelectItem>
                   <SelectItem value="check">Check</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -209,8 +210,9 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({ payments, setPayments
                   <TableCell>
                     {payment.method === "cash" ? "Cash" : 
                      payment.method === "card" ? "Card" : 
-                     payment.method === "bank_transfer" ? "Bank Transfer" :
-                     payment.method === "check" ? "Check" : payment.method}
+                     payment.method === "bank-transfer" || payment.method === "bank_transfer" ? "Bank Transfer" :
+                     payment.method === "check" ? "Check" :
+                     payment.method === "other" ? "Other" : payment.method}
                   </TableCell>
                   <TableCell>{payment.notes}</TableCell>
                   {canEditPayments && (
