@@ -103,7 +103,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
         setSelectedPartId(editingItem.part_id || "");
         setSelectedTaskId(editingItem.task_id || "");
         
-        setCreatesTask(editingItem.creates_task || false);
+
         
         // Populate custom data if available
         if (editingItem.custom_part_data) {
