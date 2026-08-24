@@ -154,7 +154,9 @@ export const useVehicles = () => {
         removeVehicle,
         updateVehicle,
         getVehiclesByCustomerId,
+        searchVehicles,
         getVehicleById,
+
         loadVehicles
     };
 };
