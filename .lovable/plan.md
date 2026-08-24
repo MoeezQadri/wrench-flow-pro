@@ -13,24 +13,29 @@ The exact "last customer never appears" claim is not fully confirmed as an order
 
 ## Changes
 
-1. Sort and freshen the data
-   - Order customers by `created_at` descending in the context load, so the newest customer is always at the top of the dropdown.
-   - Order vehicles by `created_at` descending in the per-customer fetch.
-   - On mounting the invoice form's customer/vehicle selector, always refresh customers once (not only when the list is empty), so a stale in-memory list can't hide a recent customer.
+1. Replace the customer dropdown with a searchable picker
+   - Swap the plain `Select` for a searchable combobox (shadcn Command inside a Popover) on the invoice page.
+   - It shows a short recent list by default (newest 20 customers by `created_at`), so no full list is loaded up front.
+   - Typing searches the database directly: a debounced (~300ms) query against `customers` filtered by the current organization, matching name, phone, or email (case-insensitive), limited to 20 results. Results are not limited to whatever is already cached in memory, so any customer can be found even if not in the loaded list.
+   - Selecting a customer from search results merges it into the in-memory list so it renders correctly and stays selected.
+   - When editing an existing invoice, the selected customer is fetched by ID if not present locally, so the name always displays.
 
-2. Restore a working refresh control
-   - Replace the empty stub buttons next to the Customer label with a real refresh icon button that calls the customers reload and shows a spinner while loading.
+2. Same treatment for vehicles
+   - Vehicles are fetched per customer and ordered by `created_at` descending, newest first.
+   - If a customer has more than a handful of vehicles, the vehicle field also uses a searchable picker matching make, model, or license plate; small lists keep the simple dropdown behaviour.
 
 3. Add customer inline from the invoice page
-   - Add an "Add Customer" button next to the Customer dropdown that opens a dialog with the same fields used on the Customers page (name, email, phone, address).
-   - On save: create the customer through the existing context `addCustomer`, then auto-select it in the dropdown and clear any vehicle selection.
+   - Add an "Add Customer" button next to the customer picker that opens a dialog with the same fields used on the Customers page (name, email, phone, address).
+   - On save: create the customer via the existing context `addCustomer`, auto-select it, and clear any vehicle selection.
 
 4. Improve the existing Add Vehicle flow
-   - Keep the existing vehicle dialog, but after saving, reset the internal "already loaded" cache so the refreshed vehicle list is always re-fetched and the new vehicle is auto-selected (already partly in place).
-   - Show the Add Vehicle button in a disabled state with a hint tooltip before a customer is chosen, instead of hiding it, so users can see the option exists.
+   - Keep the existing vehicle dialog; after saving, reset the internal "already loaded" cache so the vehicle list is re-fetched and the new vehicle is auto-selected.
+   - Show the Add Vehicle button disabled with a hint before a customer is chosen, instead of hiding it, so the option is discoverable.
 
 ## Technical notes
 
-- Files touched: `src/context/data/hooks/useCustomers.ts` (order by `created_at`), `src/context/data/hooks/useVehicles.ts` (order by `created_at`), `src/components/invoice/CustomerVehicleSelection.tsx` (refresh button, add-customer dialog, vehicle cache reset), plus a small new `src/components/customer/CustomerQuickAddDialog.tsx` reusing the existing form fields and shadcn dialog.
-- No database or RLS changes are needed; `organization_id` continues to be handled server-side.
-- No changes to invoice saving logic.
+- New search helpers: `searchCustomers(term)` in `src/context/data/hooks/useCustomers.ts` and `searchVehicles(customerId, term)` / ordering in `src/context/data/hooks/useVehicles.ts`, both using the existing organization filter helper so results stay org-scoped. Exposed through the data context type.
+- Recent-list load stays capped (20 rows, ordered newest first) instead of pulling every customer.
+- UI work in `src/components/invoice/CustomerVehicleSelection.tsx`, plus a new `src/components/customer/CustomerQuickAddDialog.tsx` and a small reusable searchable-select component.
+- No database, RLS, or invoice-saving changes; `organization_id` remains server-side.
+
