@@ -377,12 +377,42 @@ export const useCustomers = () => {
         }
     };
 
+    // Server-side search so customers outside the loaded list can still be found
+    const searchCustomers = async (term: string, limit: number = 20): Promise<Customer[]> => {
+        const trimmed = (term || '').trim();
+        if (!trimmed) return [];
+
+        try {
+            const escaped = trimmed.replace(/[%,()]/g, ' ').trim();
+            if (!escaped) return [];
+
+            let query = supabase
+                .from('customers')
+                .select('*')
+                .or(`name.ilike.%${escaped}%,email.ilike.%${escaped}%,phone.ilike.%${escaped}%`)
+                .order('created_at', { ascending: false })
+                .limit(limit);
+            query = applyOrganizationFilter(query);
+
+            const { data, error } = await query;
+            if (error) {
+                console.error('Error searching customers:', error);
+                return [];
+            }
+            return (data || []) as Customer[];
+        } catch (error) {
+            console.error('Error searching customers:', error);
+            return [];
+        }
+    };
+
     const refreshCustomers = async () => {
         logCustomerOperation('MANUAL_REFRESH_TRIGGERED');
         console.log("Manual refresh of customers triggered");
         setError(null);
         await loadCustomers();
     };
+
 
     // Expose debugging utilities
     const getDebugInfo = () => {
