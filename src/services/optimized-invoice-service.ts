@@ -240,7 +240,7 @@ export const createInvoiceOptimized = async (invoiceData: CreateInvoiceData): Pr
 // Optimized invoice update with smart item diffing
 export const updateInvoiceOptimized = async (invoiceData: Invoice): Promise<Invoice> => {
   try {
-    const { id, customer_id, vehicle_id, date, tax_rate, discount_type, discount_value, notes, status, items } = invoiceData;
+    const { id, customer_id, vehicle_id, date, tax_rate, discount_type, discount_value, notes, status, items, payments } = invoiceData as Invoice & { payments?: Payment[] };
     console.log('Starting optimized invoice update:', id);
 
     // Update invoice record
