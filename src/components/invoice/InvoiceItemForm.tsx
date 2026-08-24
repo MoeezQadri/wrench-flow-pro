@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
+
 import { InvoiceItem, Part, Task, Vendor, Expense } from "@/types";
 import { useDataContext } from "@/context/data/DataContext";
 import { useOrganizationSettings } from "@/hooks/useOrganizationSettings";
