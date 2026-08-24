@@ -8,6 +8,7 @@ import React, {
 import { Session, User as SupabaseUser } from '@supabase/supabase-js';
 import { User, UserRole } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
+import { setOrgTimezone } from '@/utils/datetime';
 
 interface Organization {
   id: string;
@@ -19,6 +20,8 @@ interface Organization {
   address?: string;
   country?: string;
   currency?: string;
+  timezone?: string;
+  default_tax_rate?: number;
   logo?: string;
   created_at?: string;
   updated_at?: string;
@@ -248,12 +251,15 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (error) {
         console.error('Error fetching organization:', error);
         setOrganization(null);
+        setOrgTimezone(null);
       } else {
         setOrganization(org);
+        setOrgTimezone((org as { timezone?: string | null })?.timezone ?? null);
       }
     } catch (error) {
       console.error('Error fetching organization:', error);
       setOrganization(null);
+      setOrgTimezone(null);
     }
   };
 

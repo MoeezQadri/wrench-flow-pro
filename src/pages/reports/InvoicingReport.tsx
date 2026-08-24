@@ -11,6 +11,7 @@ import { useDataContext } from "@/context/data/DataContext";
 import { isWithinInterval, parseISO } from "date-fns";
 import { useOrganizationSettings } from "@/hooks/useOrganizationSettings";
 import { calculateInvoiceBreakdown } from '@/utils/invoice-calculations';
+import { formatOrgDate } from '@/utils/datetime';
 
 const InvoicingReport = () => {
   const [startDate, setStartDate] = useState<Date>(subDays(new Date(), 30));
@@ -194,7 +195,7 @@ const InvoicingReport = () => {
                     <TableRow key={invoice.id}>
                       <TableCell className="font-medium">#{invoice.id?.slice(0, 8)}</TableCell>
                       <TableCell>{customer?.name || "Unknown"}</TableCell>
-                      <TableCell>{new Date(invoice.date || '').toLocaleDateString()}</TableCell>
+                      <TableCell>{formatOrgDate(invoice.date)}</TableCell>
                       <TableCell>{formatCurrency(invoiceTotal)}</TableCell>
                       <TableCell>
                         <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
@@ -206,7 +207,7 @@ const InvoicingReport = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        {invoice.due_date ? new Date(invoice.due_date).toLocaleDateString() : 'N/A'}
+                        {formatOrgDate(invoice.due_date)}
                       </TableCell>
                     </TableRow>
                   );

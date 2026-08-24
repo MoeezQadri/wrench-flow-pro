@@ -13,6 +13,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { VehicleTransferDialog } from '@/components/vehicle/VehicleTransferDialog';
 import { PermissionGuard } from '@/components/PermissionGuard';
 import { Car, Phone, Mail, MapPin, Calendar, DollarSign, ArrowLeft, FileText, Eye, MoreVertical, ArrowRightLeft, Edit, Trash2 } from 'lucide-react';
+import { formatOrgDate } from '@/utils/datetime';
 
 const CustomerDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -157,7 +158,7 @@ const CustomerDetails: React.FC = () => {
             </div>
             <div>
               <div className="text-sm font-medium">
-                {customer.last_visit ? new Date(customer.last_visit).toLocaleDateString() : 'Never'}
+                {customer.last_visit ? formatOrgDate(customer.last_visit) : 'Never'}
               </div>
               <p className="text-xs text-muted-foreground">Last Visit</p>
             </div>
@@ -284,7 +285,7 @@ const CustomerDetails: React.FC = () => {
                           </div>
                           <div className="flex items-center gap-4 text-sm text-muted-foreground">
                             <span>
-                              {new Date(invoice.date).toLocaleDateString()}
+                              {formatOrgDate(invoice.date)}
                             </span>
                             <span className="font-semibold text-foreground">
                               {formatCurrency(total)}

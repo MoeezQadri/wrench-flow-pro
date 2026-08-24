@@ -12,6 +12,7 @@ import { hasPermission } from '@/utils/permissions';
 import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
 import { calculateInvoiceBreakdown } from '@/utils/invoice-calculations';
 import { PageWrapper } from '@/components/PageWrapper';
+import { formatOrgDate } from '@/utils/datetime';
 
 const Invoices: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -227,7 +228,7 @@ const Invoices: React.FC = () => {
                       {customerName}
                     </td>
                     <td className="py-2 px-4 border-b">
-                      {invoice.date ? new Date(invoice.date).toLocaleDateString() : 'N/A'}
+                      {formatOrgDate(invoice.date)}
                     </td>
                     <td className="py-2 px-4 border-b">
                       <span className={`px-2 py-1 rounded text-xs ${

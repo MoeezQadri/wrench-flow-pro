@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/select";
 import { Invoice, InvoiceItem, Vehicle, Part, Task, InvoiceStatus, Payment } from "@/types";
 import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
+import { useAuthContext } from '@/context/AuthContext';
+import { orgToday, toOrgDateInputValue, toOrgDayStart } from '@/utils/datetime';
 
 import InvoiceItemsSection from "./invoice/InvoiceItemsSection";
 import PaymentsSection from "./invoice/PaymentsSection";
@@ -35,11 +37,14 @@ interface InvoiceFormProps {
 const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceData = null }) => {
   const navigate = useNavigate();
   const { formatCurrency, getCurrencySymbol } = useOrganizationSettings();
+  const { organization } = useAuthContext();
+  // Organization-wide default, set in Settings → Organization (owners/admins)
+  const orgDefaultTaxRate = Number(organization?.default_tax_rate ?? 0);
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
   const [selectedVehicleId, setSelectedVehicleId] = useState("");
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(orgToday());
   const [status, setStatus] = useState<InvoiceStatus>('open');
-  const [taxRate, setTaxRate] = useState(7.5);
+  const [taxRate, setTaxRate] = useState(orgDefaultTaxRate);
   const [discountType, setDiscountType] = useState<'none' | 'percentage' | 'fixed'>('none');
   const [discountValue, setDiscountValue] = useState(0);
   const [notes, setNotes] = useState("");
@@ -72,11 +77,20 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
       status: 'open' as InvoiceStatus,
       discountType: 'none' as 'none' | 'percentage' | 'fixed',
       discountValue: 0,
-      taxRate: 7.5,
+      taxRate: orgDefaultTaxRate,
       date: new Date(),
       invoiceId: invoiceData?.id || null
     }
   });
+
+  // The organization may load after the first render: adopt its default tax rate
+  // and timezone-correct today's date for brand new invoices only.
+  useEffect(() => {
+    if (isEditing || userHasChangedForm.current) return;
+    setTaxRate(orgDefaultTaxRate);
+    form.setValue('taxRate', orgDefaultTaxRate);
+    setDate(orgToday());
+  }, [orgDefaultTaxRate, organization?.timezone, isEditing]);
 
   const {
     customers,
@@ -241,25 +255,23 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
       setSelectedCustomerId(invoiceData.customer_id);
       setSelectedVehicleId(invoiceData.vehicle_id);
       
-      // Handle date more safely
+      // Render the stored timestamp as the organization's calendar day
       let formattedDate;
       if (invoiceData.date) {
-        // If it's already a date string in YYYY-MM-DD format, use it directly
         if (typeof invoiceData.date === 'string' && invoiceData.date.match(/^\d{4}-\d{2}-\d{2}$/)) {
           formattedDate = invoiceData.date;
         } else {
-          // Otherwise, extract date part
-          formattedDate = invoiceData.date.toString().split('T')[0];
+          formattedDate = toOrgDateInputValue(invoiceData.date as unknown as string) || orgToday();
         }
       } else {
-        formattedDate = new Date().toISOString().slice(0, 10);
+        formattedDate = orgToday();
       }
       
       console.log("Formatted date for form:", formattedDate);
       setDate(formattedDate);
       
       setStatus(invoiceData.status);
-      setTaxRate(invoiceData.tax_rate || 7.5);
+      setTaxRate(invoiceData.tax_rate ?? orgDefaultTaxRate);
       setDiscountType(invoiceData.discount_type || 'none');
       setDiscountValue(invoiceData.discount_value || 0);
       setNotes(invoiceData.notes || "");
@@ -540,7 +552,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
           id: invoiceData.id,
           customer_id: selectedCustomerId,
           vehicle_id: selectedVehicleId,
-          date: date,
+          date: toOrgDayStart(date),
           status: status,
           tax_rate: taxRate,
           discount_type: discountType,
@@ -618,7 +630,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
         const invoiceCreationData = {
           customerId: selectedCustomerId,
           vehicleId: selectedVehicleId,
-          date: date,
+          date: toOrgDayStart(date),
           taxRate: taxRate,
           discountType: discountType,
           discountValue: discountValue,
