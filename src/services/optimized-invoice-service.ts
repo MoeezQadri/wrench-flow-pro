@@ -286,13 +286,30 @@ export const updateInvoiceOptimized = async (invoiceData: Invoice): Promise<Invo
       await processItemUpdatesOptimized(items, id, invoiceResult.organization_id);
     }
 
+    // Persist payments (replace the invoice's payment rows with the current list)
+    let savedPayments: Payment[] = [];
+    if (payments) {
+      const { paymentService } = await import('./payment-service');
+      savedPayments = await paymentService.replaceInvoicePayments(
+        id,
+        payments.map(payment => ({
+          amount: Number(payment.amount),
+          method: payment.method,
+          date: payment.date,
+          notes: payment.notes || undefined,
+          organization_id: invoiceResult.organization_id
+        }))
+      );
+    }
+
     console.log('Optimized invoice update completed');
 
     return {
       ...invoiceResult,
       items: items || [],
-      payments: []
+      payments: savedPayments
     } as Invoice;
+
 
   } catch (error) {
     console.error('Error in updateInvoiceOptimized:', error);
