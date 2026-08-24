@@ -626,37 +626,29 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
             </div>
           )}
 
-          {/* Custom Task Creation */}
+          {/* Labor details — every labor line is recorded as a task for this invoice */}
           {type === 'labor' && !selectedTaskId && (
             <div className="space-y-4 border-t pt-4">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="createsTask"
-                  checked={createsTask}
-                  onCheckedChange={(checked) => setCreatesTask(checked as boolean)}
-                />
-                <Label htmlFor="createsTask" className="text-sm">
-                  Save to tasks database {invoiceId ? `(tagged with this invoice)` : '(no invoice ID available)'}
-                </Label>
-              </div>
+              <p className="text-sm text-muted-foreground">
+                This labor line is saved to the Tasks list and tagged to this invoice.
+              </p>
 
-              {createsTask && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-muted p-4 rounded-lg">
-                  <div>
-                    <Label htmlFor="laborRate">Labor Rate ({getCurrencySymbol()}/hour)</Label>
-                    <Input
-                      id="laborRate"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={laborRate}
-                      onChange={(e) => setLaborRate(parseFloat(e.target.value) || 50)}
-                    />
-                  </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-muted p-4 rounded-lg">
+                <div>
+                  <Label htmlFor="laborRate">Labor Rate ({getCurrencySymbol()}/hour)</Label>
+                  <Input
+                    id="laborRate"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={laborRate}
+                    onChange={(e) => setLaborRate(parseFloat(e.target.value) || 50)}
+                  />
                 </div>
-              )}
+              </div>
             </div>
           )}
+
 
           {/* Total Calculation */}
           <div className="bg-muted p-3 rounded-lg">
