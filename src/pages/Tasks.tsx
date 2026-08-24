@@ -322,8 +322,8 @@ const Tasks = () => {
     }
   }, [tasksList]);
 
-  const shouldShowVehicleColumn = isForeman || currentUser?.role === 'manager' || currentUser?.role === 'owner';
-  const shouldShowAssignmentColumn = isForeman || currentUser?.role === 'manager' || currentUser?.role === 'owner';
+  const shouldShowVehicleColumn = isForeman || canManageTasks;
+  const shouldShowAssignmentColumn = isForeman || canManageTasks;
 
   const headerActions = (canManageTasks || currentUser?.role === 'mechanic' || isForeman) ? (
     <Button onClick={handleAddTask}>
