@@ -314,41 +314,14 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
       }
     }
 
-    // Handle custom task creation - save to database if creating task
-    if (createsTask && type === 'labor' && addTask && invoiceId) {
-      try {
-        const customTask: Task = {
-          id: crypto.randomUUID(),
-          title: description.trim(),
-          description: `Custom labor task created from invoice ${invoiceId.substring(0, 8)}`,
-          mechanicId: undefined,
-          vehicleId: vehicleId,
-          status: 'completed', // Mark as completed since it's being invoiced
-          
-          hoursEstimated: quantity,
-          hoursSpent: quantity,
-          price: price * quantity,
-          invoiceId: invoiceId,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        };
-
-        await addTask(customTask);
-        newItem.task_id = customTask.id;
-        newItem.custom_labor_data = {
-          labor_rate: laborRate
-        };
-        console.log('Created custom task in database:', customTask);
-      } catch (error) {
-        console.error('Failed to create custom task:', error);
-        // Still proceed with invoice item creation
-      }
-    } else if (type === 'labor' && !selectedTaskId) {
-      // For custom labor not being saved as task
+    // Labor lines always carry labor data; the task row is created/updated
+    // server-side when the invoice is saved (single source of truth, no duplicates)
+    if (type === 'labor') {
       newItem.custom_labor_data = {
         labor_rate: laborRate
       };
     }
+
 
     onSave(newItem);
     onOpenChange(false);
