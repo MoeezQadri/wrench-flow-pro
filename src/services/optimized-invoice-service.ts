@@ -375,10 +375,12 @@ const processItemUpdatesOptimized = async (items: InvoiceItem[], invoiceId: stri
   }
 
   if (customTaskCreations.length > 0) {
+    // kept for compatibility; labor tasks are synced by syncLaborTasks below
     operations.push(
       supabase.from('tasks').insert(customTaskCreations)
     );
   }
+
 
   if (partUpdates.length > 0) {
     operations.push(
