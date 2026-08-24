@@ -210,8 +210,9 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({ payments, setPayments
                   <TableCell>
                     {payment.method === "cash" ? "Cash" : 
                      payment.method === "card" ? "Card" : 
-                     payment.method === "bank_transfer" ? "Bank Transfer" :
-                     payment.method === "check" ? "Check" : payment.method}
+                     payment.method === "bank-transfer" || payment.method === "bank_transfer" ? "Bank Transfer" :
+                     payment.method === "check" ? "Check" :
+                     payment.method === "other" ? "Other" : payment.method}
                   </TableCell>
                   <TableCell>{payment.notes}</TableCell>
                   {canEditPayments && (
