@@ -190,7 +190,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
       part_id: selectedPartId || undefined,
       task_id: selectedTaskId || undefined,
       creates_inventory_part: type === 'part' || type === 'other',
-      creates_task: createsTask,
+      creates_task: type === 'labor' && !selectedTaskId,
       is_auto_added: false
     };
 
