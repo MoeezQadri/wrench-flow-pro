@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
+
 import { InvoiceItem, Part, Task, Vendor, Expense } from "@/types";
 import { useDataContext } from "@/context/data/DataContext";
 import { useOrganizationSettings } from "@/hooks/useOrganizationSettings";
@@ -57,8 +57,8 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
   const [selectedPartId, setSelectedPartId] = useState("");
   const [selectedTaskId, setSelectedTaskId] = useState("");
   
-  // Custom creation flags
-  const [createsTask, setCreatesTask] = useState(false);
+  // Labor lines are always recorded as tasks (no opt-in), see labor handling in handleSave
+
   
   // Vendor selection for parts
   const [selectedVendorId, setSelectedVendorId] = useState("");
@@ -73,7 +73,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
   // Custom labor data
   const [laborRate, setLaborRate] = useState(50);
 
-  const { mechanics, vendors, addPart, addTask, addExpense } = useDataContext();
+  const { mechanics, vendors, addPart, addExpense } = useDataContext();
   const { getCurrencySymbol, formatCurrency } = useOrganizationSettings();
   const selectedOrganizationId = ''; // Temporarily disabled
 
@@ -103,7 +103,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
         setSelectedPartId(editingItem.part_id || "");
         setSelectedTaskId(editingItem.task_id || "");
         
-        setCreatesTask(editingItem.creates_task || false);
+
         
         // Populate custom data if available
         if (editingItem.custom_part_data) {
@@ -127,7 +127,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
         setSelectedPartId("");
         setSelectedTaskId("");
         
-        setCreatesTask(false);
+
         setPartNumber("");
         setManufacturer("");
         setCategory("");
@@ -190,7 +190,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
       part_id: selectedPartId || undefined,
       task_id: selectedTaskId || undefined,
       creates_inventory_part: type === 'part' || type === 'other',
-      creates_task: createsTask,
+      creates_task: type === 'labor' && !selectedTaskId,
       is_auto_added: false
     };
 
@@ -314,41 +314,14 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
       }
     }
 
-    // Handle custom task creation - save to database if creating task
-    if (createsTask && type === 'labor' && addTask && invoiceId) {
-      try {
-        const customTask: Task = {
-          id: crypto.randomUUID(),
-          title: description.trim(),
-          description: `Custom labor task created from invoice ${invoiceId.substring(0, 8)}`,
-          mechanicId: undefined,
-          vehicleId: vehicleId,
-          status: 'completed', // Mark as completed since it's being invoiced
-          
-          hoursEstimated: quantity,
-          hoursSpent: quantity,
-          price: price * quantity,
-          invoiceId: invoiceId,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        };
-
-        await addTask(customTask);
-        newItem.task_id = customTask.id;
-        newItem.custom_labor_data = {
-          labor_rate: laborRate
-        };
-        console.log('Created custom task in database:', customTask);
-      } catch (error) {
-        console.error('Failed to create custom task:', error);
-        // Still proceed with invoice item creation
-      }
-    } else if (type === 'labor' && !selectedTaskId) {
-      // For custom labor not being saved as task
+    // Labor lines always carry labor data; the task row is created/updated
+    // server-side when the invoice is saved (single source of truth, no duplicates)
+    if (type === 'labor') {
       newItem.custom_labor_data = {
         labor_rate: laborRate
       };
     }
+
 
     onSave(newItem);
     onOpenChange(false);
@@ -653,37 +626,29 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
             </div>
           )}
 
-          {/* Custom Task Creation */}
+          {/* Labor details — every labor line is recorded as a task for this invoice */}
           {type === 'labor' && !selectedTaskId && (
             <div className="space-y-4 border-t pt-4">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="createsTask"
-                  checked={createsTask}
-                  onCheckedChange={(checked) => setCreatesTask(checked as boolean)}
-                />
-                <Label htmlFor="createsTask" className="text-sm">
-                  Save to tasks database {invoiceId ? `(tagged with this invoice)` : '(no invoice ID available)'}
-                </Label>
-              </div>
+              <p className="text-sm text-muted-foreground">
+                This labor line is saved to the Tasks list and tagged to this invoice.
+              </p>
 
-              {createsTask && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-muted p-4 rounded-lg">
-                  <div>
-                    <Label htmlFor="laborRate">Labor Rate ({getCurrencySymbol()}/hour)</Label>
-                    <Input
-                      id="laborRate"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={laborRate}
-                      onChange={(e) => setLaborRate(parseFloat(e.target.value) || 50)}
-                    />
-                  </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-muted p-4 rounded-lg">
+                <div>
+                  <Label htmlFor="laborRate">Labor Rate ({getCurrencySymbol()}/hour)</Label>
+                  <Input
+                    id="laborRate"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={laborRate}
+                    onChange={(e) => setLaborRate(parseFloat(e.target.value) || 50)}
+                  />
                 </div>
-              )}
+              </div>
             </div>
           )}
+
 
           {/* Total Calculation */}
           <div className="bg-muted p-3 rounded-lg">

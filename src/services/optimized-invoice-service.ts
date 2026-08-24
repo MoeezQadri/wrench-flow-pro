@@ -354,34 +354,16 @@ const processItemUpdatesOptimized = async (items: InvoiceItem[], invoiceId: stri
           invoiceId
         });
       }
-    } else if (item.type === 'labor') {
-      if (item.creates_task && item.custom_labor_data) {
-        customTaskCreations.push({
-          id: crypto.randomUUID(),
-          title: item.description,
-          description: item.description,
-          status: 'completed',
-          location: 'workshop',
-          hours_estimated: item.quantity,
-          hours_spent: item.quantity,
-          price: item.price * item.quantity,
-          labor_rate: item.custom_labor_data.labor_rate,
-          skill_level: item.custom_labor_data.skill_level,
-          invoice_id: invoiceId,
-          organization_id: organizationId,
-          completed_at: new Date().toISOString(),
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        });
-      } else if (item.task_id) {
-        taskUpdates.push({
-          taskId: item.task_id,
-          invoiceId,
-          price: item.price
-        });
-      }
+    } else if (item.type === 'labor' && item.task_id) {
+      // Existing task selected on the line: just link it and refresh the price
+      taskUpdates.push({
+        taskId: item.task_id,
+        invoiceId,
+        price: item.price
+      });
     }
   });
+
 
   // Execute all operations in parallel
   const operations = [];
@@ -393,10 +375,12 @@ const processItemUpdatesOptimized = async (items: InvoiceItem[], invoiceId: stri
   }
 
   if (customTaskCreations.length > 0) {
+    // kept for compatibility; labor tasks are synced by syncLaborTasks below
     operations.push(
       supabase.from('tasks').insert(customTaskCreations)
     );
   }
+
 
   if (partUpdates.length > 0) {
     operations.push(
@@ -414,8 +398,91 @@ const processItemUpdatesOptimized = async (items: InvoiceItem[], invoiceId: stri
     await Promise.all(operations);
   }
 
+  // Labor lines are always recorded as tasks, created exactly once per line
+  await syncLaborTasks(items, invoiceId, organizationId);
+
   console.log('Item updates completed optimized');
 };
+
+/**
+ * Ensures every custom labor line on the invoice has exactly one task row.
+ * Uses the persisted invoice_items.task_id as the idempotency key, so repeated
+ * saves update the existing task instead of inserting duplicates.
+ */
+const syncLaborTasks = async (items: InvoiceItem[], invoiceId: string, organizationId: string) => {
+  const laborItems = items.filter(item => item.type === 'labor' && !item.task_id);
+  if (laborItems.length === 0) return;
+
+  const { data: rows, error } = await supabase
+    .from('invoice_items')
+    .select('id, description, type, task_id')
+    .eq('invoice_id', invoiceId)
+    .eq('type', 'labor');
+
+  if (error) {
+    console.error('syncLaborTasks: failed to load invoice items:', error);
+    return;
+  }
+
+  const used = new Set<string>();
+
+  for (const item of laborItems) {
+    const row = (rows || []).find(
+      r => !used.has(r.id) && r.description === item.description
+    );
+    if (row) used.add(row.id);
+
+    const taskPayload = {
+      title: item.description,
+      description: item.description,
+      status: 'completed',
+      location: 'workshop',
+      hours_estimated: item.quantity,
+      hours_spent: item.quantity,
+      price: item.price * item.quantity,
+      labor_rate: item.custom_labor_data?.labor_rate ?? null,
+      skill_level: item.custom_labor_data?.skill_level ?? null,
+      invoice_id: invoiceId,
+      completed_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    if (row?.task_id) {
+      const { error: updateError } = await supabase
+        .from('tasks')
+        .update(taskPayload as any)
+        .eq('id', row.task_id);
+
+      if (updateError) console.error('syncLaborTasks: failed to update task:', updateError);
+      continue;
+    }
+
+    const newTaskId = crypto.randomUUID();
+    const { error: insertError } = await supabase
+      .from('tasks')
+      .insert({
+        id: newTaskId,
+        ...taskPayload,
+        organization_id: organizationId,
+        created_at: new Date().toISOString()
+      } as any);
+
+    if (insertError) {
+      console.error('syncLaborTasks: failed to create task:', insertError);
+      continue;
+    }
+
+    if (row) {
+      const { error: linkError } = await supabase
+        .from('invoice_items')
+        .update({ task_id: newTaskId, creates_task: true })
+        .eq('id', row.id);
+
+      if (linkError) console.error('syncLaborTasks: failed to link task to item:', linkError);
+    }
+  }
+};
+
 
 // Batch cleanup of old part assignments
 const cleanupOldAssignmentsBatch = async (existingItems: any[], invoiceId: string) => {
