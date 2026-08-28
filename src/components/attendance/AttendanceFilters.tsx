@@ -50,6 +50,7 @@ const AttendanceFilters: React.FC<AttendanceFiltersProps> = ({
           <SelectItem value="late">Late</SelectItem>
           <SelectItem value="absent">Absent</SelectItem>
           <SelectItem value="half-day">Half Day</SelectItem>
+          <SelectItem value="leave">Leave Records</SelectItem>
         </SelectContent>
       </Select>
       
