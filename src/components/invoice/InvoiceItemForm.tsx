@@ -121,6 +121,12 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
         if (editingItem.custom_labor_data) {
           setLaborRate(editingItem.custom_labor_data.labor_rate || 50);
           setLaborBillingType(editingItem.custom_labor_data.billing_type || 'hourly');
+          setLaborMechanicId(editingItem.custom_labor_data.mechanic_id || "unassigned");
+          setLaborStatus(editingItem.custom_labor_data.status || 'completed');
+          setLaborHoursEstimated(
+            editingItem.custom_labor_data.hours_estimated ?? editingItem.quantity ?? 1
+          );
+          setLaborHoursSpent(editingItem.custom_labor_data.hours_spent ?? 0);
         }
       } else {
         // Reset form for new item
