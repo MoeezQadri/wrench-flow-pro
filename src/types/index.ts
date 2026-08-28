@@ -98,6 +98,10 @@ export interface InvoiceItem {
     labor_rate?: number;
     skill_level?: string;
     billing_type?: 'hourly' | 'lumpsum';
+    mechanic_id?: string;
+    status?: 'in-progress' | 'completed';
+    hours_estimated?: number;
+    hours_spent?: number;
   };
 }
 

@@ -73,6 +73,10 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
   // Custom labor data
   const [laborRate, setLaborRate] = useState(50);
   const [laborBillingType, setLaborBillingType] = useState<'hourly' | 'lumpsum'>('hourly');
+  const [laborMechanicId, setLaborMechanicId] = useState<string>("unassigned");
+  const [laborStatus, setLaborStatus] = useState<'in-progress' | 'completed'>('completed');
+  const [laborHoursEstimated, setLaborHoursEstimated] = useState<number>(1);
+  const [laborHoursSpent, setLaborHoursSpent] = useState<number>(0);
 
   const { mechanics, vendors, addPart, addExpense } = useDataContext();
   const { getCurrencySymbol, formatCurrency } = useOrganizationSettings();
@@ -117,6 +121,12 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
         if (editingItem.custom_labor_data) {
           setLaborRate(editingItem.custom_labor_data.labor_rate || 50);
           setLaborBillingType(editingItem.custom_labor_data.billing_type || 'hourly');
+          setLaborMechanicId(editingItem.custom_labor_data.mechanic_id || "unassigned");
+          setLaborStatus(editingItem.custom_labor_data.status || 'completed');
+          setLaborHoursEstimated(
+            editingItem.custom_labor_data.hours_estimated ?? editingItem.quantity ?? 1
+          );
+          setLaborHoursSpent(editingItem.custom_labor_data.hours_spent ?? 0);
         }
       } else {
         // Reset form for new item
@@ -136,6 +146,10 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
         setLocation("");
         setLaborRate(50);
         setLaborBillingType('hourly');
+        setLaborMechanicId("unassigned");
+        setLaborStatus('completed');
+        setLaborHoursEstimated(1);
+        setLaborHoursSpent(0);
         setSelectedVendorId("");
       }
     }
@@ -324,7 +338,12 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
     if (type === 'labor') {
       newItem.custom_labor_data = {
         labor_rate: laborRate,
-        billing_type: laborBillingType
+        billing_type: laborBillingType,
+        mechanic_id: laborMechanicId === "unassigned" ? undefined : laborMechanicId,
+        status: laborStatus,
+        hours_estimated:
+          laborBillingType === 'lumpsum' ? laborHoursEstimated : quantity,
+        hours_spent: laborHoursSpent || undefined
       };
       // Lumpsum labor is billed as a single flat fee, regardless of hours
       if (laborBillingType === 'lumpsum') {
@@ -684,6 +703,85 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
                     value={laborRate}
                     onChange={(e) => setLaborRate(parseFloat(e.target.value) || 50)}
                   />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-muted p-4 rounded-lg">
+                <div>
+                  <Label>Assigned Mechanic</Label>
+                  <Select
+                    value={laborMechanicId}
+                    onValueChange={(value) => {
+                      setLaborMechanicId(value);
+                      if (value !== "unassigned" && laborStatus === 'completed') {
+                        setLaborStatus('in-progress');
+                      }
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Unassigned" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="unassigned">Unassigned</SelectItem>
+                      {(mechanics || []).map((mechanic) => (
+                        <SelectItem key={mechanic.id} value={mechanic.id}>
+                          {mechanic.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    The task appears in Tasks for this mechanic.
+                  </p>
+                </div>
+                <div>
+                  <Label>Task Status</Label>
+                  <Select
+                    value={laborStatus}
+                    onValueChange={(value: 'in-progress' | 'completed') => setLaborStatus(value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="in-progress">In Progress</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {laborBillingType === 'lumpsum' && (
+                  <div>
+                    <Label htmlFor="laborHoursEstimated">Estimated Hours</Label>
+                    <Input
+                      id="laborHoursEstimated"
+                      type="number"
+                      min="0"
+                      step="0.5"
+                      value={laborHoursEstimated}
+                      onChange={(e) => setLaborHoursEstimated(parseFloat(e.target.value) || 0)}
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <Label htmlFor="laborHoursSpent">Hours Spent (optional)</Label>
+                  <Input
+                    id="laborHoursSpent"
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    placeholder={
+                      laborBillingType === 'lumpsum'
+                        ? String(laborHoursEstimated)
+                        : String(quantity)
+                    }
+                    value={laborHoursSpent || ""}
+                    onChange={(e) => setLaborHoursSpent(parseFloat(e.target.value) || 0)}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Leave blank to track hours later via check-in/out on the Tasks page.
+                  </p>
                 </div>
               </div>
             </div>

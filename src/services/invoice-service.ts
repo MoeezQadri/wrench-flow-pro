@@ -201,24 +201,29 @@ const updatePartsAndTasksForInvoice = async (items: InvoiceItem[], invoiceId: st
         console.log('Creating new task template from custom item:', item);
         
         const newTaskId = crypto.randomUUID();
+        const labor = item.custom_labor_data;
+        const status = labor.status ?? 'completed';
+        const hoursEstimated = labor.hours_estimated ?? item.quantity;
         const { error: taskCreationError } = await supabase
           .from('tasks')
           .insert({
             id: newTaskId,
             title: item.description,
             description: item.description,
-            status: 'completed',
+            status,
             location: 'workshop',
-            hours_estimated: item.quantity,
-            hours_spent: item.quantity,
+            hours_estimated: hoursEstimated,
+            hours_spent: labor.hours_spent ?? hoursEstimated,
             price: item.price * item.quantity,
-            labor_rate: item.custom_labor_data.labor_rate,
-            skill_level: item.custom_labor_data.skill_level,
+            mechanic_id: labor.mechanic_id ?? null,
+            labor_rate: labor.labor_rate,
+            billing_type: labor.billing_type ?? 'hourly',
+            skill_level: labor.skill_level,
             invoice_id: invoiceId,
-            completed_at: new Date().toISOString(),
+            completed_at: status === 'completed' ? new Date().toISOString() : null,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
-          });
+          } as any);
 
         if (taskCreationError) {
           console.error('Error creating task from custom item:', taskCreationError);
