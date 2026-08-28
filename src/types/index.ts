@@ -149,7 +149,9 @@ export interface Task {
   updated_at?: string;
   labor_rate?: number;
   skill_level?: string;
+  billing_type?: TaskBillingType;
 }
+
 
 export interface User {
   id: string;
