@@ -146,6 +146,10 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
         setLocation("");
         setLaborRate(50);
         setLaborBillingType('hourly');
+        setLaborMechanicId("unassigned");
+        setLaborStatus('completed');
+        setLaborHoursEstimated(1);
+        setLaborHoursSpent(0);
         setSelectedVendorId("");
       }
     }
