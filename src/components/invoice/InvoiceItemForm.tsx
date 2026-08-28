@@ -338,7 +338,12 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
     if (type === 'labor') {
       newItem.custom_labor_data = {
         labor_rate: laborRate,
-        billing_type: laborBillingType
+        billing_type: laborBillingType,
+        mechanic_id: laborMechanicId === "unassigned" ? undefined : laborMechanicId,
+        status: laborStatus,
+        hours_estimated:
+          laborBillingType === 'lumpsum' ? laborHoursEstimated : quantity,
+        hours_spent: laborHoursSpent || undefined
       };
       // Lumpsum labor is billed as a single flat fee, regardless of hours
       if (laborBillingType === 'lumpsum') {
