@@ -432,31 +432,45 @@ const syncLaborTasks = async (items: InvoiceItem[], invoiceId: string, organizat
     );
     if (row) used.add(row.id);
 
-    const taskPayload = {
+    const labor = item.custom_labor_data;
+    const status = labor?.status ?? 'completed';
+    const hoursEstimated = labor?.hours_estimated ?? item.quantity;
+    // Hours spent is only set when explicitly entered on the invoice line; otherwise
+    // it falls back to the estimate so reports still have a value, and manual
+    // check-in/out tracking on the Tasks page is preserved on later saves.
+    const hoursSpent = labor?.hours_spent;
+
+    const taskPayload: Record<string, any> = {
       title: item.description,
       description: item.description,
-      status: 'completed',
+      status,
       location: 'workshop',
-      hours_estimated: item.quantity,
-      hours_spent: item.quantity,
+      hours_estimated: hoursEstimated,
       price: item.price * item.quantity,
-      labor_rate: item.custom_labor_data?.labor_rate ?? null,
-      billing_type: item.custom_labor_data?.billing_type ?? 'hourly',
-      skill_level: item.custom_labor_data?.skill_level ?? null,
+      mechanic_id: labor?.mechanic_id ?? null,
+      labor_rate: labor?.labor_rate ?? null,
+      billing_type: labor?.billing_type ?? 'hourly',
+      skill_level: labor?.skill_level ?? null,
       invoice_id: invoiceId,
-      completed_at: new Date().toISOString(),
+      completed_at: status === 'completed' ? new Date().toISOString() : null,
       updated_at: new Date().toISOString()
     };
 
     if (row?.task_id) {
+      const updatePayload = { ...taskPayload };
+      if (hoursSpent !== undefined) updatePayload.hours_spent = hoursSpent;
+      // Don't overwrite hours logged via check-in/out when left blank on the invoice
+
       const { error: updateError } = await supabase
         .from('tasks')
-        .update(taskPayload as any)
+        .update(updatePayload as any)
         .eq('id', row.task_id);
 
       if (updateError) console.error('syncLaborTasks: failed to update task:', updateError);
       continue;
     }
+
+    taskPayload.hours_spent = hoursSpent ?? hoursEstimated;
 
     const newTaskId = crypto.randomUUID();
     const { error: insertError } = await supabase
