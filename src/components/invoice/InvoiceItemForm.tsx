@@ -705,6 +705,85 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
                   />
                 </div>
               </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-muted p-4 rounded-lg">
+                <div>
+                  <Label>Assigned Mechanic</Label>
+                  <Select
+                    value={laborMechanicId}
+                    onValueChange={(value) => {
+                      setLaborMechanicId(value);
+                      if (value !== "unassigned" && laborStatus === 'completed') {
+                        setLaborStatus('in-progress');
+                      }
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Unassigned" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="unassigned">Unassigned</SelectItem>
+                      {(mechanics || []).map((mechanic) => (
+                        <SelectItem key={mechanic.id} value={mechanic.id}>
+                          {mechanic.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    The task appears in Tasks for this mechanic.
+                  </p>
+                </div>
+                <div>
+                  <Label>Task Status</Label>
+                  <Select
+                    value={laborStatus}
+                    onValueChange={(value: 'in-progress' | 'completed') => setLaborStatus(value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="in-progress">In Progress</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {laborBillingType === 'lumpsum' && (
+                  <div>
+                    <Label htmlFor="laborHoursEstimated">Estimated Hours</Label>
+                    <Input
+                      id="laborHoursEstimated"
+                      type="number"
+                      min="0"
+                      step="0.5"
+                      value={laborHoursEstimated}
+                      onChange={(e) => setLaborHoursEstimated(parseFloat(e.target.value) || 0)}
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <Label htmlFor="laborHoursSpent">Hours Spent (optional)</Label>
+                  <Input
+                    id="laborHoursSpent"
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    placeholder={
+                      laborBillingType === 'lumpsum'
+                        ? String(laborHoursEstimated)
+                        : String(quantity)
+                    }
+                    value={laborHoursSpent || ""}
+                    onChange={(e) => setLaborHoursSpent(parseFloat(e.target.value) || 0)}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Leave blank to track hours later via check-in/out on the Tasks page.
+                  </p>
+                </div>
+              </div>
             </div>
           )}
 
