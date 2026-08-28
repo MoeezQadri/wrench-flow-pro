@@ -135,6 +135,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
         setCategory("");
         setLocation("");
         setLaborRate(50);
+        setLaborBillingType('hourly');
         setSelectedVendorId("");
       }
     }
