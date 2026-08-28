@@ -5,6 +5,7 @@ export interface TaskFormValues {
   status: 'in-progress' | 'completed';
   price: number;
   taskType: 'invoice' | 'internal';
+  billingType?: 'hourly' | 'lumpsum';
   mechanicId: string;
   vehicleId?: string;
   invoiceId?: string;
