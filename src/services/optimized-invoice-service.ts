@@ -441,6 +441,7 @@ const syncLaborTasks = async (items: InvoiceItem[], invoiceId: string, organizat
       hours_spent: item.quantity,
       price: item.price * item.quantity,
       labor_rate: item.custom_labor_data?.labor_rate ?? null,
+      billing_type: item.custom_labor_data?.billing_type ?? 'hourly',
       skill_level: item.custom_labor_data?.skill_level ?? null,
       invoice_id: invoiceId,
       completed_at: new Date().toISOString(),
