@@ -1,82 +1,96 @@
 
 import React, { useState, useMemo } from 'react';
-import { Attendance, Mechanic } from '@/types';
+import { Attendance } from '@/types';
 import { useDataContext } from '@/context/data/DataContext';
 import { useAuthContext } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Plus, AlertCircle } from 'lucide-react';
+import { Plus, CalendarPlus } from 'lucide-react';
 import { CheckInDialog } from '@/components/attendance/CheckInDialog';
 import { CheckOutDialog } from '@/components/attendance/CheckOutDialog';
+import LeaveDialog from '@/components/attendance/LeaveDialog';
+import { LeaveFormData } from '@/components/attendance/LeaveForm';
 import AttendanceListItem from '@/components/attendance/AttendanceListItem';
 import AttendanceSummary from '@/components/attendance/AttendanceSummary';
 import AttendanceFilters from '@/components/attendance/AttendanceFilters';
 import { hasPermission } from '@/utils/permissions';
 import PageWrapper from '@/components/PageWrapper';
+import { toast } from 'sonner';
 
 const AttendancePage: React.FC = () => {
   const [isCheckInDialogOpen, setIsCheckInDialogOpen] = useState(false);
   const [isCheckOutDialogOpen, setIsCheckOutDialogOpen] = useState(false);
+  const [isLeaveDialogOpen, setIsLeaveDialogOpen] = useState(false);
   const [checkOutAttendance, setCheckOutAttendance] = useState<Attendance | null>(null);
   const [filters, setFilters] = useState({
     status: 'all',
     date: '',
     mechanicId: 'all'
   });
-  
-  const { 
+
+  const {
     mechanics,
     attendanceRecords,
-    attendanceLoading: loading,
     addAttendance,
     updateAttendance,
-    loadAttendance
+    loadAttendance,
+    loadMechanics
   } = useDataContext();
   const { currentUser } = useAuthContext();
 
   // Check permissions
-  const canApprove = currentUser?.role === 'owner' || 
-                    currentUser?.role === 'manager' || 
+  const canApprove = currentUser?.role === 'owner' ||
+                    currentUser?.role === 'manager' ||
                     currentUser?.role === 'foreman';
   const userCanManageAttendance = hasPermission(currentUser, 'attendance', 'manage') || hasPermission(currentUser, 'attendance', 'create');
-  const userCanViewAttendance = hasPermission(currentUser, 'attendance', 'view');
-
 
   // Filter attendance records based on current filters
   const filteredRecords = useMemo(() => {
     return attendanceRecords.filter(record => {
-      const statusMatch = filters.status === 'all' || record.status === filters.status;
+      const isLeave = record.record_type === 'leave';
+      const statusMatch =
+        filters.status === 'all' ||
+        (filters.status === 'leave' ? isLeave : !isLeave && record.status === filters.status);
       const dateMatch = !filters.date || record.date === filters.date;
       const mechanicMatch = filters.mechanicId === 'all' || record.mechanic_id === filters.mechanicId;
-      
+
       return statusMatch && dateMatch && mechanicMatch;
     });
   }, [attendanceRecords, filters]);
 
   const handleCheckIn = async (attendanceData: Omit<Attendance, 'id'>) => {
-    console.log("Attendance page handleCheckIn called with:", attendanceData);
     try {
-      console.log("Calling addAttendance...");
-      await addAttendance(attendanceData);
-      console.log("addAttendance completed successfully");
-      // Dialog will be closed by CheckInDialog component on success
+      await addAttendance({ ...attendanceData, record_type: 'attendance' });
     } catch (error) {
       console.error('Error saving check-in in page:', error);
-      // Error is already handled in the hook and form, just log it here
       throw error; // Re-throw so dialog knows not to close
     }
   };
 
-  const handleCheckOut = async (attendanceId: string, checkOutData: { check_out: string; notes?: string }) => {
-    console.log("Attendance page handleCheckOut called with:", attendanceId, checkOutData);
+  const handleAddLeave = async (data: LeaveFormData) => {
     try {
-      console.log("Calling updateAttendance...");
+      await addAttendance({
+        mechanic_id: data.mechanicId,
+        date: data.startDate,
+        leave_end_date: data.endDate,
+        record_type: 'leave',
+        leave_type: data.leaveType,
+        status: 'pending',
+        notes: data.notes,
+        created_at: new Date().toISOString()
+      } as Omit<Attendance, 'id'>);
+      toast.success('Leave request submitted for approval');
+    } catch (error) {
+      console.error('Error saving leave:', error);
+      throw error;
+    }
+  };
+
+  const handleCheckOut = async (attendanceId: string, checkOutData: { check_out: string; notes?: string }) => {
+    try {
       await updateAttendance(attendanceId, checkOutData);
-      console.log("updateAttendance completed successfully");
-      // Dialog will be closed by CheckOutDialog component on success
     } catch (error) {
       console.error('Error saving check-out in page:', error);
-      // Error is already handled in the hook, just log it here
-      throw error; // Re-throw so dialog knows not to close
+      throw error;
     }
   };
 
@@ -87,9 +101,9 @@ const AttendancePage: React.FC = () => {
 
   const handleApproveAttendance = async (id: string) => {
     try {
-      await updateAttendance(id, { 
-        status: 'approved' as const, 
-        approved_by: currentUser?.id 
+      await updateAttendance(id, {
+        status: 'approved' as const,
+        approved_by: currentUser?.id
       });
     } catch (error) {
       console.error('Error approving attendance:', error);
@@ -98,9 +112,9 @@ const AttendancePage: React.FC = () => {
 
   const handleRejectAttendance = async (id: string) => {
     try {
-      await updateAttendance(id, { 
-        status: 'rejected' as const, 
-        approved_by: currentUser?.id 
+      await updateAttendance(id, {
+        status: 'rejected' as const,
+        approved_by: currentUser?.id
       });
     } catch (error) {
       console.error('Error rejecting attendance:', error);
@@ -109,13 +123,19 @@ const AttendancePage: React.FC = () => {
 
   const pendingCount = attendanceRecords.filter(r => r.status === 'pending').length;
 
-  const subtitle = `Track mechanic attendance and working hours${canApprove && pendingCount > 0 ? ` • ${pendingCount} records pending approval` : ''}`;
+  const subtitle = `Track mechanic attendance, leave and working hours${canApprove && pendingCount > 0 ? ` • ${pendingCount} records pending approval` : ''}`;
 
   const headerActions = userCanManageAttendance ? (
-    <Button onClick={() => setIsCheckInDialogOpen(true)}>
-      <Plus className="h-4 w-4 mr-2" />
-      Check In
-    </Button>
+    <div className="flex gap-2">
+      <Button variant="outline" onClick={() => setIsLeaveDialogOpen(true)}>
+        <CalendarPlus className="h-4 w-4 mr-2" />
+        Add Leave
+      </Button>
+      <Button onClick={() => setIsCheckInDialogOpen(true)}>
+        <Plus className="h-4 w-4 mr-2" />
+        Check In
+      </Button>
+    </div>
   ) : undefined;
 
   return (
@@ -124,7 +144,8 @@ const AttendancePage: React.FC = () => {
       subtitle={subtitle}
       headerActions={headerActions}
       loadData={async () => {
-        await loadAttendance();
+        // Mechanics are needed to label each record, so load them together
+        await Promise.all([loadAttendance(), loadMechanics()]);
       }}
       loadingMessage="Loading attendance records..."
       className="p-6"
@@ -145,8 +166,8 @@ const AttendancePage: React.FC = () => {
         {filteredRecords.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-muted-foreground mb-4">
-              {attendanceRecords.length === 0 
-                ? "No attendance records found" 
+              {attendanceRecords.length === 0
+                ? "No attendance records found"
                 : "No records match the current filters"
               }
             </p>
@@ -167,6 +188,7 @@ const AttendancePage: React.FC = () => {
                   key={record.id}
                   record={record}
                   mechanic={mechanic}
+                  mechanicsLoaded={mechanics.length > 0}
                   onApprove={handleApproveAttendance}
                   onReject={handleRejectAttendance}
                   onCheckOut={handleOpenCheckOut}
@@ -180,6 +202,12 @@ const AttendancePage: React.FC = () => {
         open={isCheckInDialogOpen}
         onOpenChange={setIsCheckInDialogOpen}
         onSave={handleCheckIn}
+      />
+
+      <LeaveDialog
+        open={isLeaveDialogOpen}
+        onOpenChange={setIsLeaveDialogOpen}
+        onSave={handleAddLeave}
       />
 
       {checkOutAttendance && (

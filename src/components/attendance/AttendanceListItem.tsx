@@ -3,13 +3,14 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Check, X, Clock, User } from 'lucide-react';
+import { Check, X, Clock, User, Plane } from 'lucide-react';
 import { Attendance, Mechanic } from '@/types';
 import { useAuthContext } from '@/context/AuthContext';
 
 interface AttendanceListItemProps {
   record: Attendance;
   mechanic: Mechanic | undefined;
+  mechanicsLoaded?: boolean;
   onApprove: (id: string) => void;
   onReject: (id: string) => void;
   onCheckOut?: (record: Attendance) => void;
@@ -18,16 +19,32 @@ interface AttendanceListItemProps {
 const AttendanceListItem: React.FC<AttendanceListItemProps> = ({
   record,
   mechanic,
+  mechanicsLoaded = true,
   onApprove,
   onReject,
   onCheckOut
 }) => {
   const { currentUser } = useAuthContext();
 
+  const isLeave = record.record_type === 'leave';
+
   // Check if user can approve attendance (owner, manager, foreman)
   const canApprove = currentUser?.role === 'owner' || 
                     currentUser?.role === 'manager' || 
                     currentUser?.role === 'foreman';
+
+  const mechanicLabel = mechanic?.name
+    ?? (mechanicsLoaded ? 'Unknown Mechanic' : 'Loading mechanic...');
+
+  const leaveTypeLabel = (type?: string) => {
+    switch (type) {
+      case 'annual': return 'Annual Leave';
+      case 'sick': return 'Sick Leave';
+      case 'unpaid': return 'Unpaid Leave';
+      case 'other': return 'Leave';
+      default: return 'Leave';
+    }
+  };
 
   const getStatusBadge = (status: string) => {
     const statusColors = {
@@ -51,6 +68,7 @@ const AttendanceListItem: React.FC<AttendanceListItemProps> = ({
   };
 
   const calculateWorkingHours = () => {
+    if (!record.check_in) return '—';
     if (!record.check_out) return 'Ongoing';
     
     const checkIn = new Date(`1970-01-01T${record.check_in}`);
@@ -62,33 +80,66 @@ const AttendanceListItem: React.FC<AttendanceListItemProps> = ({
     return `${hours}h ${minutes}m`;
   };
 
+  const leaveDays = () => {
+    if (!record.leave_end_date) return 1;
+    const start = new Date(record.date);
+    const end = new Date(record.leave_end_date);
+    const diff = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    return diff > 0 ? diff : 1;
+  };
+
   return (
     <Card className="mb-4">
       <CardContent className="p-4">
         <div className="flex justify-between items-start">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-2">
-              <User className="h-4 w-4 text-muted-foreground" />
-              <span className="font-semibold">{mechanic?.name || 'Unknown Mechanic'}</span>
-              {getStatusBadge(record.status)}
+              {isLeave ? (
+                <Plane className="h-4 w-4 text-muted-foreground" />
+              ) : (
+                <User className="h-4 w-4 text-muted-foreground" />
+              )}
+              <span className="font-semibold">{mechanicLabel}</span>
+              {isLeave && (
+                <Badge variant="outline" className="bg-indigo-100 text-indigo-800 border-indigo-200">
+                  {leaveTypeLabel(record.leave_type)}
+                </Badge>
+              )}
+              {getStatusBadge(record.status || 'pending')}
             </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm text-muted-foreground">
-              <div>
-                <span className="font-medium">Date:</span> {record.date}
+
+            {isLeave ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm text-muted-foreground">
+                <div>
+                  <span className="font-medium">From:</span> {record.date}
+                </div>
+                <div>
+                  <span className="font-medium">To:</span> {record.leave_end_date || record.date}
+                </div>
+                <div>
+                  <span className="font-medium">Days:</span> {leaveDays()}
+                </div>
               </div>
-              <div>
-                <span className="font-medium">Check-in:</span> {record.check_in}
-              </div>
-              <div>
-                <span className="font-medium">Check-out:</span> {record.check_out || 'Not checked out'}
-              </div>
-            </div>
-            
-            <div className="mt-2 text-sm">
-              <span className="font-medium">Working Hours:</span> {calculateWorkingHours()}
-            </div>
-            
+            ) : (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm text-muted-foreground">
+                  <div>
+                    <span className="font-medium">Date:</span> {record.date}
+                  </div>
+                  <div>
+                    <span className="font-medium">Check-in:</span> {record.check_in || '—'}
+                  </div>
+                  <div>
+                    <span className="font-medium">Check-out:</span> {record.check_out || 'Not checked out'}
+                  </div>
+                </div>
+
+                <div className="mt-2 text-sm">
+                  <span className="font-medium">Working Hours:</span> {calculateWorkingHours()}
+                </div>
+              </>
+            )}
+
             {record.notes && (
               <div className="mt-2 text-sm">
                 <span className="font-medium">Notes:</span> {record.notes}
@@ -98,7 +149,7 @@ const AttendanceListItem: React.FC<AttendanceListItemProps> = ({
           
           <div className="flex gap-2 ml-4">
             {/* Check-out button for ongoing attendance */}
-            {!record.check_out && onCheckOut && (
+            {!isLeave && !record.check_out && onCheckOut && (
               <Button
                 size="sm"
                 variant="outline"
