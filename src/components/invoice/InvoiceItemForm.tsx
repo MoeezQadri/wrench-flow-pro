@@ -157,10 +157,12 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
     if (selectedTaskId && availableTasks) {
       const selectedTask = availableTasks.find(t => t.id === selectedTaskId);
       if (selectedTask) {
+        const taskBilling = selectedTask.billing_type === 'lumpsum' ? 'lumpsum' : 'hourly';
         setDescription(selectedTask.title);
         setPrice(selectedTask.price || 0);
-        setQuantity(selectedTask.hoursEstimated || 1);
-        setUnitOfMeasure("hour");
+        setLaborBillingType(taskBilling);
+        setQuantity(taskBilling === 'lumpsum' ? 1 : (selectedTask.hoursEstimated || 1));
+        setUnitOfMeasure(taskBilling === 'lumpsum' ? "set" : "hour");
       }
     }
   }, [selectedTaskId, availableTasks]);
