@@ -17,38 +17,47 @@ export type Database = {
       attendance: {
         Row: {
           approved_by: string | null
-          check_in: string
+          check_in: string | null
           check_out: string | null
           created_at: string | null
           date: string
           id: string
+          leave_end_date: string | null
+          leave_type: string | null
           mechanic_id: string
           notes: string | null
           organization_id: string | null
+          record_type: string
           status: Database["public"]["Enums"]["attendance_status_enum"] | null
         }
         Insert: {
           approved_by?: string | null
-          check_in: string
+          check_in?: string | null
           check_out?: string | null
           created_at?: string | null
           date: string
           id?: string
+          leave_end_date?: string | null
+          leave_type?: string | null
           mechanic_id: string
           notes?: string | null
           organization_id?: string | null
+          record_type?: string
           status?: Database["public"]["Enums"]["attendance_status_enum"] | null
         }
         Update: {
           approved_by?: string | null
-          check_in?: string
+          check_in?: string | null
           check_out?: string | null
           created_at?: string | null
           date?: string
           id?: string
+          leave_end_date?: string | null
+          leave_type?: string | null
           mechanic_id?: string
           notes?: string | null
           organization_id?: string | null
+          record_type?: string
           status?: Database["public"]["Enums"]["attendance_status_enum"] | null
         }
         Relationships: [
@@ -998,6 +1007,7 @@ export type Database = {
       }
       tasks: {
         Row: {
+          billing_type: string
           completed_at: string | null
           completed_by: string | null
           created_at: string | null
@@ -1020,6 +1030,7 @@ export type Database = {
           vehicle_id: string | null
         }
         Insert: {
+          billing_type?: string
           completed_at?: string | null
           completed_by?: string | null
           created_at?: string | null
@@ -1042,6 +1053,7 @@ export type Database = {
           vehicle_id?: string | null
         }
         Update: {
+          billing_type?: string
           completed_at?: string | null
           completed_by?: string | null
           created_at?: string | null
