@@ -73,6 +73,10 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
   // Custom labor data
   const [laborRate, setLaborRate] = useState(50);
   const [laborBillingType, setLaborBillingType] = useState<'hourly' | 'lumpsum'>('hourly');
+  const [laborMechanicId, setLaborMechanicId] = useState<string>("unassigned");
+  const [laborStatus, setLaborStatus] = useState<'in-progress' | 'completed'>('completed');
+  const [laborHoursEstimated, setLaborHoursEstimated] = useState<number>(1);
+  const [laborHoursSpent, setLaborHoursSpent] = useState<number>(0);
 
   const { mechanics, vendors, addPart, addExpense } = useDataContext();
   const { getCurrencySymbol, formatCurrency } = useOrganizationSettings();
