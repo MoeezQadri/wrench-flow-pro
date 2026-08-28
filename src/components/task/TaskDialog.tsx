@@ -98,6 +98,7 @@ const TaskDialog = ({ open, onOpenChange, onSave, task, invoiceId }: TaskDialogP
         hoursEstimated: data.hoursEstimated,
         hoursSpent: data.hoursSpent,
         price: data.price,
+        billing_type: data.taskType === "invoice" ? data.billingType : 'hourly',
         
         created_at: task?.created_at || new Date().toISOString(),
         updated_at: new Date().toISOString()
@@ -163,6 +164,7 @@ const TaskDialog = ({ open, onOpenChange, onSave, task, invoiceId }: TaskDialogP
                 price: task.price || 0,
                 
                 taskType: getTaskType(task),
+                billingType: task.billing_type === 'lumpsum' ? 'lumpsum' : 'hourly',
                 mechanicId: task.mechanicId || "unassigned",
                 vehicleId: task.vehicleId,
                 invoiceId: task.invoiceId,
@@ -171,6 +173,7 @@ const TaskDialog = ({ open, onOpenChange, onSave, task, invoiceId }: TaskDialogP
               }
               : {
                 taskType: invoiceId ? "invoice" : "internal",
+                billingType: "hourly",
                 invoiceId: invoiceId,
                 vehicleId: invoice?.vehicle_id,
                 mechanicId: "unassigned",

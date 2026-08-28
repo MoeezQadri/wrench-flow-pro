@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { Users, Clock, CheckCircle, XCircle, Plane } from 'lucide-react';
 import { Attendance } from '@/types';
 
 interface AttendanceSummaryProps {
@@ -13,13 +13,14 @@ const AttendanceSummary: React.FC<AttendanceSummaryProps> = ({ records }) => {
     const pending = records.filter(r => r.status === 'pending').length;
     const approved = records.filter(r => r.status === 'approved').length;
     const rejected = records.filter(r => r.status === 'rejected').length;
+    const leave = records.filter(r => r.record_type === 'leave').length;
     const total = records.length;
 
-    return { pending, approved, rejected, total };
+    return { pending, approved, rejected, leave, total };
   }, [records]);
 
   return (
-    <div className="grid gap-4 md:grid-cols-4 mb-6">
+    <div className="grid gap-4 md:grid-cols-5 mb-6">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Total Records</CardTitle>
@@ -50,6 +51,16 @@ const AttendanceSummary: React.FC<AttendanceSummaryProps> = ({ records }) => {
         </CardContent>
       </Card>
       
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Leave Records</CardTitle>
+          <Plane className="h-4 w-4 text-indigo-500" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold text-indigo-600">{stats.leave}</div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Rejected</CardTitle>

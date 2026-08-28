@@ -37,6 +37,7 @@ export const useTasks = () => {
             completed_at: dbTask.completed_at,
             invoiceId: dbTask.invoice_id,
             invoice_id: dbTask.invoice_id,
+            billing_type: dbTask.billing_type || 'hourly',
             created_at: dbTask.created_at,
             updated_at: dbTask.updated_at
         };
@@ -59,6 +60,7 @@ export const useTasks = () => {
             completed_by: (task as any).completedBy || (task as any).completed_by,
             completed_at: (task as any).completedAt || (task as any).completed_at,
             invoice_id: (task as any).invoiceId || (task as any).invoice_id,
+            billing_type: (task as any).billing_type || 'hourly',
             organization_id: (task as any).organization_id || organizationId,
             created_at: (task as any).created_at,
             updated_at: (task as any).updated_at

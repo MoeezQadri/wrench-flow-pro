@@ -34,6 +34,9 @@ export interface Vehicle {
 export type TaskStatus = 'open' | 'in-progress' | 'completed' | 'blocked' | 'canceled' | 'pending';
 export type InvoiceStatus = 'open' | 'paid' | 'partial' | 'overdue' | 'draft' | 'in-progress' | 'completed';
 export type AttendanceStatus = 'present' | 'late' | 'absent' | 'half-day' | 'pending' | 'approved' | 'rejected';
+export type LeaveType = 'annual' | 'sick' | 'unpaid' | 'other';
+export type TaskBillingType = 'hourly' | 'lumpsum';
+
 export type PaymentMethod = 'cash' | 'card' | 'bank-transfer' | 'check' | 'other';
 export type EmploymentType = 'fulltime' | 'contractor';
 
@@ -94,8 +97,10 @@ export interface InvoiceItem {
   custom_labor_data?: {
     labor_rate?: number;
     skill_level?: string;
+    billing_type?: 'hourly' | 'lumpsum';
   };
 }
+
 
 export interface Part {
   id: string;
@@ -144,7 +149,9 @@ export interface Task {
   updated_at?: string;
   labor_rate?: number;
   skill_level?: string;
+  billing_type?: TaskBillingType;
 }
+
 
 export interface User {
   id: string;
@@ -253,9 +260,13 @@ export interface Attendance {
   status?: AttendanceStatus;
   approved_by?: string;
   notes?: string;
+  record_type?: 'attendance' | 'leave';
+  leave_type?: LeaveType;
+  leave_end_date?: string;
   created_at?: string;
   updated_at?: string;
 }
+
 
 export interface Organization {
   id: string;

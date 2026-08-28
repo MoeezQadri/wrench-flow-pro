@@ -30,6 +30,7 @@ const taskSchema = z.object({
   status: z.enum(["in-progress", "completed"]), // Remove pending and open
   price: z.coerce.number().min(0, { message: "Price must be 0 or greater" }),
   taskType: z.enum(["invoice", "internal"]),
+  billingType: z.enum(["hourly", "lumpsum"]).default("hourly"),
   vehicleId: z.string().optional(),
   mechanicId: z.string().optional(),
   invoiceId: z.string().optional(),
@@ -79,6 +80,7 @@ const TaskForm = ({ defaultValues, onSubmit, formId, task }: TaskFormProps) => {
       price: 0,
       
       taskType: "internal",
+      billingType: "hourly",
       vehicleId: "",
       mechanicId: "",
       invoiceId: "",
@@ -88,6 +90,7 @@ const TaskForm = ({ defaultValues, onSubmit, formId, task }: TaskFormProps) => {
   });
 
   const watchTaskType = form.watch("taskType");
+  const watchBillingType = form.watch("billingType");
   const watchInvoiceId = form.watch("invoiceId");
 
   useEffect(() => {
@@ -252,6 +255,40 @@ const TaskForm = ({ defaultValues, onSubmit, formId, task }: TaskFormProps) => {
           />
         )}
 
+        {watchTaskType === "invoice" && (
+          <FormField
+            control={form.control}
+            name="billingType"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Billing Type</FormLabel>
+                <FormControl>
+                  <RadioGroup
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    className="flex flex-row space-x-6"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="hourly" id="billing-hourly" />
+                      <Label htmlFor="billing-hourly">Hourly</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="lumpsum" id="billing-lumpsum" />
+                      <Label htmlFor="billing-lumpsum">Lumpsum (flat fee)</Label>
+                    </div>
+                  </RadioGroup>
+                </FormControl>
+                <p className="text-xs text-muted-foreground">
+                  {field.value === 'lumpsum'
+                    ? 'The price below is charged as a single flat fee. Hours are still logged for mechanic performance only.'
+                    : 'The price below is charged per estimated hour.'}
+                </p>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
@@ -283,7 +320,9 @@ const TaskForm = ({ defaultValues, onSubmit, formId, task }: TaskFormProps) => {
             name="price"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Price ($)</FormLabel>
+                <FormLabel>
+                  {watchTaskType === 'invoice' && watchBillingType === 'lumpsum' ? 'Lumpsum Fee ($)' : 'Price ($)'}
+                </FormLabel>
                 <FormControl>
                   <Input
                     type="number"

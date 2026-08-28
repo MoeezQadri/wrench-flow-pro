@@ -84,5 +84,5 @@ export const fetchAttendance = async (): Promise<Attendance[]> => {
     .select('*');
   
   if (error) throw error;
-  return data || [];
+  return (data || []) as Attendance[];
 };

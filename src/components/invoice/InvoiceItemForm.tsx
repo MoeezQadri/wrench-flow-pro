@@ -72,6 +72,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
   
   // Custom labor data
   const [laborRate, setLaborRate] = useState(50);
+  const [laborBillingType, setLaborBillingType] = useState<'hourly' | 'lumpsum'>('hourly');
 
   const { mechanics, vendors, addPart, addExpense } = useDataContext();
   const { getCurrencySymbol, formatCurrency } = useOrganizationSettings();
@@ -115,6 +116,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
         
         if (editingItem.custom_labor_data) {
           setLaborRate(editingItem.custom_labor_data.labor_rate || 50);
+          setLaborBillingType(editingItem.custom_labor_data.billing_type || 'hourly');
         }
       } else {
         // Reset form for new item
@@ -133,6 +135,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
         setCategory("");
         setLocation("");
         setLaborRate(50);
+        setLaborBillingType('hourly');
         setSelectedVendorId("");
       }
     }
@@ -154,10 +157,12 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
     if (selectedTaskId && availableTasks) {
       const selectedTask = availableTasks.find(t => t.id === selectedTaskId);
       if (selectedTask) {
+        const taskBilling = selectedTask.billing_type === 'lumpsum' ? 'lumpsum' : 'hourly';
         setDescription(selectedTask.title);
         setPrice(selectedTask.price || 0);
-        setQuantity(selectedTask.hoursEstimated || 1);
-        setUnitOfMeasure("hour");
+        setLaborBillingType(taskBilling);
+        setQuantity(taskBilling === 'lumpsum' ? 1 : (selectedTask.hoursEstimated || 1));
+        setUnitOfMeasure(taskBilling === 'lumpsum' ? "set" : "hour");
       }
     }
   }, [selectedTaskId, availableTasks]);
@@ -318,8 +323,13 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
     // server-side when the invoice is saved (single source of truth, no duplicates)
     if (type === 'labor') {
       newItem.custom_labor_data = {
-        labor_rate: laborRate
+        labor_rate: laborRate,
+        billing_type: laborBillingType
       };
+      // Lumpsum labor is billed as a single flat fee, regardless of hours
+      if (laborBillingType === 'lumpsum') {
+        newItem.quantity = 1;
+      }
     }
 
 
@@ -418,19 +428,26 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
           {/* Quantity and Price */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <Label htmlFor="quantity">Quantity *</Label>
+              <Label htmlFor="quantity">
+                {type === 'labor' && laborBillingType === 'lumpsum' ? 'Quantity (fixed at 1)' : 'Quantity *'}
+              </Label>
               <Input
                 id="quantity"
                 type="number"
                 min="0.01"
                 step="0.01"
-                value={quantity}
+                value={type === 'labor' && laborBillingType === 'lumpsum' ? 1 : quantity}
+                disabled={type === 'labor' && laborBillingType === 'lumpsum'}
                 onChange={(e) => setQuantity(parseFloat(e.target.value) || 1)}
                 required
               />
             </div>
             <div>
-              <Label htmlFor="price">Unit Price ({getCurrencySymbol()}) *</Label>
+              <Label htmlFor="price">
+                {type === 'labor' && laborBillingType === 'lumpsum'
+                  ? `Lumpsum Fee (${getCurrencySymbol()}) *`
+                  : `Unit Price (${getCurrencySymbol()}) *`}
+              </Label>
               <Input
                 id="price"
                 type="number"
@@ -634,6 +651,29 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
               </p>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-muted p-4 rounded-lg">
+                <div>
+                  <Label>Billing Type</Label>
+                  <Select
+                    value={laborBillingType}
+                    onValueChange={(value: 'hourly' | 'lumpsum') => {
+                      setLaborBillingType(value);
+                      if (value === 'lumpsum') setQuantity(1);
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="hourly">Hourly (quantity × rate)</SelectItem>
+                      <SelectItem value="lumpsum">Lumpsum (flat fee)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {laborBillingType === 'lumpsum'
+                      ? 'A single flat fee is charged. Mechanic hours are still tracked on the task.'
+                      : 'Charged per hour based on quantity.'}
+                  </p>
+                </div>
                 <div>
                   <Label htmlFor="laborRate">Labor Rate ({getCurrencySymbol()}/hour)</Label>
                   <Input

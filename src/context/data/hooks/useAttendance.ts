@@ -112,11 +112,13 @@ export const useAttendance = () => {
             throw new Error(errorMsg);
         }
 
-        if (!attendanceData.check_in) {
+        // Leave records have no check-in time; attendance records require one
+        if (attendanceData.record_type !== 'leave' && !attendanceData.check_in) {
             const errorMsg = 'Check-in time is required';
             toast.error(errorMsg);
             throw new Error(errorMsg);
         }
+
 
         if (!isAuthenticated || !currentUser) {
             const errorMsg = 'You must be logged in to create attendance records';
@@ -141,11 +143,12 @@ export const useAttendance = () => {
             organization_id: finalOrgId,
             created_at: new Date().toISOString(),
             status: attendanceData.status || 'pending',
-            // Ensure required fields are present
-            check_in: attendanceData.check_in,
+            record_type: attendanceData.record_type || 'attendance',
+            check_in: attendanceData.check_in ?? null,
             date: attendanceData.date,
             mechanic_id: attendanceData.mechanic_id
         };
+
 
         // Optimistic update - add to UI immediately
         setAttendanceRecords((prev) => [...(prev || []), newAttendanceData as Attendance]);
