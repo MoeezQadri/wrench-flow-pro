@@ -324,7 +324,11 @@ const TaskForm = ({ defaultValues, onSubmit, formId, task }: TaskFormProps) => {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>
-                  {watchTaskType === 'invoice' && watchBillingType === 'lumpsum' ? 'Lumpsum Fee ($)' : 'Price ($)'}
+                  {watchTaskType === 'invoice'
+                    ? (watchBillingType === 'lumpsum'
+                        ? `Lumpsum Fee (${symbol})`
+                        : `Price per Hour (${symbol})`)
+                    : `Internal Cost (${symbol}) — optional`}
                 </FormLabel>
                 <FormControl>
                   <Input
@@ -335,6 +339,11 @@ const TaskForm = ({ defaultValues, onSubmit, formId, task }: TaskFormProps) => {
                     {...field}
                   />
                 </FormControl>
+                {watchTaskType === 'internal' && (
+                  <p className="text-xs text-muted-foreground">
+                    Not billed to a customer. Used only for internal workshop reporting — leave blank if not needed.
+                  </p>
+                )}
                 <FormMessage />
               </FormItem>
             )}
