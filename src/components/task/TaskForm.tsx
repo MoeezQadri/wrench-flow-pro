@@ -71,8 +71,8 @@ const TaskForm = ({ defaultValues, onSubmit, formId, task }: TaskFormProps) => {
     getVehiclesByCustomerId, loadMechanics,
   } = useDataContext();
   const [selectedCustomer, setSelectedCustomer] = useState<string>("");
-  const { currencySymbol } = useOrganizationSettings();
-  const symbol = currencySymbol || "$";
+  const { organizationInfo } = useOrganizationSettings();
+  const symbol = organizationInfo.currencySymbol || "$";
 
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(taskSchema),
