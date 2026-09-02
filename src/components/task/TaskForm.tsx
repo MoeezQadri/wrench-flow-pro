@@ -23,6 +23,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Task } from "@/types";
 import { useDataContext } from "@/context/data/DataContext";
+import { useOrganizationSettings } from "@/hooks/useOrganizationSettings";
 
 const taskSchema = z.object({
   title: z.string().min(1, { message: "Title is required" }),
