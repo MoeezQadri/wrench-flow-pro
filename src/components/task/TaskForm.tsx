@@ -23,6 +23,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Task } from "@/types";
 import { useDataContext } from "@/context/data/DataContext";
+import { useOrganizationSettings } from "@/hooks/useOrganizationSettings";
 
 const taskSchema = z.object({
   title: z.string().min(1, { message: "Title is required" }),
@@ -70,6 +71,8 @@ const TaskForm = ({ defaultValues, onSubmit, formId, task }: TaskFormProps) => {
     getVehiclesByCustomerId, loadMechanics,
   } = useDataContext();
   const [selectedCustomer, setSelectedCustomer] = useState<string>("");
+  const { organizationInfo } = useOrganizationSettings();
+  const symbol = organizationInfo.currencySymbol || "$";
 
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(taskSchema),
@@ -321,7 +324,11 @@ const TaskForm = ({ defaultValues, onSubmit, formId, task }: TaskFormProps) => {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>
-                  {watchTaskType === 'invoice' && watchBillingType === 'lumpsum' ? 'Lumpsum Fee ($)' : 'Price ($)'}
+                  {watchTaskType === 'invoice'
+                    ? (watchBillingType === 'lumpsum'
+                        ? `Lumpsum Fee (${symbol})`
+                        : `Price per Hour (${symbol})`)
+                    : `Internal Cost (${symbol}) — optional`}
                 </FormLabel>
                 <FormControl>
                   <Input
@@ -332,6 +339,11 @@ const TaskForm = ({ defaultValues, onSubmit, formId, task }: TaskFormProps) => {
                     {...field}
                   />
                 </FormControl>
+                {watchTaskType === 'internal' && (
+                  <p className="text-xs text-muted-foreground">
+                    Not billed to a customer. Used only for internal workshop reporting — leave blank if not needed.
+                  </p>
+                )}
                 <FormMessage />
               </FormItem>
             )}
