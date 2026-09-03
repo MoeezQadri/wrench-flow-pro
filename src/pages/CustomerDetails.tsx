@@ -27,14 +27,17 @@ const CustomerDetails: React.FC = () => {
   const [transferDialogOpen, setTransferDialogOpen] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
   const [vehicleDialogOpen, setVehicleDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const {
     getCustomerById,
     getVehiclesByCustomerId,
     invoices: allInvoices,
     customers,
     updateVehicle,
-    addVehicle
+    addVehicle,
+    updateCustomer
   } = useDataContext();
+
 
   useEffect(() => {
     const loadCustomerData = async () => {
@@ -76,6 +79,15 @@ const CustomerDetails: React.FC = () => {
     await addVehicle({ ...vehicle, customer_id: id || vehicle.customer_id });
     await refreshVehicles();
   };
+
+  const handleSaveCustomer = async (updates: Partial<Customer>) => {
+    if (!id) return;
+    await updateCustomer(id, updates);
+    const refreshed = await getCustomerById(id);
+    if (refreshed) setCustomer(refreshed);
+  };
+
+
 
   const handleVehicleTransfer = async (vehicleId: string, newCustomerId: string) => {
     await updateVehicle(vehicleId, { customer_id: newCustomerId });
@@ -125,6 +137,12 @@ const CustomerDetails: React.FC = () => {
             <p className="text-muted-foreground">Customer Details</p>
           </div>
         </div>
+        <PermissionGuard resource="customers" action="manage">
+          <Button size="sm" onClick={() => setEditDialogOpen(true)}>
+            <Edit className="mr-2 h-4 w-4" />
+            Edit Customer
+          </Button>
+        </PermissionGuard>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -136,6 +154,7 @@ const CustomerDetails: React.FC = () => {
               Contact Information
             </CardTitle>
           </CardHeader>
+
           <CardContent className="space-y-4">
             <div className="grid gap-3">
               <div className="flex items-center gap-2">
@@ -350,6 +369,14 @@ const CustomerDetails: React.FC = () => {
         customerId={id}
       />
 
+      {/* Edit Customer Dialog */}
+      <CustomerEditDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        customer={customer}
+        onSave={handleSaveCustomer}
+      />
+
       {/* Vehicle Transfer Dialog */}
       <VehicleTransferDialog
         open={transferDialogOpen}
@@ -359,6 +386,7 @@ const CustomerDetails: React.FC = () => {
         currentCustomer={customer}
         onTransfer={handleVehicleTransfer}
       />
+
     </div>
   );
 };
