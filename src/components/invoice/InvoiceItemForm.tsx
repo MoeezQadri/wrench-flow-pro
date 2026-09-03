@@ -212,7 +212,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
       cost: type === 'part' ? cost : 0,
       unit_of_measure: unitOfMeasure,
       part_id: selectedPartId || undefined,
-      task_id: selectedTaskId || undefined,
+      task_id: selectedTaskId && selectedTaskId !== 'none' ? selectedTaskId : undefined,
       // The custom part is created immediately below, preventing duplicate creation on invoice save.
       creates_inventory_part: false,
       creates_task: type === 'labor' && !selectedTaskId,

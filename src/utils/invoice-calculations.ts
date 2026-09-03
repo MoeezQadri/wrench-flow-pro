@@ -12,6 +12,9 @@ export interface InvoiceCalculationBreakdown {
   total: number;
   paidAmount: number;
   balanceDue: number;
+  partsCost: number;
+  grossProfit: number;
+  grossMargin: number;
 }
 
 /**
@@ -29,14 +32,19 @@ export const calculateInvoiceBreakdown = (invoice: Invoice): InvoiceCalculationB
       taxRate: invoice.tax_rate || 0,
       total: 0,
       paidAmount: 0,
-      balanceDue: 0
+      balanceDue: 0,
+      partsCost: 0,
+      grossProfit: 0,
+      grossMargin: 0
     };
   }
 
-  // Calculate subtotal from all items
-  const subtotal = invoice.items.reduce((sum, item) => {
-    return sum + (item.quantity * item.price);
-  }, 0);
+  // Revenue uses selling prices; parts cost uses the historical invoice-line snapshot.
+  const subtotal = invoice.items.reduce((sum, item) => sum + (item.quantity * item.price), 0);
+  const partsCost = invoice.items.reduce(
+    (sum, item) => sum + (item.type === 'part' ? item.quantity * (item.cost || 0) : 0),
+    0
+  );
 
   // Apply discounts
   let discountAmount = 0;
@@ -60,6 +68,8 @@ export const calculateInvoiceBreakdown = (invoice: Invoice): InvoiceCalculationB
   // Calculate actual paid amount from payments array
   const paidAmount = invoice.payments?.reduce((sum, payment) => sum + payment.amount, 0) || 0;
   const balanceDue = total - paidAmount;
+  const grossProfit = afterDiscount - partsCost;
+  const grossMargin = afterDiscount > 0 ? (grossProfit / afterDiscount) * 100 : 0;
 
   return {
     subtotal,
@@ -71,7 +81,10 @@ export const calculateInvoiceBreakdown = (invoice: Invoice): InvoiceCalculationB
     taxRate,
     total,
     paidAmount,
-    balanceDue
+    balanceDue,
+    partsCost,
+    grossProfit,
+    grossMargin
   };
 };
 
