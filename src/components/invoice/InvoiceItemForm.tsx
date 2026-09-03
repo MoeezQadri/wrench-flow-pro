@@ -323,7 +323,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
             vendor_id: selectedVendorId,
             vendor_name: vendor?.name,
             payment_method: "cash",
-            payment_status: "paid",
+            payment_status: "unpaid",
             invoice_id: invoiceId,
             organization_id: selectedOrganizationId,
           };
