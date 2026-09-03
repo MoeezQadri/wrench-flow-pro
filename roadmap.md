@@ -6,4 +6,4 @@
 - [x] Add purchase cost to inventory parts and unpaid vendor expenses
 - [x] Carry part cost snapshots into invoice items and avoid duplicate custom parts
 - [x] Show part cost, price, margin, COGS, and gross-profit reporting
-- [ ] Validate build and relevant user flows
+- [x] Validate build and relevant user flows

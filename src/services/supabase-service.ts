@@ -154,6 +154,7 @@ export const createInvoiceWithAutoAssignment = async (invoiceData: {
             type: 'part', // Changed from 'parts' to 'part'
             quantity: 1,
             price: part.price,
+            cost: part.cost || 0,
             part_id: part.id,
             task_id: null,
             is_auto_added: true
