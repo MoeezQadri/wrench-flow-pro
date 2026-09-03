@@ -15,7 +15,7 @@ import VehicleDialog from '@/components/VehicleDialog';
 import CustomerEditDialog from '@/components/customer/CustomerEditDialog';
 import { PermissionGuard } from '@/components/PermissionGuard';
 import { useAuthContext } from '@/context/AuthContext';
-import { isAdminUser } from '@/utils/permissions';
+import { hasPermission, isAdminUser } from '@/utils/permissions';
 import { Car, Plus, Phone, Mail, MapPin, Calendar, DollarSign, ArrowLeft, FileText, Eye, MoreVertical, ArrowRightLeft, Edit, Trash2 } from 'lucide-react';
 import { formatOrgDate } from '@/utils/datetime';
 
@@ -32,13 +32,19 @@ const CustomerDetails: React.FC = () => {
   const [transferDialogOpen, setTransferDialogOpen] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
   const [vehicleDialogOpen, setVehicleDialogOpen] = useState(false);
+  const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
+  const [vehicleToDelete, setVehicleToDelete] = useState<Vehicle | null>(null);
+  const [vehicleDependencies, setVehicleDependencies] = useState<{ invoices: number; estimates: number; tasks: number; total: number } | null>(null);
+  const [checkingVehicleDependencies, setCheckingVehicleDependencies] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const {
     getCustomerById,
     getVehiclesByCustomerId,
+    getVehicleDependencies,
     invoices: allInvoices,
     customers,
     updateVehicle,
+    removeVehicle,
     addVehicle,
     updateCustomer
   } = useDataContext();
@@ -81,8 +87,51 @@ const CustomerDetails: React.FC = () => {
   };
 
   const handleSaveVehicle = async (vehicle: Vehicle) => {
-    await addVehicle({ ...vehicle, customer_id: id || vehicle.customer_id });
+    if (editingVehicle) {
+      await updateVehicle(vehicle.id, {
+        make: vehicle.make,
+        model: vehicle.model,
+        year: vehicle.year,
+        license_plate: vehicle.license_plate,
+        vin: vehicle.vin,
+        color: vehicle.color,
+      });
+    } else {
+      await addVehicle({ ...vehicle, customer_id: id || vehicle.customer_id });
+    }
+    setEditingVehicle(null);
     await refreshVehicles();
+  };
+
+  const handleEditVehicle = (vehicle: Vehicle) => {
+    setEditingVehicle(vehicle);
+    setVehicleDialogOpen(true);
+  };
+
+  const handleRequestDeleteVehicle = async (vehicle: Vehicle) => {
+    setCheckingVehicleDependencies(true);
+    try {
+      const dependencies = await getVehicleDependencies(vehicle.id);
+      setVehicleDependencies(dependencies);
+      setVehicleToDelete(vehicle);
+    } catch (error) {
+      console.error('Error checking vehicle history:', error);
+    } finally {
+      setCheckingVehicleDependencies(false);
+    }
+  };
+
+  const handleDeleteVehicle = async () => {
+    if (!vehicleToDelete || vehicleDependencies?.total) return;
+    await removeVehicle(vehicleToDelete.id);
+    setVehicles((previous) => previous.filter((vehicle) => vehicle.id !== vehicleToDelete.id));
+    setVehicleToDelete(null);
+    setVehicleDependencies(null);
+  };
+
+  const handleCloseVehicleDialog = (open: boolean) => {
+    setVehicleDialogOpen(open);
+    if (!open) setEditingVehicle(null);
   };
 
   const handleSaveCustomer = async (updates: Partial<Customer>) => {
