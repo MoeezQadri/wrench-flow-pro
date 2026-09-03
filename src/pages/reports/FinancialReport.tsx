@@ -53,7 +53,7 @@ const FinancialReport = () => {
     });
   };
 
-  // Calculate receivables (unpaid invoices) within date range
+  // Calculate receivables (unpaid invoices) within date range; quotes are not debt.
   const filteredInvoices = filterByDateRange(invoices, 'date');
   const receivables = filteredInvoices.filter(inv => inv.status !== 'paid' && !isNonBillable(inv.status));
   const totalReceivables = calculateTotalReceivables(receivables);
