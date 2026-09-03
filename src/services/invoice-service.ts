@@ -1,6 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { Invoice, InvoiceItem, Part, Task } from '@/types';
+import { Invoice, InvoiceItem, Part, Task, InvoiceStatus } from '@/types';
 import { toast } from 'sonner';
 import { smartUpdateInvoiceItems } from './smart-invoice-service';
 
@@ -13,6 +13,7 @@ export interface CreateInvoiceData {
   discountValue: number;
   notes: string;
   items: InvoiceItem[];
+  status?: InvoiceStatus;
 }
 
 export const createInvoice = async (invoiceData: CreateInvoiceData): Promise<Invoice> => {
@@ -33,7 +34,7 @@ export const createInvoice = async (invoiceData: CreateInvoiceData): Promise<Inv
         discount_type: invoiceData.discountType,
         discount_value: invoiceData.discountValue,
         notes: invoiceData.notes,
-        status: 'open'
+        status: invoiceData.status || 'open'
       })
       .select()
       .single();

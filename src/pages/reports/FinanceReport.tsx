@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { exportToCSV } from '@/utils/csv-export';
 import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
 import { calculateInvoiceBreakdown } from '@/utils/invoice-calculations';
+import { isNonBillable } from '@/utils/invoice-status';
 import { formatOrgDate } from '@/utils/datetime';
 
 // Interface for expenses matching Supabase schema
