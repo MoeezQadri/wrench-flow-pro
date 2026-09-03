@@ -1,6 +1,11 @@
 const MEASUREMENT_ID = import.meta.env
   .VITE_LOVABLE_CONNECTOR_GOOGLE_ANALYTICS_API_KEY as string | undefined;
 
+// Google Ads measurement ID. gtag.js supports multiple IDs through a single
+// library instance, so we register this alongside the GA4 config rather than
+// loading a second gtag script.
+const GOOGLE_ADS_ID = 'AW-18425240978';
+
 declare global {
   interface Window {
     dataLayer?: unknown[];
@@ -39,6 +44,10 @@ export function initAnalytics() {
   // automatic one to avoid double counting.
   gtag('js', new Date());
   gtag('config', MEASUREMENT_ID, { send_page_view: false });
+
+  // Register the Google Ads tag through the same gtag.js library. No second
+  // <script> tag is needed — gtag.js handles multiple measurement IDs.
+  gtag('config', GOOGLE_ADS_ID);
 }
 
 export function trackPageView(path: string) {
@@ -53,6 +62,15 @@ export function trackPageView(path: string) {
 export function trackEvent(name: string, params: Record<string, unknown> = {}) {
   if (!MEASUREMENT_ID) return;
   gtag('event', name, params);
+}
+
+// Send a conversion to Google Ads. Google Ads tracks conversions by label, so
+// callers pass the conversion label configured in the Ads account.
+export function trackGoogleAdsConversion(label: string, value?: number) {
+  gtag('event', 'conversion', {
+    send_to: `${GOOGLE_ADS_ID}/${label}`,
+    ...(value !== undefined ? { value, currency: 'USD' } : {}),
+  });
 }
 
 export const trackLogin = (method = 'email') => trackEvent('login', { method });
