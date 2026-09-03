@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import { Invoice, InvoiceItem, Part, Task, Payment } from '@/types';
+import { Invoice, InvoiceItem, Part, Task, Payment, InvoiceStatus } from '@/types';
 import { toast } from 'sonner';
 
 export interface CreateInvoiceData {
@@ -12,6 +12,7 @@ export interface CreateInvoiceData {
   notes: string;
   items: InvoiceItem[];
   payments?: Payment[];
+  status?: InvoiceStatus;
 }
 
 export interface BatchPartUpdate {
@@ -156,7 +157,7 @@ export const createInvoiceOptimized = async (invoiceData: CreateInvoiceData): Pr
         discount_type: invoiceData.discountType,
         discount_value: invoiceData.discountValue,
         notes: invoiceData.notes,
-        status: 'open'
+        status: invoiceData.status || 'open'
       })
       .select('*, organization_id')
       .single();

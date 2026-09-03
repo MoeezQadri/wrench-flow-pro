@@ -31,19 +31,22 @@ const InvoicingReport = () => {
   });
 
   // Calculate statistics
+  const billableInvoices = filteredInvoices.filter(inv => !isNonBillable(inv.status));
   const totalInvoices = filteredInvoices.length;
-  const paidInvoices = filteredInvoices.filter(inv => inv.status === 'paid').length;
-  const openInvoices = filteredInvoices.filter(inv => inv.status === 'open').length;
-  const overdueInvoices = filteredInvoices.filter(inv => inv.status === 'overdue').length;
+  const estimateInvoices = filteredInvoices.filter(inv => inv.status === 'estimate').length;
+  const declinedInvoices = filteredInvoices.filter(inv => inv.status === 'declined').length;
+  const paidInvoices = billableInvoices.filter(inv => inv.status === 'paid').length;
+  const openInvoices = billableInvoices.filter(inv => inv.status === 'open').length;
+  const overdueInvoices = billableInvoices.filter(inv => inv.status === 'overdue').length;
 
-  const totalRevenue = filteredInvoices.reduce((sum, invoice) => {
+  const totalRevenue = billableInvoices.reduce((sum, invoice) => {
     const invoiceBreakdown = calculateInvoiceBreakdown(invoice);
     return sum + invoiceBreakdown.total;
   }, 0);
 
   const paidAmount = payments
     .filter(payment => {
-      const invoice = filteredInvoices.find(inv => inv.id === payment.invoice_id);
+      const invoice = billableInvoices.find(inv => inv.id === payment.invoice_id);
       return invoice && invoice.status === 'paid';
     })
     .reduce((sum, payment) => sum + Number(payment.amount), 0);

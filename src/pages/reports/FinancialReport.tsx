@@ -55,7 +55,7 @@ const FinancialReport = () => {
 
   // Calculate receivables (unpaid invoices) within date range
   const filteredInvoices = filterByDateRange(invoices, 'date');
-  const receivables = filteredInvoices.filter(inv => inv.status !== 'paid');
+  const receivables = filteredInvoices.filter(inv => inv.status !== 'paid' && !isNonBillable(inv.status));
   const totalReceivables = calculateTotalReceivables(receivables);
 
   // Calculate overdue receivables

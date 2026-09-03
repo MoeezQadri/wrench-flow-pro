@@ -32,9 +32,10 @@ import { useSmartDataLoading } from "@/hooks/useSmartDataLoading";
 interface InvoiceFormProps {
   isEditing?: boolean;
   invoiceData?: Invoice | null;
+  initialStatus?: InvoiceStatus;
 }
 
-const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceData = null }) => {
+const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceData = null, initialStatus = 'open' }) => {
   const navigate = useNavigate();
   const { formatCurrency, getCurrencySymbol } = useOrganizationSettings();
   const { organization } = useAuthContext();
@@ -43,7 +44,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
   const [selectedVehicleId, setSelectedVehicleId] = useState("");
   const [date, setDate] = useState(orgToday());
-  const [status, setStatus] = useState<InvoiceStatus>('open');
+  const [status, setStatus] = useState<InvoiceStatus>(isEditing ? (invoiceData?.status || 'open') : initialStatus);
   const [taxRate, setTaxRate] = useState(orgDefaultTaxRate);
   const [discountType, setDiscountType] = useState<'none' | 'percentage' | 'fixed'>('none');
   const [discountValue, setDiscountValue] = useState(0);
@@ -636,7 +637,8 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
           discountValue: discountValue,
           notes: notes,
           items: mergedItems,
-          payments: payments
+          payments: payments,
+          status: status
         };
 
         console.log("Calling optimized invoice creation with:", invoiceCreationData);

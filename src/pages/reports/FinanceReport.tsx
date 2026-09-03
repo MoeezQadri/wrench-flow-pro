@@ -110,7 +110,7 @@ const FinanceReport = () => {
   const filteredRevenue = revenue.filter(invoice => {
     try {
       const invoiceDate = parseISO(invoice.date || '');
-      return isWithinInterval(invoiceDate, { start: startDate, end: endDate });
+      return !isNonBillable(invoice.status) && isWithinInterval(invoiceDate, { start: startDate, end: endDate });
     } catch (e) {
       return false;
     }
