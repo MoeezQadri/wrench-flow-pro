@@ -27,14 +27,17 @@ const CustomerDetails: React.FC = () => {
   const [transferDialogOpen, setTransferDialogOpen] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
   const [vehicleDialogOpen, setVehicleDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const {
     getCustomerById,
     getVehiclesByCustomerId,
     invoices: allInvoices,
     customers,
     updateVehicle,
-    addVehicle
+    addVehicle,
+    updateCustomer
   } = useDataContext();
+
 
   useEffect(() => {
     const loadCustomerData = async () => {
