@@ -48,7 +48,7 @@ const CustomerEditDialog: React.FC<CustomerEditDialogProps> = ({ open, onOpenCha
         phone: phone.trim(),
         address: address.trim(),
       });
-      toast.success('Customer details updated');
+      // Success toast is emitted by the data layer
       onOpenChange(false);
     } catch (error) {
       console.error('Failed to update customer:', error);
