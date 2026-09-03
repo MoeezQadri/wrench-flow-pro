@@ -39,25 +39,16 @@ const Vehicles: React.FC = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        
-        // Fetch vehicles from Supabase
         const { data: vehicleData, error: vehicleError } = await supabase
           .from('vehicles')
           .select('*');
 
-        if (vehicleError) {
-          throw vehicleError;
-        }
+        if (vehicleError) throw vehicleError;
 
-        const vehicles = vehicleData || [];
-        setVehicles(vehicles);
-
-        // Load customer names for all customer IDs
-        const customerIds = vehicles.map(vehicle => vehicle.customer_id).filter(Boolean);
-        const uniqueCustomerIds = [...new Set(customerIds)];
+        const loadedVehicles = vehicleData || [];
+        setVehicles(loadedVehicles);
         const nameMap: { [id: string]: string } = {};
-        
-        for (const customerId of uniqueCustomerIds) {
+        for (const customerId of [...new Set(loadedVehicles.map(vehicle => vehicle.customer_id).filter(Boolean))]) {
           try {
             const customer = await getCustomerById(customerId);
             nameMap[customerId] = customer?.name || 'Unknown';
@@ -66,7 +57,6 @@ const Vehicles: React.FC = () => {
             nameMap[customerId] = 'Unknown';
           }
         }
-        
         setCustomerNames(nameMap);
       } catch (error) {
         console.error("Error fetching vehicles:", error);
@@ -139,35 +129,14 @@ const Vehicles: React.FC = () => {
     }
   };
 
-  const handleEditVehicle = (vehicle: Vehicle) => {
-    setEditingVehicle(vehicle);
-    setDialogOpen(true);
-  };
-
-  const handleDeleteVehicle = async (vehicleId: string) => {
-    if (!confirm('Are you sure you want to delete this vehicle?')) {
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from('vehicles')
-        .delete()
-        .eq('id', vehicleId);
-
-      if (error) throw error;
-
-      setVehicles(prev => prev.filter(v => v.id !== vehicleId));
-      toast.success("Vehicle deleted successfully!");
-    } catch (error) {
-      console.error('Error deleting vehicle:', error);
-      toast.error("Failed to delete vehicle");
-    }
-  };
-
   const handleAddNewVehicle = () => {
     setEditingVehicle(undefined);
     setDialogOpen(true);
+  };
+
+  const handleCloseDialog = (open: boolean) => {
+    setDialogOpen(open);
+    if (!open) setEditingVehicle(undefined);
   };
 
   const handleCloseDialog = (open: boolean) => {
@@ -234,13 +203,16 @@ const Vehicles: React.FC = () => {
                         </button>
                       )}
                       {userCanDeleteVehicles && (
-                        <button 
-                          onClick={() => handleDeleteVehicle(vehicle.id)}
-                          className="text-red-600 hover:underline flex items-center gap-1"
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRequestDeleteVehicle(vehicle)}
+                          disabled={checkingDependencies}
+                          className="text-destructive hover:text-destructive"
                         >
-                          <Trash2 className="h-3 w-3" />
-                          Delete
-                        </button>
+                          <Trash2 className="mr-1 h-3 w-3" />
+                          {checkingDependencies ? 'Checking...' : 'Delete'}
+                        </Button>
                       )}
                     </div>
                   </td>
@@ -253,10 +225,27 @@ const Vehicles: React.FC = () => {
 
       <VehicleDialog
         open={dialogOpen}
-        onOpenChange={setDialogOpen}
+        onOpenChange={handleCloseDialog}
         onSave={handleSaveVehicle}
         vehicle={editingVehicle}
       />
+
+      <AlertDialog open={!!vehicleToDelete} onOpenChange={(open) => !open && setVehicleToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove this vehicle?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {vehicleDependencies?.total
+                ? `This vehicle cannot be removed because it has ${vehicleDependencies.invoices} invoice${vehicleDependencies.invoices === 1 ? '' : 's'}, ${vehicleDependencies.estimates} estimate${vehicleDependencies.estimates === 1 ? '' : 's'}, or ${vehicleDependencies.tasks} job${vehicleDependencies.tasks === 1 ? '' : 's'} linked to it.`
+                : 'This action permanently removes the vehicle record. Billing and job history are protected.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Close</AlertDialogCancel>
+            {!vehicleDependencies?.total && <AlertDialogAction onClick={handleDeleteVehicle}>Remove vehicle</AlertDialogAction>}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
