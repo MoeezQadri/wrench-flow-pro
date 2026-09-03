@@ -305,7 +305,7 @@ const CustomerDetails: React.FC = () => {
                               {vehicle.color}
                             </Badge>
                           )}
-                          <PermissionGuard resource="vehicles" action="manage">
+                          {(hasPermission(currentUser, 'vehicles', 'edit') || hasPermission(currentUser, 'vehicles', 'manage')) && (
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="sm" className="h-8 w-8 p-0" aria-label={`Actions for ${vehicle.make} ${vehicle.model}`}>
@@ -319,10 +319,12 @@ const CustomerDetails: React.FC = () => {
                                     Edit
                                   </DropdownMenuItem>
                                 )}
-                                <DropdownMenuItem onClick={() => handleTransferVehicle(vehicle)}>
-                                  <ArrowRightLeft className="mr-2 h-4 w-4" />
-                                  Transfer
-                                </DropdownMenuItem>
+                                {hasPermission(currentUser, 'vehicles', 'manage') && (
+                                  <DropdownMenuItem onClick={() => handleTransferVehicle(vehicle)}>
+                                    <ArrowRightLeft className="mr-2 h-4 w-4" />
+                                    Transfer
+                                  </DropdownMenuItem>
+                                )}
                                 {hasPermission(currentUser, 'vehicles', 'delete') && (
                                   <DropdownMenuItem
                                     className="text-destructive focus:text-destructive"
@@ -335,7 +337,7 @@ const CustomerDetails: React.FC = () => {
                                 )}
                               </DropdownMenuContent>
                             </DropdownMenu>
-                          </PermissionGuard>
+                          )}
                         </div>
                       </div>
                       
