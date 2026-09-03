@@ -369,6 +369,14 @@ const CustomerDetails: React.FC = () => {
         customerId={id}
       />
 
+      {/* Edit Customer Dialog */}
+      <CustomerEditDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        customer={customer}
+        onSave={handleSaveCustomer}
+      />
+
       {/* Vehicle Transfer Dialog */}
       <VehicleTransferDialog
         open={transferDialogOpen}
@@ -378,6 +386,7 @@ const CustomerDetails: React.FC = () => {
         currentCustomer={customer}
         onTransfer={handleVehicleTransfer}
       />
+
     </div>
   );
 };
