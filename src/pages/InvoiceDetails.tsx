@@ -312,7 +312,7 @@ const InvoiceDetails: React.FC = () => {
         {invoice.status === 'estimate' && (
           <div className="mb-6 border border-border bg-muted/40 p-4 rounded-md">
             <p className="font-medium">Estimate only</p>
-            <p className="text-sm text-muted-foreground">This document is a quote for review and is not a request for payment.</p>
+            <p className="text-sm text-muted-foreground">Quote valid for review — not a request for payment.</p>
           </div>
         )}
 
