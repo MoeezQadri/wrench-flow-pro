@@ -1,0 +1,5 @@
+- [x] Add estimate and declined invoice statuses with database support
+- [x] Create, edit, convert, and decline estimate documents
+- [x] Exclude estimates and declined documents from financial totals and dashboard metrics
+- [x] Show estimate/declined status badges and report counts
+- [ ] Finish invoice detail print/share actions and validate build
