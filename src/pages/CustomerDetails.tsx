@@ -22,6 +22,9 @@ import { formatOrgDate } from '@/utils/datetime';
 const CustomerDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { formatCurrency } = useOrganizationSettings();
+  const { currentUser } = useAuthContext();
+  // Only organization owners/admins may edit customer records
+  const canEditCustomer = isAdminUser(currentUser);
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
