@@ -38,8 +38,8 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({ payments, setPayments
   const organizationId = selectedOrganizationId || currentUser?.organization_id || '';
   const status = watch("status");
 
-  // Determine if payments can be edited based on invoice status
-  const canEditPayments = status !== "paid" && status !== "cancelled";
+  // Estimates and declined quotes are not payable documents.
+  const canEditPayments = status !== "paid" && status !== "cancelled" && status !== "estimate" && status !== "declined";
 
   const handleAddPayment = useCallback(async () => {
     if (!paymentAmount || !paymentMethod) {

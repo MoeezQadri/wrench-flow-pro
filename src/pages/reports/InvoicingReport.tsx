@@ -11,6 +11,7 @@ import { useDataContext } from "@/context/data/DataContext";
 import { isWithinInterval, parseISO } from "date-fns";
 import { useOrganizationSettings } from "@/hooks/useOrganizationSettings";
 import { calculateInvoiceBreakdown } from '@/utils/invoice-calculations';
+import { isNonBillable } from '@/utils/invoice-status';
 import { formatOrgDate } from '@/utils/datetime';
 
 const InvoicingReport = () => {

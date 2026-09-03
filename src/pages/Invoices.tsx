@@ -1,6 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Invoice, Customer } from '@/types';
-import { toast } from 'sonner';
+import { Invoice } from '@/types';
 import { Link } from 'react-router-dom';
 import { useDataContext } from '@/context/data/DataContext';
 import { Input } from '@/components/ui/input';
@@ -13,6 +12,7 @@ import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
 import { calculateInvoiceBreakdown } from '@/utils/invoice-calculations';
 import { PageWrapper } from '@/components/PageWrapper';
 import { formatOrgDate } from '@/utils/datetime';
+import StatusBadge from '@/components/StatusBadge';
 
 const Invoices: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState<string>('');

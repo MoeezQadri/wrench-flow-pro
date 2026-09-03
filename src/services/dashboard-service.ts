@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { isWithinInterval, parseISO, format, eachDayOfInterval } from "date-fns";
 import { calculateInvoiceBreakdown } from "@/utils/invoice-calculations";
+import { isNonBillable } from "@/utils/invoice-status";
 
 export interface DashboardData {
   totalRevenue: number;

@@ -20,6 +20,7 @@ import { useDataContext } from '@/context/data/DataContext';
 import { DateRangePicker } from '@/components/dashboard/DateRangePicker';
 import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
 import { calculateInvoiceBreakdown, calculateTotalReceivables, calculateOverdueAmount } from '@/utils/invoice-calculations';
+import { isNonBillable } from '@/utils/invoice-status';
 import { exportToCSV } from '@/utils/csv-export';
 import { toast } from 'sonner';
 
