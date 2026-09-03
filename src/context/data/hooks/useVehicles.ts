@@ -231,6 +231,7 @@ export const useVehicles = () => {
         addVehicle,
         removeVehicle,
         updateVehicle,
+        getVehicleDependencies,
         getVehiclesByCustomerId,
         searchVehicles,
         getVehicleById,

@@ -29,6 +29,7 @@ export interface DataContextType {
     addVehicle: (vehicle: Vehicle) => Promise<Vehicle | null>;
     removeVehicle: (id: string) => Promise<void>;
     updateVehicle: (id: string, updates: Partial<Vehicle>) => Promise<void>;
+    getVehicleDependencies: (id: string) => Promise<{ invoices: number; estimates: number; tasks: number; total: number }>;
     getVehiclesByCustomerId: (id: string) => Promise<Vehicle[]>;
     searchVehicles: (customerId: string, term: string, limit?: number) => Promise<Vehicle[]>;
     getVehicleById: (id: string) => Vehicle | null;
