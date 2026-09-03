@@ -164,9 +164,12 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
       const selectedPart = availableParts.find(p => p.id === selectedPartId);
       if (selectedPart) {
         setDescription(selectedPart.name);
+        setPartName(selectedPart.name);
         setPrice(selectedPart.price);
         setCost(selectedPart.cost || 0);
         setUnitOfMeasure(selectedPart.unit || "piece");
+        setSelectedVendorId(selectedPart.vendor_id || "");
+        setPartNumber(selectedPart.part_number || "");
       }
     }
   }, [selectedPartId, availableParts]);
@@ -185,6 +188,25 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
     }
   }, [selectedTaskId, availableTasks]);
 
+  const handlePartSelection = (value: string) => {
+    if (value === "custom") {
+      setSelectedPartId("");
+      setPartName("");
+      setDescription("");
+      setPrice(0);
+      setCost(0);
+      setUnitOfMeasure("piece");
+      setSelectedVendorId("");
+      setPartNumber("");
+      setManufacturer("");
+      setCategory("");
+      setLocation("");
+      return;
+    }
+
+    setSelectedPartId(value);
+  };
+
   const handleSave = async () => {
     // Validate required fields based on type
     if (type === 'part' && !partName.trim()) {
@@ -195,8 +217,8 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
       return;
     }
 
-    // Validate vendor selection for parts (always required for parts since we removed part selection)
-    if (type === 'part' && !selectedVendorId) {
+    // New parts require a vendor; existing inventory parts inherit their vendor.
+    if (type === 'part' && !selectedPartId && !selectedVendorId) {
       alert('Please select a vendor for the part.');
       return;
     }
@@ -219,8 +241,8 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
       is_auto_added: false
     };
 
-    // Handle custom part creation - always save to database for parts (since we removed part selection)
-    if (type === 'part' && addPart && invoiceId) {
+    // Create a new inventory record only for custom parts; existing parts are linked by ID.
+    if (type === 'part' && !selectedPartId && addPart && invoiceId) {
       try {
         const customPart: Part = {
           id: crypto.randomUUID(),
@@ -427,10 +449,36 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
             </div>
           )}
 
+          {/* Existing inventory selection or custom part name */}
+          {type === 'part' && (
+            <div>
+              <Label htmlFor="inventoryPart">Inventory Part</Label>
+              <Select value={selectedPartId || "custom"} onValueChange={handlePartSelection}>
+                <SelectTrigger id="inventoryPart">
+                  <SelectValue placeholder="Create a new part" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="custom">Create a new part</SelectItem>
+                  {availableParts.map((part) => (
+                    <SelectItem key={part.id} value={part.id}>
+                      {part.name} — {formatCurrency(part.price)} selling / {formatCurrency(part.cost || 0)} cost
+                    </SelectItem>
+                  ))}
+                  {availableParts.length === 0 && (
+                    <SelectItem value="no-parts" disabled>No inventory parts available</SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                Existing parts inherit their saved purchase cost and vendor.
+              </p>
+            </div>
+          )}
+
           {/* Part Name for parts, Description for others */}
           {type === 'part' ? (
             <div>
-              <Label htmlFor="partName">Part Name *</Label>
+              <Label htmlFor="partName">{selectedPartId ? 'Invoice Part Name' : 'New Part Name *'}</Label>
               <Input
                 id="partName"
                 value={partName}
@@ -453,7 +501,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
           )}
 
           {/* Quantity and Price */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
               <Label htmlFor="quantity">
                 {type === 'labor' && laborBillingType === 'lumpsum' ? 'Quantity (fixed at 1)' : 'Quantity *'}
@@ -497,9 +545,12 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
                   value={cost}
                   onChange={(e) => setCost(parseFloat(e.target.value) || 0)}
                   placeholder="0.00"
-                  required
+                  disabled={Boolean(selectedPartId)}
+                  required={!selectedPartId}
                 />
-                <p className="text-xs text-muted-foreground mt-1">Used for vendor dues and profit reporting.</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {selectedPartId ? 'Inherited from inventory.' : 'Used for vendor dues and profit reporting.'}
+                </p>
               </div>
             )}
             <div>
@@ -522,10 +573,10 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
           </div>
 
           {/* Part Details Section */}
-          {type === 'part' && (
+          {type === 'part' && !selectedPartId && (
             <div className="space-y-4 border-t pt-4">
               <div className="text-sm text-muted-foreground">
-                This part will be automatically saved to the parts database and linked to this invoice.
+                This new part will be saved to inventory and linked to this invoice.
               </div>
 
               {/* Vendor Selection with Add Button */}
