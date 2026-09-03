@@ -22,7 +22,7 @@ const generateId = (prefix: string = 'id'): string => {
 interface VehicleDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (vehicle: Vehicle) => void;
+  onSave: (vehicle: Vehicle) => void | Promise<void>;
   vehicle?: Vehicle;
   customerId?: string;
 }
@@ -32,12 +32,13 @@ const VehicleDialog = ({ open, onOpenChange, onSave, vehicle, customerId }: Vehi
   const formId = "vehicle-form";
   const { currentUser } = useAuthContext();
 
-  // Users who can create OR manage vehicles may use this dialog
-  const canAddVehicles =
-    hasPermission(currentUser, 'vehicles', 'manage') ||
-    hasPermission(currentUser, 'vehicles', 'create');
+  // Creation and management permissions cover new records; edit permission
+  // also allows foremen to update an existing vehicle.
+  const canUseDialog = isEditing
+    ? hasPermission(currentUser, 'vehicles', 'edit')
+    : hasPermission(currentUser, 'vehicles', 'manage') || hasPermission(currentUser, 'vehicles', 'create');
 
-  if (!canAddVehicles) {
+  if (!canUseDialog) {
     return null;
   }
 
@@ -57,7 +58,7 @@ const VehicleDialog = ({ open, onOpenChange, onSave, vehicle, customerId }: Vehi
         updated_at: new Date().toISOString(),
       };
 
-      onSave(newVehicle);
+      await onSave(newVehicle);
       toast.success(`Vehicle ${isEditing ? "updated" : "added"} successfully!`);
       onOpenChange(false);
     } catch (error) {
