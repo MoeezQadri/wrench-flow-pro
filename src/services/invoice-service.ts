@@ -55,6 +55,7 @@ export const createInvoice = async (invoiceData: CreateInvoiceData): Promise<Inv
         type: item.type,
         quantity: item.quantity,
         price: item.price,
+        cost: item.cost || 0,
         part_id: item.part_id || null,
         task_id: item.task_id || null,
         is_auto_added: item.is_auto_added || false,
