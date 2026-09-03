@@ -137,6 +137,12 @@ const CustomerDetails: React.FC = () => {
             <p className="text-muted-foreground">Customer Details</p>
           </div>
         </div>
+        <PermissionGuard resource="customers" action="manage">
+          <Button size="sm" onClick={() => setEditDialogOpen(true)}>
+            <Edit className="mr-2 h-4 w-4" />
+            Edit Customer
+          </Button>
+        </PermissionGuard>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -148,6 +154,7 @@ const CustomerDetails: React.FC = () => {
               Contact Information
             </CardTitle>
           </CardHeader>
+
           <CardContent className="space-y-4">
             <div className="grid gap-3">
               <div className="flex items-center gap-2">
