@@ -170,6 +170,11 @@ const Vehicles: React.FC = () => {
     setDialogOpen(true);
   };
 
+  const handleCloseDialog = (open: boolean) => {
+    setDialogOpen(open);
+    if (!open) setEditingVehicle(undefined);
+  };
+
   if (loading) {
     return <div className="p-8 text-center">Loading vehicles...</div>;
   }
