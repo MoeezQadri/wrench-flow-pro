@@ -82,6 +82,8 @@ export interface InvoiceItem {
   type: 'part' | 'labor' | 'other';
   quantity: number;
   price: number;
+  /** Cost snapshot per unit at the time of invoicing (inherited from inventory) */
+  cost?: number;
   part_id?: string;
   task_id?: string;
   is_auto_added?: boolean;
