@@ -139,12 +139,13 @@ const CustomerDetails: React.FC = () => {
             <p className="text-muted-foreground">Customer Details</p>
           </div>
         </div>
-        <PermissionGuard resource="customers" action="manage">
+        {canEditCustomer && (
           <Button size="sm" onClick={() => setEditDialogOpen(true)}>
             <Edit className="mr-2 h-4 w-4" />
             Edit Customer
           </Button>
-        </PermissionGuard>
+        )}
+
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
