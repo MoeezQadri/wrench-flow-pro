@@ -139,17 +139,9 @@ const Parts: React.FC = () => {
           aValue = a.quantity;
           bValue = b.quantity;
           break;
-        case 'price':
-          aValue = a.price;
-          bValue = b.price;
-          break;
         case 'cost':
           aValue = a.cost || 0;
           bValue = b.cost || 0;
-          break;
-        case 'margin':
-          aValue = a.price - (a.cost || 0);
-          bValue = b.price - (b.cost || 0);
           break;
         case 'vendor':
           aValue = getVendorName(a).toLowerCase();
@@ -260,9 +252,7 @@ const Parts: React.FC = () => {
               <SelectContent className="bg-background border shadow-md">
                 <SelectItem value="name">Name</SelectItem>
                 <SelectItem value="quantity">Quantity</SelectItem>
-                <SelectItem value="price">Selling Price</SelectItem>
                 <SelectItem value="cost">Purchase Cost</SelectItem>
-                <SelectItem value="margin">Margin</SelectItem>
                 <SelectItem value="vendor">Vendor</SelectItem>
                 <SelectItem value="part_number">Part Number</SelectItem>
               </SelectContent>
@@ -360,18 +350,8 @@ const Parts: React.FC = () => {
                             </p>
                           </div>
                           <div>
-                            <p className="text-muted-foreground">Selling Price</p>
-                            <p className="font-medium">{formatCurrency(part.price)}</p>
-                          </div>
-                          <div>
                             <p className="text-muted-foreground">Purchase Cost</p>
                             <p className="font-medium">{formatCurrency(part.cost || 0)}</p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground">Margin</p>
-                            <p className={`font-medium ${part.price - (part.cost || 0) >= 0 ? 'text-green-600' : 'text-destructive'}`}>
-                              {formatCurrency(part.price - (part.cost || 0))}
-                            </p>
                           </div>
                           <div className="col-span-2">
                             <p className="text-muted-foreground">Vendor</p>
@@ -431,16 +411,8 @@ const Parts: React.FC = () => {
                                 </span>
                               </div>
                               <div>
-                                <span className="text-muted-foreground">Selling Price: </span>
-                                <span className="font-medium">{formatCurrency(part.price)}</span>
-                              </div>
-                              <div>
                                 <span className="text-muted-foreground">Cost: </span>
                                 <span className="font-medium">{formatCurrency(part.cost || 0)}</span>
-                              </div>
-                              <div>
-                                <span className="text-muted-foreground">Margin: </span>
-                                <span className="font-medium">{formatCurrency(part.price - (part.cost || 0))}</span>
                               </div>
                               <div>
                                 <span className="text-muted-foreground">Vendor: </span>
