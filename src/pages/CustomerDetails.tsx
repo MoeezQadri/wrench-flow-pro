@@ -308,15 +308,31 @@ const CustomerDetails: React.FC = () => {
                           <PermissionGuard resource="vehicles" action="manage">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0" aria-label={`Actions for ${vehicle.make} ${vehicle.model}`}>
                                   <MoreVertical className="h-4 w-4" />
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
+                                {hasPermission(currentUser, 'vehicles', 'edit') && (
+                                  <DropdownMenuItem onClick={() => handleEditVehicle(vehicle)}>
+                                    <Edit className="mr-2 h-4 w-4" />
+                                    Edit
+                                  </DropdownMenuItem>
+                                )}
                                 <DropdownMenuItem onClick={() => handleTransferVehicle(vehicle)}>
                                   <ArrowRightLeft className="mr-2 h-4 w-4" />
                                   Transfer
                                 </DropdownMenuItem>
+                                {hasPermission(currentUser, 'vehicles', 'delete') && (
+                                  <DropdownMenuItem
+                                    className="text-destructive focus:text-destructive"
+                                    onClick={() => handleRequestDeleteVehicle(vehicle)}
+                                    disabled={checkingVehicleDependencies}
+                                  >
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    {checkingVehicleDependencies ? 'Checking history...' : 'Remove'}
+                                  </DropdownMenuItem>
+                                )}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </PermissionGuard>
