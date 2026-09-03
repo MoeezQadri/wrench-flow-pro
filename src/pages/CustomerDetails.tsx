@@ -432,13 +432,32 @@ const CustomerDetails: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Add Vehicle Dialog */}
       <VehicleDialog
         open={vehicleDialogOpen}
-        onOpenChange={setVehicleDialogOpen}
+        onOpenChange={handleCloseVehicleDialog}
         onSave={handleSaveVehicle}
+        vehicle={editingVehicle || undefined}
         customerId={id}
       />
+
+      <AlertDialog open={!!vehicleToDelete} onOpenChange={(open) => !open && setVehicleToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove this vehicle?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {vehicleDependencies?.total
+                ? `This vehicle cannot be removed because it has ${vehicleDependencies.invoices} invoice${vehicleDependencies.invoices === 1 ? '' : 's'}, ${vehicleDependencies.estimates} estimate${vehicleDependencies.estimates === 1 ? '' : 's'}, or ${vehicleDependencies.tasks} job${vehicleDependencies.tasks === 1 ? '' : 's'} linked to it.`
+                : 'This action permanently removes the vehicle record. Billing and job history are protected.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Close</AlertDialogCancel>
+            {!vehicleDependencies?.total && (
+              <AlertDialogAction onClick={handleDeleteVehicle}>Remove vehicle</AlertDialogAction>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Edit Customer Dialog */}
       <CustomerEditDialog
