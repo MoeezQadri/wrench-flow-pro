@@ -9,10 +9,13 @@ declare global {
 
 let initialized = false;
 
-export function gtag(...args: unknown[]) {
+// gtag.js only treats a pushed item as a command when it is the `arguments`
+// object — pushing a real Array is silently ignored.
+export function gtag() {
   if (typeof window === 'undefined') return;
   window.dataLayer = window.dataLayer || [];
-  window.dataLayer.push(args);
+  // eslint-disable-next-line prefer-rest-params
+  window.dataLayer.push(arguments);
 }
 
 export function initAnalytics() {
@@ -28,8 +31,10 @@ export function initAnalytics() {
   script.src = `https://www.googletagmanager.com/gtag/js?id=${MEASUREMENT_ID}`;
   document.head.appendChild(script);
 
+  // AnalyticsTracker sends every page view (incl. the first), so disable the
+  // automatic one to avoid double counting.
   gtag('js', new Date());
-  gtag('config', MEASUREMENT_ID, { send_page_view: true });
+  gtag('config', MEASUREMENT_ID, { send_page_view: false });
 }
 
 export function trackPageView(path: string) {
