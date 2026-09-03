@@ -67,6 +67,7 @@ const PartDialog = ({ open, onOpenChange, onSave, part, invoiceId }: PartDialogP
         id: part?.id || generateId("part"),
         name: data.name,
         price: data.price,
+        cost: data.cost,
         quantity: data.quantity,
         description: data.description,
         vendor_id: vendorId,
@@ -83,12 +84,12 @@ const PartDialog = ({ open, onOpenChange, onSave, part, invoiceId }: PartDialogP
           id: generateId("expense"),
           category: "parts",
           description: `Purchase: ${newPart.name}`,
-          amount: newPart.price * newPart.quantity,
+          amount: (newPart.cost || 0) * newPart.quantity,
           date: new Date().toISOString(),
           vendor_id: vendorId,
           vendor_name: vendor?.name,
           payment_method: "cash",
-          payment_status: "paid",
+          payment_status: "unpaid",
           invoice_id: invoiceId || undefined,
         };
         
@@ -143,6 +144,7 @@ const PartDialog = ({ open, onOpenChange, onSave, part, invoiceId }: PartDialogP
               ? {
                 name: part.name,
                 price: part.price,
+                cost: part.cost || 0,
                 quantity: part.quantity,
                 description: part.description,
                 vendorId: part.vendor_id || "",

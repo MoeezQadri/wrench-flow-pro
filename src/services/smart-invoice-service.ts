@@ -23,7 +23,8 @@ export const computeItemDiff = (existingItems: any[], newItems: InvoiceItem[]): 
     if (existing) {
       // Check if update is needed
       if (existing.quantity !== newItem.quantity || 
-          existing.price !== newItem.price || 
+          existing.price !== newItem.price ||
+          existing.cost !== (newItem.cost || 0) ||
           existing.description !== newItem.description) {
         toUpdate.push({ existing, updated: newItem });
       }
@@ -85,6 +86,7 @@ export const smartUpdateInvoiceItems = async (invoiceId: string, newItems: Invoi
         description: updated.description,
         quantity: updated.quantity,
         price: updated.price,
+        cost: updated.cost || 0,
         type: updated.type,
         unit_of_measure: updated.unit_of_measure || 'piece'
       })
@@ -105,6 +107,7 @@ export const smartUpdateInvoiceItems = async (invoiceId: string, newItems: Invoi
       type: item.type,
       quantity: item.quantity,
       price: item.price,
+      cost: item.cost || 0,
       part_id: item.part_id || null,
       task_id: item.task_id || null,
       is_auto_added: item.is_auto_added || false,

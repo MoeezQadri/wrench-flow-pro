@@ -46,6 +46,7 @@ const InvoiceItemsSection: React.FC<InvoiceItemsSectionProps> = ({
       type: 'part' as const,
       quantity: quantity,
       price: part.price,
+      cost: part.cost || 0,
       part_id: part.id,
       is_auto_added: false
     }));
@@ -144,6 +145,7 @@ const InvoiceItemsSection: React.FC<InvoiceItemsSectionProps> = ({
                 <th className="text-left p-3">Type</th>
                 <th className="text-right p-3">Quantity</th>
                 <th className="text-right p-3">Unit Price</th>
+                <th className="text-right p-3">Cost</th>
                 <th className="text-right p-3">Total</th>
                 <th className="text-center p-3">Actions</th>
               </tr>
@@ -195,6 +197,7 @@ const InvoiceItemsSection: React.FC<InvoiceItemsSectionProps> = ({
                     {item.quantity} {item.unit_of_measure || 'piece'}
                   </td>
                   <td className="p-3 text-right">{formatCurrency(item.price)}</td>
+                  <td className="p-3 text-right text-muted-foreground">{item.type === 'part' ? formatCurrency(item.cost || 0) : '—'}</td>
                   <td className="p-3 text-right font-medium">{formatCurrency(calculateItemTotal(item))}</td>
                   <td className="p-3 text-center">
                     <div className="flex justify-center gap-1">
