@@ -49,7 +49,10 @@ const Vehicles: React.FC = () => {
         const loadedVehicles = vehicleData || [];
         setVehicles(loadedVehicles);
         const nameMap: { [id: string]: string } = {};
-        for (const customerId of [...new Set(loadedVehicles.map(vehicle => vehicle.customer_id).filter(Boolean))]) {
+        const customerIds = loadedVehicles
+          .map(vehicle => vehicle.customer_id)
+          .filter((customerId): customerId is string => Boolean(customerId));
+        for (const customerId of [...new Set(customerIds)]) {
           try {
             const customer = await getCustomerById(customerId);
             nameMap[customerId] = customer?.name || 'Unknown';
@@ -133,11 +136,6 @@ const Vehicles: React.FC = () => {
   const handleAddNewVehicle = () => {
     setEditingVehicle(undefined);
     setDialogOpen(true);
-  };
-
-  const handleCloseDialog = (open: boolean) => {
-    setDialogOpen(open);
-    if (!open) setEditingVehicle(undefined);
   };
 
   const handleCloseDialog = (open: boolean) => {
