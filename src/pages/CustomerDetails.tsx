@@ -8,14 +8,14 @@ import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { VehicleTransferDialog } from '@/components/vehicle/VehicleTransferDialog';
 import VehicleDialog from '@/components/VehicleDialog';
 import CustomerEditDialog from '@/components/customer/CustomerEditDialog';
 import { PermissionGuard } from '@/components/PermissionGuard';
 import { useAuthContext } from '@/context/AuthContext';
-import { isAdminUser } from '@/utils/permissions';
+import { hasPermission, isAdminUser } from '@/utils/permissions';
 import { Car, Plus, Phone, Mail, MapPin, Calendar, DollarSign, ArrowLeft, FileText, Eye, MoreVertical, ArrowRightLeft, Edit, Trash2 } from 'lucide-react';
 import { formatOrgDate } from '@/utils/datetime';
 
@@ -32,13 +32,19 @@ const CustomerDetails: React.FC = () => {
   const [transferDialogOpen, setTransferDialogOpen] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
   const [vehicleDialogOpen, setVehicleDialogOpen] = useState(false);
+  const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
+  const [vehicleToDelete, setVehicleToDelete] = useState<Vehicle | null>(null);
+  const [vehicleDependencies, setVehicleDependencies] = useState<{ invoices: number; estimates: number; tasks: number; total: number } | null>(null);
+  const [checkingVehicleDependencies, setCheckingVehicleDependencies] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const {
     getCustomerById,
     getVehiclesByCustomerId,
+    getVehicleDependencies,
     invoices: allInvoices,
     customers,
     updateVehicle,
+    removeVehicle,
     addVehicle,
     updateCustomer
   } = useDataContext();
@@ -81,8 +87,51 @@ const CustomerDetails: React.FC = () => {
   };
 
   const handleSaveVehicle = async (vehicle: Vehicle) => {
-    await addVehicle({ ...vehicle, customer_id: id || vehicle.customer_id });
+    if (editingVehicle) {
+      await updateVehicle(vehicle.id, {
+        make: vehicle.make,
+        model: vehicle.model,
+        year: vehicle.year,
+        license_plate: vehicle.license_plate,
+        vin: vehicle.vin,
+        color: vehicle.color,
+      });
+    } else {
+      await addVehicle({ ...vehicle, customer_id: id || vehicle.customer_id });
+    }
+    setEditingVehicle(null);
     await refreshVehicles();
+  };
+
+  const handleEditVehicle = (vehicle: Vehicle) => {
+    setEditingVehicle(vehicle);
+    setVehicleDialogOpen(true);
+  };
+
+  const handleRequestDeleteVehicle = async (vehicle: Vehicle) => {
+    setCheckingVehicleDependencies(true);
+    try {
+      const dependencies = await getVehicleDependencies(vehicle.id);
+      setVehicleDependencies(dependencies);
+      setVehicleToDelete(vehicle);
+    } catch (error) {
+      console.error('Error checking vehicle history:', error);
+    } finally {
+      setCheckingVehicleDependencies(false);
+    }
+  };
+
+  const handleDeleteVehicle = async () => {
+    if (!vehicleToDelete || vehicleDependencies?.total) return;
+    await removeVehicle(vehicleToDelete.id);
+    setVehicles((previous) => previous.filter((vehicle) => vehicle.id !== vehicleToDelete.id));
+    setVehicleToDelete(null);
+    setVehicleDependencies(null);
+  };
+
+  const handleCloseVehicleDialog = (open: boolean) => {
+    setVehicleDialogOpen(open);
+    if (!open) setEditingVehicle(null);
   };
 
   const handleSaveCustomer = async (updates: Partial<Customer>) => {
@@ -256,21 +305,39 @@ const CustomerDetails: React.FC = () => {
                               {vehicle.color}
                             </Badge>
                           )}
-                          <PermissionGuard resource="vehicles" action="manage">
+                          {(hasPermission(currentUser, 'vehicles', 'edit') || hasPermission(currentUser, 'vehicles', 'manage')) && (
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0" aria-label={`Actions for ${vehicle.make} ${vehicle.model}`}>
                                   <MoreVertical className="h-4 w-4" />
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => handleTransferVehicle(vehicle)}>
-                                  <ArrowRightLeft className="mr-2 h-4 w-4" />
-                                  Transfer
-                                </DropdownMenuItem>
+                                {hasPermission(currentUser, 'vehicles', 'edit') && (
+                                  <DropdownMenuItem onClick={() => handleEditVehicle(vehicle)}>
+                                    <Edit className="mr-2 h-4 w-4" />
+                                    Edit
+                                  </DropdownMenuItem>
+                                )}
+                                {hasPermission(currentUser, 'vehicles', 'manage') && (
+                                  <DropdownMenuItem onClick={() => handleTransferVehicle(vehicle)}>
+                                    <ArrowRightLeft className="mr-2 h-4 w-4" />
+                                    Transfer
+                                  </DropdownMenuItem>
+                                )}
+                                {hasPermission(currentUser, 'vehicles', 'delete') && (
+                                  <DropdownMenuItem
+                                    className="text-destructive focus:text-destructive"
+                                    onClick={() => handleRequestDeleteVehicle(vehicle)}
+                                    disabled={checkingVehicleDependencies}
+                                  >
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    {checkingVehicleDependencies ? 'Checking history...' : 'Remove'}
+                                  </DropdownMenuItem>
+                                )}
                               </DropdownMenuContent>
                             </DropdownMenu>
-                          </PermissionGuard>
+                          )}
                         </div>
                       </div>
                       
@@ -367,13 +434,32 @@ const CustomerDetails: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Add Vehicle Dialog */}
       <VehicleDialog
         open={vehicleDialogOpen}
-        onOpenChange={setVehicleDialogOpen}
+        onOpenChange={handleCloseVehicleDialog}
         onSave={handleSaveVehicle}
+        vehicle={editingVehicle || undefined}
         customerId={id}
       />
+
+      <AlertDialog open={!!vehicleToDelete} onOpenChange={(open) => !open && setVehicleToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove this vehicle?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {vehicleDependencies?.total
+                ? `This vehicle cannot be removed because it has ${vehicleDependencies.invoices} invoice${vehicleDependencies.invoices === 1 ? '' : 's'}, ${vehicleDependencies.estimates} estimate${vehicleDependencies.estimates === 1 ? '' : 's'}, or ${vehicleDependencies.tasks} job${vehicleDependencies.tasks === 1 ? '' : 's'} linked to it.`
+                : 'This action permanently removes the vehicle record. Billing and job history are protected.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Close</AlertDialogCancel>
+            {!vehicleDependencies?.total && (
+              <AlertDialogAction onClick={handleDeleteVehicle}>Remove vehicle</AlertDialogAction>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Edit Customer Dialog */}
       <CustomerEditDialog

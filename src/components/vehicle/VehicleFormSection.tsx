@@ -56,6 +56,18 @@ const VehicleFormSection = ({ onSubmit, formId, defaultValues, preselectedCustom
     },
   });
 
+  useEffect(() => {
+    form.reset(defaultValues || {
+      customer_id: preselectedCustomerId || "",
+      make: "",
+      model: "",
+      year: "",
+      license_plate: "",
+      vin: "",
+      color: "",
+    });
+  }, [defaultValues, form, preselectedCustomerId]);
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} id={formId} className="space-y-4">

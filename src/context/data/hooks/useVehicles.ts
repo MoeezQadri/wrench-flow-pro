@@ -4,6 +4,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useOrganizationAwareQuery } from '@/hooks/useOrganizationAwareQuery';
 
+export interface VehicleDependencies {
+    invoices: number;
+    estimates: number;
+    tasks: number;
+    total: number;
+}
+
+
 export const useVehicles = () => {
     const [vehicles, setVehicles] = useState<Vehicle[]>([]);
     const { applyOrganizationFilter } = useOrganizationAwareQuery();
@@ -40,22 +48,65 @@ export const useVehicles = () => {
         }
     };
 
+    // Counts records that reference a vehicle, so the UI can block a delete
+    // that would otherwise destroy billing or job history.
+    const getVehicleDependencies = async (id: string): Promise<VehicleDependencies> => {
+        const emptyResult: VehicleDependencies = { invoices: 0, estimates: 0, tasks: 0, total: 0 };
+        if (!id) return emptyResult;
+
+        try {
+            const [invoiceResult, taskResult] = await Promise.all([
+                supabase
+                    .from('invoices')
+                    .select('id, status', { count: 'exact' })
+                    .eq('vehicle_id', id),
+                supabase
+                    .from('tasks')
+                    .select('id', { count: 'exact', head: true })
+                    .eq('vehicle_id', id),
+            ]);
+
+            if (invoiceResult.error) throw invoiceResult.error;
+            if (taskResult.error) throw taskResult.error;
+
+            const invoiceRows = invoiceResult.data || [];
+            const estimates = invoiceRows.filter((row: any) => row.status === 'estimate').length;
+            const invoices = invoiceRows.length - estimates;
+            const tasks = taskResult.count || 0;
+
+            return {
+                invoices,
+                estimates,
+                tasks,
+                total: invoices + estimates + tasks,
+            };
+        } catch (error) {
+            console.error('Error checking vehicle dependencies:', error);
+            throw error;
+        }
+    };
+
     const removeVehicle = async (id: string) => {
         try {
             const { error } = await supabase.from('vehicles').delete().eq('id', id);
             if (error) {
                 console.error('Error removing vehicle:', error);
-                toast.error('Failed to delete vehicle');
+                // Foreign key violation: the vehicle still has linked records
+                if (error.code === '23503') {
+                    toast.error('This vehicle has invoices or jobs linked to it and cannot be deleted.');
+                } else {
+                    toast.error('Failed to delete vehicle');
+                }
                 throw error;
             }
             setVehicles((prev) => prev.filter((item) => item.id !== id));
             toast.success('Vehicle deleted successfully');
         } catch (error) {
             console.error('Error removing vehicle:', error);
-            toast.error('Failed to delete vehicle');
             throw error;
         }
     };
+
 
     const updateVehicle = async (id: string, updates: Partial<Vehicle>) => {
         try {
@@ -180,6 +231,7 @@ export const useVehicles = () => {
         addVehicle,
         removeVehicle,
         updateVehicle,
+        getVehicleDependencies,
         getVehiclesByCustomerId,
         searchVehicles,
         getVehicleById,
