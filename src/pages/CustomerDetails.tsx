@@ -12,6 +12,7 @@ import { Separator } from '@/components/ui/separator';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { VehicleTransferDialog } from '@/components/vehicle/VehicleTransferDialog';
 import VehicleDialog from '@/components/VehicleDialog';
+import CustomerEditDialog from '@/components/customer/CustomerEditDialog';
 import { PermissionGuard } from '@/components/PermissionGuard';
 import { Car, Plus, Phone, Mail, MapPin, Calendar, DollarSign, ArrowLeft, FileText, Eye, MoreVertical, ArrowRightLeft, Edit, Trash2 } from 'lucide-react';
 import { formatOrgDate } from '@/utils/datetime';
