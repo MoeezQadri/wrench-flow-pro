@@ -11,11 +11,15 @@ let initialized = false;
 
 // gtag.js only treats a pushed item as a command when it is the `arguments`
 // object — pushing a real Array is silently ignored.
-export function gtag() {
+function pushCommand() {
+  // eslint-disable-next-line prefer-rest-params
+  window.dataLayer!.push(arguments);
+}
+
+export function gtag(...args: unknown[]) {
   if (typeof window === 'undefined') return;
   window.dataLayer = window.dataLayer || [];
-  // eslint-disable-next-line prefer-rest-params
-  window.dataLayer.push(arguments);
+  (pushCommand as (...a: unknown[]) => void)(...args);
 }
 
 export function initAnalytics() {
