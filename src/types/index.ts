@@ -111,6 +111,8 @@ export interface Part {
   name: string;
   description?: string;
   price: number;
+  /** Purchase cost per unit (what the workshop pays the vendor) */
+  cost?: number;
   quantity: number;
   vendor_id?: string;
   vendor_name?: string; // Alias for compatibility
