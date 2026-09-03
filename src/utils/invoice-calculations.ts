@@ -1,4 +1,5 @@
 import type { Invoice, InvoiceItem } from '@/types';
+import { isNonBillable } from '@/utils/invoice-status';
 
 export interface InvoiceCalculationBreakdown {
   subtotal: number;

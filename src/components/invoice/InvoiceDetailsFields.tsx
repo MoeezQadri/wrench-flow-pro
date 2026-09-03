@@ -16,17 +16,8 @@ const InvoiceDetailsFields = () => {
   const discountType = form.watch("discountType") || "none";
   const status = form.watch("status") || "open";
   
-  // Define which statuses allow editing discount
-  const canEditDiscount = ['open', 'in-progress', 'completed', 'partial'].includes(status);
-
-  // Debug logging
-  console.log('InvoiceDetailsFields debug:', {
-    discountType,
-    status,
-    discountTypeType: typeof discountType,
-    statusType: typeof status,
-    canEditDiscount
-  });
+  // Discounts can be adjusted on active billing documents and estimates.
+  const canEditDiscount = ['open', 'in-progress', 'completed', 'partial', 'estimate'].includes(status);
 
   return (
     <div className="grid gap-6 md:grid-cols-2">
@@ -85,11 +76,13 @@ const InvoiceDetailsFields = () => {
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
+                <SelectItem value="estimate">Estimate</SelectItem>
                 <SelectItem value="open">Open</SelectItem>
                 <SelectItem value="in-progress">In Progress</SelectItem>
                 <SelectItem value="completed">Completed</SelectItem>
                 <SelectItem value="partial">Partial Payment</SelectItem>
                 <SelectItem value="paid">Paid</SelectItem>
+                <SelectItem value="declined">Declined</SelectItem>
               </SelectContent>
             </Select>
             <FormMessage />

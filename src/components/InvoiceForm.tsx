@@ -827,6 +827,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="estimate">Estimate</SelectItem>
                   <SelectItem value="open">Open</SelectItem>
                   <SelectItem value="in-progress">In Progress</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
@@ -834,6 +835,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
                   <SelectItem value="partial">Partial Payment</SelectItem>
                   <SelectItem value="overdue">Overdue</SelectItem>
                   <SelectItem value="draft">Draft</SelectItem>
+                  <SelectItem value="declined">Declined</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -977,13 +979,15 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
             </div>
           </div>
 
-          {/* Payments Section - Show for both new and edit invoices */}
-          <PaymentsSection
-            payments={payments}
-            setPayments={setPayments}
-            total={totals.total}
-            invoiceId={invoiceData?.id}
-          />
+          {/* Estimates are quotes, so they cannot receive payments. */}
+          {status !== 'estimate' && status !== 'declined' && (
+            <PaymentsSection
+              payments={payments}
+              setPayments={setPayments}
+              total={totals.total}
+              invoiceId={invoiceData?.id}
+            />
+          )}
 
           {/* Submit Button */}
           <Button 
