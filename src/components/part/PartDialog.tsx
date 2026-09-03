@@ -18,7 +18,7 @@ import { useDataContext } from "@/context/data/DataContext";
 interface PartDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (part: Part) => void;
+  onSave: (part: Part) => void | Promise<void>;
   part?: Part;
   invoiceId?: string;
 }
@@ -75,7 +75,7 @@ const PartDialog = ({ open, onOpenChange, onSave, part, invoiceId }: PartDialogP
         invoice_ids: data.invoiceIds || [],
       };
 
-      onSave(newPart);
+      await onSave(newPart);
 
       // Create expense for part purchase
       if (vendorId && !isEditing) {
