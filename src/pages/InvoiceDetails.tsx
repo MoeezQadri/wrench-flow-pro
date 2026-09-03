@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Printer, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { calculateInvoiceBreakdown, calculateInvoiceTotalWithBreakdown } from '@/utils/invoice-calculations';
 import { Invoice } from '@/types';
@@ -28,7 +28,7 @@ const InvoiceDetails: React.FC = () => {
   const [customerName, setCustomerName] = useState<string>('');
   const [vehicleInfo, setVehicleInfo] = useState<any>(null);
   const { formatCurrency } = useOrganizationSettings();
-  const { smartLoad, isLoaded, resetLoadedState } = useSmartDataLoading();
+  const { smartLoad } = useSmartDataLoading();
 
 
   useEffect(() => {
@@ -128,21 +128,52 @@ const InvoiceDetails: React.FC = () => {
     }
   };
 
+  const handleShare = async () => {
+    const shareData = {
+      title: `${invoice.status === 'estimate' ? 'Estimate' : 'Invoice'} #${invoice.id.substring(0, 8)}`,
+      text: `${invoice.status === 'estimate' ? 'Estimate' : 'Invoice'} for ${customerName}`,
+      url: window.location.href,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(window.location.href);
+        toast.success('Document link copied.');
+      }
+    } catch (error) {
+      if (error instanceof Error && error.name !== 'AbortError') {
+        toast.error('Unable to share this document.');
+      }
+    }
+  };
+
   return (
     <div className="p-4">
-      <div className="flex items-center gap-2 mb-4">
-        <Button variant="outline" size="icon" asChild>
-          <Link to="/invoices">
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-        </Button>
-        <h1 className="text-2xl font-bold">Invoice Details</h1>
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="icon" asChild aria-label="Back to invoices">
+            <Link to="/invoices">
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+          </Button>
+          <h1 className="text-2xl font-bold">{invoice.status === 'estimate' ? 'Estimate Details' : 'Invoice Details'}</h1>
+        </div>
+        <div className="flex gap-2 print:hidden">
+          <Button variant="outline" size="icon" onClick={() => window.print()} aria-label="Print document" title="Print document">
+            <Printer className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" size="icon" onClick={handleShare} aria-label="Share document" title="Share document">
+            <Share2 className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       <div className="bg-white p-6 rounded-lg shadow">
         <div className="flex justify-between items-center mb-6 gap-4">
           <h2 className="text-xl font-semibold">{invoice.status === 'estimate' ? 'Estimate' : 'Invoice'} #{invoice.id.substring(0, 8)}</h2>
-          <div className="flex gap-2 flex-wrap justify-end">
+          <div className="flex gap-2 flex-wrap justify-end print:hidden">
             <StatusBadge status={invoice.status} />
             <PermissionGuard resource="invoices" action="edit">
               {invoice.status === 'estimate' && (
@@ -193,7 +224,7 @@ const InvoiceDetails: React.FC = () => {
         </div>
 
         <div className="mb-6">
-          <h3 className="font-medium text-gray-700 mb-2">Invoice Information</h3>
+          <h3 className="font-medium text-gray-700 mb-2">{invoice.status === 'estimate' ? 'Estimate Information' : 'Invoice Information'}</h3>
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
               <span className="text-gray-600">{invoice.status === 'estimate' ? 'Estimate Date' : 'Date'}:</span> {formatOrgDate(invoice.date)}
