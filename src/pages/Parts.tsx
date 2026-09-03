@@ -350,18 +350,8 @@ const Parts: React.FC = () => {
                             </p>
                           </div>
                           <div>
-                            <p className="text-muted-foreground">Selling Price</p>
-                            <p className="font-medium">{formatCurrency(part.price)}</p>
-                          </div>
-                          <div>
                             <p className="text-muted-foreground">Purchase Cost</p>
                             <p className="font-medium">{formatCurrency(part.cost || 0)}</p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground">Margin</p>
-                            <p className={`font-medium ${part.price - (part.cost || 0) >= 0 ? 'text-green-600' : 'text-destructive'}`}>
-                              {formatCurrency(part.price - (part.cost || 0))}
-                            </p>
                           </div>
                           <div className="col-span-2">
                             <p className="text-muted-foreground">Vendor</p>
@@ -421,16 +411,8 @@ const Parts: React.FC = () => {
                                 </span>
                               </div>
                               <div>
-                                <span className="text-muted-foreground">Selling Price: </span>
-                                <span className="font-medium">{formatCurrency(part.price)}</span>
-                              </div>
-                              <div>
                                 <span className="text-muted-foreground">Cost: </span>
                                 <span className="font-medium">{formatCurrency(part.cost || 0)}</span>
-                              </div>
-                              <div>
-                                <span className="text-muted-foreground">Margin: </span>
-                                <span className="font-medium">{formatCurrency(part.price - (part.cost || 0))}</span>
                               </div>
                               <div>
                                 <span className="text-muted-foreground">Vendor: </span>
