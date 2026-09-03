@@ -64,6 +64,15 @@ export function trackEvent(name: string, params: Record<string, unknown> = {}) {
   gtag('event', name, params);
 }
 
+// Send a conversion to Google Ads. Google Ads tracks conversions by label, so
+// callers pass the conversion label configured in the Ads account.
+export function trackGoogleAdsConversion(label: string, value?: number) {
+  gtag('event', 'conversion', {
+    send_to: `${GOOGLE_ADS_ID}/${label}`,
+    ...(value !== undefined ? { value, currency: 'USD' } : {}),
+  });
+}
+
 export const trackLogin = (method = 'email') => trackEvent('login', { method });
 
 export const trackSignUp = (method = 'email') =>
