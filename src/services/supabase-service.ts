@@ -50,6 +50,7 @@ export const createInvoiceWithAutoAssignment = async (invoiceData: {
         type: item.type, // All types should now be correct ('part', 'labor', 'other')
         quantity: item.quantity,
         price: item.price,
+        cost: item.cost || 0,
         part_id: item.part_id || null,
         task_id: item.task_id || null,
         is_auto_added: item.is_auto_added || false
@@ -153,6 +154,7 @@ export const createInvoiceWithAutoAssignment = async (invoiceData: {
             type: 'part', // Changed from 'parts' to 'part'
             quantity: 1,
             price: part.price,
+            cost: part.cost || 0,
             part_id: part.id,
             task_id: null,
             is_auto_added: true
@@ -626,6 +628,7 @@ export const updateInvoice = async (invoiceData: Invoice) => {
                     type: item.type, // Should already be correct ('part', 'labor', 'other')
                     quantity: item.quantity,
                     price: item.price,
+                    cost: item.cost || 0,
                     part_id: item.part_id || null,
                     task_id: item.task_id || null,
                     is_auto_added: item.is_auto_added || false

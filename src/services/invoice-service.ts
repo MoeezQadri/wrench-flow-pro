@@ -55,6 +55,7 @@ export const createInvoice = async (invoiceData: CreateInvoiceData): Promise<Inv
         type: item.type,
         quantity: item.quantity,
         price: item.price,
+        cost: item.cost || 0,
         part_id: item.part_id || null,
         task_id: item.task_id || null,
         is_auto_added: item.is_auto_added || false,
@@ -174,6 +175,7 @@ const updatePartsAndTasksForInvoice = async (items: InvoiceItem[], invoiceId: st
             name: item.description,
             description: item.description,
             price: item.price,
+            cost: item.cost || 0,
             quantity: 0, // Start with 0 since it's consumed immediately
             part_number: item.custom_part_data.part_number,
             manufacturer: item.custom_part_data.manufacturer,

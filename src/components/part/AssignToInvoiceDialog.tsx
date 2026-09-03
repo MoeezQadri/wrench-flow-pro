@@ -98,6 +98,7 @@ const AssignToInvoiceDialog: React.FC<AssignToInvoiceDialogProps> = ({
           description: part.name,
           quantity: quantity,
           price: part.price,
+          cost: part.cost || 0,
           unit_of_measure: part.unit || 'piece',
           organization_id: invoice.organization_id,
           is_auto_added: true

@@ -53,6 +53,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
   const [type, setType] = useState<'part' | 'labor' | 'other'>('part');
   const [quantity, setQuantity] = useState(1);
   const [price, setPrice] = useState(0);
+  const [cost, setCost] = useState(0);
   const [unitOfMeasure, setUnitOfMeasure] = useState("piece");
   const [selectedPartId, setSelectedPartId] = useState("");
   const [selectedTaskId, setSelectedTaskId] = useState("");
@@ -104,6 +105,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
         setType(editingItem.type as 'part' | 'labor' | 'other');
         setQuantity(editingItem.quantity);
         setPrice(editingItem.price);
+        setCost(editingItem.cost || 0);
         setUnitOfMeasure(editingItem.unit_of_measure || "piece");
         setSelectedPartId(editingItem.part_id || "");
         setSelectedTaskId(editingItem.task_id || "");
@@ -135,6 +137,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
         setType('part');
         setQuantity(1);
         setPrice(0);
+        setCost(0);
         setUnitOfMeasure("piece");
         setSelectedPartId("");
         setSelectedTaskId("");
@@ -161,8 +164,12 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
       const selectedPart = availableParts.find(p => p.id === selectedPartId);
       if (selectedPart) {
         setDescription(selectedPart.name);
+        setPartName(selectedPart.name);
         setPrice(selectedPart.price);
+        setCost(selectedPart.cost || 0);
         setUnitOfMeasure(selectedPart.unit || "piece");
+        setSelectedVendorId(selectedPart.vendor_id || "");
+        setPartNumber(selectedPart.part_number || "");
       }
     }
   }, [selectedPartId, availableParts]);
@@ -181,6 +188,25 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
     }
   }, [selectedTaskId, availableTasks]);
 
+  const handlePartSelection = (value: string) => {
+    if (value === "custom") {
+      setSelectedPartId("");
+      setPartName("");
+      setDescription("");
+      setPrice(0);
+      setCost(0);
+      setUnitOfMeasure("piece");
+      setSelectedVendorId("");
+      setPartNumber("");
+      setManufacturer("");
+      setCategory("");
+      setLocation("");
+      return;
+    }
+
+    setSelectedPartId(value);
+  };
+
   const handleSave = async () => {
     // Validate required fields based on type
     if (type === 'part' && !partName.trim()) {
@@ -191,8 +217,8 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
       return;
     }
 
-    // Validate vendor selection for parts (always required for parts since we removed part selection)
-    if (type === 'part' && !selectedVendorId) {
+    // New parts require a vendor; existing inventory parts inherit their vendor.
+    if (type === 'part' && !selectedPartId && !selectedVendorId) {
       alert('Please select a vendor for the part.');
       return;
     }
@@ -205,22 +231,25 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
       type,
       quantity,
       price,
+      cost: type === 'part' ? cost : 0,
       unit_of_measure: unitOfMeasure,
       part_id: selectedPartId || undefined,
-      task_id: selectedTaskId || undefined,
-      creates_inventory_part: type === 'part' || type === 'other',
+      task_id: selectedTaskId && selectedTaskId !== 'none' ? selectedTaskId : undefined,
+      // The custom part is created immediately below, preventing duplicate creation on invoice save.
+      creates_inventory_part: false,
       creates_task: type === 'labor' && !selectedTaskId,
       is_auto_added: false
     };
 
-    // Handle custom part creation - always save to database for parts (since we removed part selection)
-    if (type === 'part' && addPart && invoiceId) {
+    // Create a new inventory record only for custom parts; existing parts are linked by ID.
+    if (type === 'part' && !selectedPartId && addPart && invoiceId) {
       try {
         const customPart: Part = {
           id: crypto.randomUUID(),
           name: partName.trim(),
           description: description.trim() || `Custom part created from invoice ${invoiceId.substring(0, 8)}`,
           price,
+          cost,
           quantity: 0, // Start with 0 since it's being used immediately
           part_number: partNumber || undefined,
           manufacturer: manufacturer || undefined,
@@ -250,12 +279,12 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
           id: crypto.randomUUID(),
           category: 'parts',
           description: `Invoice ${invoiceId.substring(0, 8)}: ${partName.trim()}`,
-          amount: price * quantity,
+          amount: cost * quantity,
           date: new Date().toISOString(),
           vendor_id: selectedVendorId,
           vendor_name: vendor?.name,
           payment_method: "cash",
-          payment_status: "paid",
+          payment_status: "unpaid",
           invoice_id: invoiceId,
           organization_id: selectedOrganizationId,
         };
@@ -280,6 +309,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
           name: description.trim(),
           description: `Custom item created from invoice ${invoiceId.substring(0, 8)}`,
           price,
+          cost: 0,
           quantity: 0, // Start with 0 since it's being used immediately
           part_number: partNumber || undefined,
           manufacturer: manufacturer || undefined,
@@ -315,7 +345,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
             vendor_id: selectedVendorId,
             vendor_name: vendor?.name,
             payment_method: "cash",
-            payment_status: "paid",
+            payment_status: "unpaid",
             invoice_id: invoiceId,
             organization_id: selectedOrganizationId,
           };
@@ -419,10 +449,36 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
             </div>
           )}
 
+          {/* Existing inventory selection or custom part name */}
+          {type === 'part' && (
+            <div>
+              <Label htmlFor="inventoryPart">Inventory Part</Label>
+              <Select value={selectedPartId || "custom"} onValueChange={handlePartSelection}>
+                <SelectTrigger id="inventoryPart">
+                  <SelectValue placeholder="Create a new part" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="custom">Create a new part</SelectItem>
+                  {availableParts.map((part) => (
+                    <SelectItem key={part.id} value={part.id}>
+                      {part.name} — {formatCurrency(part.price)} selling / {formatCurrency(part.cost || 0)} cost
+                    </SelectItem>
+                  ))}
+                  {availableParts.length === 0 && (
+                    <SelectItem value="no-parts" disabled>No inventory parts available</SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                Existing parts inherit their saved purchase cost and vendor.
+              </p>
+            </div>
+          )}
+
           {/* Part Name for parts, Description for others */}
           {type === 'part' ? (
             <div>
-              <Label htmlFor="partName">Part Name *</Label>
+              <Label htmlFor="partName">{selectedPartId ? 'Invoice Part Name' : 'New Part Name *'}</Label>
               <Input
                 id="partName"
                 value={partName}
@@ -445,7 +501,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
           )}
 
           {/* Quantity and Price */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
               <Label htmlFor="quantity">
                 {type === 'labor' && laborBillingType === 'lumpsum' ? 'Quantity (fixed at 1)' : 'Quantity *'}
@@ -478,6 +534,25 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
                 required
               />
             </div>
+            {type === 'part' && (
+              <div>
+                <Label htmlFor="cost">Purchase Cost ({getCurrencySymbol()}) *</Label>
+                <Input
+                  id="cost"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={cost}
+                  onChange={(e) => setCost(parseFloat(e.target.value) || 0)}
+                  placeholder="0.00"
+                  disabled={Boolean(selectedPartId)}
+                  required={!selectedPartId}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  {selectedPartId ? 'Inherited from inventory.' : 'Used for vendor dues and profit reporting.'}
+                </p>
+              </div>
+            )}
             <div>
               <Label htmlFor="unitOfMeasure">Unit of Measure</Label>
               <Select value={unitOfMeasure} onValueChange={setUnitOfMeasure}>
@@ -498,10 +573,10 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
           </div>
 
           {/* Part Details Section */}
-          {type === 'part' && (
+          {type === 'part' && !selectedPartId && (
             <div className="space-y-4 border-t pt-4">
               <div className="text-sm text-muted-foreground">
-                This part will be automatically saved to the parts database and linked to this invoice.
+                This new part will be saved to inventory and linked to this invoice.
               </div>
 
               {/* Vendor Selection with Add Button */}

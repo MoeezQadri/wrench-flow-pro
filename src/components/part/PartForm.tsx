@@ -33,6 +33,7 @@ import { useDataContext } from "@/context/data/DataContext";
 const partSchema = z.object({
   name: z.string().min(1, { message: "Name is required" }),
   price: z.coerce.number().min(0.01, { message: "Price must be at least 0.01" }),
+  cost: z.coerce.number().min(0, { message: "Cost cannot be negative" }),
   quantity: z.coerce.number().min(0, { message: "Quantity cannot be negative" }),
   description: z.string().min(1, { message: "Description is required" }),
   vendorId: z.string().min(1, { message: "Vendor is required" }),
@@ -68,6 +69,7 @@ const PartForm = ({ defaultValues, onSubmit, formId, invoice, invoiceId, part, i
     defaultValues: defaultValues || {
       name: "",
       price: 0,
+      cost: 0,
       quantity: 0,
       description: "",
       vendorId: "",
@@ -195,7 +197,28 @@ const PartForm = ({ defaultValues, onSubmit, formId, invoice, invoiceId, part, i
           )}
         />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <FormField
+            control={form.control}
+            name="cost"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Purchase Cost ({getCurrencySymbol()})</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="7.50"
+                    {...field}
+                  />
+                </FormControl>
+                <FormDescription>What you pay the vendor, per unit.</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
           <FormField
             control={form.control}
             name="price"

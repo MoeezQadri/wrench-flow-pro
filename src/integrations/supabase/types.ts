@@ -319,6 +319,7 @@ export type Database = {
       }
       invoice_items: {
         Row: {
+          cost: number
           created_at: string | null
           creates_inventory_part: boolean | null
           creates_task: boolean | null
@@ -337,6 +338,7 @@ export type Database = {
           unit_of_measure: string | null
         }
         Insert: {
+          cost?: number
           created_at?: string | null
           creates_inventory_part?: boolean | null
           creates_task?: boolean | null
@@ -355,6 +357,7 @@ export type Database = {
           unit_of_measure?: string | null
         }
         Update: {
+          cost?: number
           created_at?: string | null
           creates_inventory_part?: boolean | null
           creates_task?: boolean | null
@@ -572,6 +575,7 @@ export type Database = {
       parts: {
         Row: {
           category: string | null
+          cost: number
           created_at: string | null
           description: string | null
           id: string
@@ -591,6 +595,7 @@ export type Database = {
         }
         Insert: {
           category?: string | null
+          cost?: number
           created_at?: string | null
           description?: string | null
           id?: string
@@ -610,6 +615,7 @@ export type Database = {
         }
         Update: {
           category?: string | null
+          cost?: number
           created_at?: string | null
           description?: string | null
           id?: string

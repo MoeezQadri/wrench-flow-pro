@@ -82,6 +82,8 @@ export interface InvoiceItem {
   type: 'part' | 'labor' | 'other';
   quantity: number;
   price: number;
+  /** Cost snapshot per unit at the time of invoicing (inherited from inventory) */
+  cost?: number;
   part_id?: string;
   task_id?: string;
   is_auto_added?: boolean;
@@ -111,6 +113,8 @@ export interface Part {
   name: string;
   description?: string;
   price: number;
+  /** Purchase cost per unit (what the workshop pays the vendor) */
+  cost?: number;
   quantity: number;
   vendor_id?: string;
   vendor_name?: string; // Alias for compatibility

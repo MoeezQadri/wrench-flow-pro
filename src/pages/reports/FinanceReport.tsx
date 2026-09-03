@@ -55,7 +55,7 @@ const getRevenueData = async (): Promise<any[]> => {
       tax_rate,
       discount_type,
       discount_value,
-      invoice_items(price, quantity),
+      invoice_items(price, cost, quantity, type),
       payments(amount)
     `);
   
@@ -119,13 +119,23 @@ const FinanceReport = () => {
 
   // Calculate totals
   const totalExpenses = filteredExpenses.reduce((sum, expense) => sum + Number(expense.amount), 0);
-  const totalRevenue = filteredRevenue.reduce((sum, invoice) => {
-    const invoiceBreakdown = calculateInvoiceBreakdown(invoice);
-    return sum + invoiceBreakdown.total;
-  }, 0);
+  const invoiceTotals = filteredRevenue.reduce((totals, invoice) => {
+    const breakdown = calculateInvoiceBreakdown(invoice);
+    return {
+      revenue: totals.revenue + breakdown.total,
+      partsCost: totals.partsCost + breakdown.partsCost,
+      grossProfit: totals.grossProfit + breakdown.grossProfit,
+    };
+  }, { revenue: 0, partsCost: 0, grossProfit: 0 });
+  const totalRevenue = invoiceTotals.revenue;
+  const partsCost = invoiceTotals.partsCost;
+  const grossProfit = invoiceTotals.grossProfit;
 
+  // Purchase expenses are already included in totalExpenses; COGS is shown separately
+  // for margin analysis and is not subtracted again from net profit.
   const netProfit = totalRevenue - totalExpenses;
   const profitMargin = totalRevenue > 0 ? ((netProfit / totalRevenue) * 100).toFixed(1) : '0';
+  const grossMargin = totalRevenue > 0 ? ((grossProfit / totalRevenue) * 100).toFixed(1) : '0';
 
   const handleDateRangeChange = (newStartDate: Date, newEndDate: Date) => {
     setStartDate(newStartDate);
@@ -141,6 +151,9 @@ const FinanceReport = () => {
         invoice_id: invoice.id?.slice(0, 8),
         date: formatOrgDate(invoice.date),
         amount: formatCurrency(invoiceBreakdown.total),
+        parts_cost: formatCurrency(invoiceBreakdown.partsCost),
+        gross_profit: formatCurrency(invoiceBreakdown.grossProfit),
+        gross_margin: `${invoiceBreakdown.grossMargin.toFixed(1)}%`,
         status: invoice.status,
         items_count: invoice.invoice_items?.length || 0
       };
@@ -191,41 +204,34 @@ const FinanceReport = () => {
       </div>
 
       {/* Financial Summary */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Total Revenue</CardTitle>
-          </CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm">Total Revenue</CardTitle></CardHeader>
+          <CardContent><div className="text-2xl font-bold text-green-600">{formatCurrency(totalRevenue)}</div></CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-sm">Parts COGS</CardTitle></CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{formatCurrency(totalRevenue)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(partsCost)}</div>
+            <p className="text-xs text-muted-foreground">Cost of parts sold</p>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Total Expenses</CardTitle>
-          </CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm">Gross Profit</CardTitle></CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{formatCurrency(totalExpenses)}</div>
+            <div className={`text-2xl font-bold ${grossProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>{formatCurrency(grossProfit)}</div>
+            <p className="text-xs text-muted-foreground">{grossMargin}% margin before overhead</p>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Net Profit</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className={`text-2xl font-bold ${netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {formatCurrency(netProfit)}
-            </div>
-          </CardContent>
+          <CardHeader className="pb-2"><CardTitle className="text-sm">Total Expenses</CardTitle></CardHeader>
+          <CardContent><div className="text-2xl font-bold text-red-600">{formatCurrency(totalExpenses)}</div></CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Profit Margin</CardTitle>
-          </CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm">Net Profit</CardTitle></CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${parseFloat(profitMargin) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {profitMargin}%
-            </div>
+            <div className={`text-2xl font-bold ${netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>{formatCurrency(netProfit)}</div>
+            <p className="text-xs text-muted-foreground">{profitMargin}% after expenses</p>
           </CardContent>
         </Card>
       </div>

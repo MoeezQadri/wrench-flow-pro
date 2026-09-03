@@ -147,6 +147,7 @@ export const createPartFromInvoiceItem = async (
       name: item.description,
       description: `Auto-created from invoice item: ${item.description}`,
       price: item.price,
+      cost: item.cost || 0,
       quantity: 0, // Start with 0 since it's being used immediately
       part_number: null,
       vendor_id: null,
