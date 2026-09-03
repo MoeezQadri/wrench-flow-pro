@@ -80,6 +80,15 @@ const CustomerDetails: React.FC = () => {
     await refreshVehicles();
   };
 
+  const handleSaveCustomer = async (updates: Partial<Customer>) => {
+    if (!id) return;
+    await updateCustomer(id, updates);
+    const refreshed = await getCustomerById(id);
+    if (refreshed) setCustomer(refreshed);
+  };
+
+
+
   const handleVehicleTransfer = async (vehicleId: string, newCustomerId: string) => {
     await updateVehicle(vehicleId, { customer_id: newCustomerId });
     // Refresh the vehicles list after transfer
