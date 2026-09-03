@@ -82,64 +82,60 @@ const Vehicles: React.FC = () => {
   const handleSaveVehicle = async (vehicle: Vehicle) => {
     try {
       if (editingVehicle) {
-        // Update existing vehicle
-        const { error } = await supabase
-          .from('vehicles')
-          .update({
-            customer_id: vehicle.customer_id,
-            make: vehicle.make,
-            model: vehicle.model,
-            year: vehicle.year,
-            license_plate: vehicle.license_plate,
-            vin: vehicle.vin,
-            color: vehicle.color,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', vehicle.id);
-
-        if (error) throw error;
-
-        // Update local state
-        setVehicles(prev => prev.map(v => v.id === vehicle.id ? vehicle : v));
-
-        // Update customer name cache if customer changed
+        await updateVehicle(vehicle.id, {
+          customer_id: vehicle.customer_id,
+          make: vehicle.make,
+          model: vehicle.model,
+          year: vehicle.year,
+          license_plate: vehicle.license_plate,
+          vin: vehicle.vin,
+          color: vehicle.color,
+        });
+        setVehicles(prev => prev.map(v => v.id === vehicle.id ? { ...v, ...vehicle } : v));
         if (editingVehicle.customer_id !== vehicle.customer_id) {
-          try {
-            const customer = await getCustomerById(vehicle.customer_id);
-            setCustomerNames(prev => ({
-              ...prev,
-              [vehicle.customer_id]: customer?.name || 'Unknown'
-            }));
-          } catch (error) {
-            console.error('Error loading customer name:', error);
-          }
+          const customer = await getCustomerById(vehicle.customer_id);
+          setCustomerNames(prev => ({ ...prev, [vehicle.customer_id]: customer?.name || 'Unknown' }));
         }
-
-        toast.success("Vehicle updated successfully!");
       } else {
-        // Add new vehicle
-        const { data, error } = await supabase
-          .from('vehicles')
-          .insert([{
-            customer_id: vehicle.customer_id,
-            make: vehicle.make,
-            model: vehicle.model,
-            year: vehicle.year,
-            license_plate: vehicle.license_plate,
-            vin: vehicle.vin,
-            color: vehicle.color
-          }])
-          .select()
-          .single();
-
-        if (error) throw error;
-
-        setVehicles(prev => [...prev, data]);
-        toast.success("Vehicle added successfully!");
+        const createdVehicle = await addVehicle(vehicle);
+        if (createdVehicle) setVehicles(prev => [...prev, createdVehicle]);
       }
+      setDialogOpen(false);
+      setEditingVehicle(undefined);
     } catch (error) {
       console.error('Error saving vehicle:', error);
       toast.error("Failed to save vehicle");
+    }
+  };
+
+  const handleEditVehicle = (vehicle: Vehicle) => {
+    setEditingVehicle(vehicle);
+    setDialogOpen(true);
+  };
+
+  const handleRequestDeleteVehicle = async (vehicle: Vehicle) => {
+    setCheckingDependencies(true);
+    try {
+      const dependencies = await getVehicleDependencies(vehicle.id);
+      setVehicleDependencies(dependencies);
+      setVehicleToDelete(vehicle);
+    } catch (error) {
+      console.error('Error checking vehicle history:', error);
+      toast.error('Could not check vehicle history');
+    } finally {
+      setCheckingDependencies(false);
+    }
+  };
+
+  const handleDeleteVehicle = async () => {
+    if (!vehicleToDelete || vehicleDependencies?.total) return;
+    try {
+      await removeVehicle(vehicleToDelete.id);
+      setVehicles(prev => prev.filter(v => v.id !== vehicleToDelete.id));
+      setVehicleToDelete(null);
+      setVehicleDependencies(null);
+    } catch (error) {
+      console.error('Error deleting vehicle:', error);
     }
   };
 
