@@ -17,7 +17,16 @@ const Vehicles: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<Vehicle | undefined>(undefined);
-  const { getCustomerById } = useDataContext();
+  const [vehicleToDelete, setVehicleToDelete] = useState<Vehicle | null>(null);
+  const [vehicleDependencies, setVehicleDependencies] = useState<{ invoices: number; estimates: number; tasks: number; total: number } | null>(null);
+  const [checkingDependencies, setCheckingDependencies] = useState(false);
+  const {
+    getCustomerById,
+    getVehicleDependencies,
+    addVehicle,
+    updateVehicle,
+    removeVehicle,
+  } = useDataContext();
   const { currentUser } = useAuthContext();
   
   // Check permissions
