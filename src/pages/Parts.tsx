@@ -139,17 +139,9 @@ const Parts: React.FC = () => {
           aValue = a.quantity;
           bValue = b.quantity;
           break;
-        case 'price':
-          aValue = a.price;
-          bValue = b.price;
-          break;
         case 'cost':
           aValue = a.cost || 0;
           bValue = b.cost || 0;
-          break;
-        case 'margin':
-          aValue = a.price - (a.cost || 0);
-          bValue = b.price - (b.cost || 0);
           break;
         case 'vendor':
           aValue = getVendorName(a).toLowerCase();
@@ -260,9 +252,7 @@ const Parts: React.FC = () => {
               <SelectContent className="bg-background border shadow-md">
                 <SelectItem value="name">Name</SelectItem>
                 <SelectItem value="quantity">Quantity</SelectItem>
-                <SelectItem value="price">Selling Price</SelectItem>
                 <SelectItem value="cost">Purchase Cost</SelectItem>
-                <SelectItem value="margin">Margin</SelectItem>
                 <SelectItem value="vendor">Vendor</SelectItem>
                 <SelectItem value="part_number">Part Number</SelectItem>
               </SelectContent>
