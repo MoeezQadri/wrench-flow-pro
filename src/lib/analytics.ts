@@ -44,6 +44,10 @@ export function initAnalytics() {
   // automatic one to avoid double counting.
   gtag('js', new Date());
   gtag('config', MEASUREMENT_ID, { send_page_view: false });
+
+  // Register the Google Ads tag through the same gtag.js library. No second
+  // <script> tag is needed — gtag.js handles multiple measurement IDs.
+  gtag('config', GOOGLE_ADS_ID);
 }
 
 export function trackPageView(path: string) {
