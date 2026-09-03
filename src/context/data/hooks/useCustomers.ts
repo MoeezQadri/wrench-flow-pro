@@ -203,6 +203,22 @@ export const useCustomers = () => {
             return;
         }
 
+        // Only contact details may be edited. Organization ownership and
+        // system-calculated analytics (visits, lifetime value, last visit)
+        // are managed by the backend and never sent from the client.
+        const EDITABLE_FIELDS: Array<keyof Customer> = ['name', 'email', 'phone', 'address'];
+        const safeUpdates = EDITABLE_FIELDS.reduce((acc, field) => {
+            if (updates[field] !== undefined) {
+                (acc as any)[field] = updates[field];
+            }
+            return acc;
+        }, {} as Partial<Customer>);
+
+        if (Object.keys(safeUpdates).length === 0) {
+            console.log("No editable customer fields provided");
+            return;
+        }
+
         // Store original customer for rollback
         const originalCustomer = customers.find(c => c.id === id);
         if (!originalCustomer) {
@@ -214,7 +230,7 @@ export const useCustomers = () => {
         // Optimistic update
         const optimisticCustomer = {
             ...originalCustomer,
-            ...updates,
+            ...safeUpdates,
             updated_at: new Date().toISOString()
         };
         setCustomers((prev) => (prev || []).map((item) => item.id === id ? optimisticCustomer : item));
@@ -222,12 +238,13 @@ export const useCustomers = () => {
         setError(null);
 
         try {
-            console.log("Updating customer:", id, updates);
+            console.log("Updating customer:", id, safeUpdates);
             const { data, error } = await supabase
                 .from('customers')
-                .update(updates as any)
+                .update(safeUpdates as any)
                 .eq('id', id)
                 .select();
+
 
             if (error) {
                 // Rollback optimistic update

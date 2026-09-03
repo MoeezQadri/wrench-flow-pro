@@ -14,12 +14,17 @@ import { VehicleTransferDialog } from '@/components/vehicle/VehicleTransferDialo
 import VehicleDialog from '@/components/VehicleDialog';
 import CustomerEditDialog from '@/components/customer/CustomerEditDialog';
 import { PermissionGuard } from '@/components/PermissionGuard';
+import { useAuthContext } from '@/context/AuthContext';
+import { isAdminUser } from '@/utils/permissions';
 import { Car, Plus, Phone, Mail, MapPin, Calendar, DollarSign, ArrowLeft, FileText, Eye, MoreVertical, ArrowRightLeft, Edit, Trash2 } from 'lucide-react';
 import { formatOrgDate } from '@/utils/datetime';
 
 const CustomerDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { formatCurrency } = useOrganizationSettings();
+  const { currentUser } = useAuthContext();
+  // Only organization owners/admins may edit customer records
+  const canEditCustomer = isAdminUser(currentUser);
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -137,12 +142,13 @@ const CustomerDetails: React.FC = () => {
             <p className="text-muted-foreground">Customer Details</p>
           </div>
         </div>
-        <PermissionGuard resource="customers" action="manage">
+        {canEditCustomer && (
           <Button size="sm" onClick={() => setEditDialogOpen(true)}>
             <Edit className="mr-2 h-4 w-4" />
             Edit Customer
           </Button>
-        </PermissionGuard>
+        )}
+
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
