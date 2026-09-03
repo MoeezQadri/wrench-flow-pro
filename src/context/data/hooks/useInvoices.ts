@@ -154,6 +154,7 @@ export const useInvoices = () => {
                         part_id: item.part_id,
                         task_id: item.task_id,
                         is_auto_added: item.is_auto_added || false,
+                        cost: item.cost || 0,
                         unit_of_measure: item.unit_of_measure || 'piece',
                         creates_inventory_part: item.creates_inventory_part || false,
                         creates_task: item.creates_task || false,
