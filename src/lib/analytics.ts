@@ -1,6 +1,11 @@
 const MEASUREMENT_ID = import.meta.env
   .VITE_LOVABLE_CONNECTOR_GOOGLE_ANALYTICS_API_KEY as string | undefined;
 
+// Google Ads measurement ID. gtag.js supports multiple IDs through a single
+// library instance, so we register this alongside the GA4 config rather than
+// loading a second gtag script.
+const GOOGLE_ADS_ID = 'AW-18425240978';
+
 declare global {
   interface Window {
     dataLayer?: unknown[];
