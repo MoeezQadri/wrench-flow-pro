@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { calculateInvoiceBreakdown, calculateInvoiceTotalWithBreakdown } from '@/utils/invoice-calculations';
@@ -14,7 +14,6 @@ import { formatOrgDate, toOrgDayStart } from '@/utils/datetime';
 
 const InvoiceDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
@@ -197,7 +196,7 @@ const InvoiceDetails: React.FC = () => {
           <h3 className="font-medium text-gray-700 mb-2">Invoice Information</h3>
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
-              <span className="text-gray-600">Date:</span> {formatOrgDate(invoice.date)}
+              <span className="text-gray-600">{invoice.status === 'estimate' ? 'Estimate Date' : 'Date'}:</span> {formatOrgDate(invoice.date)}
             </div>
             <div>
               <span className="text-gray-600">Tax Rate:</span> {invoice.tax_rate}%
@@ -260,20 +259,31 @@ const InvoiceDetails: React.FC = () => {
                 <span>{formatCurrency(tax)}</span>
               </div>
               <div className="flex justify-between py-2 border-b font-medium">
-                <span>Total:</span>
+                <span>{invoice.status === 'estimate' ? 'Estimated Total:' : 'Total:'}</span>
                 <span>{formatCurrency(total)}</span>
               </div>
-              <div className="flex justify-between py-2 border-b text-green-600">
-                <span>Paid:</span>
-                <span>{formatCurrency(paidAmount)}</span>
-              </div>
-              <div className="flex justify-between py-2 font-bold">
-                <span>Balance Due:</span>
-                <span>{formatCurrency(balanceDue)}</span>
-              </div>
+              {invoice.status !== 'estimate' && invoice.status !== 'declined' && (
+                <>
+                  <div className="flex justify-between py-2 border-b text-green-600">
+                    <span>Paid:</span>
+                    <span>{formatCurrency(paidAmount)}</span>
+                  </div>
+                  <div className="flex justify-between py-2 font-bold">
+                    <span>Balance Due:</span>
+                    <span>{formatCurrency(balanceDue)}</span>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
+
+        {invoice.status === 'estimate' && (
+          <div className="mb-6 border border-border bg-muted/40 p-4 rounded-md">
+            <p className="font-medium">Estimate only</p>
+            <p className="text-sm text-muted-foreground">This document is a quote for review and is not a request for payment.</p>
+          </div>
+        )}
 
         {invoice.notes && (
           <div className="mb-6">

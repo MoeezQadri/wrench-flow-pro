@@ -80,7 +80,7 @@ const InvoicingReport = () => {
       </div>
 
       {/* Statistics */}
-      <div className="grid gap-4 grid-cols-2 md:grid-cols-5">
+      <div className="grid gap-4 grid-cols-2 md:grid-cols-7">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm">Total Invoices</CardTitle>
@@ -119,6 +119,22 @@ const InvoicingReport = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold break-words">{formatCurrency(outstandingAmount)}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Estimates</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{estimateInvoices}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Declined</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{declinedInvoices}</div>
           </CardContent>
         </Card>
       </div>

@@ -27,7 +27,7 @@ const InvoiceDetailsFields = () => {
         name="date"
         render={({ field }) => (
           <FormItem className="flex flex-col">
-            <FormLabel>Invoice Date</FormLabel>
+            <FormLabel>{status === 'estimate' ? 'Estimate Date' : 'Invoice Date'}</FormLabel>
             <Popover>
               <PopoverTrigger asChild>
                 <FormControl>

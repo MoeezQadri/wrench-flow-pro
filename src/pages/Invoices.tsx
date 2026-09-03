@@ -150,8 +150,10 @@ const Invoices: React.FC = () => {
              <SelectItem value="estimate">Estimates</SelectItem>
              <SelectItem value="open">Open</SelectItem>
              <SelectItem value="in-progress">In Progress</SelectItem>
+             <SelectItem value="completed">Completed</SelectItem>
              <SelectItem value="partial">Partial</SelectItem>
              <SelectItem value="paid">Paid</SelectItem>
+             <SelectItem value="overdue">Overdue</SelectItem>
              <SelectItem value="declined">Declined</SelectItem>
           </SelectContent>
         </Select>
