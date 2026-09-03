@@ -4,6 +4,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useOrganizationAwareQuery } from '@/hooks/useOrganizationAwareQuery';
 
+export interface VehicleDependencies {
+    invoices: number;
+    estimates: number;
+    tasks: number;
+    total: number;
+}
+
+
 export const useVehicles = () => {
     const [vehicles, setVehicles] = useState<Vehicle[]>([]);
     const { applyOrganizationFilter } = useOrganizationAwareQuery();
