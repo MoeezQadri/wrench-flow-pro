@@ -287,6 +287,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
           name: description.trim(),
           description: `Custom item created from invoice ${invoiceId.substring(0, 8)}`,
           price,
+          cost: 0,
           quantity: 0, // Start with 0 since it's being used immediately
           part_number: partNumber || undefined,
           manufacturer: manufacturer || undefined,
