@@ -20,6 +20,7 @@ import { useDataContext } from '@/context/data/DataContext';
 import { DateRangePicker } from '@/components/dashboard/DateRangePicker';
 import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
 import { calculateInvoiceBreakdown, calculateTotalReceivables, calculateOverdueAmount } from '@/utils/invoice-calculations';
+import { isNonBillable } from '@/utils/invoice-status';
 import { exportToCSV } from '@/utils/csv-export';
 import { toast } from 'sonner';
 
@@ -52,9 +53,9 @@ const FinancialReport = () => {
     });
   };
 
-  // Calculate receivables (unpaid invoices) within date range
+  // Calculate receivables (unpaid invoices) within date range; quotes are not debt.
   const filteredInvoices = filterByDateRange(invoices, 'date');
-  const receivables = filteredInvoices.filter(inv => inv.status !== 'paid');
+  const receivables = filteredInvoices.filter(inv => inv.status !== 'paid' && !isNonBillable(inv.status));
   const totalReceivables = calculateTotalReceivables(receivables);
 
   // Calculate overdue receivables

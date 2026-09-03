@@ -3,16 +3,17 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDataContext } from '@/context/data/DataContext';
 import { useIncrementalDataLoading } from '@/hooks/useIncrementalDataLoading';
-import { Invoice } from '@/types';
+import { Invoice, InvoiceStatus } from '@/types';
 
 const InvoiceForm = React.lazy(() => import('@/components/InvoiceForm'));
 
 interface InvoiceFormWithLoaderProps {
   isEditing?: boolean;
   invoiceData?: Invoice | null;
+  initialStatus?: InvoiceStatus;
 }
 
-export function InvoiceFormWithLoader({ isEditing = false, invoiceData = null }: InvoiceFormWithLoaderProps) {
+export function InvoiceFormWithLoader({ isEditing = false, invoiceData = null, initialStatus = 'open' }: InvoiceFormWithLoaderProps) {
   const { customers, parts, tasks, mechanics } = useDataContext();
   const { loadMultipleDataTypes, getLoadingState } = useIncrementalDataLoading();
   const [isReady, setIsReady] = useState(false);
@@ -49,7 +50,7 @@ export function InvoiceFormWithLoader({ isEditing = false, invoiceData = null }:
 
   return (
     <React.Suspense fallback={<InvoiceFormSkeleton />}>
-      <InvoiceForm isEditing={isEditing} invoiceData={invoiceData} />
+      <InvoiceForm isEditing={isEditing} invoiceData={invoiceData} initialStatus={initialStatus} />
     </React.Suspense>
   );
 }

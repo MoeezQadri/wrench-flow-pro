@@ -1,6 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Invoice, Customer } from '@/types';
-import { toast } from 'sonner';
+import { Invoice } from '@/types';
 import { Link } from 'react-router-dom';
 import { useDataContext } from '@/context/data/DataContext';
 import { Input } from '@/components/ui/input';
@@ -13,6 +12,7 @@ import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
 import { calculateInvoiceBreakdown } from '@/utils/invoice-calculations';
 import { PageWrapper } from '@/components/PageWrapper';
 import { formatOrgDate } from '@/utils/datetime';
+import StatusBadge from '@/components/StatusBadge';
 
 const Invoices: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -146,10 +146,15 @@ const Invoices: React.FC = () => {
             <SelectValue placeholder="Filter by status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
-            <SelectItem value="paid">Paid</SelectItem>
-            <SelectItem value="partial">Partial</SelectItem>
-            <SelectItem value="unpaid">Unpaid</SelectItem>
+             <SelectItem value="all">All Statuses</SelectItem>
+             <SelectItem value="estimate">Estimates</SelectItem>
+             <SelectItem value="open">Open</SelectItem>
+             <SelectItem value="in-progress">In Progress</SelectItem>
+             <SelectItem value="completed">Completed</SelectItem>
+             <SelectItem value="partial">Partial</SelectItem>
+             <SelectItem value="paid">Paid</SelectItem>
+             <SelectItem value="overdue">Overdue</SelectItem>
+             <SelectItem value="declined">Declined</SelectItem>
           </SelectContent>
         </Select>
 
@@ -231,13 +236,7 @@ const Invoices: React.FC = () => {
                       {formatOrgDate(invoice.date)}
                     </td>
                     <td className="py-2 px-4 border-b">
-                      <span className={`px-2 py-1 rounded text-xs ${
-                        invoice.status === 'paid' ? 'bg-success/10 text-success' :
-                        invoice.status === 'partial' ? 'bg-warning/10 text-warning' :
-                        'bg-destructive/10 text-destructive'
-                      }`}>
-                        {invoice.status}
-                      </span>
+                       <StatusBadge status={invoice.status} />
                     </td>
                     <td className="py-2 px-4 border-b">
                       {formatCurrency(finalTotal)}
@@ -250,7 +249,7 @@ const Invoices: React.FC = () => {
                         >
                           View
                         </Link>
-                        {userCanEditInvoices && invoice.status !== 'paid' && invoice.status !== 'completed' && (
+                        {userCanEditInvoices && invoice.status !== 'paid' && invoice.status !== 'completed' && invoice.status !== 'declined' && (
                           <Link
                             to={`/invoices/${invoice.id}/edit`}
                             className="text-success hover:text-success/80 underline"

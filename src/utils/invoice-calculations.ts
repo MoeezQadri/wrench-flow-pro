@@ -1,4 +1,5 @@
 import type { Invoice, InvoiceItem } from '@/types';
+import { isNonBillable } from '@/utils/invoice-status';
 
 export interface InvoiceCalculationBreakdown {
   subtotal: number;
@@ -87,7 +88,7 @@ export const calculateInvoiceTotal = (invoice: Invoice): number => {
  */
 export const calculateTotalReceivables = (invoices: Invoice[]): number => {
   return invoices
-    .filter(invoice => invoice.status !== 'paid')
+    .filter(invoice => invoice.status !== 'paid' && !isNonBillable(invoice.status))
     .reduce((total, invoice) => total + calculateInvoiceBreakdown(invoice).total, 0);
 };
 
@@ -97,7 +98,7 @@ export const calculateTotalReceivables = (invoices: Invoice[]): number => {
 export const calculateOverdueAmount = (invoices: Invoice[]): number => {
   return invoices
     .filter(invoice => {
-      if (invoice.status === 'paid' || !invoice.due_date) return false;
+      if (invoice.status === 'paid' || isNonBillable(invoice.status) || !invoice.due_date) return false;
       return new Date(invoice.due_date) < new Date();
     })
     .reduce((total, invoice) => total + calculateInvoiceBreakdown(invoice).total, 0);

@@ -1,5 +1,4 @@
-
-import { InvoiceStatus } from '@/types';
+import type { InvoiceStatus } from '@/types';
 
 interface StatusBadgeProps {
   status: InvoiceStatus;
@@ -18,6 +17,10 @@ const StatusBadge = ({ status }: StatusBadgeProps) => {
         return 'bg-purple-100 text-purple-800 border-purple-200';
       case 'partial':
         return 'bg-orange-100 text-orange-800 border-orange-200';
+      case 'estimate':
+        return 'bg-slate-100 text-slate-800 border-slate-200';
+      case 'declined':
+        return 'bg-red-100 text-red-800 border-red-200';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
     }
@@ -35,6 +38,10 @@ const StatusBadge = ({ status }: StatusBadgeProps) => {
         return 'Paid';
       case 'partial':
         return 'Partial Payment';
+      case 'estimate':
+        return 'Estimate';
+      case 'declined':
+        return 'Declined';
       default:
         return status;
     }

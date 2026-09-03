@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { isWithinInterval, parseISO, format, eachDayOfInterval } from "date-fns";
 import { calculateInvoiceBreakdown } from "@/utils/invoice-calculations";
+import { isNonBillable } from "@/utils/invoice-status";
 
 export interface DashboardData {
   totalRevenue: number;
@@ -89,9 +90,10 @@ export async function fetchDashboardData(startDate: Date, endDate: Date): Promis
       .lte('created_at', previousEndIso);
 
     // Calculate current period metrics
-    const totalRevenue = invoices?.reduce((sum, invoice) => {
-      const invoiceWithItems = { 
-        ...invoice, 
+    const billableInvoices = invoices?.filter(invoice => !isNonBillable(invoice.status)) || [];
+    const totalRevenue = billableInvoices.reduce((sum, invoice) => {
+      const invoiceWithItems = {
+        ...invoice,
         items: invoice.invoice_items,
         id: invoice.id || '',
         customer_id: invoice.customer_id || '',
@@ -102,16 +104,17 @@ export async function fetchDashboardData(startDate: Date, endDate: Date): Promis
       return sum + invoiceBreakdown.total;
     }, 0) || 0;
 
-    const totalInvoices = invoices?.length || 0;
+    const totalInvoices = billableInvoices.length;
     const activeTasks = tasks?.filter(task => task.status === 'in-progress').length || 0;
     const newCustomers = customers?.length || 0;
     const completedJobs = tasks?.filter(task => task.status === 'completed').length || 0;
     const averageJobValue = totalInvoices > 0 ? totalRevenue / totalInvoices : 0;
 
     // Calculate previous period metrics
-    const previousRevenue = previousInvoices?.reduce((sum, invoice) => {
-      const invoiceWithItems = { 
-        ...invoice, 
+    const previousBillableInvoices = previousInvoices?.filter(invoice => !isNonBillable(invoice.status)) || [];
+    const previousRevenue = previousBillableInvoices.reduce((sum, invoice) => {
+      const invoiceWithItems = {
+        ...invoice,
         items: invoice.invoice_items,
         id: invoice.id || '',
         customer_id: invoice.customer_id || '',
@@ -122,7 +125,7 @@ export async function fetchDashboardData(startDate: Date, endDate: Date): Promis
       return sum + invoiceBreakdown.total;
     }, 0) || 0;
 
-    const previousInvoicesCount = previousInvoices?.length || 0;
+    const previousInvoicesCount = previousBillableInvoices.length;
     const previousActiveTasks = previousTasks?.filter(task => task.status === 'in-progress').length || 0;
     const previousNewCustomers = previousCustomers?.length || 0;
     const previousCompletedJobs = previousTasks?.filter(task => task.status === 'completed').length || 0;
@@ -165,6 +168,7 @@ export async function fetchChartData(startDate: Date, endDate: Date): Promise<Ch
       .from('invoices')
       .select(`
         date,
+        status,
         tax_rate,
         discount_type,
         discount_value,
@@ -194,17 +198,15 @@ export async function fetchChartData(startDate: Date, endDate: Date): Promise<Ch
       
       // Calculate revenue for this day
       const dayRevenue = invoices
-        ?.filter(invoice => format(new Date(invoice.date || ''), 'yyyy-MM-dd') === dayStr)
+        ?.filter(invoice => !isNonBillable(invoice.status) && format(new Date(invoice.date || ''), 'yyyy-MM-dd') === dayStr)
         .reduce((sum, invoice) => {
-          // Map invoice_items to items to match expected interface and add required fields
-          const invoiceWithItems = { 
-            ...invoice, 
+          const invoiceWithItems = {
+            ...invoice,
             items: invoice.invoice_items,
-            // Add minimal required fields for calculation
             id: '',
             customer_id: '',
             vehicle_id: '',
-            status: 'open' as any
+            status: invoice.status as any
           } as any;
           const invoiceBreakdown = calculateInvoiceBreakdown(invoiceWithItems);
           return sum + invoiceBreakdown.total;
@@ -217,7 +219,7 @@ export async function fetchChartData(startDate: Date, endDate: Date): Promise<Ch
 
       // Count invoices for this day
       const dayInvoices = invoices
-        ?.filter(invoice => format(new Date(invoice.date || ''), 'yyyy-MM-dd') === dayStr)
+        ?.filter(invoice => !isNonBillable(invoice.status) && format(new Date(invoice.date || ''), 'yyyy-MM-dd') === dayStr)
         .length || 0;
 
       return {

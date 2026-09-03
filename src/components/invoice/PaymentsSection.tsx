@@ -38,8 +38,8 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({ payments, setPayments
   const organizationId = selectedOrganizationId || currentUser?.organization_id || '';
   const status = watch("status");
 
-  // Determine if payments can be edited based on invoice status
-  const canEditPayments = status !== "paid" && status !== "cancelled";
+  // Estimates and declined quotes are not payable documents.
+  const canEditPayments = status !== "paid" && status !== "cancelled" && status !== "estimate" && status !== "declined";
 
   const handleAddPayment = useCallback(async () => {
     if (!paymentAmount || !paymentMethod) {
@@ -94,7 +94,7 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({ payments, setPayments
       if (newTotalPaid >= total) {
         setValue("status", "paid");
       } else if (newTotalPaid > 0) {
-        setValue("status", "partially_paid");
+        setValue("status", "partial");
       }
     } catch (error) {
       console.error("Error adding payment:", error);
@@ -115,14 +115,14 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({ payments, setPayments
       setPayments(updatedPayments);
 
       // Update invoice status based on remaining payments
-      const totalPaid = updatedPayments.reduce((sum, payment) => sum + payment.amount, 0);
-      if (totalPaid === 0) {
-        setValue("status", "pending");
-      } else if (totalPaid < total) {
-        setValue("status", "partially_paid");
-      } else {
-        setValue("status", "paid");
-      }
+       const totalPaid = updatedPayments.reduce((sum, payment) => sum + payment.amount, 0);
+       if (totalPaid === 0) {
+         setValue("status", "open");
+       } else if (totalPaid < total) {
+         setValue("status", "partial");
+       } else {
+         setValue("status", "paid");
+       }
     } catch (error) {
       console.error("Error removing payment:", error);
       // Error already handled by the hook with toast

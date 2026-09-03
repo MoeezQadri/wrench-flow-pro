@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { exportToCSV } from '@/utils/csv-export';
 import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
 import { calculateInvoiceBreakdown } from '@/utils/invoice-calculations';
+import { isNonBillable } from '@/utils/invoice-status';
 import { formatOrgDate } from '@/utils/datetime';
 
 // Interface for expenses matching Supabase schema
@@ -110,7 +111,7 @@ const FinanceReport = () => {
   const filteredRevenue = revenue.filter(invoice => {
     try {
       const invoiceDate = parseISO(invoice.date || '');
-      return isWithinInterval(invoiceDate, { start: startDate, end: endDate });
+      return !isNonBillable(invoice.status) && isWithinInterval(invoiceDate, { start: startDate, end: endDate });
     } catch (e) {
       return false;
     }

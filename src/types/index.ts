@@ -32,7 +32,7 @@ export interface Vehicle {
 }
 
 export type TaskStatus = 'open' | 'in-progress' | 'completed' | 'blocked' | 'canceled' | 'pending';
-export type InvoiceStatus = 'open' | 'paid' | 'partial' | 'overdue' | 'draft' | 'in-progress' | 'completed';
+export type InvoiceStatus = 'open' | 'paid' | 'partial' | 'overdue' | 'draft' | 'in-progress' | 'completed' | 'estimate' | 'declined';
 export type AttendanceStatus = 'present' | 'late' | 'absent' | 'half-day' | 'pending' | 'approved' | 'rejected';
 export type LeaveType = 'annual' | 'sick' | 'unpaid' | 'other';
 export type TaskBillingType = 'hourly' | 'lumpsum';

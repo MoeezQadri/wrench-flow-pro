@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Printer, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { calculateInvoiceBreakdown, calculateInvoiceTotalWithBreakdown } from '@/utils/invoice-calculations';
 import { Invoice } from '@/types';
@@ -9,23 +9,26 @@ import { toast } from 'sonner';
 import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
 import { useSmartDataLoading } from '@/hooks/useSmartDataLoading';
 import { PermissionGuard } from '@/components/PermissionGuard';
-import { formatOrgDate } from '@/utils/datetime';
+import StatusBadge from '@/components/StatusBadge';
+import { formatOrgDate, toOrgDayStart } from '@/utils/datetime';
 
 const InvoiceDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const {
     getInvoiceById,
     customers,
     getVehiclesByCustomerId,
     loadInvoices,
-    loadCustomers
+    loadCustomers,
+    updateInvoice
   } = useDataContext();
   const [customerName, setCustomerName] = useState<string>('');
   const [vehicleInfo, setVehicleInfo] = useState<any>(null);
   const { formatCurrency } = useOrganizationSettings();
-  const { smartLoad, isLoaded, resetLoadedState } = useSmartDataLoading();
+  const { smartLoad } = useSmartDataLoading();
 
 
   useEffect(() => {
@@ -107,33 +110,86 @@ const InvoiceDetails: React.FC = () => {
   const breakdown = calculateInvoiceBreakdown(invoice);
   const { subtotal, tax, total, paidAmount, balanceDue } = calculateInvoiceTotalWithBreakdown(invoice);
 
+  const changeStatus = async (nextStatus: 'open' | 'declined') => {
+    setIsUpdatingStatus(true);
+    try {
+      const updates = nextStatus === 'open'
+        ? { status: nextStatus, date: toOrgDayStart(new Date()) }
+        : { status: nextStatus };
+      const updated = await updateInvoice(invoice.id, updates);
+      setInvoice({ ...invoice, ...updated });
+      await loadInvoices();
+      toast.success(nextStatus === 'open' ? 'Estimate converted to invoice.' : 'Estimate marked as declined.');
+    } catch (error) {
+      console.error('Error changing invoice status:', error);
+      toast.error('Unable to update this document.');
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
+  const handleShare = async () => {
+    const shareData = {
+      title: `${invoice.status === 'estimate' ? 'Estimate' : 'Invoice'} #${invoice.id.substring(0, 8)}`,
+      text: `${invoice.status === 'estimate' ? 'Estimate' : 'Invoice'} for ${customerName}`,
+      url: window.location.href,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(window.location.href);
+        toast.success('Document link copied.');
+      }
+    } catch (error) {
+      if (error instanceof Error && error.name !== 'AbortError') {
+        toast.error('Unable to share this document.');
+      }
+    }
+  };
+
   return (
     <div className="p-4">
-      <div className="flex items-center gap-2 mb-4">
-        <Button variant="outline" size="icon" asChild>
-          <Link to="/invoices">
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-        </Button>
-        <h1 className="text-2xl font-bold">Invoice Details</h1>
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="icon" asChild aria-label="Back to invoices">
+            <Link to="/invoices">
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+          </Button>
+          <h1 className="text-2xl font-bold">{invoice.status === 'estimate' ? 'Estimate Details' : 'Invoice Details'}</h1>
+        </div>
+        <div className="flex gap-2 print:hidden">
+          <Button variant="outline" size="icon" onClick={() => window.print()} aria-label="Print document" title="Print document">
+            <Printer className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" size="icon" onClick={handleShare} aria-label="Share document" title="Share document">
+            <Share2 className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       <div className="bg-white p-6 rounded-lg shadow">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-semibold">Invoice #{invoice.id.substring(0, 8)}</h2>
-          <div className="flex gap-2">
-            <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-              invoice.status === 'paid' ? 'bg-green-100 text-green-800' :
-              invoice.status === 'partial' ? 'bg-yellow-100 text-yellow-800' :
-              'bg-blue-100 text-blue-800'
-            }`}>
-              {invoice.status.toUpperCase()}
-            </span>
+        <div className="flex justify-between items-center mb-6 gap-4">
+          <h2 className="text-xl font-semibold">{invoice.status === 'estimate' ? 'Estimate' : 'Invoice'} #{invoice.id.substring(0, 8)}</h2>
+          <div className="flex gap-2 flex-wrap justify-end print:hidden">
+            <StatusBadge status={invoice.status} />
             <PermissionGuard resource="invoices" action="edit">
-              {invoice.status !== 'paid' && invoice.status !== 'completed' && (
+              {invoice.status === 'estimate' && (
+                <>
+                  <Button variant="default" size="sm" onClick={() => changeStatus('open')} disabled={isUpdatingStatus}>
+                    Convert to Invoice
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => changeStatus('declined')} disabled={isUpdatingStatus}>
+                    Mark Declined
+                  </Button>
+                </>
+              )}
+              {invoice.status !== 'paid' && invoice.status !== 'completed' && invoice.status !== 'declined' && (
                 <Button variant="outline" size="sm" asChild>
                   <Link to={`/invoices/${invoice.id}/edit`}>
-                    Edit Invoice
+                    Edit {invoice.status === 'estimate' ? 'Estimate' : 'Invoice'}
                   </Link>
                 </Button>
               )}
@@ -168,10 +224,10 @@ const InvoiceDetails: React.FC = () => {
         </div>
 
         <div className="mb-6">
-          <h3 className="font-medium text-gray-700 mb-2">Invoice Information</h3>
+          <h3 className="font-medium text-gray-700 mb-2">{invoice.status === 'estimate' ? 'Estimate Information' : 'Invoice Information'}</h3>
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
-              <span className="text-gray-600">Date:</span> {formatOrgDate(invoice.date)}
+              <span className="text-gray-600">{invoice.status === 'estimate' ? 'Estimate Date' : 'Date'}:</span> {formatOrgDate(invoice.date)}
             </div>
             <div>
               <span className="text-gray-600">Tax Rate:</span> {invoice.tax_rate}%
@@ -234,20 +290,31 @@ const InvoiceDetails: React.FC = () => {
                 <span>{formatCurrency(tax)}</span>
               </div>
               <div className="flex justify-between py-2 border-b font-medium">
-                <span>Total:</span>
+                <span>{invoice.status === 'estimate' ? 'Estimated Total:' : 'Total:'}</span>
                 <span>{formatCurrency(total)}</span>
               </div>
-              <div className="flex justify-between py-2 border-b text-green-600">
-                <span>Paid:</span>
-                <span>{formatCurrency(paidAmount)}</span>
-              </div>
-              <div className="flex justify-between py-2 font-bold">
-                <span>Balance Due:</span>
-                <span>{formatCurrency(balanceDue)}</span>
-              </div>
+              {invoice.status !== 'estimate' && invoice.status !== 'declined' && (
+                <>
+                  <div className="flex justify-between py-2 border-b text-green-600">
+                    <span>Paid:</span>
+                    <span>{formatCurrency(paidAmount)}</span>
+                  </div>
+                  <div className="flex justify-between py-2 font-bold">
+                    <span>Balance Due:</span>
+                    <span>{formatCurrency(balanceDue)}</span>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
+
+        {invoice.status === 'estimate' && (
+          <div className="mb-6 border border-border bg-muted/40 p-4 rounded-md">
+            <p className="font-medium">Estimate only</p>
+            <p className="text-sm text-muted-foreground">Quote valid for review — not a request for payment.</p>
+          </div>
+        )}
 
         {invoice.notes && (
           <div className="mb-6">
@@ -256,8 +323,8 @@ const InvoiceDetails: React.FC = () => {
           </div>
         )}
 
-        {/* Payments Section */}
-        {invoice.payments && invoice.payments.length > 0 && (
+        {/* Estimates and declined quotes do not show payment history. */}
+        {invoice.status !== 'estimate' && invoice.status !== 'declined' && invoice.payments && invoice.payments.length > 0 && (
           <div className="mb-6">
             <h3 className="font-medium text-gray-700 mb-3">Payments</h3>
             <div className="overflow-x-auto">

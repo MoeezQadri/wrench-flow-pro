@@ -11,6 +11,7 @@ import { useDataContext } from "@/context/data/DataContext";
 import { isWithinInterval, parseISO } from "date-fns";
 import { useOrganizationSettings } from "@/hooks/useOrganizationSettings";
 import { calculateInvoiceBreakdown } from '@/utils/invoice-calculations';
+import { isNonBillable } from '@/utils/invoice-status';
 import { formatOrgDate } from '@/utils/datetime';
 
 const InvoicingReport = () => {
@@ -30,19 +31,22 @@ const InvoicingReport = () => {
   });
 
   // Calculate statistics
+  const billableInvoices = filteredInvoices.filter(inv => !isNonBillable(inv.status));
   const totalInvoices = filteredInvoices.length;
-  const paidInvoices = filteredInvoices.filter(inv => inv.status === 'paid').length;
-  const openInvoices = filteredInvoices.filter(inv => inv.status === 'open').length;
-  const overdueInvoices = filteredInvoices.filter(inv => inv.status === 'overdue').length;
+  const estimateInvoices = filteredInvoices.filter(inv => inv.status === 'estimate').length;
+  const declinedInvoices = filteredInvoices.filter(inv => inv.status === 'declined').length;
+  const paidInvoices = billableInvoices.filter(inv => inv.status === 'paid').length;
+  const openInvoices = billableInvoices.filter(inv => inv.status === 'open').length;
+  const overdueInvoices = billableInvoices.filter(inv => inv.status === 'overdue').length;
 
-  const totalRevenue = filteredInvoices.reduce((sum, invoice) => {
+  const totalRevenue = billableInvoices.reduce((sum, invoice) => {
     const invoiceBreakdown = calculateInvoiceBreakdown(invoice);
     return sum + invoiceBreakdown.total;
   }, 0);
 
   const paidAmount = payments
     .filter(payment => {
-      const invoice = filteredInvoices.find(inv => inv.id === payment.invoice_id);
+      const invoice = billableInvoices.find(inv => inv.id === payment.invoice_id);
       return invoice && invoice.status === 'paid';
     })
     .reduce((sum, payment) => sum + Number(payment.amount), 0);
@@ -76,7 +80,7 @@ const InvoicingReport = () => {
       </div>
 
       {/* Statistics */}
-      <div className="grid gap-4 grid-cols-2 md:grid-cols-5">
+      <div className="grid gap-4 grid-cols-2 md:grid-cols-7">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm">Total Invoices</CardTitle>
@@ -115,6 +119,22 @@ const InvoicingReport = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold break-words">{formatCurrency(outstandingAmount)}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Estimates</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{estimateInvoices}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Declined</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{declinedInvoices}</div>
           </CardContent>
         </Card>
       </div>
