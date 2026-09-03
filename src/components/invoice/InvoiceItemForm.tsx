@@ -459,12 +459,12 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="custom">Create a new part</SelectItem>
-                  {availableParts.map((part) => (
+                  {(availableParts || []).map((part) => (
                     <SelectItem key={part.id} value={part.id}>
                       {part.name} — {formatCurrency(part.price)} selling / {formatCurrency(part.cost || 0)} cost
                     </SelectItem>
                   ))}
-                  {availableParts.length === 0 && (
+                  {(availableParts || []).length === 0 && (
                     <SelectItem value="no-parts" disabled>No inventory parts available</SelectItem>
                   )}
                 </SelectContent>
