@@ -14,6 +14,8 @@ import { VehicleTransferDialog } from '@/components/vehicle/VehicleTransferDialo
 import VehicleDialog from '@/components/VehicleDialog';
 import CustomerEditDialog from '@/components/customer/CustomerEditDialog';
 import { PermissionGuard } from '@/components/PermissionGuard';
+import { useAuthContext } from '@/context/AuthContext';
+import { isAdminUser } from '@/utils/permissions';
 import { Car, Plus, Phone, Mail, MapPin, Calendar, DollarSign, ArrowLeft, FileText, Eye, MoreVertical, ArrowRightLeft, Edit, Trash2 } from 'lucide-react';
 import { formatOrgDate } from '@/utils/datetime';
 
