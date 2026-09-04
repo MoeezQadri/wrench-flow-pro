@@ -22,8 +22,11 @@ export const createItemKey = (item: InvoiceItem): string => {
   if (item.task_id) {
     return `task-${item.task_id}`;
   }
-  return `custom-${item.type}-${item.description}-${item.price}`;
+  // Custom lines are distinct rows: two lines may legitimately share a
+  // description and price, so identity falls back to the line's own id.
+  return `custom-${item.id}`;
 };
+
 
 export const hasConflictingItem = (newItem: InvoiceItem, existingItems: InvoiceItem[]): boolean => {
   const newKey = createItemKey(newItem);
