@@ -381,7 +381,17 @@ const InvoiceDetails: React.FC = () => {
           </div>
         )}
       </div>
+
+      <DeleteInvoiceDialog
+        invoice={invoice}
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        customerName={customerName}
+        formattedTotal={formatCurrency(calculateInvoiceTotalWithBreakdown(invoice))}
+        onDeleted={() => navigate('/invoices')}
+      />
     </div>
+
   );
 };
 
