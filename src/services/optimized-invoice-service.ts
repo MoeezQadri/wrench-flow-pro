@@ -1,6 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
 import { Invoice, InvoiceItem, Part, Task, Payment, InvoiceStatus } from '@/types';
-import { toast } from 'sonner';
 
 export interface CreateInvoiceData {
   customerId: string;
@@ -15,193 +14,260 @@ export interface CreateInvoiceData {
   status?: InvoiceStatus;
 }
 
-export interface BatchPartUpdate {
-  partId: string;
-  quantity: number;
-  operation: 'add' | 'remove';
-  invoiceId: string;
-}
+/** Estimates (and declined estimates) never move stock or create purchase expenses. */
+const isNonStockStatus = (status?: string | null) =>
+  status === 'estimate' || status === 'declined';
 
-export interface BatchTaskUpdate {
-  taskId: string;
-  invoiceId: string;
-  price?: number;
-}
-
-// Batch database operations for better performance
-export const batchUpdateParts = async (updates: BatchPartUpdate[], organizationId: string) => {
-  console.log('Starting batch part updates:', updates.length);
-  
-  if (updates.length === 0) return;
-
-  // Group updates by part ID to combine operations
-  const partUpdates = new Map<string, { quantity: number; invoiceIds: string[] }>();
-  
-  for (const update of updates) {
-    const key = update.partId;
-    const existing = partUpdates.get(key) || { quantity: 0, invoiceIds: [] };
-    
-    if (update.operation === 'add') {
-      existing.quantity -= update.quantity; // Subtract from inventory
-      if (!existing.invoiceIds.includes(update.invoiceId)) {
-        existing.invoiceIds.push(update.invoiceId);
-      }
-    } else {
-      existing.quantity += update.quantity; // Add back to inventory
-      existing.invoiceIds = existing.invoiceIds.filter(id => id !== update.invoiceId);
+/** Quantity of each inventory part consumed by the given lines. */
+const countPartQuantities = (items: { type?: string; part_id?: string | null; quantity?: number }[]) => {
+  const counts = new Map<string, number>();
+  (items || []).forEach(item => {
+    if (item.type === 'part' && item.part_id) {
+      counts.set(item.part_id, (counts.get(item.part_id) || 0) + (item.quantity || 0));
     }
-    
-    partUpdates.set(key, existing);
-  }
+  });
+  return counts;
+};
 
-  // Execute batch updates
-  const updatePromises = Array.from(partUpdates.entries()).map(async ([partId, changes]) => {
-    // Get current part data
-    const { data: part, error: fetchError } = await supabase
+/**
+ * Applies the *net* stock movement between what the invoice previously consumed
+ * and what it consumes now. Never restores-then-deducts, so a failure part way
+ * through a save cannot double count inventory.
+ */
+const applyInventoryChanges = async (
+  before: Map<string, number>,
+  after: Map<string, number>,
+  invoiceId: string
+) => {
+  const partIds = new Set<string>([...before.keys(), ...after.keys()]);
+  if (partIds.size === 0) return;
+
+  for (const partId of partIds) {
+    const previous = before.get(partId) || 0;
+    const current = after.get(partId) || 0;
+    const delta = previous - current; // positive: give stock back
+
+    const { data: part, error } = await supabase
       .from('parts')
       .select('quantity, invoice_ids')
       .eq('id', partId)
-      .single();
+      .maybeSingle();
 
-    if (fetchError || !part) {
-      console.error('Error fetching part for batch update:', fetchError);
-      return;
-    }
+    if (error) throw new Error(`Failed to read part for stock update: ${error.message}`);
+    if (!part) continue;
 
-    const newQuantity = Math.max(0, part.quantity + changes.quantity);
-    const currentInvoiceIds = part.invoice_ids || [];
-    
-    // Merge invoice IDs
-    const newInvoiceIds = [...new Set([...currentInvoiceIds, ...changes.invoiceIds])];
+    const invoiceIds: string[] = part.invoice_ids || [];
+    const nextInvoiceIds = current > 0
+      ? [...new Set([...invoiceIds, invoiceId])]
+      : invoiceIds.filter(id => id !== invoiceId);
 
-    return supabase
+    if (delta === 0 && nextInvoiceIds.length === invoiceIds.length) continue;
+
+    const { error: updateError } = await supabase
       .from('parts')
       .update({
-        quantity: newQuantity,
-        invoice_ids: newInvoiceIds,
+        quantity: Math.max(0, (part.quantity || 0) + delta),
+        invoice_ids: nextInvoiceIds,
         updated_at: new Date().toISOString()
       })
       .eq('id', partId);
-  });
 
-  const results = await Promise.allSettled(updatePromises);
-  const errors = results.filter(r => r.status === 'rejected');
-  
-  if (errors.length > 0) {
-    console.error('Some batch part updates failed:', errors);
-    throw new Error(`Failed to update ${errors.length} parts`);
+    if (updateError) throw new Error(`Failed to update part stock: ${updateError.message}`);
   }
-  
-  console.log('Batch part updates completed successfully');
 };
 
-export const batchUpdateTasks = async (updates: BatchTaskUpdate[]) => {
-  console.log('Starting batch task updates:', updates.length);
-  
-  if (updates.length === 0) return;
+/**
+ * Creates the inventory part (and the vendor purchase expense) for custom
+ * part/other lines, exactly once, at save time. The created part id is written
+ * back onto the line so a second save updates instead of duplicating.
+ * Returns the lines with part_id resolved.
+ */
+const ensureInventoryParts = async (
+  items: InvoiceItem[],
+  invoiceId: string,
+  organizationId: string,
+  createExpenses: boolean
+): Promise<InvoiceItem[]> => {
+  const resolved: InvoiceItem[] = [];
 
-  const updatePromises = updates.map(update => 
-    supabase
-      .from('tasks')
-      .update({
-        invoice_id: update.invoiceId,
-        price: update.price,
+  for (const item of items) {
+    const needsPart =
+      (item.type === 'part' || item.type === 'other') &&
+      !item.part_id &&
+      item.creates_inventory_part;
+
+    if (!needsPart) {
+      resolved.push(item);
+      continue;
+    }
+
+    const name = (item.description || '').trim();
+    const custom = (item.custom_part_data || {}) as Record<string, any>;
+
+    // Reuse an existing inventory part with the same name (and part number when given)
+    let query = supabase
+      .from('parts')
+      .select('id')
+      .eq('organization_id', organizationId)
+      .ilike('name', name);
+
+    if (custom.part_number) query = query.eq('part_number', custom.part_number);
+
+    const { data: existingPart } = await query.limit(1).maybeSingle();
+
+    if (existingPart?.id) {
+      resolved.push({ ...item, part_id: existingPart.id });
+      continue;
+    }
+
+    const newPartId = crypto.randomUUID();
+    const { error: partError } = await supabase
+      .from('parts')
+      .insert({
+        id: newPartId,
+        name,
+        description: name,
+        price: item.price,
+        cost: item.cost || 0,
+        // Stocked at the consumed quantity, so the stock movement below nets to zero
+        quantity: item.quantity,
+        part_number: custom.part_number || null,
+        manufacturer: custom.manufacturer || null,
+        category: item.type === 'other' ? 'other' : (custom.category || null),
+        location: custom.location || null,
+        vendor_id: custom.vendor_id || null,
+        vendor_name: custom.vendor_name || null,
+        unit: item.unit_of_measure || 'piece',
+        reorder_level: 5,
+        invoice_ids: [invoiceId],
+        organization_id: organizationId,
+        created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
-      })
-      .eq('id', update.taskId)
-  );
+      } as any);
 
-  const results = await Promise.allSettled(updatePromises);
-  const errors = results.filter(r => r.status === 'rejected');
-  
-  if (errors.length > 0) {
-    console.error('Some batch task updates failed:', errors);
-    throw new Error(`Failed to update ${errors.length} tasks`);
+    if (partError) {
+      throw new Error(`Failed to create inventory part "${name}": ${partError.message}`);
+    }
+
+    if (createExpenses && custom.vendor_id && (item.cost || 0) > 0) {
+      const { error: expenseError } = await supabase
+        .from('expenses')
+        .insert({
+          id: crypto.randomUUID(),
+          category: 'parts',
+          description: `Invoice ${invoiceId.substring(0, 8)}: ${name}`,
+          amount: (item.cost || 0) * item.quantity,
+          date: new Date().toISOString(),
+          vendor_id: custom.vendor_id,
+          vendor_name: custom.vendor_name || null,
+          payment_method: 'cash',
+          payment_status: 'unpaid',
+          invoice_id: invoiceId,
+          organization_id: organizationId
+        } as any);
+
+      if (expenseError) {
+        throw new Error(`Failed to record purchase expense for "${name}": ${expenseError.message}`);
+      }
+    }
+
+    resolved.push({ ...item, part_id: newPartId });
   }
-  
-  console.log('Batch task updates completed successfully');
+
+  return resolved;
 };
+
+const buildItemRow = (item: InvoiceItem, invoiceId: string, organizationId: string) => ({
+  id: crypto.randomUUID(),
+  invoice_id: invoiceId,
+  organization_id: organizationId,
+  description: item.description,
+  type: item.type,
+  quantity: item.quantity,
+  price: item.price,
+  cost: item.cost || 0,
+  part_id: item.part_id || null,
+  task_id: item.task_id || null,
+  is_auto_added: item.is_auto_added || false,
+  unit_of_measure: item.unit_of_measure || 'piece',
+  creates_inventory_part: item.creates_inventory_part || false,
+  creates_task: item.creates_task || false,
+  custom_part_data: item.custom_part_data || null,
+  custom_labor_data: item.custom_labor_data || null
+});
 
 // Optimized invoice creation with minimal database calls
 export const createInvoiceOptimized = async (invoiceData: CreateInvoiceData): Promise<Invoice> => {
+  if (!invoiceData.customerId) throw new Error('Customer ID is required');
+  if (!invoiceData.vehicleId) throw new Error('Vehicle ID is required');
+  if (!invoiceData.items || invoiceData.items.length === 0) {
+    throw new Error('At least one item is required');
+  }
+
+  const totalAmount = invoiceData.items.reduce((sum, item) => sum + (item.quantity * item.price), 0);
+  if (totalAmount === 0) {
+    throw new Error('Cannot create invoice with zero total amount. Please check item prices.');
+  }
+
+  const invoiceId = crypto.randomUUID();
+  const status = invoiceData.status || 'open';
+  console.log('Creating optimized invoice:', invoiceId, 'with total amount:', totalAmount);
+
+  const { data: invoice, error: invoiceError } = await supabase
+    .from('invoices')
+    .insert({
+      id: invoiceId,
+      customer_id: invoiceData.customerId,
+      vehicle_id: invoiceData.vehicleId,
+      date: invoiceData.date,
+      tax_rate: invoiceData.taxRate,
+      discount_type: invoiceData.discountType,
+      discount_value: invoiceData.discountValue,
+      notes: invoiceData.notes,
+      status
+    })
+    .select('*, organization_id')
+    .single();
+
+  if (invoiceError) {
+    console.error('Error creating invoice:', invoiceError);
+    throw new Error(`Failed to create invoice: ${invoiceError.message}`);
+  }
+
   try {
-    // Validate invoice data before creation
-    if (!invoiceData.customerId) {
-      throw new Error('Customer ID is required');
-    }
-    if (!invoiceData.vehicleId) {
-      throw new Error('Vehicle ID is required');
-    }
-    if (!invoiceData.items || invoiceData.items.length === 0) {
-      throw new Error('At least one item is required');
-    }
+    const stockStatus = isNonStockStatus(status);
 
-    // Check for zero amount invoice
-    const totalAmount = invoiceData.items.reduce((sum, item) => sum + (item.quantity * item.price), 0);
-    if (totalAmount === 0) {
-      throw new Error('Cannot create invoice with zero total amount. Please check item prices.');
-    }
+    // Resolve custom parts first so every line is saved with its part_id
+    const resolvedItems = await ensureInventoryParts(
+      invoiceData.items,
+      invoiceId,
+      invoice.organization_id,
+      !stockStatus
+    );
 
-    const invoiceId = crypto.randomUUID();
-    console.log('Creating optimized invoice:', invoiceId, 'with total amount:', totalAmount);
+    const itemRows = resolvedItems.map(item => buildItemRow(item, invoiceId, invoice.organization_id));
 
-    // Single transaction for invoice and items
-    const { data: invoice, error: invoiceError } = await supabase
-      .from('invoices')
-      .insert({
-        id: invoiceId,
-        customer_id: invoiceData.customerId,
-        vehicle_id: invoiceData.vehicleId,
-        date: invoiceData.date,
-        tax_rate: invoiceData.taxRate,
-        discount_type: invoiceData.discountType,
-        discount_value: invoiceData.discountValue,
-        notes: invoiceData.notes,
-        status: invoiceData.status || 'open'
-      })
-      .select('*, organization_id')
-      .single();
+    const { error: itemsError } = await supabase
+      .from('invoice_items')
+      .insert(itemRows as any);
 
-    if (invoiceError) {
-      console.error('Error creating invoice:', invoiceError);
-      throw new Error(`Failed to create invoice: ${invoiceError.message}`);
+    if (itemsError) {
+      throw new Error(`Failed to create invoice items: ${itemsError.message}`);
     }
 
-    // Batch insert items if any exist
-    if (invoiceData.items && invoiceData.items.length > 0) {
-      const itemsToInsert = invoiceData.items.map(item => ({
-        id: crypto.randomUUID(),
-        invoice_id: invoiceId,
-        description: item.description,
-        type: item.type,
-        quantity: item.quantity,
-        price: item.price,
-        cost: item.cost || 0,
-        part_id: item.part_id || null,
-        task_id: item.task_id || null,
-        is_auto_added: item.is_auto_added || false,
-        unit_of_measure: item.unit_of_measure || 'piece',
-        creates_inventory_part: item.creates_inventory_part || false,
-        creates_task: item.creates_task || false,
-        custom_part_data: item.custom_part_data || null,
-        custom_labor_data: item.custom_labor_data || null,
-        organization_id: invoice.organization_id
-      }));
+    const savedItems: InvoiceItem[] = resolvedItems.map((item, index) => ({
+      ...item,
+      id: itemRows[index].id
+    }));
 
-      const { error: itemsError } = await supabase
-        .from('invoice_items')
-        .insert(itemsToInsert);
-
-      if (itemsError) {
-        console.error('Error creating invoice items:', itemsError);
-        throw new Error(`Failed to create invoice items: ${itemsError.message}`);
-      }
-
-      // Process updates in batches
-      await processItemUpdatesOptimized(invoiceData.items, invoiceId, invoice.organization_id);
+    if (!stockStatus) {
+      await applyInventoryChanges(new Map(), countPartQuantities(savedItems), invoiceId);
     }
 
-    // Batch insert payments if any exist
+    await linkSelectedTasks(savedItems, invoiceId);
+    await syncLaborTasks(savedItems, invoiceId, invoice.organization_id);
+
+    // Payments
     const paymentsToReturn: Payment[] = [];
     if (invoiceData.payments && invoiceData.payments.length > 0) {
       const paymentsToInsert = invoiceData.payments.map(payment => ({
@@ -220,7 +286,6 @@ export const createInvoiceOptimized = async (invoiceData: CreateInvoiceData): Pr
         .select('*');
 
       if (paymentsError) {
-        console.error('Error creating payments:', paymentsError);
         throw new Error(`Failed to create payments: ${paymentsError.message}`);
       }
 
@@ -229,212 +294,146 @@ export const createInvoiceOptimized = async (invoiceData: CreateInvoiceData): Pr
 
     return {
       ...invoice,
-      items: invoiceData.items,
+      items: savedItems,
       payments: paymentsToReturn
     } as Invoice;
-
   } catch (error) {
-    console.error('Error in createInvoiceOptimized:', error);
+    // Never leave an empty invoice behind when the line items could not be saved
+    console.error('Invoice creation failed after the invoice row was inserted, rolling back:', error);
+    await supabase.from('invoice_items').delete().eq('invoice_id', invoiceId);
+    await supabase.from('invoices').delete().eq('id', invoiceId);
     throw error;
   }
 };
 
 // Optimized invoice update with smart item diffing
 export const updateInvoiceOptimized = async (invoiceData: Invoice): Promise<Invoice> => {
-  try {
-    const { id, customer_id, vehicle_id, date, tax_rate, discount_type, discount_value, notes, status, items, payments } = invoiceData as Invoice & { payments?: Payment[] };
-    console.log('Starting optimized invoice update:', id);
+  const { id, customer_id, vehicle_id, date, tax_rate, discount_type, discount_value, notes, status, items, payments } =
+    invoiceData as Invoice & { payments?: Payment[] };
+  console.log('Starting optimized invoice update:', id);
 
-    // Update invoice record
-    const { data: invoiceResult, error: invoiceError } = await supabase
-      .from('invoices')
-      .update({
-        customer_id,
-        vehicle_id,
-        date,
-        tax_rate,
-        discount_type,
-        discount_value,
-        notes,
-        status,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', id)
-      .select('*, organization_id')
-      .single();
+  const { data: previous, error: previousError } = await supabase
+    .from('invoices')
+    .select('status, organization_id')
+    .eq('id', id)
+    .single();
 
-    if (invoiceError) {
-      console.error('Error updating invoice:', invoiceError);
-      throw new Error(`Failed to update invoice: ${invoiceError.message}`);
-    }
-
-    if (items) {
-      // Get existing items for cleanup and diffing
-      const { data: existingItems } = await supabase
-        .from('invoice_items')
-        .select('*')
-        .eq('invoice_id', id);
-
-      // Clean up old assignments in batch
-      if (existingItems) {
-        await cleanupOldAssignmentsBatch(existingItems, id);
-      }
-
-      // Use smart update for items
-      const { smartUpdateInvoiceItems } = await import('./smart-invoice-service');
-      await smartUpdateInvoiceItems(id, items, invoiceResult.organization_id);
-
-      // Process new assignments in batch
-      await processItemUpdatesOptimized(items, id, invoiceResult.organization_id);
-    }
-
-    // Persist payments (replace the invoice's payment rows with the current list)
-    let savedPayments: Payment[] = [];
-    if (payments) {
-      const { paymentService } = await import('./payment-service');
-      savedPayments = await paymentService.replaceInvoicePayments(
-        id,
-        payments.map(payment => ({
-          amount: Number(payment.amount),
-          method: payment.method,
-          date: payment.date,
-          notes: payment.notes || undefined,
-          organization_id: invoiceResult.organization_id
-        }))
-      );
-    }
-
-    console.log('Optimized invoice update completed');
-
-    return {
-      ...invoiceResult,
-      items: items || [],
-      payments: savedPayments
-    } as Invoice;
-
-
-  } catch (error) {
-    console.error('Error in updateInvoiceOptimized:', error);
-    throw error;
+  if (previousError) {
+    throw new Error(`Failed to load invoice: ${previousError.message}`);
   }
+
+  const { data: invoiceResult, error: invoiceError } = await supabase
+    .from('invoices')
+    .update({
+      customer_id,
+      vehicle_id,
+      date,
+      tax_rate,
+      discount_type,
+      discount_value,
+      notes,
+      status,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', id)
+    .select('*, organization_id')
+    .single();
+
+  if (invoiceError) {
+    console.error('Error updating invoice:', invoiceError);
+    throw new Error(`Failed to update invoice: ${invoiceError.message}`);
+  }
+
+  let savedItems: InvoiceItem[] = items || [];
+
+  if (items) {
+    const { data: existingItems, error: existingError } = await supabase
+      .from('invoice_items')
+      .select('*')
+      .eq('invoice_id', id);
+
+    if (existingError) {
+      throw new Error(`Failed to load existing invoice items: ${existingError.message}`);
+    }
+
+    const wasNonStock = isNonStockStatus(previous.status);
+    const isNonStock = isNonStockStatus(status);
+
+    const resolvedItems = await ensureInventoryParts(
+      items,
+      id,
+      invoiceResult.organization_id,
+      !isNonStock
+    );
+
+    const { smartUpdateInvoiceItems } = await import('./smart-invoice-service');
+    const result = await smartUpdateInvoiceItems(id, resolvedItems, invoiceResult.organization_id);
+    savedItems = result.savedItems;
+
+    // Net stock movement only; an estimate consumed nothing before conversion
+    await applyInventoryChanges(
+      wasNonStock ? new Map() : countPartQuantities(existingItems || []),
+      isNonStock ? new Map() : countPartQuantities(savedItems),
+      id
+    );
+
+    await linkSelectedTasks(savedItems, id);
+    await syncLaborTasks(savedItems, id, invoiceResult.organization_id);
+  }
+
+  // Persist payments (replace the invoice's payment rows with the current list)
+  let savedPayments: Payment[] = [];
+  if (payments) {
+    const { paymentService } = await import('./payment-service');
+    savedPayments = await paymentService.replaceInvoicePayments(
+      id,
+      payments.map(payment => ({
+        amount: Number(payment.amount),
+        method: payment.method,
+        date: payment.date,
+        notes: payment.notes || undefined,
+        organization_id: invoiceResult.organization_id
+      }))
+    );
+  }
+
+  console.log('Optimized invoice update completed');
+
+  return {
+    ...invoiceResult,
+    items: savedItems,
+    payments: savedPayments
+  } as Invoice;
 };
 
-// Process item updates using batch operations
-const processItemUpdatesOptimized = async (items: InvoiceItem[], invoiceId: string, organizationId: string) => {
-  console.log('Processing item updates optimized:', items.length);
+/** Links workshop tasks that were picked on a labor line to this invoice. */
+const linkSelectedTasks = async (items: InvoiceItem[], invoiceId: string) => {
+  const taskLines = items.filter(item => item.type === 'labor' && item.task_id);
+  for (const item of taskLines) {
+    const { error } = await supabase
+      .from('tasks')
+      .update({
+        invoice_id: invoiceId,
+        price: item.price,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', item.task_id as string);
 
-  // Separate different types of operations
-  const partUpdates: BatchPartUpdate[] = [];
-  const taskUpdates: BatchTaskUpdate[] = [];
-  const customPartCreations: any[] = [];
-  const customTaskCreations: any[] = [];
-
-  items.forEach(item => {
-    if (item.type === 'part') {
-      if (item.creates_inventory_part && item.custom_part_data) {
-        customPartCreations.push({
-          id: crypto.randomUUID(),
-          name: item.description,
-          description: item.description,
-          price: item.price,
-          cost: item.cost || 0,
-          quantity: 0,
-          part_number: item.custom_part_data.part_number,
-          manufacturer: item.custom_part_data.manufacturer,
-          category: item.custom_part_data.category,
-          location: item.custom_part_data.location,
-          unit: item.unit_of_measure || 'piece',
-          invoice_ids: [invoiceId],
-          organization_id: organizationId,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        });
-      } else if (item.part_id) {
-        partUpdates.push({
-          partId: item.part_id,
-          quantity: item.quantity,
-          operation: 'add',
-          invoiceId
-        });
-      }
-    } else if (item.type === 'labor' && item.task_id) {
-      // Existing task selected on the line: just link it and refresh the price
-      taskUpdates.push({
-        taskId: item.task_id,
-        invoiceId,
-        price: item.price
-      });
-    }
-  });
-
-
-  // Execute all operations in parallel
-  const operations = [];
-
-  if (customPartCreations.length > 0) {
-    operations.push(
-      supabase.from('parts').insert(customPartCreations)
-    );
+    if (error) throw new Error(`Failed to link task to invoice: ${error.message}`);
   }
-
-  if (customTaskCreations.length > 0) {
-    // kept for compatibility; labor tasks are synced by syncLaborTasks below
-    operations.push(
-      supabase.from('tasks').insert(customTaskCreations)
-    );
-  }
-
-
-  if (partUpdates.length > 0) {
-    operations.push(
-      batchUpdateParts(partUpdates, organizationId)
-    );
-  }
-
-  if (taskUpdates.length > 0) {
-    operations.push(
-      batchUpdateTasks(taskUpdates)
-    );
-  }
-
-  if (operations.length > 0) {
-    await Promise.all(operations);
-  }
-
-  // Labor lines are always recorded as tasks, created exactly once per line
-  await syncLaborTasks(items, invoiceId, organizationId);
-
-  console.log('Item updates completed optimized');
 };
 
 /**
  * Ensures every custom labor line on the invoice has exactly one task row.
- * Uses the persisted invoice_items.task_id as the idempotency key, so repeated
- * saves update the existing task instead of inserting duplicates.
+ * Uses the persisted invoice_items row id / task_id as the idempotency key, so
+ * repeated saves update the existing task instead of inserting duplicates.
  */
 const syncLaborTasks = async (items: InvoiceItem[], invoiceId: string, organizationId: string) => {
   const laborItems = items.filter(item => item.type === 'labor' && !item.task_id);
   if (laborItems.length === 0) return;
 
-  const { data: rows, error } = await supabase
-    .from('invoice_items')
-    .select('id, description, type, task_id')
-    .eq('invoice_id', invoiceId)
-    .eq('type', 'labor');
-
-  if (error) {
-    console.error('syncLaborTasks: failed to load invoice items:', error);
-    return;
-  }
-
-  const used = new Set<string>();
-
   for (const item of laborItems) {
-    const row = (rows || []).find(
-      r => !used.has(r.id) && r.description === item.description
-    );
-    if (row) used.add(row.id);
-
+    const linkedTaskId = (item as any).linked_task_id as string | undefined;
     const labor = item.custom_labor_data;
     const status = labor?.status ?? 'completed';
     const hoursEstimated = labor?.hours_estimated ?? item.quantity;
@@ -459,17 +458,16 @@ const syncLaborTasks = async (items: InvoiceItem[], invoiceId: string, organizat
       updated_at: new Date().toISOString()
     };
 
-    if (row?.task_id) {
+    if (linkedTaskId) {
       const updatePayload = { ...taskPayload };
       if (hoursSpent !== undefined) updatePayload.hours_spent = hoursSpent;
-      // Don't overwrite hours logged via check-in/out when left blank on the invoice
 
       const { error: updateError } = await supabase
         .from('tasks')
         .update(updatePayload as any)
-        .eq('id', row.task_id);
+        .eq('id', linkedTaskId);
 
-      if (updateError) console.error('syncLaborTasks: failed to update task:', updateError);
+      if (updateError) throw new Error(`Failed to update task: ${updateError.message}`);
       continue;
     }
 
@@ -485,45 +483,15 @@ const syncLaborTasks = async (items: InvoiceItem[], invoiceId: string, organizat
         created_at: new Date().toISOString()
       } as any);
 
-    if (insertError) {
-      console.error('syncLaborTasks: failed to create task:', insertError);
-      continue;
-    }
+    if (insertError) throw new Error(`Failed to create task: ${insertError.message}`);
 
-    if (row) {
+    if (item.id) {
       const { error: linkError } = await supabase
         .from('invoice_items')
         .update({ task_id: newTaskId, creates_task: true })
-        .eq('id', row.id);
+        .eq('id', item.id);
 
-      if (linkError) console.error('syncLaborTasks: failed to link task to item:', linkError);
+      if (linkError) throw new Error(`Failed to link task to invoice line: ${linkError.message}`);
     }
   }
-};
-
-
-// Batch cleanup of old part assignments
-const cleanupOldAssignmentsBatch = async (existingItems: any[], invoiceId: string) => {
-  console.log('Cleaning up old assignments in batch:', existingItems.length);
-
-  const partUpdates: BatchPartUpdate[] = [];
-
-  existingItems.forEach(item => {
-    if (item.type === 'part' && item.part_id) {
-      partUpdates.push({
-        partId: item.part_id,
-        quantity: item.quantity,
-        operation: 'remove',
-        invoiceId
-      });
-    }
-  });
-
-  if (partUpdates.length > 0) {
-    // Get organization ID from the first item (they should all be the same)
-    const organizationId = existingItems[0]?.organization_id || '';
-    await batchUpdateParts(partUpdates, organizationId);
-  }
-
-  console.log('Old assignments cleanup completed');
 };
