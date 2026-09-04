@@ -15,11 +15,12 @@ I inspected the code and queried your live database. Findings:
 3. **New invoices behave differently from edited ones.** On a brand-new invoice the item dialog has no invoice ID yet, so no part row and no purchase expense are created at all, and the flag that would create them server-side is hard-coded off. Custom parts added at creation time therefore never reach inventory, vendor dues or cost reporting — the opposite inconsistency from editing.
 4. **Inventory can drift.** Every save first restores stock for all existing part lines, then deducts again for the current lines. A partial failure between those two steps leaves quantities wrong, and estimates deduct stock even though nothing has been consumed yet.
 
-The exact origin of the extra **empty** invoice rows is not yet proven (creation is supposed to reject an invoice with no items), so verifying it by reproducing the flow is the first step rather than an assumption.
+You confirmed the phantom invoices appear when **updating an existing invoice and adding a custom part** — which matches the timestamps: the extra empty rows for that customer/vehicle were created within minutes of the four orphaned parts. The precise write that creates the extra row is not yet pinned down in code, so step 1 reproduces that exact flow and captures the requests before that path is changed.
 
 ## The fix
 
-**Step 1 — Reproduce and confirm the phantom-invoice path.** Drive the real app through: create invoice with a custom part, edit it, add a part, save twice, then the same for an estimate. Record which requests are sent. This confirms cause of the empty rows before changing that path.
+**Step 1 — Reproduce the phantom-invoice path.** Drive the real app through the exact flow you described: open an existing invoice, add a custom part line, save, then repeat — and the same for an estimate. Capture every request sent so the write that creates the extra invoice row is identified, then remove it.
+
 
 **Step 2 — Make items save by identity.**
 - Carry the real database row ID on each line in the form (loaded on edit, returned after insert).
