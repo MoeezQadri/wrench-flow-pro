@@ -79,9 +79,9 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
   const [laborHoursEstimated, setLaborHoursEstimated] = useState<number>(1);
   const [laborHoursSpent, setLaborHoursSpent] = useState<number>(0);
 
-  const { mechanics, vendors, addPart, addExpense } = useDataContext();
+  const { mechanics, vendors } = useDataContext();
   const { getCurrencySymbol, formatCurrency } = useOrganizationSettings();
-  const selectedOrganizationId = ''; // Temporarily disabled
+
 
   // Debug logging for available data
   useEffect(() => {
