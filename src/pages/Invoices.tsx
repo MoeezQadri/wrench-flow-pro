@@ -262,6 +262,17 @@ const Invoices: React.FC = () => {
                             Edit
                           </Link>
                         )}
+                        {userCanDeleteInvoices && (
+                          <button
+                            type="button"
+                            onClick={() => setInvoiceToDelete(invoice)}
+                            className="text-destructive hover:text-destructive/80 underline inline-flex items-center gap-1"
+                            aria-label={`Delete invoice ${invoice.id.substring(0, 8)}`}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            Delete
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -271,7 +282,16 @@ const Invoices: React.FC = () => {
           </table>
         </div>
       )}
+
+      <DeleteInvoiceDialog
+        invoice={invoiceToDelete}
+        open={!!invoiceToDelete}
+        onOpenChange={(open) => !open && setInvoiceToDelete(null)}
+        customerName={invoiceToDelete ? getCustomerName(invoiceToDelete.customer_id) : ''}
+        formattedTotal={invoiceToDelete ? formatCurrency(calculateInvoiceTotal(invoiceToDelete)) : ''}
+      />
     </PageWrapper>
+
   );
 };
 
