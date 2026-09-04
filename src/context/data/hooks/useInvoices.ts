@@ -3,7 +3,7 @@ import { useState } from 'react';
 import type { Invoice } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { createInvoiceOptimized, updateInvoiceOptimized, CreateInvoiceData } from '@/services/optimized-invoice-service';
+import { createInvoiceOptimized, updateInvoiceOptimized, deleteInvoiceOptimized, CreateInvoiceData } from '@/services/optimized-invoice-service';
 import { useOrganizationAwareQuery } from '@/hooks/useOrganizationAwareQuery';
 
 export const useInvoices = () => {
