@@ -118,17 +118,28 @@ export const smartUpdateInvoiceItems = async (
 
   // Update matched lines with the full payload
   for (const { existing, updated } of diff.toUpdate) {
+    const payload = buildItemPayload(updated);
+    // Never drop an existing link when the form line doesn't carry it
+    payload.task_id = updated.task_id || existing.task_id || null;
+    payload.part_id = updated.part_id || existing.part_id || null;
+
     const { error: updateError } = await supabase
       .from('invoice_items')
-      .update(buildItemPayload(updated) as any)
+      .update(payload as any)
       .eq('id', existing.id);
 
     if (updateError) {
       throw new Error(`Failed to update item "${updated.description}": ${updateError.message}`);
     }
 
-    savedItems.push({ ...updated, id: existing.id });
+    savedItems.push({
+      ...updated,
+      id: existing.id,
+      part_id: payload.part_id || undefined,
+      linked_task_id: existing.task_id || undefined
+    } as InvoiceItem);
   }
+
 
   // Insert brand new lines
   if (diff.toAdd.length > 0) {
