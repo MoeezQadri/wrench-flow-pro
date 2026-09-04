@@ -199,6 +199,18 @@ const InvoiceDetails: React.FC = () => {
                 </Button>
               )}
             </PermissionGuard>
+            <PermissionGuard resource="invoices" action="delete">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowDeleteDialog(true)}
+                className="text-destructive hover:text-destructive"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete {invoice.status === 'estimate' ? 'Estimate' : 'Invoice'}
+              </Button>
+            </PermissionGuard>
+
           </div>
         </div>
 
