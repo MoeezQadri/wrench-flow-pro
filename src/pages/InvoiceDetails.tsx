@@ -16,10 +16,13 @@ import DeleteInvoiceDialog from '@/components/invoice/DeleteInvoiceDialog';
 
 const InvoiceDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const {
+
     getInvoiceById,
     customers,
     getVehiclesByCustomerId,
