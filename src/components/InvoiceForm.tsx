@@ -460,15 +460,11 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
         errors.push(`Item ${index + 1}: Price cannot be negative`);
       }
       
-      // Special validation for custom parts
-      if (item.creates_inventory_part && item.custom_part_data) {
-        if (!item.custom_part_data.part_number || item.custom_part_data.part_number.trim() === '') {
-          errors.push(`Item ${index + 1}: Part number is required for custom parts`);
-        }
-        if (item.price === 0) {
-          errors.push(`Item ${index + 1}: Custom parts must have a price greater than 0`);
-        }
+      // Custom parts create an inventory record on save; a part number is optional
+      if (item.creates_inventory_part && item.price === 0) {
+        errors.push(`Item ${index + 1}: Custom parts must have a price greater than 0`);
       }
+
       
       // Special validation for custom labor
       if (item.creates_task && item.custom_labor_data) {

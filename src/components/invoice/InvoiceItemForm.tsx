@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import { InvoiceItem, Part, Task, Vendor, Expense } from "@/types";
+import { InvoiceItem, Part, Task, Vendor } from "@/types";
 import { useDataContext } from "@/context/data/DataContext";
 import { useOrganizationSettings } from "@/hooks/useOrganizationSettings";
 import VendorDialog from "@/components/part/VendorDialog";
@@ -79,9 +79,9 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
   const [laborHoursEstimated, setLaborHoursEstimated] = useState<number>(1);
   const [laborHoursSpent, setLaborHoursSpent] = useState<number>(0);
 
-  const { mechanics, vendors, addPart, addExpense } = useDataContext();
+  const { mechanics, vendors } = useDataContext();
   const { getCurrencySymbol, formatCurrency } = useOrganizationSettings();
-  const selectedOrganizationId = ''; // Temporarily disabled
+
 
   // Debug logging for available data
   useEffect(() => {
@@ -225,6 +225,8 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
 
     const itemDescription = type === 'part' ? partName.trim() : description.trim();
 
+    const vendor = vendors.find((v: Vendor) => v.id === selectedVendorId);
+
     const newItem: InvoiceItem = {
       id: editingItem?.id || `item-${Date.now()}`,
       description: itemDescription,
@@ -235,133 +237,24 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
       unit_of_measure: unitOfMeasure,
       part_id: selectedPartId || undefined,
       task_id: selectedTaskId && selectedTaskId !== 'none' ? selectedTaskId : undefined,
-      // The custom part is created immediately below, preventing duplicate creation on invoice save.
-      creates_inventory_part: false,
+      // The inventory part (and its purchase expense) is created once, when the
+      // invoice/estimate is saved — never before, so nothing is left orphaned.
+      creates_inventory_part: (type === 'part' || type === 'other') && !selectedPartId,
       creates_task: type === 'labor' && !selectedTaskId,
       is_auto_added: false
     };
 
-    // Create a new inventory record only for custom parts; existing parts are linked by ID.
-    if (type === 'part' && !selectedPartId && addPart && invoiceId) {
-      try {
-        const customPart: Part = {
-          id: crypto.randomUUID(),
-          name: partName.trim(),
-          description: description.trim() || `Custom part created from invoice ${invoiceId.substring(0, 8)}`,
-          price,
-          cost,
-          quantity: 0, // Start with 0 since it's being used immediately
-          part_number: partNumber || undefined,
-          manufacturer: manufacturer || undefined,
-          category: category || undefined,
-          location: location || undefined,
-          vendor_id: selectedVendorId,
-          vendor_name: vendors.find((v: Vendor) => v.id === selectedVendorId)?.name,
-          invoice_ids: [invoiceId],
-          reorder_level: 5,
-          unit: unitOfMeasure,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        };
-        
-        const savedPart = await addPart(customPart);
-        newItem.part_id = savedPart.id;
-        newItem.custom_part_data = {
-          part_number: partNumber,
-          manufacturer: manufacturer,
-          category: category,
-          location: location
-        };
-        
-        // Create expense for part purchase
-        const vendor = vendors.find((v: Vendor) => v.id === selectedVendorId);
-        const expense: Expense = {
-          id: crypto.randomUUID(),
-          category: 'parts',
-          description: `Invoice ${invoiceId.substring(0, 8)}: ${partName.trim()}`,
-          amount: cost * quantity,
-          date: new Date().toISOString(),
-          vendor_id: selectedVendorId,
-          vendor_name: vendor?.name,
-          payment_method: "cash",
-          payment_status: "unpaid",
-          invoice_id: invoiceId,
-          organization_id: selectedOrganizationId,
-        };
-        
-        try {
-          await addExpense(expense);
-        } catch (error) {
-          console.error("Error creating expense for part purchase:", error);
-        }
-        console.log('Created custom part in database:', savedPart);
-      } catch (error) {
-        console.error('Failed to create custom part:', error);
-        // Still proceed with invoice item creation
-      }
+    if ((type === 'part' || type === 'other') && !selectedPartId) {
+      newItem.custom_part_data = {
+        part_number: partNumber || undefined,
+        manufacturer: manufacturer || undefined,
+        category: type === 'other' ? 'other' : (category || undefined),
+        location: location || undefined,
+        vendor_id: selectedVendorId || undefined,
+        vendor_name: vendor?.name
+      } as any;
     }
 
-    // Handle custom other item creation - always save to database
-    if (type === 'other' && !selectedPartId && addPart && invoiceId) {
-      try {
-        const customPart: Part = {
-          id: crypto.randomUUID(),
-          name: description.trim(),
-          description: `Custom item created from invoice ${invoiceId.substring(0, 8)}`,
-          price,
-          cost: 0,
-          quantity: 0, // Start with 0 since it's being used immediately
-          part_number: partNumber || undefined,
-          manufacturer: manufacturer || undefined,
-          category: 'other',
-          location: location || undefined,
-          vendor_id: selectedVendorId || undefined,
-          vendor_name: selectedVendorId ? vendors.find((v: Vendor) => v.id === selectedVendorId)?.name : undefined,
-          invoice_ids: [invoiceId],
-          reorder_level: 5,
-          unit: unitOfMeasure,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        };
-        
-        const savedPart = await addPart(customPart);
-        newItem.part_id = savedPart.id;
-        newItem.custom_part_data = {
-          part_number: partNumber,
-          manufacturer: manufacturer,
-          category: category,
-          location: location
-        };
-        
-        // Create expense for other item purchase if vendor is selected
-        if (selectedVendorId) {
-          const vendor = vendors.find((v: Vendor) => v.id === selectedVendorId);
-          const expense: Expense = {
-            id: crypto.randomUUID(),
-            category: 'other',
-            description: `Invoice ${invoiceId.substring(0, 8)}: ${description.trim()}`,
-            amount: price * quantity,
-            date: new Date().toISOString(),
-            vendor_id: selectedVendorId,
-            vendor_name: vendor?.name,
-            payment_method: "cash",
-            payment_status: "unpaid",
-            invoice_id: invoiceId,
-            organization_id: selectedOrganizationId,
-          };
-          
-          try {
-            await addExpense(expense);
-          } catch (error) {
-            console.error("Error creating expense for item purchase:", error);
-          }
-        }
-        console.log('Created custom other item in database:', savedPart);
-      } catch (error) {
-        console.error('Failed to create custom other item:', error);
-        // Still proceed with invoice item creation
-      }
-    }
 
     // Labor lines always carry labor data; the task row is created/updated
     // server-side when the invoice is saved (single source of truth, no duplicates)
