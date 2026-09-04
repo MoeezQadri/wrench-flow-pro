@@ -5,7 +5,7 @@ import { useAuthContext } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { checkEmailExists } from '@/utils/supabase-helpers';
-import { trackSignUp } from '@/lib/analytics';
+import { trackSignUp, trackSignupConversion } from '@/lib/analytics';
 
 const Register: React.FC = () => {
   const [email, setEmail] = useState<string>('');
@@ -246,6 +246,7 @@ const Register: React.FC = () => {
       } else if (data) {
         console.log('Registration successful:', data);
         trackSignUp('email');
+        trackSignupConversion({ transactionId: data?.id || undefined });
         
         // Clear any existing error state
         setError('');
