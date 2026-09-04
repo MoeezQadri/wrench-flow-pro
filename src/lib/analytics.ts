@@ -45,9 +45,8 @@ export function initAnalytics() {
   gtag('js', new Date());
   gtag('config', MEASUREMENT_ID, { send_page_view: false });
 
-  // Register the Google Ads tag through the same gtag.js library. No second
-  // <script> tag is needed — gtag.js handles multiple measurement IDs.
-  gtag('config', GOOGLE_ADS_ID);
+  // The Google Ads tag (AW-18425240978) is loaded and configured directly from
+  // index.html, so it is not configured here.
 }
 
 export function trackPageView(path: string) {
