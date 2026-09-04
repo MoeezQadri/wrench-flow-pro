@@ -27,7 +27,28 @@ export function gtag(...args: unknown[]) {
   (pushCommand as (...a: unknown[]) => void)(...args);
 }
 
-export function initAnalytics() {
+/**
+ * Paths where tracking is allowed. Everywhere else in the app no tag is loaded
+ * and no page view is reported.
+ */
+export const TRACKED_PATHS = [
+  '/auth/login',
+  '/auth/register',
+  '/subscribe',
+  '/payment/success',
+  '/payment/canceled',
+] as const;
+
+export function isTrackedPath(pathname: string) {
+  return TRACKED_PATHS.some(
+    (p) => pathname === p || pathname === `${p}/`
+  );
+}
+
+/**
+ * Loads gtag.js once and configures GA4 + Google Ads. Safe to call repeatedly.
+ */
+export function ensureAnalytics() {
   if (initialized || typeof window === 'undefined') return;
   if (!MEASUREMENT_ID) {
     console.warn('[analytics] Google Analytics measurement ID not configured');
@@ -40,17 +61,15 @@ export function initAnalytics() {
   script.src = `https://www.googletagmanager.com/gtag/js?id=${MEASUREMENT_ID}`;
   document.head.appendChild(script);
 
-  // AnalyticsTracker sends every page view (incl. the first), so disable the
-  // automatic one to avoid double counting.
   gtag('js', new Date());
+  // AnalyticsTracker sends the page views itself, so disable automatic ones.
   gtag('config', MEASUREMENT_ID, { send_page_view: false });
-
-  // The Google Ads tag (AW-18425240978) is loaded and configured directly from
-  // index.html, so it is not configured here.
+  gtag('config', GOOGLE_ADS_ID);
 }
 
 export function trackPageView(path: string) {
   if (!MEASUREMENT_ID) return;
+  ensureAnalytics();
   gtag('event', 'page_view', {
     page_path: path,
     page_location: window.location.href,
@@ -60,17 +79,20 @@ export function trackPageView(path: string) {
 
 export function trackEvent(name: string, params: Record<string, unknown> = {}) {
   if (!MEASUREMENT_ID) return;
+  ensureAnalytics();
   gtag('event', name, params);
 }
 
 // Send a conversion to Google Ads. Google Ads tracks conversions by label, so
 // callers pass the conversion label configured in the Ads account.
 export function trackGoogleAdsConversion(label: string, value?: number) {
+  ensureAnalytics();
   gtag('event', 'conversion', {
     send_to: `${GOOGLE_ADS_ID}/${label}`,
     ...(value !== undefined ? { value, currency: 'USD' } : {}),
   });
 }
+
 
 export const trackLogin = (method = 'email') => trackEvent('login', { method });
 
