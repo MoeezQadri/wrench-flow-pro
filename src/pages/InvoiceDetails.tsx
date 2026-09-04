@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Printer, Share2 } from 'lucide-react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Printer, Share2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { calculateInvoiceBreakdown, calculateInvoiceTotalWithBreakdown } from '@/utils/invoice-calculations';
 import { Invoice } from '@/types';
@@ -11,13 +11,18 @@ import { useSmartDataLoading } from '@/hooks/useSmartDataLoading';
 import { PermissionGuard } from '@/components/PermissionGuard';
 import StatusBadge from '@/components/StatusBadge';
 import { formatOrgDate, toOrgDayStart } from '@/utils/datetime';
+import DeleteInvoiceDialog from '@/components/invoice/DeleteInvoiceDialog';
+
 
 const InvoiceDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const {
+
     getInvoiceById,
     customers,
     getVehiclesByCustomerId,
@@ -194,6 +199,18 @@ const InvoiceDetails: React.FC = () => {
                 </Button>
               )}
             </PermissionGuard>
+            <PermissionGuard resource="invoices" action="delete">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowDeleteDialog(true)}
+                className="text-destructive hover:text-destructive"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete {invoice.status === 'estimate' ? 'Estimate' : 'Invoice'}
+              </Button>
+            </PermissionGuard>
+
           </div>
         </div>
 
@@ -364,7 +381,17 @@ const InvoiceDetails: React.FC = () => {
           </div>
         )}
       </div>
+
+      <DeleteInvoiceDialog
+        invoice={invoice}
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        customerName={customerName}
+        formattedTotal={formatCurrency(calculateInvoiceBreakdown(invoice).total)}
+        onDeleted={() => navigate('/invoices')}
+      />
     </div>
+
   );
 };
 

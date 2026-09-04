@@ -3,7 +3,7 @@ import { useState } from 'react';
 import type { Invoice } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { createInvoiceOptimized, updateInvoiceOptimized, CreateInvoiceData } from '@/services/optimized-invoice-service';
+import { createInvoiceOptimized, updateInvoiceOptimized, deleteInvoiceOptimized, CreateInvoiceData } from '@/services/optimized-invoice-service';
 import { useOrganizationAwareQuery } from '@/hooks/useOrganizationAwareQuery';
 
 export const useInvoices = () => {
@@ -27,79 +27,16 @@ export const useInvoices = () => {
 
     const removeInvoice = async (id: string) => {
         try {
-            console.log('Removing invoice:', id);
-            
-            // First get the invoice items to clean up part assignments
-            const { data: invoiceItems } = await supabase
-                .from('invoice_items')
-                .select('*')
-                .eq('invoice_id', id);
-
-            // Clean up part assignments before deleting
-            if (invoiceItems) {
-                for (const item of invoiceItems) {
-                    if (item.type === 'part' && item.part_id) {
-                        // Get current part data
-                        const { data: part } = await supabase
-                            .from('parts')
-                            .select('*')
-                            .eq('id', item.part_id)
-                            .single();
-
-                        if (part) {
-                            // Remove invoice ID from part and restore quantity
-                            const currentInvoiceIds = part.invoice_ids || [];
-                            const updatedInvoiceIds = currentInvoiceIds.filter(invoiceId => invoiceId !== id);
-                            const restoredQuantity = part.quantity + item.quantity;
-
-                            await supabase
-                                .from('parts')
-                                .update({
-                                    quantity: restoredQuantity,
-                                    invoice_ids: updatedInvoiceIds,
-                                    updated_at: new Date().toISOString()
-                                })
-                                .eq('id', item.part_id);
-                        }
-                    }
-                }
-            }
-
-            // Delete payments
-            const { error: paymentsError } = await supabase
-                .from('payments')
-                .delete()
-                .eq('invoice_id', id);
-
-            if (paymentsError) {
-                console.error('Error removing payments:', paymentsError);
-            }
-
-            // Delete invoice items
-            const { error: itemsError } = await supabase
-                .from('invoice_items')
-                .delete()
-                .eq('invoice_id', id);
-
-            if (itemsError) {
-                console.error('Error removing invoice items:', itemsError);
-            }
-
-            // Finally delete the invoice
-            const { error } = await supabase.from('invoices').delete().eq('id', id);
-            if (error) {
-                console.error('Error removing invoice:', error);
-                toast.error('Failed to delete invoice');
-                throw error;
-            }
+            await deleteInvoiceOptimized(id);
             setInvoices((prev) => prev.filter((item) => item.id !== id));
             toast.success('Invoice deleted successfully');
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error removing invoice:', error);
-            toast.error('Failed to delete invoice');
+            toast.error(error?.message || 'Failed to delete invoice');
             throw error;
         }
     };
+
 
     const updateInvoice = async (id: string, updates: Partial<Invoice>) => {
         try {

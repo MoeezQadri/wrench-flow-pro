@@ -5,7 +5,7 @@ import { useDataContext } from '@/context/data/DataContext';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Search, Filter, SortAsc, SortDesc, Plus } from 'lucide-react';
+import { Search, Filter, SortAsc, SortDesc, Plus, Trash2 } from 'lucide-react';
 import { useAuthContext } from '@/context/AuthContext';
 import { hasPermission } from '@/utils/permissions';
 import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
@@ -13,13 +13,16 @@ import { calculateInvoiceBreakdown } from '@/utils/invoice-calculations';
 import { PageWrapper } from '@/components/PageWrapper';
 import { formatOrgDate } from '@/utils/datetime';
 import StatusBadge from '@/components/StatusBadge';
+import DeleteInvoiceDialog from '@/components/invoice/DeleteInvoiceDialog';
+
 
 const Invoices: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<string>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  
+  const [invoiceToDelete, setInvoiceToDelete] = useState<Invoice | null>(null);
+
   const { 
     invoices: contextInvoices, 
     customers: contextCustomers,
@@ -33,6 +36,8 @@ const Invoices: React.FC = () => {
   // Check permissions
   const userCanManageInvoices = hasPermission(currentUser, 'invoices', 'manage') || hasPermission(currentUser, 'invoices', 'create');
   const userCanEditInvoices = hasPermission(currentUser, 'invoices', 'edit');
+  const userCanDeleteInvoices = hasPermission(currentUser, 'invoices', 'delete');
+
 
   // Use standardized calculation function for consistency
   const calculateInvoiceTotal = (invoice: Invoice): number => {
@@ -257,6 +262,17 @@ const Invoices: React.FC = () => {
                             Edit
                           </Link>
                         )}
+                        {userCanDeleteInvoices && (
+                          <button
+                            type="button"
+                            onClick={() => setInvoiceToDelete(invoice)}
+                            className="text-destructive hover:text-destructive/80 underline inline-flex items-center gap-1"
+                            aria-label={`Delete invoice ${invoice.id.substring(0, 8)}`}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            Delete
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -266,7 +282,16 @@ const Invoices: React.FC = () => {
           </table>
         </div>
       )}
+
+      <DeleteInvoiceDialog
+        invoice={invoiceToDelete}
+        open={!!invoiceToDelete}
+        onOpenChange={(open) => !open && setInvoiceToDelete(null)}
+        customerName={invoiceToDelete ? getCustomerName(invoiceToDelete.customer_id) : ''}
+        formattedTotal={invoiceToDelete ? formatCurrency(calculateInvoiceTotal(invoiceToDelete)) : ''}
+      />
     </PageWrapper>
+
   );
 };
 

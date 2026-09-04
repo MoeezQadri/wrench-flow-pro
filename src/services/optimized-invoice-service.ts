@@ -495,3 +495,76 @@ const syncLaborTasks = async (items: InvoiceItem[], invoiceId: string, organizat
     }
   }
 };
+
+/**
+ * Deletes an invoice (or estimate) and undoes only the side effects it actually
+ * created. Aborts with a real error instead of leaving a half-deleted document.
+ *
+ * Order matters: guard -> restore stock -> unlink tasks -> remove purchase
+ * expenses -> delete line items -> delete payments -> delete the invoice.
+ */
+export const deleteInvoiceOptimized = async (invoiceId: string): Promise<void> => {
+  const { data: invoice, error: invoiceError } = await supabase
+    .from('invoices')
+    .select('id, status')
+    .eq('id', invoiceId)
+    .maybeSingle();
+
+  if (invoiceError) throw new Error(`Failed to load invoice: ${invoiceError.message}`);
+  if (!invoice) throw new Error('Invoice not found');
+
+  const { data: payments, error: paymentsReadError } = await supabase
+    .from('payments')
+    .select('id')
+    .eq('invoice_id', invoiceId);
+
+  if (paymentsReadError) throw new Error(`Failed to check payments: ${paymentsReadError.message}`);
+  if (payments && payments.length > 0) {
+    throw new Error(
+      'This invoice has payments recorded. Remove the payments first, then delete the invoice.'
+    );
+  }
+
+  const { data: items, error: itemsReadError } = await supabase
+    .from('invoice_items')
+    .select('id, type, part_id, quantity')
+    .eq('invoice_id', invoiceId);
+
+  if (itemsReadError) throw new Error(`Failed to load invoice items: ${itemsReadError.message}`);
+
+  // Estimates and declined estimates never consumed stock, so nothing to give back.
+  if (!isNonStockStatus(invoice.status)) {
+    const consumed = countPartQuantities(items || []);
+    await applyInventoryChanges(consumed, new Map(), invoiceId);
+  }
+
+  // Work orders survive the invoice; they just lose the link.
+  const { error: taskError } = await supabase
+    .from('tasks')
+    .update({ invoice_id: null, updated_at: new Date().toISOString() })
+    .eq('invoice_id', invoiceId);
+
+  if (taskError) throw new Error(`Failed to unlink work orders: ${taskError.message}`);
+
+  // Purchase expenses this invoice created have no source document any more.
+  const { error: expenseError } = await supabase
+    .from('expenses')
+    .delete()
+    .eq('invoice_id', invoiceId);
+
+  if (expenseError) throw new Error(`Failed to remove purchase expenses: ${expenseError.message}`);
+
+  const { error: deleteItemsError } = await supabase
+    .from('invoice_items')
+    .delete()
+    .eq('invoice_id', invoiceId);
+
+  if (deleteItemsError) throw new Error(`Failed to remove invoice items: ${deleteItemsError.message}`);
+
+  const { error: deleteInvoiceError } = await supabase
+    .from('invoices')
+    .delete()
+    .eq('id', invoiceId);
+
+  if (deleteInvoiceError) throw new Error(`Failed to delete invoice: ${deleteInvoiceError.message}`);
+};

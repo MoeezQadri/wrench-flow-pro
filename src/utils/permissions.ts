@@ -80,7 +80,7 @@ export const RESOURCE_PERMISSIONS: Record<string, PermissionConfig[]> = {
     { resource: 'invoices', action: 'view', allowedRoles: ['owner', 'admin', 'manager', 'foreman', 'mechanic'] },
     { resource: 'invoices', action: 'create', allowedRoles: ['owner', 'admin', 'manager', 'foreman'] },
     { resource: 'invoices', action: 'edit', allowedRoles: ['owner', 'admin', 'manager', 'foreman'] },
-    { resource: 'invoices', action: 'delete', allowedRoles: ['owner', 'admin', 'manager'] },
+    { resource: 'invoices', action: 'delete', allowedRoles: ['owner', 'admin'] },
     { resource: 'invoices', action: 'manage', allowedRoles: ['owner', 'admin', 'manager'] },
   ],
   attendance: [
