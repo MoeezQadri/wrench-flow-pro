@@ -1,7 +1,8 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthContext } from '@/context/AuthContext';
 import LoadingScreen from '@/components/LoadingScreen';
+import { trackSubscribePageVisitConversion } from '@/lib/analytics';
 
 export default function SubscribeRedirect() {
   const navigate = useNavigate();
