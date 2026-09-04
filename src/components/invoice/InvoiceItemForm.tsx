@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import { InvoiceItem, Part, Task, Vendor, Expense } from "@/types";
+import { InvoiceItem, Part, Task, Vendor } from "@/types";
 import { useDataContext } from "@/context/data/DataContext";
 import { useOrganizationSettings } from "@/hooks/useOrganizationSettings";
 import VendorDialog from "@/components/part/VendorDialog";
