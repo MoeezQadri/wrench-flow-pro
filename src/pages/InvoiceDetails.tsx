@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Printer, Share2 } from 'lucide-react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Printer, Share2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { calculateInvoiceBreakdown, calculateInvoiceTotalWithBreakdown } from '@/utils/invoice-calculations';
 import { Invoice } from '@/types';
@@ -11,6 +11,8 @@ import { useSmartDataLoading } from '@/hooks/useSmartDataLoading';
 import { PermissionGuard } from '@/components/PermissionGuard';
 import StatusBadge from '@/components/StatusBadge';
 import { formatOrgDate, toOrgDayStart } from '@/utils/datetime';
+import DeleteInvoiceDialog from '@/components/invoice/DeleteInvoiceDialog';
+
 
 const InvoiceDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
