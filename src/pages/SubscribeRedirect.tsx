@@ -11,6 +11,14 @@ export default function SubscribeRedirect() {
 
   const plan = searchParams.get('plan') || '';
 
+  // Fire the Google Ads "Subscribe page visit" conversion once on landing.
+  const visitTracked = useRef(false);
+  useEffect(() => {
+    if (visitTracked.current) return;
+    visitTracked.current = true;
+    trackSubscribePageVisitConversion();
+  }, []);
+
   useEffect(() => {
     if (loading) return;
 
