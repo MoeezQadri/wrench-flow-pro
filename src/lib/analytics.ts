@@ -91,6 +91,11 @@ export function trackEvent(name: string, params: Record<string, unknown> = {}) {
 export const ADS_CONVERSION_LABELS = {
   // "Subscribe" conversion action — fires on the payment thank-you page.
   subscribe: 'dXTwCMCDru4cEJK769FE',
+  // "Subscribe page visit" — fires when a visitor lands on /subscribe.
+  // Paste the label Google Ads shows after the slash in the event snippet.
+  subscribePageVisit: '',
+  // "Signup / Register" — fires when a visitor completes registration.
+  signup: '',
 } as const;
 
 // Send a conversion to Google Ads. Google Ads tracks conversions by label, so
