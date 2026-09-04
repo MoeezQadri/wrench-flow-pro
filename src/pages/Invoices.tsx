@@ -5,7 +5,7 @@ import { useDataContext } from '@/context/data/DataContext';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Search, Filter, SortAsc, SortDesc, Plus } from 'lucide-react';
+import { Search, Filter, SortAsc, SortDesc, Plus, Trash2 } from 'lucide-react';
 import { useAuthContext } from '@/context/AuthContext';
 import { hasPermission } from '@/utils/permissions';
 import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
@@ -13,6 +13,8 @@ import { calculateInvoiceBreakdown } from '@/utils/invoice-calculations';
 import { PageWrapper } from '@/components/PageWrapper';
 import { formatOrgDate } from '@/utils/datetime';
 import StatusBadge from '@/components/StatusBadge';
+import DeleteInvoiceDialog from '@/components/invoice/DeleteInvoiceDialog';
+
 
 const Invoices: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState<string>('');
