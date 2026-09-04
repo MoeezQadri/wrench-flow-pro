@@ -83,15 +83,43 @@ export function trackEvent(name: string, params: Record<string, unknown> = {}) {
   gtag('event', name, params);
 }
 
+/**
+ * Conversion action labels from the Google Ads account. Paste the value that
+ * appears after the slash in the Ads snippet, e.g. for
+ * send_to: 'AW-18425240978/AbC-D_efG-h12_34-N' the label is 'AbC-D_efG-h12_34-N'.
+ */
+export const ADS_CONVERSION_LABELS = {
+  // "Subscribe" conversion action — fires on the payment thank-you page.
+  subscribe: '',
+} as const;
+
 // Send a conversion to Google Ads. Google Ads tracks conversions by label, so
 // callers pass the conversion label configured in the Ads account.
-export function trackGoogleAdsConversion(label: string, value?: number) {
+export function trackGoogleAdsConversion(
+  label: string,
+  params: { value?: number; transactionId?: string } = {}
+) {
+  if (!label) {
+    console.warn(
+      '[analytics] Google Ads conversion label missing — add it to ADS_CONVERSION_LABELS'
+    );
+    return;
+  }
   ensureAnalytics();
   gtag('event', 'conversion', {
     send_to: `${GOOGLE_ADS_ID}/${label}`,
-    ...(value !== undefined ? { value, currency: 'USD' } : {}),
+    ...(params.value !== undefined
+      ? { value: params.value, currency: 'USD' }
+      : {}),
+    ...(params.transactionId ? { transaction_id: params.transactionId } : {}),
   });
 }
+
+/** Google Ads "Subscribe" conversion — a paid subscription was confirmed. */
+export const trackSubscribeConversion = (params: {
+  value?: number;
+  transactionId?: string;
+}) => trackGoogleAdsConversion(ADS_CONVERSION_LABELS.subscribe, params);
 
 
 export const trackLogin = (method = 'email') => trackEvent('login', { method });
