@@ -21,7 +21,8 @@ const Invoices: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<string>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  
+  const [invoiceToDelete, setInvoiceToDelete] = useState<Invoice | null>(null);
+
   const { 
     invoices: contextInvoices, 
     customers: contextCustomers,
@@ -35,6 +36,8 @@ const Invoices: React.FC = () => {
   // Check permissions
   const userCanManageInvoices = hasPermission(currentUser, 'invoices', 'manage') || hasPermission(currentUser, 'invoices', 'create');
   const userCanEditInvoices = hasPermission(currentUser, 'invoices', 'edit');
+  const userCanDeleteInvoices = hasPermission(currentUser, 'invoices', 'delete');
+
 
   // Use standardized calculation function for consistency
   const calculateInvoiceTotal = (invoice: Invoice): number => {
