@@ -126,6 +126,16 @@ export const trackSubscribeConversion = (params: {
   transactionId?: string;
 }) => trackGoogleAdsConversion(ADS_CONVERSION_LABELS.subscribe, params);
 
+/** Google Ads "Subscribe page visit" conversion — visitor landed on /subscribe. */
+export const trackSubscribePageVisitConversion = () =>
+  trackGoogleAdsConversion(ADS_CONVERSION_LABELS.subscribePageVisit);
+
+/** Google Ads "Signup" conversion — visitor completed registration. */
+export const trackSignupConversion = (params: {
+  value?: number;
+  transactionId?: string;
+} = {}) => trackGoogleAdsConversion(ADS_CONVERSION_LABELS.signup, params);
+
 
 export const trackLogin = (method = 'email') => trackEvent('login', { method });
 
