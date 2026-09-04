@@ -10,7 +10,11 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuthContext } from '@/context/AuthContext';
-import { trackPaymentFailed, trackPurchase } from '@/lib/analytics';
+import {
+  trackPaymentFailed,
+  trackPurchase,
+  trackSubscribeConversion,
+} from '@/lib/analytics';
 
 export default function PaymentSuccess() {
   const [searchParams] = useSearchParams();
@@ -61,6 +65,7 @@ export default function PaymentSuccess() {
         transactionId: sessionId,
         planName: subscriptionTier || plan,
       });
+      trackSubscribeConversion({ transactionId: sessionId || undefined });
     } else if (status === 'pending') {
       tracked.current = true;
       trackPaymentFailed({
