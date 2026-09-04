@@ -90,7 +90,7 @@ export function trackEvent(name: string, params: Record<string, unknown> = {}) {
  */
 export const ADS_CONVERSION_LABELS = {
   // "Subscribe" conversion action — fires on the payment thank-you page.
-  subscribe: '',
+  subscribe: 'dXTwCMCDru4cEJK769FE',
 } as const;
 
 // Send a conversion to Google Ads. Google Ads tracks conversions by label, so
