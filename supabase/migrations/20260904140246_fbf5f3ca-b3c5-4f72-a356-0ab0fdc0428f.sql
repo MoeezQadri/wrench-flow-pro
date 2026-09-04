@@ -1,0 +1,2 @@
+ALTER TABLE public.invoice_items DROP CONSTRAINT IF EXISTS invoice_items_type_check;
+ALTER TABLE public.invoice_items ADD CONSTRAINT invoice_items_type_check CHECK (type = ANY (ARRAY['labor'::text, 'part'::text, 'other'::text]));
