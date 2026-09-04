@@ -246,7 +246,7 @@ const Register: React.FC = () => {
       } else if (data) {
         console.log('Registration successful:', data);
         trackSignUp('email');
-        trackSignupConversion({ transactionId: data?.user?.id || undefined });
+        trackSignupConversion({ transactionId: data?.id || undefined });
         
         // Clear any existing error state
         setError('');
