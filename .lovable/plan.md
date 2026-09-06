@@ -1,33 +1,32 @@
-# Remove pre-save navigation from the invoice form
+# Fix expense date picker + allow editing/deleting inventory parts
 
-## Problem
-When creating an invoice with **zero customers**, `InvoiceForm.tsx` shows a blue "Add Your First Customer" banner whose button is a `<Link to="/customers/new">` — the only action during invoice creation that navigates away from the form and discards unsaved lines. The `CustomerVehicleSelection` component rendered directly below that banner already has an inline **Add Customer** button that opens `CustomerQuickAddDialog`, stays on the page, and auto-selects the new customer. The banner is therefore redundant *and* the sole source of accidental data loss mid-creation.
+## 1. Expense date picker
 
-## Change
-Replace the navigation banner with an inline trigger that opens the same `CustomerQuickAddDialog`, so creating a customer never leaves the invoice form.
+The date button on the expense form (used for both workshop and invoice expenses) is inside the form and has no button type, so clicking it is treated as a form submit instead of opening the calendar. The calendar panel also needs the same click-through fix used elsewhere in the app when it appears above a dialog.
 
-### File: `src/components/InvoiceForm.tsx`
-1. Add state: `const [bannerCustomerDialogOpen, setBannerCustomerDialogOpen] = useState(false);`
-2. Add a handler that reuses the existing `addCustomer` from `useDataContext`:
-   ```tsx
-   const handleBannerCustomerSave = async (customer: Partial<Customer>) => {
-     const created = await addCustomer(customer as Customer);
-     if (created) {
-       setSelectedCustomerId(created.id);
-       setSelectedVehicleId("");
-       toast.success("Customer added and selected");
-     }
-   };
-   ```
-3. Replace the banner block (lines ~759–776): swap the `<Link to="/customers/new">Add Customer</Link>` button for a normal `<Button type="button" onClick={() => setBannerCustomerDialogOpen(true)}>Add Customer</Button>`.
-4. Render `<CustomerQuickAddDialog open={bannerCustomerDialogOpen} onOpenChange={setBannerCustomerDialogOpen} onSave={handleBannerCustomerSave} />` near the bottom of the component (next to the existing dialogs).
-5. Ensure `addCustomer` is destructured from `useDataContext` (add if missing) and `CustomerQuickAddDialog` is imported (add if missing).
+Fix:
+- Make the date button a plain button so it only opens the calendar.
+- Add the same calendar styling/click fix used by the dashboard date pickers.
+- Keep the existing rule that future dates can't be picked.
 
-### Verification
-- `tsgo --noEmit` clean.
-- Browser check on `/invoices/new` with an org that has no customers: banner button opens the dialog, saving a customer selects it inline, URL stays `/invoices/new`.
-- Existing inline "Add Customer" button in the Customer field still works unchanged.
+## 2. Edit and delete parts in inventory
 
-## Out of scope
-- No beforeunload/unsaved-changes warning (user declined).
-- No change to post-save navigation (stays going to `/invoices`).
+Only Owner and Admin get these two actions; everyone else sees the list exactly as today.
+
+Edit:
+- Each part card (grid and list view) gets an Edit action that opens the existing part dialog pre-filled with that part.
+- Saving updates the part in place — name, part number, description, quantity, cost, price, vendor.
+- Editing never creates a duplicate purchase expense (that only happens when a part is first added).
+
+Delete:
+- Each part card gets a Delete action, guarded by a confirmation dialog naming the part.
+- Safety rails: if the part is used on any invoice or estimate line, deletion is blocked with a clear message telling the user how many documents use it, and suggesting setting quantity to 0 instead. Only unused parts can be removed.
+- After a successful delete the inventory list refreshes and a confirmation toast appears.
+
+## Technical notes
+
+- `src/components/expense/ExpenseForm.tsx`: add `type="button"` to the popover trigger button; add `className="p-3 pointer-events-auto"` to `Calendar`.
+- `src/pages/Parts.tsx`: add `editingPart` state + `AlertDialog` for delete; compute `canEditParts` / `canDeleteParts` from `currentUser.role` in `['owner','admin']` (superadmin included via `isSuperAdmin`); render Edit/Delete buttons alongside the existing Assign button in both view modes; on save route to `updatePart` when `editingPart` is set, otherwise `addPart`.
+- `src/components/part/PartDialog.tsx`: already supports a `part` prop and skips expense creation when editing — pass the part through; no schema change.
+- New dependency check in `src/context/data/hooks/useParts.ts`: `getPartDependencies(id)` counting `invoice_items` rows with `part_id = id` (grouped by invoice), exposed through `DataContextType.ts` and `DataContext.tsx`, and used by `removePart` to refuse deletion when count > 0.
+- No database migration needed; existing parts RLS policies already scope by organization and the delete/update paths run under the signed-in user.
