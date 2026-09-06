@@ -545,10 +545,39 @@ const Parts: React.FC = () => {
 
       {/* Part Dialog */}
       <PartDialog
+        key={editingPart?.id || 'new-part'}
         open={showPartDialog}
-        onOpenChange={setShowPartDialog}
+        onOpenChange={handlePartDialogOpenChange}
         onSave={handleSavePart}
+        part={editingPart || undefined}
       />
+
+      {/* Delete confirmation */}
+      <AlertDialog open={!!partToDelete} onOpenChange={(open) => !open && setPartToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete "{partToDelete?.name}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This removes the part from your inventory permanently. Parts already used on an
+              invoice or estimate can't be deleted — set the quantity to 0 instead.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleConfirmDelete();
+              }}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? 'Deleting...' : 'Delete Part'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
 
       {/* Assign to Invoice Dialog */}
       {selectedPartForAssignment && (
