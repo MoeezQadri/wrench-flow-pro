@@ -59,6 +59,8 @@ export interface DataContextType {
     addPart: (part: Part) => Promise<Part>;
     removePart: (id: string) => Promise<void>;
     updatePart: (id: string, updates: Partial<Part>) => Promise<Part>;
+    getPartDependencies: (id: string) => Promise<{ invoiceItems: number; invoices: number; total: number }>;
+
     loadParts: () => Promise<void>;
 
     payments: Payment[];

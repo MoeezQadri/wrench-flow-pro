@@ -116,6 +116,8 @@ const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
             addPart: partsHook.addPart,
             removePart: partsHook.removePart,
             updatePart: partsHook.updatePart,
+            getPartDependencies: partsHook.getPartDependencies,
+
             loadParts: partsHook.loadParts,
 
             payments: paymentsHook.payments,

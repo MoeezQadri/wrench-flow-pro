@@ -164,6 +164,8 @@ export const useParts = () => {
         addPart,
         removePart,
         updatePart,
+        getPartDependencies,
+
         loadParts: loadPartsWrapper,
         forceRefresh,
         forceReconnect
