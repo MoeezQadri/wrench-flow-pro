@@ -5,6 +5,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { useEnhancedRealtime } from '@/hooks/useEnhancedRealtime';
 import { useEnhancedDataLoading } from '@/hooks/useEnhancedDataLoading';
 
+export interface PartDependencies {
+    invoiceItems: number;
+    invoices: number;
+    total: number;
+}
+
 export const useParts = () => {
     const { 
         data: parts, 
@@ -60,8 +66,41 @@ export const useParts = () => {
         }
     };
 
+    // Counts invoice/estimate lines that reference this part so the UI can
+    // refuse a delete that would corrupt billing history.
+    const getPartDependencies = async (id: string): Promise<PartDependencies> => {
+        const empty: PartDependencies = { invoiceItems: 0, invoices: 0, total: 0 };
+        if (!id) return empty;
+
+        const { data, error } = await supabase
+            .from('invoice_items')
+            .select('invoice_id')
+            .eq('part_id', id);
+
+        if (error) {
+            console.error('Error checking part dependencies:', error);
+            throw error;
+        }
+
+        const rows = data || [];
+        const invoiceIds = new Set(rows.map((row: any) => row.invoice_id).filter(Boolean));
+        return {
+            invoiceItems: rows.length,
+            invoices: invoiceIds.size,
+            total: rows.length,
+        };
+    };
+
     const removePart = async (id: string) => {
         try {
+            const dependencies = await getPartDependencies(id);
+            if (dependencies.total > 0) {
+                toast.error(
+                    `This part is used on ${dependencies.invoices} invoice/estimate${dependencies.invoices === 1 ? '' : 's'} and cannot be deleted. Set its quantity to 0 instead.`
+                );
+                throw new Error('PART_HAS_DEPENDENCIES');
+            }
+
             const { error } = await supabase.from('parts').delete().eq('id', id);
             if (error) {
                 console.error('Error removing part:', error);
@@ -70,12 +109,14 @@ export const useParts = () => {
             }
             setParts((prev) => prev.filter((item) => item.id !== id));
             toast.success('Part deleted successfully');
-        } catch (error) {
-            console.error('Error removing part:', error);
-            toast.error('Failed to delete part');
+        } catch (error: any) {
+            if (error?.message !== 'PART_HAS_DEPENDENCIES') {
+                console.error('Error removing part:', error);
+            }
             throw error;
         }
     };
+
 
     const updatePart = async (id: string, updates: Partial<Part>) => {
         try {
