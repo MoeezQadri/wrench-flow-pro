@@ -46,9 +46,23 @@ export function isTrackedPath(pathname: string) {
 }
 
 /**
+ * Once gtag.js is loaded (on a tracked page) it stays in memory for the rest of
+ * the single-page session, and GA4 "enhanced measurement" keeps sending
+ * page_view hits on every route change. These kill switches stop all hits for
+ * both tags while the user is on a non-tracked page.
+ */
+export function setTrackingEnabled(enabled: boolean) {
+  if (typeof window === 'undefined') return;
+  const w = window as unknown as Record<string, boolean>;
+  if (MEASUREMENT_ID) w[`ga-disable-${MEASUREMENT_ID}`] = !enabled;
+  w[`ga-disable-${GOOGLE_ADS_ID}`] = !enabled;
+}
+
+/**
  * Loads gtag.js once and configures GA4 + Google Ads. Safe to call repeatedly.
  */
 export function ensureAnalytics() {
+  setTrackingEnabled(true);
   if (initialized || typeof window === 'undefined') return;
   if (!MEASUREMENT_ID) {
     console.warn('[analytics] Google Analytics measurement ID not configured');
