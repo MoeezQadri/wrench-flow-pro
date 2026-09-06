@@ -142,6 +142,7 @@ const ExpenseForm = ({ defaultValues, onSubmit, formId }: ExpenseFormProps) => {
                 <PopoverTrigger asChild>
                   <FormControl>
                     <Button
+                      type="button"
                       variant={"outline"}
                       className={cn(
                         "pl-3 text-left font-normal",
@@ -166,8 +167,10 @@ const ExpenseForm = ({ defaultValues, onSubmit, formId }: ExpenseFormProps) => {
                       date > new Date() || date < new Date("1900-01-01")
                     }
                     initialFocus
+                    className={cn("p-3 pointer-events-auto")}
                   />
                 </PopoverContent>
+
               </Popover>
               <FormMessage />
             </FormItem>

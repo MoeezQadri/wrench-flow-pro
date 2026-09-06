@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { toast } from 'sonner';
 import { useDataContext } from '@/context/data/DataContext';
 import { useAuthContext } from '@/context/AuthContext';
-import { hasPermission } from '@/utils/permissions';
+import { hasPermission, isSuperAdmin } from '@/utils/permissions';
 import PageWrapper from '@/components/PageWrapper';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,7 +10,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { Plus, Search, Filter, SortAsc, SortDesc, FileText, Users, Package, AlertTriangle, Grid3X3, List } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Plus, Search, Filter, SortAsc, SortDesc, FileText, Users, Package, AlertTriangle, Grid3X3, List, Pencil, Trash2 } from 'lucide-react';
 import PartDialog from '@/components/part/PartDialog';
 import VendorManagement from '@/components/vendor/VendorManagement';
 import AssignToInvoiceDialog from '@/components/part/AssignToInvoiceDialog';
@@ -19,6 +29,9 @@ import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
 
 const Parts: React.FC = () => {
   const [showPartDialog, setShowPartDialog] = useState(false);
+  const [editingPart, setEditingPart] = useState<Part | null>(null);
+  const [partToDelete, setPartToDelete] = useState<Part | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [showVendorManagement, setShowVendorManagement] = useState(false);
   const [showAssignDialog, setShowAssignDialog] = useState(false);
   const [selectedPartForAssignment, setSelectedPartForAssignment] = useState<Part | null>(null);
@@ -29,33 +42,64 @@ const Parts: React.FC = () => {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   
-  const { parts, addPart, refreshAllData, vendors, loadParts, loadVendors } = useDataContext();
+  const { parts, addPart, updatePart, removePart, refreshAllData, vendors, loadParts, loadVendors } = useDataContext();
   const { currentUser } = useAuthContext();
   const { formatCurrency } = useOrganizationSettings();
   
   // Check permissions
   const userCanManageParts = hasPermission(currentUser, 'parts', 'manage') || hasPermission(currentUser, 'parts', 'create');
   const userCanViewParts = hasPermission(currentUser, 'parts', 'view');
-
-  // Remove the customerNames loading logic since we should use vendors instead
-  // const loadCustomerNames = useCallback(async (vendorIds: string[]) => {
-  //   // This was incorrectly trying to load customer names for vendor IDs
-  // }, [getCustomerById]);
-
-  // useEffect(() => {
-  //   // This was incorrectly loading customer names when we need vendor names
-  // }, [parts, loadCustomerNames]);
+  // Editing and deleting inventory is restricted to owners/admins (and superadmins)
+  const userCanEditOrDeleteParts =
+    isSuperAdmin(currentUser) || currentUser?.role === 'owner' || currentUser?.role === 'admin';
 
   const handleSavePart = async (part: Part) => {
     try {
-      console.log('Saving part with data:', part);
-      await addPart(part);
+      if (editingPart) {
+        await updatePart(editingPart.id, {
+          name: part.name,
+          price: part.price,
+          cost: part.cost,
+          quantity: part.quantity,
+          description: part.description,
+          vendor_id: part.vendor_id,
+          part_number: part.part_number,
+        } as Partial<Part>);
+      } else {
+        await addPart(part);
+      }
       setShowPartDialog(false);
+      setEditingPart(null);
     } catch (error) {
       console.error('Error saving part:', error);
-      // Error is already handled in addPart
+      // Error is already handled in addPart/updatePart
     }
   };
+
+  const handleEditPart = (part: Part) => {
+    setEditingPart(part);
+    setShowPartDialog(true);
+  };
+
+  const handlePartDialogOpenChange = (open: boolean) => {
+    setShowPartDialog(open);
+    if (!open) setEditingPart(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!partToDelete) return;
+    setIsDeleting(true);
+    try {
+      await removePart(partToDelete.id);
+      setPartToDelete(null);
+      await loadParts();
+    } catch (error) {
+      // removePart already surfaces the reason (including dependency blocks)
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
 
   const handleAssignToInvoice = (part: Part) => {
     setSelectedPartForAssignment(part);
@@ -359,20 +403,44 @@ const Parts: React.FC = () => {
                           </div>
                         </div>
 
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
                           {getAssignmentStatus(part)}
-                          {userCanManageParts && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleAssignToInvoice(part as Part)}
-                              className="flex items-center gap-1"
-                            >
-                              <FileText className="h-3 w-3" />
-                              Assign
-                            </Button>
-                          )}
+                          <div className="flex items-center gap-1">
+                            {userCanManageParts && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleAssignToInvoice(part as Part)}
+                                className="flex items-center gap-1"
+                              >
+                                <FileText className="h-3 w-3" />
+                                Assign
+                              </Button>
+                            )}
+                            {userCanEditOrDeleteParts && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleEditPart(part as Part)}
+                                  aria-label={`Edit ${part.name}`}
+                                >
+                                  <Pencil className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => setPartToDelete(part as Part)}
+                                  aria-label={`Delete ${part.name}`}
+                                  className="text-destructive hover:text-destructive"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </>
+                            )}
+                          </div>
                         </div>
+
                       </CardContent>
                     </Card>
                   ))}
@@ -423,18 +491,42 @@ const Parts: React.FC = () => {
 
                           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                             {getAssignmentStatus(part)}
-                            {userCanManageParts && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleAssignToInvoice(part as Part)}
-                                className="flex items-center gap-1"
-                              >
-                                <FileText className="h-3 w-3" />
-                                Assign
-                              </Button>
-                            )}
+                            <div className="flex items-center gap-1">
+                              {userCanManageParts && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleAssignToInvoice(part as Part)}
+                                  className="flex items-center gap-1"
+                                >
+                                  <FileText className="h-3 w-3" />
+                                  Assign
+                                </Button>
+                              )}
+                              {userCanEditOrDeleteParts && (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleEditPart(part as Part)}
+                                    aria-label={`Edit ${part.name}`}
+                                  >
+                                    <Pencil className="h-3 w-3" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => setPartToDelete(part as Part)}
+                                    aria-label={`Delete ${part.name}`}
+                                    className="text-destructive hover:text-destructive"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                </>
+                              )}
+                            </div>
                           </div>
+
                         </div>
                       </CardContent>
                     </Card>
@@ -453,10 +545,39 @@ const Parts: React.FC = () => {
 
       {/* Part Dialog */}
       <PartDialog
+        key={editingPart?.id || 'new-part'}
         open={showPartDialog}
-        onOpenChange={setShowPartDialog}
+        onOpenChange={handlePartDialogOpenChange}
         onSave={handleSavePart}
+        part={editingPart || undefined}
       />
+
+      {/* Delete confirmation */}
+      <AlertDialog open={!!partToDelete} onOpenChange={(open) => !open && setPartToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete "{partToDelete?.name}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This removes the part from your inventory permanently. Parts already used on an
+              invoice or estimate can't be deleted — set the quantity to 0 instead.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleConfirmDelete();
+              }}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? 'Deleting...' : 'Delete Part'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
 
       {/* Assign to Invoice Dialog */}
       {selectedPartForAssignment && (

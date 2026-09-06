@@ -32,7 +32,7 @@ import { useDataContext } from "@/context/data/DataContext";
 
 const partSchema = z.object({
   name: z.string().min(1, { message: "Name is required" }),
-  price: z.coerce.number().min(0.01, { message: "Price must be at least 0.01" }),
+  price: z.coerce.number().min(0, { message: "Price cannot be negative" }),
   cost: z.coerce.number().min(0, { message: "Cost cannot be negative" }),
   quantity: z.coerce.number().min(0, { message: "Quantity cannot be negative" }),
   description: z.string().min(1, { message: "Description is required" }),
@@ -228,7 +228,7 @@ const PartForm = ({ defaultValues, onSubmit, formId, invoice, invoiceId, part, i
                 <FormControl>
                   <Input
                     type="number"
-                    min="0.01"
+                    min="0"
                     step="0.01"
                     placeholder="10.99"
                     {...field}
