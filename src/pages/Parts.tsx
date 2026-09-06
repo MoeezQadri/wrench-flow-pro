@@ -403,20 +403,44 @@ const Parts: React.FC = () => {
                           </div>
                         </div>
 
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
                           {getAssignmentStatus(part)}
-                          {userCanManageParts && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleAssignToInvoice(part as Part)}
-                              className="flex items-center gap-1"
-                            >
-                              <FileText className="h-3 w-3" />
-                              Assign
-                            </Button>
-                          )}
+                          <div className="flex items-center gap-1">
+                            {userCanManageParts && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleAssignToInvoice(part as Part)}
+                                className="flex items-center gap-1"
+                              >
+                                <FileText className="h-3 w-3" />
+                                Assign
+                              </Button>
+                            )}
+                            {userCanEditOrDeleteParts && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleEditPart(part as Part)}
+                                  aria-label={`Edit ${part.name}`}
+                                >
+                                  <Pencil className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => setPartToDelete(part as Part)}
+                                  aria-label={`Delete ${part.name}`}
+                                  className="text-destructive hover:text-destructive"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </>
+                            )}
+                          </div>
                         </div>
+
                       </CardContent>
                     </Card>
                   ))}
