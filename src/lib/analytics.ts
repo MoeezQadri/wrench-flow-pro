@@ -91,10 +91,23 @@ export function trackPageView(path: string) {
   });
 }
 
+/**
+ * Puts the kill switch back after an explicit event was sent from a page where
+ * automatic tracking is not allowed (e.g. the Subscription tab in Settings).
+ */
+function restoreKillSwitch() {
+  if (typeof window === 'undefined') return;
+  if (isTrackedPath(window.location.pathname)) return;
+  window.setTimeout(() => {
+    if (!isTrackedPath(window.location.pathname)) setTrackingEnabled(false);
+  }, 1500);
+}
+
 export function trackEvent(name: string, params: Record<string, unknown> = {}) {
   if (!MEASUREMENT_ID) return;
   ensureAnalytics();
   gtag('event', name, params);
+  restoreKillSwitch();
 }
 
 /**
@@ -131,6 +144,7 @@ export function trackGoogleAdsConversion(
       : {}),
     ...(params.transactionId ? { transaction_id: params.transactionId } : {}),
   });
+  restoreKillSwitch();
 }
 
 /** Google Ads "Subscribe" conversion — a paid subscription was confirmed. */
