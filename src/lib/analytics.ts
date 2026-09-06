@@ -144,6 +144,7 @@ export function trackGoogleAdsConversion(
       : {}),
     ...(params.transactionId ? { transaction_id: params.transactionId } : {}),
   });
+  restoreKillSwitch();
 }
 
 /** Google Ads "Subscribe" conversion — a paid subscription was confirmed. */
