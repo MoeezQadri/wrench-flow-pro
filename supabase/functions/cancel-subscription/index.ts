@@ -92,23 +92,54 @@ serve(async (req) => {
 
     const stripe = new Stripe(stripeKey, { apiVersion: '2023-10-16' });
 
-    const customers = (
+    // The checkout email can differ from the owner's current login email.
+    // Prefer the Stripe customer IDs already tied to this organization, then
+    // retain email lookup as a fallback for older subscriber rows.
+    const { data: subscriberRows, error: subscriberError } = await supabase
+      .from('subscribers')
+      .select('stripe_customer_id')
+      .eq('organization_id', organizationId)
+      .not('stripe_customer_id', 'is', null);
+
+    if (subscriberError) {
+      logStep('Could not read saved Stripe customers', {
+        error: subscriberError.message,
+      });
+    }
+
+    const savedCustomerIds = (subscriberRows || [])
+      .map((row: any) => row.stripe_customer_id)
+      .filter((id: unknown): id is string => typeof id === 'string' && id.length > 0);
+
+    const customersByEmail = (
       await Promise.all(
         emails.map((email) => stripe.customers.list({ email, limit: 100 }))
       )
     ).flatMap((res) => res.data);
 
+    const customerIds = Array.from(
+      new Set([...savedCustomerIds, ...customersByEmail.map((c) => c.id)])
+    );
+    logStep('Stripe customers resolved', {
+      saved: savedCustomerIds.length,
+      total: customerIds.length,
+    });
+
     const subscriptions = (
       await Promise.all(
-        customers.map((c) =>
+        customerIds.map((customerId) =>
           stripe.subscriptions.list({
-            customer: c.id,
-            status: 'active',
+            customer: customerId,
+            status: 'all',
             limit: 100,
           })
         )
       )
-    ).flatMap((res) => res.data);
+    )
+      .flatMap((res) => res.data)
+      .filter((subscription) =>
+        ['active', 'trialing', 'past_due'].includes(subscription.status)
+      );
 
     if (subscriptions.length === 0) {
       logStep('No active subscription found');
