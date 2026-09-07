@@ -1,0 +1,7 @@
+{
+  "compilerOptions": {
+    "lib": ["deno.ns", "deno.unstable"],
+    "checkJs": false
+  },
+  "importMap": "import_map.json"
+}
