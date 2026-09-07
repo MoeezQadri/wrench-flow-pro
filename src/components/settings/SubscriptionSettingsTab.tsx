@@ -398,7 +398,14 @@ const SubscriptionSettingsTab = () => {
                 onClick={() => setCancelDialogOpen(true)}
                 disabled={cancelWorking}
               >
-                Cancel subscription
+                {cancelWorking ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Cancelling...
+                  </>
+                ) : (
+                  'Cancel subscription'
+                )}
               </Button>
             </div>
           )}
@@ -406,7 +413,13 @@ const SubscriptionSettingsTab = () => {
         </CardContent>
       </Card>
 
-      <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+      <AlertDialog
+        open={cancelDialogOpen}
+        onOpenChange={(open) => {
+          if (cancelWorking) return;
+          setCancelDialogOpen(open);
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Cancel your subscription?</AlertDialogTitle>
@@ -414,7 +427,8 @@ const SubscriptionSettingsTab = () => {
               You keep full access until
               {subscriptionEnd ? ` ${formatDate(subscriptionEnd)}` : ' the end of the period you have already paid for'}
               , and you will not be billed again. No refund is issued for the
-              current period. You can resume before that date at any time.
+              current period. After that date you can choose a plan again to
+              restore access.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -428,11 +442,19 @@ const SubscriptionSettingsTab = () => {
               }}
               disabled={cancelWorking}
             >
-              Yes, cancel
+              {cancelWorking ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Cancelling...
+                </>
+              ) : (
+                'Yes, cancel'
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
 
       <Separator />
 
