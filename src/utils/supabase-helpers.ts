@@ -382,6 +382,7 @@ export const cancelOwnSubscription = async (
 
   return data as {
     changed?: boolean;
+    stale?: boolean;
     action?: 'cancel' | 'resume';
     subscription_end?: string | null;
     message?: string;

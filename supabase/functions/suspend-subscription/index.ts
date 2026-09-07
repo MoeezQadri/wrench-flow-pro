@@ -57,6 +57,16 @@ serve(async (req) => {
     if (!user?.email) throw new Error('User not authenticated');
     logStep('User authenticated', { userId: user.id });
 
+    const { data: superadmin, error: superadminError } = await supabase
+      .from('superadmins')
+      .select('id')
+      .eq('_id', user.id)
+      .maybeSingle();
+    if (superadminError) throw superadminError;
+    if (!superadmin) {
+      return json({ error: 'Super admin access required' }, 403);
+    }
+
     const organizationId: string = params.org_id;
     const stripe = new Stripe(stripeKey, { apiVersion: '2023-10-16' });
 

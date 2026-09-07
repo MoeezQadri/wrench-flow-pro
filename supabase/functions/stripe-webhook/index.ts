@@ -72,7 +72,20 @@ async function syncSubscriptionEvent(subscription: any) {
 
   const live = isLiveSubscription(subscription);
   const canceling = live && subscription.cancel_at_period_end === true;
-  const status = live ? (canceling ? 'canceling' : 'active') : 'ended';
+  const { data: currentOrganization } = await supabase
+    .from('organizations')
+    .select('subscription_status')
+    .eq('id', organizationId)
+    .maybeSingle();
+  const remainsSuspended =
+    live && currentOrganization?.subscription_status === 'suspended';
+  const status = live
+    ? remainsSuspended
+      ? 'suspended'
+      : canceling
+        ? 'canceling'
+        : 'active'
+    : 'ended';
   const periodEnd = getPeriodEndIso(subscription) || new Date().toISOString();
   const tier = getPlanName(subscription, 'Basic');
 
@@ -91,7 +104,7 @@ async function syncSubscriptionEvent(subscription: any) {
     subscribed: live,
     subscription_tier: tier,
     subscription_end: periodEnd,
-    suspended: false,
+    suspended: remainsSuspended,
     updated_at: new Date().toISOString(),
   };
   if (customerId) update.stripe_customer_id = customerId;
