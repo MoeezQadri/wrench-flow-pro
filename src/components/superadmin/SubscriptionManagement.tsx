@@ -11,7 +11,20 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@radix-ui/react-accordion';
-import { suspendSubscription } from '@/utils/supabase-helpers';
+import {
+  suspendSubscription,
+  unsuspendSubscription,
+} from '@/utils/supabase-helpers';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import {
   getOrgStatus,
   getStatusLabel,
@@ -28,6 +41,13 @@ export const SubscriptionManagement = ({
 }: SubscriptionManagementProps) => {
   const { toast } = useToast();
   const [updating, setUpdating] = useState<string | null>(null);
+  const [orgToUnsuspend, setOrgToUnsuspend] = useState<{
+    id: string;
+    name: string;
+    subscription_level: string;
+    emails: string[];
+    userIds: string[];
+  } | null>(null);
 
   // --- Toggle states for collapsible cards ---
   const [trialOpen, setTrialOpen] = useState(true);
@@ -93,6 +113,40 @@ export const SubscriptionManagement = ({
       toast({
         title: 'Error',
         description: error.message || 'Failed to suspend subscription',
+        variant: 'destructive',
+      });
+    } finally {
+      setUpdating(null);
+    }
+  };
+
+  const handleUnsuspend = async () => {
+    if (!orgToUnsuspend) return;
+    const target = orgToUnsuspend;
+    setOrgToUnsuspend(null);
+    setUpdating(target.id);
+    try {
+      const result = await unsuspendSubscription({
+        org_id: target.id,
+        org_name: target.name,
+        sub_level: target.subscription_level,
+        user_ids: target.userIds.filter(Boolean),
+        user_emails: target.emails.filter(Boolean),
+      });
+      toast({
+        title: result?.resumed
+          ? 'Subscription resumed'
+          : 'Suspension lifted',
+        description:
+          result?.message ||
+          'The organization is no longer suspended.',
+      });
+      onUpdate();
+    } catch (error: any) {
+      console.error(error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to un-suspend organization',
         variant: 'destructive',
       });
     } finally {
@@ -197,6 +251,10 @@ export const SubscriptionManagement = ({
               </div>
             </div>
           ))}
+          <p className="text-xs text-muted-foreground">
+            Suspending cancels a paid subscription at the end of its current
+            billing period — access is not cut off immediately.
+          </p>
         </div>
       </CollapsibleCard>
 
@@ -237,23 +295,23 @@ export const SubscriptionManagement = ({
                   variant="outline"
                   size="sm"
                   onClick={() =>
-                    handleSuspend(
-                      org.id,
-                      org.subscription_level,
-                      'suspended',
-                      [
+                    setOrgToUnsuspend({
+                      id: org.id,
+                      name: org.name,
+                      subscription_level: org.subscription_level,
+                      emails: [
                         ...owner.map((o) => o.email),
                         ...others.map((u) => u.email),
                       ],
-                      [
+                      userIds: [
                         ...owner.map((o) => o.user_id),
                         ...others.map((u) => u.user_id),
-                      ]
-                    )
+                      ],
+                    })
                   }
                   disabled={updating === org.id}
                 >
-                  Suspend
+                  {updating === org.id ? 'Working…' : 'Un-suspend'}
                 </Button>
               </div>
 
