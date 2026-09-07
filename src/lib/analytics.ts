@@ -39,11 +39,51 @@ export const TRACKED_PATHS = [
   '/payment/canceled',
 ] as const;
 
+/** Areas that must never report anything, regardless of the tracked list. */
+export const BLOCKED_PATH_PREFIXES = ['/superadmin'] as const;
+
+export function isBlockedPath(pathname: string) {
+  return BLOCKED_PATH_PREFIXES.some(
+    (p) => pathname === p || pathname.startsWith(`${p}/`)
+  );
+}
+
+const OPT_OUT_KEY = 'ga-optout';
+
+/** True when this browser session has been marked as internal (super admin). */
+export function isOptedOut() {
+  if (typeof window === 'undefined') return false;
+  try {
+    return window.sessionStorage.getItem(OPT_OUT_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+/** Marks the whole browser session as not-to-be-tracked (super admin). */
+export function setAnalyticsOptOut(optOut = true) {
+  if (typeof window === 'undefined') return;
+  try {
+    if (optOut) window.sessionStorage.setItem(OPT_OUT_KEY, '1');
+    else window.sessionStorage.removeItem(OPT_OUT_KEY);
+  } catch {
+    /* ignore storage failures */
+  }
+  if (optOut) setTrackingEnabled(false);
+}
+
+function trackingSuppressed() {
+  if (typeof window === 'undefined') return true;
+  return isOptedOut() || isBlockedPath(window.location.pathname);
+}
+
 export function isTrackedPath(pathname: string) {
+  if (isBlockedPath(pathname) || isOptedOut()) return false;
   return TRACKED_PATHS.some(
     (p) => pathname === p || pathname === `${p}/`
   );
 }
+
 
 /**
  * Once gtag.js is loaded (on a tracked page) it stays in memory for the rest of
