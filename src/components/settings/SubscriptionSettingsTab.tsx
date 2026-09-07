@@ -24,6 +24,7 @@ import {
   Zap,
   Building2,
   Calendar,
+  Loader2,
 } from 'lucide-react';
 import PricingPlans from './PricingPlans';
 import {
