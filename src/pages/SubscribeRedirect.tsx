@@ -19,7 +19,9 @@ export default function SubscribeRedirect() {
   useEffect(() => {
     if (visitTracked.current) return;
     visitTracked.current = true;
+    trackSubscribePageVisit(plan || undefined);
     trackSubscribePageVisitConversion();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
