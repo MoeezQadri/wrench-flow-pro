@@ -52,6 +52,8 @@ export const SubscriptionManagement = ({
   // --- Toggle states for collapsible cards ---
   const [trialOpen, setTrialOpen] = useState(true);
   const [expiredOpen, setExpiredOpen] = useState(true);
+  const [cancelingOpen, setCancelingOpen] = useState(true);
+
   const [suspendedOpen, setSuspendedOpen] = useState(true);
   const [activeOpen, setActiveOpen] = useState(true);
 
@@ -60,14 +62,18 @@ export const SubscriptionManagement = ({
     organizations.filter((org) => getOrgStatus(org) === 'trial_active');
 
   const getExpiredTrials = () =>
-    organizations.filter((org) => getOrgStatus(org) === 'trial_expired');
+    organizations.filter((org) =>
+      ['trial_expired', 'subscription_ended'].includes(getOrgStatus(org))
+    );
+
+  const getCancelingSubscriptions = () =>
+    organizations.filter((org) => getOrgStatus(org) === 'canceling');
 
   const getPaidSubscriptions = () =>
     organizations.filter((org) =>
-      ['paid', 'internal', 'canceling', 'subscription_ended'].includes(
-        getOrgStatus(org)
-      )
+      ['paid', 'internal'].includes(getOrgStatus(org))
     );
+
 
   const getSuspendedSubscriptions = () =>
     organizations.filter((org) => getOrgStatus(org) === 'suspended');
@@ -213,10 +219,47 @@ export const SubscriptionManagement = ({
         </div>
       </CollapsibleCard>
 
-      {/* Expired Trials */}
+      {/* Cancelled by customer */}
       <CollapsibleCard
-        title="Expired Trials"
+        title="Cancelled by customer"
+        icon={<Calendar className="h-5 w-5 text-orange-500" />}
+        count={getCancelingSubscriptions().length}
+        open={cancelingOpen}
+        setOpen={setCancelingOpen}
+      >
+        <div className="space-y-4">
+          {getCancelingSubscriptions().map((org) => (
+            <div
+              key={`${org.id} ${org.email}`}
+              className="flex items-center justify-between p-4 border rounded-lg"
+            >
+              <div className="space-y-1">
+                <div className="font-medium">{org.name}</div>
+                <div className="text-sm text-muted-foreground">
+                  {getStatusLabel(org)}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="capitalize">
+                  {org.subscription_level}
+                </Badge>
+                <Badge variant="outline">{org.email}</Badge>
+              </div>
+            </div>
+          ))}
+          {getCancelingSubscriptions().length === 0 && (
+            <p className="text-muted-foreground text-center py-4">
+              No cancelled subscriptions
+            </p>
+          )}
+        </div>
+      </CollapsibleCard>
+
+      {/* Expired trials and ended subscriptions */}
+      <CollapsibleCard
+        title="Expired Trials & Ended Subscriptions"
         icon={<AlertCircle className="h-5 w-5 text-destructive" />}
+
         count={getExpiredTrials().length}
         open={expiredOpen}
         setOpen={setExpiredOpen}

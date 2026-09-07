@@ -197,8 +197,33 @@ serve(async (req) => {
     const nowMs = Date.now();
     const cachedEndMs = orgSub?.subscription_end ? new Date(orgSub.subscription_end).getTime() : null;
     const cachedActive = orgSub && (cachedEndMs === null || cachedEndMs > nowMs);
+    // A cancellation that has reached its end date: access stops now.
+    if (orgSub && storedStatus === 'canceling' && cachedEndMs !== null && cachedEndMs <= nowMs) {
+      logStep('Canceling subscription reached its end date', {
+        subscription_end: orgSub.subscription_end,
+      });
+      await syncOrgState(supabaseClient, organizationId, {
+        level: String(orgSub.subscription_tier || storedLevel || 'basic').toLowerCase(),
+        status: 'ended',
+        endsAt: orgSub.subscription_end || null,
+      });
+      await supabaseClient
+        .from('subscribers')
+        .update({ subscribed: false, updated_at: new Date().toISOString() })
+        .eq('organization_id', organizationId);
+      return json({
+        subscribed: false,
+        subscription_tier: orgSub.subscription_tier || storedLevel || null,
+        subscription_end: orgSub.subscription_end,
+        suspended: false,
+        canceling: false,
+        expired_reason: 'subscription',
+      });
+    }
+
     if (orgSub && cachedActive) {
       logStep('Fast path: org subscriber found', { tier: orgSub.subscription_tier });
+
       const canceling = storedStatus === 'canceling';
       await syncOrgState(supabaseClient, organizationId, {
         level: String(orgSub.subscription_tier || 'basic').toLowerCase(),

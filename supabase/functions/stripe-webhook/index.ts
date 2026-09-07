@@ -26,9 +26,101 @@ serve(async (req) => {
     return new Response('Invalid signature', { status: 400 });
   }
 
+  const admin = () =>
+    createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    );
+
+  // --- Subscription ended (cancellation period reached, or payment failure) ---
+  const endsAccess =
+    event.type === 'customer.subscription.deleted' ||
+    (event.type === 'customer.subscription.updated' &&
+      ['canceled', 'unpaid', 'incomplete_expired'].includes(
+        (event.data.object as any)?.status
+      ));
+
+  if (endsAccess) {
+    const sub = event.data.object as any;
+    const db = admin();
+
+    try {
+      const customerId =
+        typeof sub.customer === 'string' ? sub.customer : sub.customer?.id;
+      const customer: any = customerId
+        ? await stripe.customers.retrieve(customerId)
+        : null;
+      const email = customer?.email ?? null;
+
+      const periodEnd = sub.current_period_end
+        ? new Date(sub.current_period_end * 1000).toISOString()
+        : new Date().toISOString();
+
+      // Resolve the organization from the subscribers cache, else from profiles
+      let organizationId: string | null = null;
+
+      if (email) {
+        const { data: subscriberRow } = await db
+          .from('subscribers')
+          .select('user_id, organization_id')
+          .eq('email', email)
+          .maybeSingle();
+
+        if (subscriberRow?.user_id) {
+          const { data: prof } = await db
+            .from('profiles')
+            .select('organization_id')
+            .eq('id', subscriberRow.user_id)
+            .maybeSingle();
+          organizationId = prof?.organization_id ?? null;
+        }
+
+        await db
+          .from('subscribers')
+          .update({
+            subscribed: false,
+            subscription_end: periodEnd,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('email', email);
+      }
+
+      if (organizationId) {
+        await db
+          .from('organizations')
+          .update({
+            subscription_status: 'ended',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', organizationId);
+
+        await db
+          .from('subscribers')
+          .update({
+            subscribed: false,
+            subscription_end: periodEnd,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('organization_id', organizationId);
+
+        console.log(`Organization ${organizationId} → subscription ended`);
+      } else {
+        console.error('Could not resolve organization for ended subscription', {
+          email,
+        });
+      }
+    } catch (err) {
+      console.error('Error handling ended subscription', err);
+      return new Response('Handler error', { status: 500 });
+    }
+
+    return new Response('Success', { status: 200 });
+  }
+
   if (event.type !== 'checkout.session.completed') {
     return new Response('Ignored', { status: 200 });
   }
+
 
   const session = event.data.object as any;
   const userId = session?.metadata?.user_id;
