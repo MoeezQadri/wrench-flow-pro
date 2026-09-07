@@ -233,30 +233,9 @@ export const SubscriptionManagement = ({
                   {getStatusLabel(org)}
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() =>
-                    handleSuspend(
-                      org.id,
-                      org.subscription_level,
-                      'suspended',
-                      [org.email],
-                      [org.user_id]
-                    )
-                  }
-                  disabled={updating === org.id}
-                >
-                  Suspend
-                </Button>
-              </div>
             </div>
           ))}
-          <p className="text-xs text-muted-foreground">
-            Suspending cancels a paid subscription at the end of its current
-            billing period — access is not cut off immediately.
-          </p>
+
         </div>
       </CollapsibleCard>
 
