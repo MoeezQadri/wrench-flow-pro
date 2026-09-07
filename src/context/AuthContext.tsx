@@ -65,7 +65,7 @@ interface AuthContextType {
   subscriptionTier: string | null;
   subscriptionEnd: string | null;
   subscriptionCanceling: boolean;
-  subscriptionExpiredReason: 'trial' | 'subscription' | null;
+  subscriptionExpiredReason: 'trial' | 'subscription' | 'suspended' | null;
   refreshSubscription: () => Promise<void>;
 }
 
@@ -92,7 +92,7 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [subscriptionEnd, setSubscriptionEnd] = useState<string | null>(null);
   const [subscriptionCanceling, setSubscriptionCanceling] = useState(false);
   const [subscriptionExpiredReason, setSubscriptionExpiredReason] = useState<
-    'trial' | 'subscription' | null
+    'trial' | 'subscription' | 'suspended' | null
   >(null);
 
   const isAuthenticated = !!currentUser;

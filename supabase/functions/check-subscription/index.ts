@@ -197,9 +197,15 @@ serve(async (req) => {
     const nowMs = Date.now();
     const cachedEndMs = orgSub?.subscription_end ? new Date(orgSub.subscription_end).getTime() : null;
     const cachedActive = orgSub && (cachedEndMs === null || cachedEndMs > nowMs);
-    // A cancellation that has reached its end date: access stops now.
-    if (orgSub && storedStatus === 'canceling' && cachedEndMs !== null && cachedEndMs <= nowMs) {
-      logStep('Canceling subscription reached its end date', {
+    // A cancellation or suspension that has reached its end date: access stops now.
+    if (
+      orgSub &&
+      (storedStatus === 'canceling' || storedStatus === 'suspended') &&
+      cachedEndMs !== null &&
+      cachedEndMs <= nowMs
+    ) {
+      logStep('Subscription reached its end date', {
+        storedStatus,
         subscription_end: orgSub.subscription_end,
       });
       await syncOrgState(supabaseClient, organizationId, {
@@ -215,11 +221,13 @@ serve(async (req) => {
         subscribed: false,
         subscription_tier: orgSub.subscription_tier || storedLevel || null,
         subscription_end: orgSub.subscription_end,
-        suspended: false,
+        suspended: storedStatus === 'suspended',
         canceling: false,
-        expired_reason: 'subscription',
+        expired_reason:
+          storedStatus === 'suspended' ? 'suspended' : 'subscription',
       });
     }
+
 
     if (orgSub && cachedActive) {
       logStep('Fast path: org subscriber found', { tier: orgSub.subscription_tier });

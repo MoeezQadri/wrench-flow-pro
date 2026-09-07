@@ -358,11 +358,13 @@ const SubscriptionSettingsTab = () => {
           {!subscribed && (
             <div className="mt-6 rounded-md border border-orange-300 bg-orange-50 p-4 dark:bg-orange-950/30">
               <p className="text-sm font-medium">
-                {subscriptionExpiredReason === 'subscription'
-                  ? 'Your subscription has ended.'
-                  : subscriptionEnd
-                    ? `Your free trial ended on ${formatDate(subscriptionEnd)}.`
-                    : 'Your free trial has ended.'}
+                {subscriptionExpiredReason === 'suspended'
+                  ? 'Your account has been suspended and access has ended.'
+                  : subscriptionExpiredReason === 'subscription'
+                    ? 'Your subscription has ended.'
+                    : subscriptionEnd
+                      ? `Your free trial ended on ${formatDate(subscriptionEnd)}.`
+                      : 'Your free trial has ended.'}
               </p>
               <p className="text-sm text-muted-foreground mt-1">
                 Choose a plan below to restore access. Your data is safe and
@@ -371,7 +373,21 @@ const SubscriptionSettingsTab = () => {
             </div>
           )}
 
-          {subscribed && isPaidPlan && subscriptionCanceling && (
+          {subscribed && subscriptionSuspended && (
+            <div className="mt-6 rounded-md border border-destructive/40 bg-destructive/5 p-4">
+              <p className="text-sm font-medium">
+                {subscriptionEnd
+                  ? `Your account has been suspended — access ends on ${formatDate(subscriptionEnd)}.`
+                  : 'Your account has been suspended.'}
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Billing has been stopped. Please contact support if you think
+                this is a mistake.
+              </p>
+            </div>
+          )}
+
+          {subscribed && isPaidPlan && subscriptionCanceling && !subscriptionSuspended && (
             <div className="mt-6 rounded-md border border-orange-300 bg-orange-50 p-4 dark:bg-orange-950/30">
               <p className="text-sm font-medium">
                 {subscriptionEnd
@@ -386,7 +402,7 @@ const SubscriptionSettingsTab = () => {
             </div>
           )}
 
-          {subscribed && isPaidPlan && !subscriptionCanceling && canManageSubscription && (
+          {subscribed && isPaidPlan && !subscriptionCanceling && !subscriptionSuspended && canManageSubscription && (
             <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm text-muted-foreground">
                 You can stop your plan at any time; it stays active until the

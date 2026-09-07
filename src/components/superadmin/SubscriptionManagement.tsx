@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/use-toast';
 import { Organization } from '@/components/admin/types';
-import { CreditCard, Calendar, AlertCircle } from 'lucide-react';
+import { CreditCard, Calendar, AlertCircle, Loader2 } from 'lucide-react';
 import {
   Accordion,
   AccordionContent,
@@ -45,6 +45,14 @@ export const SubscriptionManagement = ({
     id: string;
     name: string;
     subscription_level: string;
+    emails: string[];
+    userIds: string[];
+  } | null>(null);
+  const [orgToSuspend, setOrgToSuspend] = useState<{
+    id: string;
+    name: string;
+    subscription_level: string;
+    accessUntil: string | null;
     emails: string[];
     userIds: string[];
   } | null>(null);
@@ -94,26 +102,27 @@ export const SubscriptionManagement = ({
     });
   };
 
-  const handleSuspend = async (
-    orgId: string,
-    subscriptionLevel: string,
-    subscriptionStatus: string,
-    emails: string[],
-    userIds: string[]
-  ) => {
-    setUpdating(orgId);
+  const handleSuspend = async () => {
+    if (!orgToSuspend) return;
+    const target = orgToSuspend;
+    setOrgToSuspend(null);
+    setUpdating(target.id);
     try {
-      await suspendSubscription({
-        org_id: orgId,
-        org_name: organizations.find((o) => o.id === orgId)?.name,
-        sub_level: subscriptionLevel,
-        sub_status: subscriptionStatus,
-        user_ids: userIds,
-        user_emails: emails,
+      const result = await suspendSubscription({
+        org_id: target.id,
+        org_name: target.name,
+        sub_level: target.subscription_level,
+        sub_status: 'suspended',
+        user_ids: target.userIds.filter(Boolean),
+        user_emails: target.emails.filter(Boolean),
       });
       toast({
-        title: 'Subscription updated',
-        description: 'Organization subscription has been updated successfully.',
+        title: result?.billing_changed
+          ? 'Billing stopped'
+          : 'Organization suspended',
+        description:
+          result?.message ||
+          'The organization has been suspended.',
       });
       onUpdate();
     } catch (error: any) {
@@ -314,6 +323,14 @@ export const SubscriptionManagement = ({
                       <Badge variant="outline">{o.email}</Badge>
                     </div>
                   ))}
+                  {(org.next_billing_date || org.trial_ends_at) && (
+                    <div className="text-xs text-muted-foreground">
+                      Access ends on{' '}
+                      {new Date(
+                        (org.next_billing_date || org.trial_ends_at) as string
+                      ).toLocaleDateString()}
+                    </div>
+                  )}
                 </div>
                 <Button
                   variant="outline"
@@ -408,23 +425,32 @@ export const SubscriptionManagement = ({
                 variant="outline"
                 size="sm"
                 onClick={() =>
-                  handleSuspend(
-                    org.id,
-                    org.subscription_level,
-                    'suspended',
-                    [
+                  setOrgToSuspend({
+                    id: org.id,
+                    name: org.name,
+                    subscription_level: org.subscription_level,
+                    accessUntil:
+                      org.next_billing_date || org.trial_ends_at || null,
+                    emails: [
                       ...owner.map((o) => o.email),
                       ...others.map((u) => u.email),
                     ],
-                    [
+                    userIds: [
                       ...owner.map((o) => o.user_id),
                       ...others.map((u) => u.user_id),
-                    ]
-                  )
+                    ],
+                  })
                 }
                 disabled={updating === org.id}
               >
-                Suspend
+                {updating === org.id ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Suspending…
+                  </>
+                ) : (
+                  'Suspend'
+                )}
               </Button>
             </div>
 
@@ -459,11 +485,39 @@ export const SubscriptionManagement = ({
           </div>
         ))}
         <p className="text-xs text-muted-foreground">
-          Suspending cancels a paid subscription at the end of its current
-          billing period — access is not cut off immediately.
+          Suspending stops billing at the end of the current paid period. The
+          shop keeps access until that date, then moves to Expired Trials &
+          Ended Subscriptions.
         </p>
 
       </CollapsibleCard>
+
+      <AlertDialog
+        open={!!orgToSuspend}
+        onOpenChange={(open) => !open && setOrgToSuspend(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Suspend {orgToSuspend?.name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Billing stops now, but the shop keeps access until the end of the
+              period it has already paid for
+              {orgToSuspend?.accessUntil
+                ? ` — ${new Date(orgToSuspend.accessUntil).toLocaleDateString()}`
+                : ''}
+              . After that date everything except Settings is locked and the
+              shop appears under ended subscriptions.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleSuspend}>
+              Suspend
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
 
       <AlertDialog
         open={!!orgToUnsuspend}
