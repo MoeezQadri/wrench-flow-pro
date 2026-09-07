@@ -67,8 +67,12 @@ export default function PaymentSuccess() {
       trackPurchase({
         transactionId: sessionId,
         planName: subscriptionTier || plan,
+        value: purchaseValue,
       });
-      trackSubscribeConversion({ transactionId: sessionId || undefined });
+      trackSubscribeConversion({
+        transactionId: sessionId || undefined,
+        value: purchaseValue,
+      });
     } else if (status === 'pending') {
       tracked.current = true;
       trackPaymentFailed({
