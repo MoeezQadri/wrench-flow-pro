@@ -59,6 +59,36 @@ export function setTrackingEnabled(enabled: boolean) {
 }
 
 /**
+ * gtag.js reacts to address changes immediately (before React renders the new
+ * page), so switching the tags off from a route effect is too late — the first
+ * in-app page after sign-in still gets reported. This wraps the history API and
+ * flips the kill switch synchronously, before gtag's own listeners run.
+ */
+// Captured before gtag.js loads: gtag wraps these to send a page view on every
+// address change (the Google Ads tag ignores the disable flag, so unhooking is
+// the only reliable way to stop it). We send page views ourselves, so the
+// pristine functions are all the app needs.
+const nativePushState =
+  typeof window !== 'undefined' ? window.history.pushState : undefined;
+const nativeReplaceState =
+  typeof window !== 'undefined' ? window.history.replaceState : undefined;
+
+/**
+ * Removes gtag's history hooks so no automatic page view is sent when the user
+ * moves around the app. Safe to call repeatedly — gtag re-hooks while it boots.
+ */
+export function restoreNativeHistory() {
+  if (typeof window === 'undefined' || !nativePushState || !nativeReplaceState)
+    return;
+  if (window.history.pushState !== nativePushState) {
+    window.history.pushState = nativePushState;
+  }
+  if (window.history.replaceState !== nativeReplaceState) {
+    window.history.replaceState = nativeReplaceState;
+  }
+}
+
+/**
  * Loads gtag.js once and configures GA4 + Google Ads. Safe to call repeatedly.
  */
 export function ensureAnalytics() {
@@ -78,7 +108,16 @@ export function ensureAnalytics() {
   gtag('js', new Date());
   // AnalyticsTracker sends the page views itself, so disable automatic ones.
   gtag('config', MEASUREMENT_ID, { send_page_view: false });
-  gtag('config', GOOGLE_ADS_ID);
+  gtag('config', GOOGLE_ADS_ID, { send_page_view: false });
+
+  // Install after gtag.js has wrapped the history API so our wrapper sits
+  // outside its own and runs first.
+  // gtag.js hooks the history API while it boots; unhook it (repeatedly, since
+  // it re-hooks) so route changes inside the app are never reported.
+  script.addEventListener('load', restoreNativeHistory);
+  [0, 200, 600, 1500, 3000].forEach((delay) =>
+    window.setTimeout(restoreNativeHistory, delay)
+  );
 }
 
 export function trackPageView(path: string) {
