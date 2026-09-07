@@ -9,9 +9,12 @@ The super admin screen loads everything once when it opens, and only reloads aft
 There is no sorting control anywhere on the super admin screens. Organizations arrive newest-first from the server and are shown as cards in that fixed order; the search box filters by name and email only. So there is currently nothing to sort with.
 
 **3. Expired trials**
-The Subscriptions tab already has an "Expired Trials" section, and it works off the organization's trial end date. But every one of the 40 organizations in the database has **no trial end date stored at all** — the field is empty for all of them. That is why the section is always empty and no trial dates show on the cards.
+You are right that expired trials exist — they just are not stored anywhere. The app decides trial expiry **live**, in the subscription check: trial ends 14 days after the organization was created. Nothing is written back, so no table holds a trial end date (the `trial_ends_at` field is empty on all 40 organizations, and the subscribers table has no end date for trials either). That is why the app front-end correctly treats trials as expired while the super admin screen shows nothing.
 
-Cause: the signup path that actually creates organizations records only "trial / active" and never writes a trial end date. (An older, unused piece of code does set a 30-day date, but it is not the path in use.) Also, nothing ever moves an organization out of "active" when its trial runs out, so the status badge stays "active" forever.
+The super admin screen instead reads the stored `trial_ends_at` field, which is always empty — so the "Expired Trials" section is always empty and every organization keeps showing "trial / active".
+
+By the app's own 14-day rule, **39 of the 40 organizations are past their trial** and 1 is still inside it.
+
 
 **4. GA and Google Ads events for login / signup**
 Events exist and the tags do fire — I loaded the sign-in page in a browser and confirmed both Google Analytics and Google Ads sent data.
