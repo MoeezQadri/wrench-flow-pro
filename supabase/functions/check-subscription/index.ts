@@ -141,6 +141,20 @@ serve(async (req) => {
     }
     logStep('Resolved organization', { organizationId });
 
+    // Current stored state, used to keep "canceling" and to tell a lapsed paid
+    // subscription apart from an expired trial.
+    const { data: orgRow } = await supabaseClient
+      .from('organizations')
+      .select('subscription_level, subscription_status')
+      .eq('id', organizationId)
+      .single();
+
+    const storedLevel = String(orgRow?.subscription_level || '').toLowerCase();
+    const storedStatus = String(orgRow?.subscription_status || '').toLowerCase();
+    const hadPaidLevel =
+      !!storedLevel && storedLevel !== 'trial' && storedLevel !== 'free';
+
+
     // Resolve org owners/admins early so we can apply the owner-email bypass
     // to every sub-account in the same organization.
     const { data: adminProfiles } = await supabaseClient
