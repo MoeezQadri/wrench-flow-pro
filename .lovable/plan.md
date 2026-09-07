@@ -1,43 +1,33 @@
-# Fix the misconfigured Ads conversions by routing them through Analytics
+# Google Ads conversions: what's really happening, and the small fixes worth making
 
-## What I found
+## What I verified in a real browser
 
-Checked in a real browser:
+- On the sign-up page the sign-up conversion **is** sent to Google, with the correct label (`ep72CKOXtO4cEJK769FE`).
+- On `/subscribe` the subscribe-page-visit conversion **is** sent too (`_W9eCI7up-4cEJK769FE`), and it leaves the browser before the redirect.
 
-- On the sign-up page, the sign-up conversion does reach Google with the correct label (`ep72CKOXtO4cEJK769FE`).
-- On `/subscribe`, the subscribe-page-visit conversion also reaches Google (`_W9eCI7up-4cEJK769FE`) before the redirect.
+So both conversions work. "Misconfigured tag" in Google Ads is Google's own check looking for its tag in the page's source code. This app deliberately loads the tag only after it starts up, and only on the sign-in, sign-up, subscribe and payment pages — which is exactly what you asked for when you wanted the rest of the app untracked. Google's scanner can't see a tag that isn't in the source, so it labels those two actions misconfigured even though real conversions arrive. The status normally settles once Google records live conversions.
 
-So nothing is broken in the sending. Google Ads reports these two as "misconfigured" because its own check looks at the page source for the Ads tag, and this app adds the tag only after it loads (deliberately, so internal pages are not tracked). The conversion that works today is the one coming from Analytics, which needs no page-source tag.
+Putting the tag back in the page source would clear the warning, but Google's Ads tag ignores the "don't report page views" setting — it would start reporting every screen inside the app again. Not worth trading that away for a status label, so the setup stays as is.
 
-Chosen direction: send everything through Analytics and import those events into Ads as conversions.
+## The small fixes worth making
 
-## What changes in the app
+1. **Send an amount with the paid-subscription conversion.** Right now it sends no value, so Ads can't report revenue or return on spend. The thank-you page knows the plan, so it will send the plan price and currency.
+2. **Guard against duplicate counting.** Each conversion gets a unique order reference so a page refresh or a retry can't count the same signup or purchase twice.
+3. **Add a matching Analytics event for the subscribe page visit.** Today that moment is only sent to Ads; Analytics has nothing, so you can't see it in your funnel next to plans-viewed and plan-selected. A `subscribe_page_visit` event fixes that.
+4. **Leave sign-in, plans viewed, plan selected, purchase, cancellation and the page limits untouched.** No change to which pages report.
 
-1. Every conversion moment becomes a clean Analytics event, with amount and currency where relevant:
-   - Registration completed -> `sign_up`
-   - Landing on `/subscribe` -> new event `subscribe_page_visit` (plan name included)
-   - Paid subscription confirmed on the thank-you page -> `purchase` (amount, currency, order id); `trackPurchase` will carry the plan price as `value` so Ads can use the event value
-   - Plans viewed / plan selected -> unchanged (`view_item_list`, `begin_checkout`)
-2. The direct Ads conversion pings for sign-up, subscribe-page-visit and paid subscription are switched off, so a conversion is never counted twice once the Analytics events are imported into Ads.
-3. The Ads tag itself stays loaded on the sign-in, sign-up, subscribe and payment pages only, so remarketing keeps working and no page inside the app is reported. Nothing goes back into the page source.
+## If the warning still bothers you later
 
-## What you do in Google Ads (one-off)
-
-1. Make sure the Analytics property `G-F2JSW9BNC0` is linked to the Ads account (Ads > Tools > Data manager / Linked accounts > Google Analytics).
-2. In Analytics, mark `sign_up`, `subscribe_page_visit` and `purchase` as key events.
-3. In Ads > Goals > Conversions > New conversion action > Import > Google Analytics 4, import those three.
-4. Pause or remove the two old website conversion actions that show "misconfigured" so the same action is not counted twice.
-
-Imported conversions can take up to 24-48 hours to show data, and Analytics key events appear in the import list only after the event has been received at least once.
+You can switch these two to Analytics-imported conversions instead: link Analytics to Ads, mark `sign_up`, `subscribe_page_visit` and `purchase` as key events in Analytics, then import them in Ads under Goals > Conversions > New > Import. If you do that, pause the two website conversion actions first, or the same action gets counted twice. That path needs no page-source tag but takes 24-48 hours to start reporting, which is why it isn't the default here.
 
 ## Technical notes
 
-- `src/lib/analytics.ts`: add `trackSubscribePageVisit(plan?)` as a `trackEvent` call; keep `trackGoogleAdsConversion` available but stop exporting/using `trackSignupConversion`, `trackSubscribePageVisitConversion`, `trackSubscribeConversion`; keep `ADS_CONVERSION_LABELS` commented as unused in case you revert.
-- `src/pages/SubscribeRedirect.tsx`: call `trackSubscribePageVisit(plan)` instead of the Ads conversion.
-- `src/pages/auth/Register.tsx`: keep `trackSignUp('email')`, drop `trackSignupConversion`.
-- `src/pages/PaymentSuccess.tsx`: keep `trackPurchase` with amount/currency/transaction id, drop `trackSubscribeConversion`.
-- No change to the tracked-path allowlist, the super-admin opt-out, or the history unhook.
+- `src/lib/analytics.ts`: add `trackSubscribePageVisit(plan?)` (a `trackEvent('subscribe_page_visit', …)` call); keep the Ads conversion helpers as they are.
+- `src/pages/SubscribeRedirect.tsx`: call both `trackSubscribePageVisit(plan)` and the existing `trackSubscribePageVisitConversion()`, still guarded by the existing `visitTracked` ref.
+- `src/pages/auth/Register.tsx`: pass a stable `transactionId` (new user id) to `trackSignupConversion` so repeat sends dedupe.
+- `src/pages/PaymentSuccess.tsx`: resolve the plan price and pass `value` to both `trackPurchase` and `trackSubscribeConversion`, alongside the existing Stripe `session_id` as the transaction id.
+- No changes to `TRACKED_PATHS`, `index.html`, the super-admin opt-out, or the history unhook.
 
 ## Verification
 
-Load `/auth/register` and `/subscribe` in a browser and confirm an Analytics hit with `en=sign_up` / `en=subscribe_page_visit` and no `googleadservices.com/pagead/conversion` request; then confirm in Analytics Realtime/DebugView that the events arrive.
+Reload `/auth/register` and `/subscribe` in a browser and confirm the Ads conversion requests still carry the right label, that the purchase conversion now carries a value, and that no request fires from any internal page.
