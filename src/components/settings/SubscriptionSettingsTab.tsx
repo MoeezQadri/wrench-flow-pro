@@ -402,7 +402,7 @@ const SubscriptionSettingsTab = () => {
             </div>
           )}
 
-          {subscribed && isPaidPlan && !subscriptionCanceling && canManageSubscription && (
+          {subscribed && isPaidPlan && !subscriptionCanceling && !subscriptionSuspended && canManageSubscription && (
             <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm text-muted-foreground">
                 You can stop your plan at any time; it stays active until the
