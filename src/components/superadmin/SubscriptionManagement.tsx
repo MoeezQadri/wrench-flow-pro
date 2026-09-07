@@ -173,12 +173,9 @@ export const SubscriptionManagement = ({
             >
               <div className="space-y-1">
                 <div className="font-medium">{org.name}</div>
-                {org.trial_ends_at && (
-                  <div className="text-sm text-destructive">
-                    Trial expired:{' '}
-                    {new Date(org.trial_ends_at).toLocaleDateString()}
-                  </div>
-                )}
+                <div className="text-sm text-destructive">
+                  {getStatusLabel(org)}
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 <Button
@@ -231,7 +228,7 @@ export const SubscriptionManagement = ({
                       <Badge variant="outline" className="capitalize">
                         {org.subscription_level}
                       </Badge>
-                      <Badge variant="outline">{org.subscription_status}</Badge>
+                      <Badge variant="outline">{getStatusLabel(org)}</Badge>
                       <Badge variant="outline">{o.email}</Badge>
                     </div>
                   ))}
