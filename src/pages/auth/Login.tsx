@@ -8,7 +8,23 @@ import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import AuthDebugPanel from '@/components/AuthDebugPanel';
-import { trackLogin } from '@/lib/analytics';
+import { trackLogin, setAnalyticsOptOut } from '@/lib/analytics';
+
+/** Internal platform accounts are never reported to Google Analytics/Ads. */
+const isPlatformSuperAdmin = async (userId?: string) => {
+  if (!userId) return false;
+  try {
+    const { data } = await supabase
+      .from('superadmins')
+      .select('id')
+      .eq('_id', userId)
+      .maybeSingle();
+    return !!data;
+  } catch {
+    return false;
+  }
+};
+
 
 interface LoginForm {
   email: string;
