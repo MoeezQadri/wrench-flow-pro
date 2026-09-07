@@ -64,17 +64,26 @@ export function setTrackingEnabled(enabled: boolean) {
  * in-app page after sign-in still gets reported. This wraps the history API and
  * flips the kill switch synchronously, before gtag's own listeners run.
  */
-let navigationGuardInstalled = false;
+type GuardedHistoryFn = History['pushState'] & { __lovableGuard?: boolean };
 
+/**
+ * Wraps the history API so the kill switch flips before gtag's own history
+ * listeners run. gtag.js wraps `history.pushState` itself when it initializes,
+ * and whichever wrapper was installed last runs first — so this is called again
+ * (and re-wraps) whenever gtag has jumped in front of us.
+ */
 export function installNavigationGuard() {
-  if (navigationGuardInstalled || typeof window === 'undefined') return;
-  navigationGuardInstalled = true;
+  if (typeof window === 'undefined') return;
 
-  const sync = () => setTrackingEnabled(isTrackedPath(window.location.pathname));
+  const current = window.history.pushState as GuardedHistoryFn;
+  if (current.__lovableGuard) return;
+
+  const sync = () =>
+    setTrackingEnabled(isTrackedPath(window.location.pathname));
 
   const wrap = (name: 'pushState' | 'replaceState') => {
     const original = window.history[name].bind(window.history);
-    window.history[name] = function (
+    const guarded = function (
       this: History,
       ...args: Parameters<History['pushState']>
     ) {
@@ -90,7 +99,9 @@ export function installNavigationGuard() {
       const result = original(...args);
       sync();
       return result;
-    } as History[typeof name];
+    } as GuardedHistoryFn;
+    guarded.__lovableGuard = true;
+    window.history[name] = guarded as History[typeof name];
   };
 
   wrap('pushState');
@@ -123,7 +134,17 @@ export function ensureAnalytics() {
 
   // Install after gtag.js has wrapped the history API so our wrapper sits
   // outside its own and runs first.
-  script.addEventListener('load', installNavigationGuard);
+  // gtag.js installs its own history wrapper while it boots; re-install ours a
+  // few times so it ends up on the outside and therefore runs first.
+  script.addEventListener('load', () => {
+    installNavigationGuard();
+    [0, 200, 1000, 3000].forEach((delay) =>
+      window.setTimeout(() => {
+        const fn = window.history.pushState as GuardedHistoryFn;
+        if (!fn.__lovableGuard) installNavigationGuard();
+      }, delay)
+    );
+  });
 }
 
 export function trackPageView(path: string) {

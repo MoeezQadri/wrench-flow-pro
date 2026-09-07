@@ -1,6 +1,11 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { isTrackedPath, setTrackingEnabled, trackPageView } from '@/lib/analytics';
+import {
+  installNavigationGuard,
+  isTrackedPath,
+  setTrackingEnabled,
+  trackPageView,
+} from '@/lib/analytics';
 
 /**
  * Sends a GA page_view on client-side route changes, but only on the pages
@@ -17,6 +22,9 @@ export default function AnalyticsTracker() {
       return;
     }
     trackPageView(location.pathname + location.search);
+    // Make sure our history guard is still the outermost wrapper before the
+    // user navigates away from a tracked page.
+    installNavigationGuard();
   }, [location.pathname, location.search]);
 
   return null;
