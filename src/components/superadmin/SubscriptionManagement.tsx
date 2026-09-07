@@ -485,11 +485,39 @@ export const SubscriptionManagement = ({
           </div>
         ))}
         <p className="text-xs text-muted-foreground">
-          Suspending cancels a paid subscription at the end of its current
-          billing period — access is not cut off immediately.
+          Suspending stops billing at the end of the current paid period. The
+          shop keeps access until that date, then moves to Expired Trials &
+          Ended Subscriptions.
         </p>
 
       </CollapsibleCard>
+
+      <AlertDialog
+        open={!!orgToSuspend}
+        onOpenChange={(open) => !open && setOrgToSuspend(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Suspend {orgToSuspend?.name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Billing stops now, but the shop keeps access until the end of the
+              period it has already paid for
+              {orgToSuspend?.accessUntil
+                ? ` — ${new Date(orgToSuspend.accessUntil).toLocaleDateString()}`
+                : ''}
+              . After that date everything except Settings is locked and the
+              shop appears under ended subscriptions.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleSuspend}>
+              Suspend
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
 
       <AlertDialog
         open={!!orgToUnsuspend}
