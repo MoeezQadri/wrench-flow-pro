@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import {
-  installNavigationGuard,
   isTrackedPath,
+  restoreNativeHistory,
   setTrackingEnabled,
   trackPageView,
 } from '@/lib/analytics';
@@ -22,9 +22,9 @@ export default function AnalyticsTracker() {
       return;
     }
     trackPageView(location.pathname + location.search);
-    // Make sure our history guard is still the outermost wrapper before the
-    // user navigates away from a tracked page.
-    installNavigationGuard();
+    // gtag re-hooks the history API as it initializes; unhook again so leaving
+    // this page does not report the next one.
+    restoreNativeHistory();
   }, [location.pathname, location.search]);
 
   return null;

@@ -64,50 +64,28 @@ export function setTrackingEnabled(enabled: boolean) {
  * in-app page after sign-in still gets reported. This wraps the history API and
  * flips the kill switch synchronously, before gtag's own listeners run.
  */
-type GuardedHistoryFn = History['pushState'] & { __lovableGuard?: boolean };
+// Captured before gtag.js loads: gtag wraps these to send a page view on every
+// address change (the Google Ads tag ignores the disable flag, so unhooking is
+// the only reliable way to stop it). We send page views ourselves, so the
+// pristine functions are all the app needs.
+const nativePushState =
+  typeof window !== 'undefined' ? window.history.pushState : undefined;
+const nativeReplaceState =
+  typeof window !== 'undefined' ? window.history.replaceState : undefined;
 
 /**
- * Wraps the history API so the kill switch flips before gtag's own history
- * listeners run. gtag.js wraps `history.pushState` itself when it initializes,
- * and whichever wrapper was installed last runs first — so this is called again
- * (and re-wraps) whenever gtag has jumped in front of us.
+ * Removes gtag's history hooks so no automatic page view is sent when the user
+ * moves around the app. Safe to call repeatedly — gtag re-hooks while it boots.
  */
-export function installNavigationGuard() {
-  if (typeof window === 'undefined') return;
-
-  const current = window.history.pushState as GuardedHistoryFn;
-  if (current.__lovableGuard) return;
-
-  const sync = () =>
-    setTrackingEnabled(isTrackedPath(window.location.pathname));
-
-  const wrap = (name: 'pushState' | 'replaceState') => {
-    const original = window.history[name].bind(window.history);
-    const guarded = function (
-      this: History,
-      ...args: Parameters<History['pushState']>
-    ) {
-      const url = args[2];
-      if (url !== undefined && url !== null) {
-        try {
-          const next = new URL(String(url), window.location.href);
-          setTrackingEnabled(isTrackedPath(next.pathname));
-        } catch {
-          // ignore malformed URLs
-        }
-      }
-      const result = original(...args);
-      sync();
-      return result;
-    } as GuardedHistoryFn;
-    guarded.__lovableGuard = true;
-    window.history[name] = guarded as History[typeof name];
-  };
-
-  wrap('pushState');
-  wrap('replaceState');
-  window.addEventListener('popstate', sync);
-  sync();
+export function restoreNativeHistory() {
+  if (typeof window === 'undefined' || !nativePushState || !nativeReplaceState)
+    return;
+  if (window.history.pushState !== nativePushState) {
+    window.history.pushState = nativePushState;
+  }
+  if (window.history.replaceState !== nativeReplaceState) {
+    window.history.replaceState = nativeReplaceState;
+  }
 }
 
 /**
@@ -134,17 +112,12 @@ export function ensureAnalytics() {
 
   // Install after gtag.js has wrapped the history API so our wrapper sits
   // outside its own and runs first.
-  // gtag.js installs its own history wrapper while it boots; re-install ours a
-  // few times so it ends up on the outside and therefore runs first.
-  script.addEventListener('load', () => {
-    installNavigationGuard();
-    [0, 200, 1000, 3000].forEach((delay) =>
-      window.setTimeout(() => {
-        const fn = window.history.pushState as GuardedHistoryFn;
-        if (!fn.__lovableGuard) installNavigationGuard();
-      }, delay)
-    );
-  });
+  // gtag.js hooks the history API while it boots; unhook it (repeatedly, since
+  // it re-hooks) so route changes inside the app are never reported.
+  script.addEventListener('load', restoreNativeHistory);
+  [0, 200, 600, 1500, 3000].forEach((delay) =>
+    window.setTimeout(restoreNativeHistory, delay)
+  );
 }
 
 export function trackPageView(path: string) {
