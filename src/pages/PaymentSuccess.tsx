@@ -27,6 +27,9 @@ export default function PaymentSuccess() {
 
   const sessionId = searchParams.get('session_id') || undefined;
   const plan = searchParams.get('plan') || undefined;
+  const rawValue = searchParams.get('value');
+  const parsedValue = rawValue !== null ? Number(rawValue) : NaN;
+  const purchaseValue = Number.isFinite(parsedValue) ? parsedValue : undefined;
 
   useEffect(() => {
     let cancelled = false;
@@ -64,8 +67,12 @@ export default function PaymentSuccess() {
       trackPurchase({
         transactionId: sessionId,
         planName: subscriptionTier || plan,
+        value: purchaseValue,
       });
-      trackSubscribeConversion({ transactionId: sessionId || undefined });
+      trackSubscribeConversion({
+        transactionId: sessionId || undefined,
+        value: purchaseValue,
+      });
     } else if (status === 'pending') {
       tracked.current = true;
       trackPaymentFailed({
@@ -73,7 +80,7 @@ export default function PaymentSuccess() {
         planName: plan,
       });
     }
-  }, [status, sessionId, plan, subscriptionTier]);
+  }, [status, sessionId, plan, subscriptionTier, purchaseValue]);
 
   return (
     <div className="flex min-h-[70vh] items-center justify-center p-4">

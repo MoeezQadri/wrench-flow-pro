@@ -2,7 +2,10 @@ import { useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthContext } from '@/context/AuthContext';
 import LoadingScreen from '@/components/LoadingScreen';
-import { trackSubscribePageVisitConversion } from '@/lib/analytics';
+import {
+  trackSubscribePageVisit,
+  trackSubscribePageVisitConversion,
+} from '@/lib/analytics';
 
 export default function SubscribeRedirect() {
   const navigate = useNavigate();
@@ -16,7 +19,9 @@ export default function SubscribeRedirect() {
   useEffect(() => {
     if (visitTracked.current) return;
     visitTracked.current = true;
+    trackSubscribePageVisit(plan || undefined);
     trackSubscribePageVisitConversion();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
