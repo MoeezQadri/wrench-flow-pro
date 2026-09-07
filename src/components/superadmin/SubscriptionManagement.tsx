@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/use-toast';
 import { Organization } from '@/components/admin/types';
-import { CreditCard, Calendar, AlertCircle } from 'lucide-react';
+import { CreditCard, Calendar, AlertCircle, Loader2 } from 'lucide-react';
 import {
   Accordion,
   AccordionContent,
