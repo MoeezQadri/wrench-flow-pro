@@ -132,6 +132,10 @@ export function restoreNativeHistory() {
  * Loads gtag.js once and configures GA4 + Google Ads. Safe to call repeatedly.
  */
 export function ensureAnalytics() {
+  if (trackingSuppressed()) {
+    setTrackingEnabled(false);
+    return;
+  }
   setTrackingEnabled(true);
   if (initialized || typeof window === 'undefined') return;
   if (!MEASUREMENT_ID) {
@@ -162,6 +166,7 @@ export function ensureAnalytics() {
 
 export function trackPageView(path: string) {
   if (!MEASUREMENT_ID) return;
+  if (trackingSuppressed() || isBlockedPath(path)) return;
   ensureAnalytics();
   gtag('event', 'page_view', {
     page_path: path,
@@ -176,6 +181,10 @@ export function trackPageView(path: string) {
  */
 function restoreKillSwitch() {
   if (typeof window === 'undefined') return;
+  if (isOptedOut()) {
+    setTrackingEnabled(false);
+    return;
+  }
   if (isTrackedPath(window.location.pathname)) return;
   window.setTimeout(() => {
     if (!isTrackedPath(window.location.pathname)) setTrackingEnabled(false);
@@ -184,10 +193,12 @@ function restoreKillSwitch() {
 
 export function trackEvent(name: string, params: Record<string, unknown> = {}) {
   if (!MEASUREMENT_ID) return;
+  if (trackingSuppressed()) return;
   ensureAnalytics();
   gtag('event', name, params);
   restoreKillSwitch();
 }
+
 
 /**
  * Conversion action labels from the Google Ads account. Paste the value that
