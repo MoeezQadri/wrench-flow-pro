@@ -9,6 +9,7 @@ import { Session, User as SupabaseUser } from '@supabase/supabase-js';
 import { User, UserRole } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { setOrgTimezone } from '@/utils/datetime';
+import { setAnalyticsOptOut } from '@/lib/analytics';
 
 interface Organization {
   id: string;
@@ -99,6 +100,15 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     currentUser?.role === 'superuser' ||
     currentUser?.role === 'superadmin' ||
     currentUser?.role === 'owner';
+
+  // Internal (super admin) sessions are never reported to Google Analytics/Ads.
+  const isPlatformSuperAdmin =
+    currentUser?.role === 'superuser' || currentUser?.role === 'superadmin';
+  useEffect(() => {
+    if (isPlatformSuperAdmin) setAnalyticsOptOut(true);
+  }, [isPlatformSuperAdmin]);
+
+
 
   // Loading timeout management
   useEffect(() => {
