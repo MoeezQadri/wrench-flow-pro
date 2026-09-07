@@ -355,7 +355,12 @@ export const suspendSubscription = async (params: {
       throw error;
     }
 
-    return data;
+    return data as {
+      suspended?: boolean;
+      billing_changed?: boolean;
+      period_end?: string | null;
+      message?: string;
+    };
   } catch (error) {
     console.error('Failed to suspend subscription:', error);
     throw error;
