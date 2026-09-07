@@ -273,9 +273,11 @@ serve(async (req) => {
         logStep('Failed to upsert subscriber cache', { error: String(e) });
       }
 
+      const canceling = subscription.cancel_at_period_end === true;
+
       await syncOrgState(supabaseClient, organizationId, {
         level: tier.toLowerCase(),
-        status: 'active',
+        status: canceling ? 'canceling' : 'active',
         endsAt: subscriptionEnd,
       });
 
@@ -284,7 +286,9 @@ serve(async (req) => {
         subscription_tier: tier,
         subscription_end: subscriptionEnd,
         suspended: false,
+        canceling,
       });
+
     }
 
     // No live subscription: either the trial window, or a paid plan that lapsed
