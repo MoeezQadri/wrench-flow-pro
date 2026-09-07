@@ -27,6 +27,9 @@ export default function PaymentSuccess() {
 
   const sessionId = searchParams.get('session_id') || undefined;
   const plan = searchParams.get('plan') || undefined;
+  const rawValue = searchParams.get('value');
+  const parsedValue = rawValue !== null ? Number(rawValue) : NaN;
+  const purchaseValue = Number.isFinite(parsedValue) ? parsedValue : undefined;
 
   useEffect(() => {
     let cancelled = false;
