@@ -175,6 +175,44 @@ export async function suspendSubscriber({
   return data;
 }
 
+export async function unsuspendSubscriber({
+  user_ids,
+  subscribed,
+  subscription_tier,
+  subscription_current_period_end,
+}) {
+  if (!user_ids?.length) return []; // No users to update
+
+  const supabaseAdmin = await getSupabaseAdmin();
+
+  const updateData: Record<string, any> = {
+    suspended: false,
+    subscribed: !!subscribed,
+    updated_at: new Date().toISOString(),
+  };
+
+  if (subscription_tier) {
+    updateData.subscription_tier = subscription_tier;
+  }
+
+  updateData.subscription_end = subscription_current_period_end
+    ? new Date(subscription_current_period_end).toISOString()
+    : null;
+
+  const { data, error } = await supabaseAdmin
+    .from('subscribers')
+    .update(updateData)
+    .in('user_id', user_ids)
+    .select();
+
+  if (error) {
+    console.error('Error updating subscribers:', error);
+    throw error;
+  }
+  console.log('Subscribers unsuspended: \n', JSON.stringify(data));
+  return data;
+}
+
 export async function getSubscriber(userId) {
   try {
     const supabaseAdmin = await getSupabaseAdmin();

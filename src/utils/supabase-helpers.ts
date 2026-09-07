@@ -361,3 +361,34 @@ export const suspendSubscription = async (params: {
     throw error;
   }
 };
+
+export const unsuspendSubscription = async (params: {
+  org_id: string;
+  org_name: string;
+  sub_level: string;
+  user_ids: string[];
+  user_emails: string[];
+}) => {
+  try {
+    const { data, error } = await supabase.functions.invoke(
+      'unsuspend-subscription',
+      {
+        body: { params },
+      }
+    );
+
+    if (error) {
+      console.error('Error unsuspending subscription:', error);
+      throw error;
+    }
+
+    return data as {
+      resumed?: boolean;
+      message?: string;
+      subscription_end?: string | null;
+    };
+  } catch (error) {
+    console.error('Failed to unsuspend subscription:', error);
+    throw error;
+  }
+};
