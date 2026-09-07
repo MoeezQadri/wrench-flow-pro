@@ -59,6 +59,47 @@ export function setTrackingEnabled(enabled: boolean) {
 }
 
 /**
+ * gtag.js reacts to address changes immediately (before React renders the new
+ * page), so switching the tags off from a route effect is too late — the first
+ * in-app page after sign-in still gets reported. This wraps the history API and
+ * flips the kill switch synchronously, before gtag's own listeners run.
+ */
+let navigationGuardInstalled = false;
+
+export function installNavigationGuard() {
+  if (navigationGuardInstalled || typeof window === 'undefined') return;
+  navigationGuardInstalled = true;
+
+  const sync = () => setTrackingEnabled(isTrackedPath(window.location.pathname));
+
+  const wrap = (name: 'pushState' | 'replaceState') => {
+    const original = window.history[name].bind(window.history);
+    window.history[name] = function (
+      this: History,
+      ...args: Parameters<History['pushState']>
+    ) {
+      const url = args[2];
+      if (url !== undefined && url !== null) {
+        try {
+          const next = new URL(String(url), window.location.href);
+          setTrackingEnabled(isTrackedPath(next.pathname));
+        } catch {
+          // ignore malformed URLs
+        }
+      }
+      const result = original(...args);
+      sync();
+      return result;
+    } as History[typeof name];
+  };
+
+  wrap('pushState');
+  wrap('replaceState');
+  window.addEventListener('popstate', sync);
+  sync();
+}
+
+/**
  * Loads gtag.js once and configures GA4 + Google Ads. Safe to call repeatedly.
  */
 export function ensureAnalytics() {
@@ -78,7 +119,11 @@ export function ensureAnalytics() {
   gtag('js', new Date());
   // AnalyticsTracker sends the page views itself, so disable automatic ones.
   gtag('config', MEASUREMENT_ID, { send_page_view: false });
-  gtag('config', GOOGLE_ADS_ID);
+  gtag('config', GOOGLE_ADS_ID, { send_page_view: false });
+
+  // Install after gtag.js has wrapped the history API so our wrapper sits
+  // outside its own and runs first.
+  script.addEventListener('load', installNavigationGuard);
 }
 
 export function trackPageView(path: string) {
