@@ -415,6 +415,11 @@ export const SubscriptionManagement = ({
             )}
           </div>
         ))}
+        <p className="text-xs text-muted-foreground">
+          Suspending cancels a paid subscription at the end of its current
+          billing period — access is not cut off immediately.
+        </p>
+
       </CollapsibleCard>
 
       <AlertDialog
