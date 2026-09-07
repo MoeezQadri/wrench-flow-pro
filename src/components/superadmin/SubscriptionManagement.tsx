@@ -435,6 +435,31 @@ export const SubscriptionManagement = ({
           </div>
         ))}
       </CollapsibleCard>
+
+      <AlertDialog
+        open={!!orgToUnsuspend}
+        onOpenChange={(open) => !open && setOrgToUnsuspend(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Un-suspend {orgToUnsuspend?.name}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              This lifts the suspension for the shop and all of its users. If
+              their paid subscription was only scheduled to stop, billing
+              continues as before. If it has already ended, the shop goes back
+              on trial and will need to subscribe again.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleUnsuspend}>
+              Un-suspend
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
