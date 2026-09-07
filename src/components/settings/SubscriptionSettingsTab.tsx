@@ -358,11 +358,13 @@ const SubscriptionSettingsTab = () => {
           {!subscribed && (
             <div className="mt-6 rounded-md border border-orange-300 bg-orange-50 p-4 dark:bg-orange-950/30">
               <p className="text-sm font-medium">
-                {subscriptionExpiredReason === 'subscription'
-                  ? 'Your subscription has ended.'
-                  : subscriptionEnd
-                    ? `Your free trial ended on ${formatDate(subscriptionEnd)}.`
-                    : 'Your free trial has ended.'}
+                {subscriptionExpiredReason === 'suspended'
+                  ? 'Your account has been suspended and access has ended.'
+                  : subscriptionExpiredReason === 'subscription'
+                    ? 'Your subscription has ended.'
+                    : subscriptionEnd
+                      ? `Your free trial ended on ${formatDate(subscriptionEnd)}.`
+                      : 'Your free trial has ended.'}
               </p>
               <p className="text-sm text-muted-foreground mt-1">
                 Choose a plan below to restore access. Your data is safe and
