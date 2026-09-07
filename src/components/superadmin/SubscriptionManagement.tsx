@@ -102,26 +102,27 @@ export const SubscriptionManagement = ({
     });
   };
 
-  const handleSuspend = async (
-    orgId: string,
-    subscriptionLevel: string,
-    subscriptionStatus: string,
-    emails: string[],
-    userIds: string[]
-  ) => {
-    setUpdating(orgId);
+  const handleSuspend = async () => {
+    if (!orgToSuspend) return;
+    const target = orgToSuspend;
+    setOrgToSuspend(null);
+    setUpdating(target.id);
     try {
-      await suspendSubscription({
-        org_id: orgId,
-        org_name: organizations.find((o) => o.id === orgId)?.name,
-        sub_level: subscriptionLevel,
-        sub_status: subscriptionStatus,
-        user_ids: userIds,
-        user_emails: emails,
+      const result = await suspendSubscription({
+        org_id: target.id,
+        org_name: target.name,
+        sub_level: target.subscription_level,
+        sub_status: 'suspended',
+        user_ids: target.userIds.filter(Boolean),
+        user_emails: target.emails.filter(Boolean),
       });
       toast({
-        title: 'Subscription updated',
-        description: 'Organization subscription has been updated successfully.',
+        title: result?.billing_changed
+          ? 'Billing stopped'
+          : 'Organization suspended',
+        description:
+          result?.message ||
+          'The organization has been suspended.',
       });
       onUpdate();
     } catch (error: any) {
