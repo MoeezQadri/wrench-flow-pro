@@ -105,8 +105,12 @@ export function getStatusLabel(org: Organization): string {
   switch (status) {
     case 'internal':
       return 'Internal — full access';
-    case 'suspended':
-      return 'Suspended';
+    case 'suspended': {
+      const until = org.next_billing_date || org.trial_ends_at;
+      return until
+        ? `Suspended — access until ${new Date(until).toLocaleDateString()}`
+        : 'Suspended';
+    }
     case 'canceling': {
       const until = org.next_billing_date || org.trial_ends_at;
       return until
