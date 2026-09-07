@@ -52,6 +52,8 @@ export const SubscriptionManagement = ({
   // --- Toggle states for collapsible cards ---
   const [trialOpen, setTrialOpen] = useState(true);
   const [expiredOpen, setExpiredOpen] = useState(true);
+  const [cancelingOpen, setCancelingOpen] = useState(true);
+
   const [suspendedOpen, setSuspendedOpen] = useState(true);
   const [activeOpen, setActiveOpen] = useState(true);
 
