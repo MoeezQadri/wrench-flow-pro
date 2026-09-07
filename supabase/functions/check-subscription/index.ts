@@ -1,6 +1,12 @@
 import { serve } from 'https://deno.land/std@0.190.0/http/server.ts';
 import Stripe from 'https://esm.sh/stripe@14.21.0';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
+import {
+  discoverLiveSubscription,
+  getCustomerId,
+  getPeriodEndIso,
+  getPlanName,
+} from '../_shared/stripe-subscriptions.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -257,56 +263,52 @@ serve(async (req) => {
       });
     }
 
-    // Stripe path: check candidate emails for active subscriptions
+    // Stripe path: retrieve the exact saved subscription first, then use
+    // customer and email discovery only to repair legacy subscriber rows.
     const stripe = new Stripe(stripeKey, { apiVersion: '2023-10-16' });
+    const discovery = await discoverLiveSubscription({
+      stripe,
+      supabase: supabaseClient,
+      organizationId,
+      emails: candidates.map((candidate) => candidate.email),
+    });
+    const subscription = discovery.subscription;
 
-    for (const cand of candidates) {
-      const customers = await stripe.customers.list({
-        email: cand.email,
-        limit: 1,
-      });
-      if (customers.data.length === 0) continue;
-      const customerId = customers.data[0].id;
+    if (subscription) {
+      const subscriptionEnd = getPeriodEndIso(subscription);
+      const customerId = getCustomerId(subscription);
+      const tier = getPlanName(subscription, tierFromAmount(0));
+      const canceling = subscription.cancel_at_period_end === true;
+      const subscriberUpdate: Record<string, any> = {
+        stripe_subscription_id: subscription.id,
+        subscribed: true,
+        subscription_tier: tier,
+        subscription_end: subscriptionEnd,
+        updated_at: new Date().toISOString(),
+      };
+      if (customerId) subscriberUpdate.stripe_customer_id = customerId;
 
-      const subs = await stripe.subscriptions.list({
-        customer: customerId,
-        status: 'active',
-        limit: 1,
-      });
-      if (subs.data.length === 0) continue;
-
-      const subscription = subs.data[0];
-      const subscriptionEnd = new Date(
-        subscription.current_period_end * 1000
-      ).toISOString();
-      const priceId = subscription.items.data[0].price.id;
-      const price = await stripe.prices.retrieve(priceId);
-      const tier = tierFromAmount(price.unit_amount || 0);
-      logStep('Active org subscription via admin', {
-        email: cand.email,
-        tier,
-      });
-
-      // Cache into subscribers table for future fast-path lookups
-      try {
+      if (discovery.subscriberRows.length > 0) {
+        await supabaseClient
+          .from('subscribers')
+          .update(subscriberUpdate)
+          .eq('organization_id', organizationId);
+      } else if (candidates[0]) {
         await supabaseClient.from('subscribers').upsert(
           {
-            user_id: cand.userId,
-            email: cand.email,
-            stripe_customer_id: customerId,
+            user_id: candidates[0].userId,
+            email: candidates[0].email,
             organization_id: organizationId,
-            subscribed: true,
-            subscription_tier: tier,
-            subscription_end: subscriptionEnd,
-            updated_at: new Date().toISOString(),
+            ...subscriberUpdate,
           },
           { onConflict: 'email' }
         );
-      } catch (e) {
-        logStep('Failed to upsert subscriber cache', { error: String(e) });
       }
 
-      const canceling = subscription.cancel_at_period_end === true;
+      logStep('Live org subscription verified with Stripe', {
+        source: discovery.source,
+        tier,
+      });
 
       await syncOrgState(supabaseClient, organizationId, {
         level: tier.toLowerCase(),
@@ -318,10 +320,9 @@ serve(async (req) => {
         subscribed: true,
         subscription_tier: tier,
         subscription_end: subscriptionEnd,
-        suspended: false,
+        suspended: storedStatus === 'suspended',
         canceling,
       });
-
     }
 
     // No live subscription: either the trial window, or a paid plan that lapsed
