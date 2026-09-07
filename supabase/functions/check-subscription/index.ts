@@ -282,6 +282,7 @@ serve(async (req) => {
       const subscriberUpdate: Record<string, any> = {
         stripe_subscription_id: subscription.id,
         subscribed: true,
+        suspended: storedStatus === 'suspended',
         subscription_tier: tier,
         subscription_end: subscriptionEnd,
         updated_at: new Date().toISOString(),
@@ -312,7 +313,12 @@ serve(async (req) => {
 
       await syncOrgState(supabaseClient, organizationId, {
         level: tier.toLowerCase(),
-        status: canceling ? 'canceling' : 'active',
+        status:
+          storedStatus === 'suspended'
+            ? 'suspended'
+            : canceling
+              ? 'canceling'
+              : 'active',
         endsAt: subscriptionEnd,
       });
 

@@ -86,6 +86,38 @@ serve(async (req) => {
 
     if (!subscription) {
       logStep('No live subscription found');
+      const endedAt = new Date().toISOString();
+      const { data: organization, error: orgError } = await supabase
+        .from('organizations')
+        .update({
+          subscription_status: 'ended',
+          trial_ends_at: endedAt,
+          updated_at: endedAt,
+        })
+        .eq('id', organizationId)
+        .select()
+        .single();
+      if (orgError) throw orgError;
+
+      await supabase
+        .from('subscribers')
+        .update({
+          subscribed: false,
+          suspended: false,
+          subscription_end: endedAt,
+          updated_at: endedAt,
+        })
+        .eq('organization_id', organizationId);
+
+      return json({
+        suspended: false,
+        stale: true,
+        billing_changed: false,
+        period_end: endedAt,
+        organization,
+        message:
+          'No live Stripe subscription was found. The organization was moved to ended subscriptions.',
+      });
     } else {
       const updated = subscription.cancel_at_period_end
         ? subscription
@@ -145,9 +177,7 @@ serve(async (req) => {
       billing_changed: billingChanged,
       period_end: periodEnd,
       organization,
-      message: billingChanged
-        ? 'Billing stopped. Access ends at the end of the paid period.'
-        : 'Organization suspended, but no live subscription was found in Stripe.',
+      message: 'Billing stopped. Access ends at the end of the paid period.',
     });
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);

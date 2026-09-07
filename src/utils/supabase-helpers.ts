@@ -357,6 +357,7 @@ export const suspendSubscription = async (params: {
 
     return data as {
       suspended?: boolean;
+      stale?: boolean;
       billing_changed?: boolean;
       period_end?: string | null;
       message?: string;

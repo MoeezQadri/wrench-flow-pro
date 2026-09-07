@@ -116,12 +116,15 @@ export const SubscriptionManagement = ({
         user_emails: target.emails.filter(Boolean),
       });
       toast({
-        title: result?.billing_changed
+        title: result?.stale
+          ? 'No live subscription found'
+          : result?.billing_changed
           ? 'Billing stopped'
           : 'Organization suspended',
         description:
           result?.message ||
           'The organization has been suspended.',
+        variant: result?.stale ? 'destructive' : 'default',
       });
       await onUpdate();
       setOrgToSuspend(null);
