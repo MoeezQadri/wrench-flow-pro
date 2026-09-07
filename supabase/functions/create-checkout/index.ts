@@ -157,7 +157,7 @@ serve(async (req) => {
         },
       ],
       mode: 'subscription',
-      success_url: `${origin}/payment/success?session_id={CHECKOUT_SESSION_ID}&plan=${encodeURIComponent(plan.name)}`,
+      success_url: `${origin}/payment/success?session_id={CHECKOUT_SESSION_ID}&plan=${encodeURIComponent(plan.name)}&value=${encodeURIComponent(String(price))}&freq=${encodeURIComponent(String(billingFrequency))}`,
       cancel_url: `${origin}/payment/canceled?plan=${encodeURIComponent(plan.name)}`,
       metadata,
       subscription_data: {
