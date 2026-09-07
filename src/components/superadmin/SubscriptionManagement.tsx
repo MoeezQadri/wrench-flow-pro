@@ -48,6 +48,14 @@ export const SubscriptionManagement = ({
     emails: string[];
     userIds: string[];
   } | null>(null);
+  const [orgToSuspend, setOrgToSuspend] = useState<{
+    id: string;
+    name: string;
+    subscription_level: string;
+    accessUntil: string | null;
+    emails: string[];
+    userIds: string[];
+  } | null>(null);
 
   // --- Toggle states for collapsible cards ---
   const [trialOpen, setTrialOpen] = useState(true);
