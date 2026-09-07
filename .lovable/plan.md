@@ -16,7 +16,7 @@ Chosen direction: send everything through Analytics and import those events into
 1. Every conversion moment becomes a clean Analytics event, with amount and currency where relevant:
    - Registration completed -> `sign_up`
    - Landing on `/subscribe` -> new event `subscribe_page_visit` (plan name included)
-   - Paid subscription confirmed on the thank-you page -> `purchase` (amount, currency, order id)
+   - Paid subscription confirmed on the thank-you page -> `purchase` (amount, currency, order id); `trackPurchase` will carry the plan price as `value` so Ads can use the event value
    - Plans viewed / plan selected -> unchanged (`view_item_list`, `begin_checkout`)
 2. The direct Ads conversion pings for sign-up, subscribe-page-visit and paid subscription are switched off, so a conversion is never counted twice once the Analytics events are imported into Ads.
 3. The Ads tag itself stays loaded on the sign-in, sign-up, subscribe and payment pages only, so remarketing keeps working and no page inside the app is reported. Nothing goes back into the page source.
