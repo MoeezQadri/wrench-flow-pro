@@ -266,6 +266,13 @@ export const trackViewPlans = (tier?: string) =>
     current_tier: tier || 'none',
   });
 
+/**
+ * Analytics counterpart of the Google Ads "Subscribe page visit" conversion, so
+ * the funnel step is visible in GA alongside view_item_list / begin_checkout.
+ */
+export const trackSubscribePageVisit = (plan?: string) =>
+  trackEvent('subscribe_page_visit', { plan_name: plan || 'none' });
+
 export const trackSelectPlan = (params: {
   planId: string;
   planName?: string;
