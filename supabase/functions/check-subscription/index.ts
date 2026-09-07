@@ -199,9 +199,14 @@ serve(async (req) => {
     const cachedActive = orgSub && (cachedEndMs === null || cachedEndMs > nowMs);
     if (orgSub && cachedActive) {
       logStep('Fast path: org subscriber found', { tier: orgSub.subscription_tier });
+      const canceling = storedStatus === 'canceling';
       await syncOrgState(supabaseClient, organizationId, {
         level: String(orgSub.subscription_tier || 'basic').toLowerCase(),
-        status: orgSub.suspended ? 'suspended' : 'active',
+        status: orgSub.suspended
+          ? 'suspended'
+          : canceling
+            ? 'canceling'
+            : 'active',
         endsAt: orgSub.subscription_end || null,
       });
       return json({
@@ -209,8 +214,10 @@ serve(async (req) => {
         subscription_tier: orgSub.subscription_tier,
         subscription_end: orgSub.subscription_end,
         suspended: orgSub.suspended || false,
+        canceling,
       });
     }
+
     if (orgSub && !cachedActive) {
       logStep('Cached subscriber expired, falling through to Stripe', {
         subscription_end: orgSub.subscription_end,
