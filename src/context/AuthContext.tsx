@@ -63,6 +63,8 @@ interface AuthContextType {
   subscriptionSuspended: boolean;
   subscriptionTier: string | null;
   subscriptionEnd: string | null;
+  subscriptionCanceling: boolean;
+  subscriptionExpiredReason: 'trial' | 'subscription' | null;
   refreshSubscription: () => Promise<void>;
 }
 
@@ -87,6 +89,10 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [subscriptionSuspended, setSubscriptionSuspended] = useState(false);
   const [subscriptionTier, setSubscriptionTier] = useState<string | null>(null);
   const [subscriptionEnd, setSubscriptionEnd] = useState<string | null>(null);
+  const [subscriptionCanceling, setSubscriptionCanceling] = useState(false);
+  const [subscriptionExpiredReason, setSubscriptionExpiredReason] = useState<
+    'trial' | 'subscription' | null
+  >(null);
 
   const isAuthenticated = !!currentUser;
   const isSuperAdmin =
@@ -273,12 +279,16 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setSubscriptionSuspended(data.suspended || false);
       setSubscriptionTier(data.subscription_tier || null);
       setSubscriptionEnd(data.subscription_end || null);
+      setSubscriptionCanceling(data.canceling || false);
+      setSubscriptionExpiredReason(data.expired_reason || null);
     } catch (error) {
       console.error('Error checking subscription status:', error);
       setSubscribed(false);
       setSubscriptionSuspended(false);
       setSubscriptionTier(null);
       setSubscriptionEnd(null);
+      setSubscriptionCanceling(false);
+      setSubscriptionExpiredReason(null);
     }
   };
 
@@ -493,6 +503,8 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     subscriptionSuspended,
     subscriptionTier,
     subscriptionEnd,
+    subscriptionCanceling,
+    subscriptionExpiredReason,
     refreshSubscription,
   };
 
