@@ -10,6 +10,7 @@ import {
   Eye,
 } from 'lucide-react';
 import { Organization } from '@/components/admin/types';
+import { getOrgStatus, getStatusLabel } from '@/utils/subscription-status';
 
 interface OrganizationCardProps {
   organization: Organization;
@@ -26,18 +27,16 @@ export const OrganizationCard = ({
   onEdit,
   onDelete,
 }: OrganizationCardProps) => {
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'active':
-        return 'bg-success text-success-foreground';
-      case 'suspended':
-        return 'bg-destructive text-destructive-foreground';
-      case 'trial':
-        return 'bg-warning text-warning-foreground';
-      default:
-        return 'bg-muted text-muted-foreground';
-    }
-  };
+  const status = getOrgStatus(organization);
+  const statusLabel = getStatusLabel(organization);
+
+  const statusColor = {
+    internal: 'bg-blue-500 text-white',
+    paid: 'bg-success text-success-foreground',
+    suspended: 'bg-destructive text-destructive-foreground',
+    trial_active: 'bg-warning text-warning-foreground',
+    trial_expired: 'bg-destructive text-destructive-foreground',
+  }[status];
 
   const getLevelColor = (level: string) => {
     switch (level.toLowerCase()) {
@@ -63,14 +62,15 @@ export const OrganizationCard = ({
               {organization.name}
             </CardTitle>
             <div className="flex items-center gap-2">
-              <Badge className={getLevelColor(organization.subscription_level)}>
-                {organization.subscription_level}
-              </Badge>
               <Badge
-                variant="outline"
-                className={getStatusColor(organization.subscription_status)}
+                className={getLevelColor(
+                  status === 'internal' ? 'internal' : organization.subscription_level
+                )}
               >
-                {organization.subscription_status}
+                {status === 'internal' ? 'internal' : organization.subscription_level}
+              </Badge>
+              <Badge variant="outline" className={statusColor}>
+                {statusLabel}
               </Badge>
             </div>
           </div>
@@ -117,12 +117,14 @@ export const OrganizationCard = ({
             </span>
           </div>
 
-          {organization.trial_ends_at && (
+          {status !== 'internal' && organization.trial_ends_at && (
             <div className="flex items-center gap-2 col-span-2">
               <CreditCard className="h-4 w-4 text-muted-foreground" />
               <span className="text-muted-foreground">
-                Trial ends{' '}
-                {new Date(organization.trial_ends_at).toLocaleDateString()}
+                {status === 'paid' ? 'Renews ' : 'Trial ends '}
+                {new Date(
+                  organization.next_billing_date || organization.trial_ends_at
+                ).toLocaleDateString()}
               </span>
             </div>
           )}

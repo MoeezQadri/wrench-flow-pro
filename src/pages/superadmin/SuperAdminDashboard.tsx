@@ -209,11 +209,36 @@ const SuperAdminDashboard: React.FC = () => {
 
   const expiredTrialCount = organizations.filter(isTrialExpired).length;
 
-  const filteredUsers = users?.filter(
+  const sortUsers = (list: UserWithConfirmation[]) => {
+    const time = (value?: string) => {
+      const t = value ? new Date(value).getTime() : NaN;
+      return isNaN(t) ? null : t;
+    };
+    const compareTime = (a: number | null, b: number | null, desc: boolean) => {
+      if (a === null && b === null) return 0;
+      if (a === null) return 1;
+      if (b === null) return -1;
+      return desc ? b - a : a - b;
+    };
+    return [...(list || [])].sort((a, b) => {
+      switch (sortBy) {
+        case 'created_asc':
+          return compareTime(time(a.created_at), time(b.created_at), false);
+        case 'last_login':
+          return compareTime(time(a.lastLogin), time(b.lastLogin), true);
+        case 'name':
+          return (a.name || '').localeCompare(b.name || '');
+        default:
+          return compareTime(time(a.created_at), time(b.created_at), true);
+      }
+    });
+  };
+
+  const filteredUsers = sortUsers(users?.filter(
     (user) =>
       user?.name?.toLowerCase().includes(searchTerm?.toLowerCase()) ||
       user?.email?.toLowerCase().includes(searchTerm?.toLowerCase())
-  );
+  ));
 
   const showSearchbar = activeTab === 'overview' || activeTab === 'users';
 

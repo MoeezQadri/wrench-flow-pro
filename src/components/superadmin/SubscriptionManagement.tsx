@@ -12,6 +12,10 @@ import {
   AccordionTrigger,
 } from '@radix-ui/react-accordion';
 import { suspendSubscription } from '@/utils/supabase-helpers';
+import {
+  getOrgStatus,
+  getStatusLabel,
+} from '@/utils/subscription-status';
 
 interface SubscriptionManagementProps {
   organizations: Organization[];
@@ -33,29 +37,18 @@ export const SubscriptionManagement = ({
 
   // --- Helper functions ---
   const getTrialOrganizations = () =>
-    organizations.filter(
-      (org) =>
-        org.subscription_level === 'trial' ||
-        (org.trial_ends_at && new Date(org.trial_ends_at) > new Date())
-    );
+    organizations.filter((org) => getOrgStatus(org) === 'trial_active');
 
   const getExpiredTrials = () =>
-    organizations.filter(
-      (org) => org.trial_ends_at && new Date(org.trial_ends_at) < new Date()
-    );
+    organizations.filter((org) => getOrgStatus(org) === 'trial_expired');
 
   const getPaidSubscriptions = () =>
-    organizations.filter(
-      (org) =>
-        org.subscription_level !== 'trial' &&
-        org.subscription_status === 'active' &&
-        !org.suspended
+    organizations.filter((org) =>
+      ['paid', 'internal'].includes(getOrgStatus(org))
     );
 
   const getSuspendedSubscriptions = () =>
-    organizations.filter(
-      (org) => org.suspended || org.subscription_status === 'suspended'
-    );
+    organizations.filter((org) => getOrgStatus(org) === 'suspended');
 
   const groupByOrg = (list: Organization[]) => {
     const groups = list.reduce(
@@ -144,12 +137,9 @@ export const SubscriptionManagement = ({
             >
               <div className="space-y-1">
                 <div className="font-medium">{org.name}</div>
-                {org.trial_ends_at && (
-                  <div className="text-sm text-muted-foreground">
-                    Trial ends:{' '}
-                    {new Date(org.trial_ends_at).toLocaleDateString()}
-                  </div>
-                )}
+                <div className="text-sm text-muted-foreground">
+                  {getStatusLabel(org)}
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 <Badge variant="outline">{org.email}</Badge>
