@@ -31,7 +31,22 @@ import {
   Search,
   Plus,
   Filter,
+  RefreshCw,
+  AlertTriangle,
 } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  getOrgStatus,
+  getTrialEnd,
+  isTrialExpired,
+  isPaidOrg,
+} from '@/utils/subscription-status';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { IsolationTest } from '@/components/debug/IsolationTest';
@@ -44,6 +59,8 @@ const SuperAdminDashboard: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [createOrgOpen, setCreateOrgOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
+  const [sortBy, setSortBy] = useState('created_desc');
 
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [users, setUsers] = useState<UserWithConfirmation[]>([]);
@@ -101,6 +118,7 @@ const SuperAdminDashboard: React.FC = () => {
       }) as Organization[];
       setOrganizations(convertedOrgs);
       setUsers(usersData.users as UserWithConfirmation[]);
+      setLastUpdatedAt(new Date());
     } catch (error) {
       console.error('Error fetching data:', error);
       toast({
@@ -146,17 +164,81 @@ const SuperAdminDashboard: React.FC = () => {
     return users?.filter((user) => user.organization_id === orgId).length;
   };
 
-  const filteredOrganizations = organizations.filter(
+  const sortOrganizations = (list: Organization[]) => {
+    const time = (value?: string) => {
+      const t = value ? new Date(value).getTime() : NaN;
+      return isNaN(t) ? null : t;
+    };
+    const compareTime = (a: number | null, b: number | null, desc: boolean) => {
+      if (a === null && b === null) return 0;
+      if (a === null) return 1;
+      if (b === null) return -1;
+      return desc ? b - a : a - b;
+    };
+
+    return [...list].sort((a, b) => {
+      switch (sortBy) {
+        case 'created_asc':
+          return compareTime(time(a.created_at), time(b.created_at), false);
+        case 'trial_end':
+          return compareTime(
+            getTrialEnd(a)?.getTime() ?? null,
+            getTrialEnd(b)?.getTime() ?? null,
+            false
+          );
+        case 'last_login':
+          return compareTime(
+            time((a as any).last_login),
+            time((b as any).last_login),
+            true
+          );
+        case 'name':
+          return (a.name || '').localeCompare(b.name || '');
+        case 'created_desc':
+        default:
+          return compareTime(time(a.created_at), time(b.created_at), true);
+      }
+    });
+  };
+
+  const filteredOrganizations = sortOrganizations(organizations.filter(
     (org) =>
       org?.name?.toLowerCase().includes(searchTerm?.toLowerCase()) ||
       org?.email?.toLowerCase().includes(searchTerm?.toLowerCase())
-  );
+  ));
 
-  const filteredUsers = users?.filter(
+  const expiredTrialCount = organizations.filter(isTrialExpired).length;
+
+  const sortUsers = (list: UserWithConfirmation[]) => {
+    const time = (value?: string) => {
+      const t = value ? new Date(value).getTime() : NaN;
+      return isNaN(t) ? null : t;
+    };
+    const compareTime = (a: number | null, b: number | null, desc: boolean) => {
+      if (a === null && b === null) return 0;
+      if (a === null) return 1;
+      if (b === null) return -1;
+      return desc ? b - a : a - b;
+    };
+    return [...(list || [])].sort((a, b) => {
+      switch (sortBy) {
+        case 'created_asc':
+          return compareTime(time(a.created_at), time(b.created_at), false);
+        case 'last_login':
+          return compareTime(time(a.lastLogin), time(b.lastLogin), true);
+        case 'name':
+          return (a.name || '').localeCompare(b.name || '');
+        default:
+          return compareTime(time(a.created_at), time(b.created_at), true);
+      }
+    });
+  };
+
+  const filteredUsers = sortUsers(users?.filter(
     (user) =>
       user?.name?.toLowerCase().includes(searchTerm?.toLowerCase()) ||
       user?.email?.toLowerCase().includes(searchTerm?.toLowerCase())
-  );
+  ));
 
   const showSearchbar = activeTab === 'overview' || activeTab === 'users';
 
@@ -176,6 +258,23 @@ const SuperAdminDashboard: React.FC = () => {
               Data Debug
             </Button>
           </Link> */}
+          <div className="flex flex-col items-end">
+            <Button
+              variant="outline"
+              onClick={loadData}
+              disabled={isLoading}
+            >
+              <RefreshCw
+                className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`}
+              />
+              Refresh
+            </Button>
+            <span className="text-xs text-muted-foreground mt-1">
+              {lastUpdatedAt
+                ? `Updated ${lastUpdatedAt.toLocaleTimeString()}`
+                : 'Loading...'}
+            </span>
+          </div>
           <Button onClick={() => setCreateOrgOpen(true)}>
             <Plus className="w-4 h-4 mr-2" />
             Create Organization
@@ -221,14 +320,7 @@ const SuperAdminDashboard: React.FC = () => {
                   Active Subscriptions
                 </p>
                 <p className="text-2xl font-bold">
-                  {
-                    organizations.filter(
-                      (org) =>
-                        org.subscription_level !== 'trial' &&
-                        org.subscription_status === 'active' &&
-                        org.suspended !== true
-                    ).length
-                  }
+                  {organizations.filter(isPaidOrg).length}
                 </p>
               </div>
               <CreditCard className="h-8 w-8 text-muted-foreground" />
@@ -241,17 +333,33 @@ const SuperAdminDashboard: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">
-                  Trial Organizations
+                  Active Trials
                 </p>
                 <p className="text-2xl font-bold">
                   {
                     organizations.filter(
-                      (org) => org.subscription_level === 'trial'
+                      (org) => getOrgStatus(org) === 'trial_active'
                     ).length
                   }
                 </p>
               </div>
               <Settings className="h-8 w-8 text-muted-foreground" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Expired Trials
+                </p>
+                <p className="text-2xl font-bold">{expiredTrialCount}</p>
+              </div>
+              <AlertTriangle className="h-8 w-8 text-muted-foreground" />
             </div>
           </CardContent>
         </Card>
@@ -269,6 +377,18 @@ const SuperAdminDashboard: React.FC = () => {
             disabled={!showSearchbar}
           />
         </div>
+        <Select value={sortBy} onValueChange={setSortBy}>
+          <SelectTrigger className="w-[220px]">
+            <SelectValue placeholder="Sort by" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="created_desc">Newest first (created)</SelectItem>
+            <SelectItem value="created_asc">Oldest first (created)</SelectItem>
+            <SelectItem value="trial_end">Trial end date</SelectItem>
+            <SelectItem value="last_login">Last login</SelectItem>
+            <SelectItem value="name">Name (A-Z)</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Main Content Tabs */}
