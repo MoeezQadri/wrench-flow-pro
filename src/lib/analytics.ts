@@ -226,6 +226,7 @@ export function trackGoogleAdsConversion(
     );
     return;
   }
+  if (trackingSuppressed()) return;
   ensureAnalytics();
   gtag('event', 'conversion', {
     send_to: `${GOOGLE_ADS_ID}/${label}`,
