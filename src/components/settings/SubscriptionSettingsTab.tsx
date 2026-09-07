@@ -369,33 +369,38 @@ const SubscriptionSettingsTab = () => {
             </div>
           )}
 
-          {subscribed && isPaidPlan && (
-            <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm text-muted-foreground">
-                {subscriptionCanceling
-                  ? 'Your plan is set to stop at the end of the period you have already paid for.'
-                  : 'You can stop your plan at any time; it stays active until the end of the period you have paid for.'}
+          {subscribed && isPaidPlan && subscriptionCanceling && (
+            <div className="mt-6 rounded-md border border-orange-300 bg-orange-50 p-4 dark:bg-orange-950/30">
+              <p className="text-sm font-medium">
+                {subscriptionEnd
+                  ? `Your subscription ends on ${formatDate(subscriptionEnd)}.`
+                  : 'Your subscription ends at the end of the current period.'}
               </p>
-              {subscriptionCanceling ? (
-                <Button
-                  variant="outline"
-                  onClick={handleResumeSubscription}
-                  disabled={cancelWorking}
-                >
-                  Resume subscription
-                </Button>
-              ) : (
-                <Button
-                  variant="outline"
-                  className="text-destructive"
-                  onClick={() => setCancelDialogOpen(true)}
-                  disabled={cancelWorking}
-                >
-                  Cancel subscription
-                </Button>
-              )}
+              <p className="text-sm text-muted-foreground mt-1">
+                You keep full access until then, and you will not be billed
+                again. After that date you can choose a plan below to restore
+                access.
+              </p>
             </div>
           )}
+
+          {subscribed && isPaidPlan && !subscriptionCanceling && canManageSubscription && (
+            <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-muted-foreground">
+                You can stop your plan at any time; it stays active until the
+                end of the period you have paid for.
+              </p>
+              <Button
+                variant="outline"
+                className="text-destructive"
+                onClick={() => setCancelDialogOpen(true)}
+                disabled={cancelWorking}
+              >
+                Cancel subscription
+              </Button>
+            </div>
+          )}
+
         </CardContent>
       </Card>
 
