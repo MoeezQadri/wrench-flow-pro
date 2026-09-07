@@ -42,18 +42,31 @@ async function syncOrgState(
   }
 }
 
-async function checkTrialStatus(supabaseClient: any, organizationId: string) {
+async function checkTrialStatus(
+  supabaseClient: any,
+  organizationId: string
+): Promise<{
+  subscribed: boolean;
+  subscription_tier?: string;
+  subscription_end: string | null;
+  suspended?: boolean;
+}> {
   const { data: org } = await supabaseClient
     .from('organizations')
-    .select('created_at')
+    .select('created_at, trial_ends_at')
     .eq('id', organizationId)
     .single();
 
-  if (!org?.created_at) return { subscribed: false };
+  if (!org?.created_at && !org?.trial_ends_at) {
+    return { subscribed: false, subscription_end: null };
+  }
 
-  const trialEnd = new Date(
-    new Date(org.created_at).getTime() + TRIAL_DAYS * 24 * 60 * 60 * 1000
-  );
+  const trialEnd = org?.trial_ends_at
+    ? new Date(org.trial_ends_at)
+    : new Date(
+        new Date(org.created_at).getTime() + TRIAL_DAYS * 24 * 60 * 60 * 1000
+      );
+
   if (new Date() <= trialEnd) {
     return {
       subscribed: true,
@@ -62,7 +75,7 @@ async function checkTrialStatus(supabaseClient: any, organizationId: string) {
       suspended: false,
     };
   }
-  return { subscribed: false };
+  return { subscribed: false, subscription_end: trialEnd.toISOString() };
 }
 
 serve(async (req) => {
