@@ -417,23 +417,32 @@ export const SubscriptionManagement = ({
                 variant="outline"
                 size="sm"
                 onClick={() =>
-                  handleSuspend(
-                    org.id,
-                    org.subscription_level,
-                    'suspended',
-                    [
+                  setOrgToSuspend({
+                    id: org.id,
+                    name: org.name,
+                    subscription_level: org.subscription_level,
+                    accessUntil:
+                      org.next_billing_date || org.trial_ends_at || null,
+                    emails: [
                       ...owner.map((o) => o.email),
                       ...others.map((u) => u.email),
                     ],
-                    [
+                    userIds: [
                       ...owner.map((o) => o.user_id),
                       ...others.map((u) => u.user_id),
-                    ]
-                  )
+                    ],
+                  })
                 }
                 disabled={updating === org.id}
               >
-                Suspend
+                {updating === org.id ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Suspending…
+                  </>
+                ) : (
+                  'Suspend'
+                )}
               </Button>
             </div>
 
