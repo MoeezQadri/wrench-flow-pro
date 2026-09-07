@@ -106,7 +106,12 @@ const Login: React.FC = () => {
         }
       } else if (data) {
         console.log('[Login] Login successful, navigating...');
-        trackLogin('email');
+        if (await isPlatformSuperAdmin(data.user?.id)) {
+          setAnalyticsOptOut(true);
+        } else {
+          trackLogin('email');
+        }
+
         toast.success('Login successful');
 
 
