@@ -16,8 +16,8 @@ Cause: the signup path that actually creates organizations records only "trial /
 **4. GA and Google Ads events for login / signup**
 Events exist and the tags do fire — I loaded the sign-in page in a browser and confirmed both Google Analytics and Google Ads sent data.
 
-- **login** — sent on the sign-in page, only after a *successful* sign-in. Failed attempts send nothing (correct).
-- **sign_up** — sent on the sign-up page when registration completes successfully, together with the Google Ads "Signup" conversion.
+- **login** — sent to Google Analytics on the sign-in page, only after a *successful* sign-in. Failed attempts send nothing (correct).
+- **sign_up** — sent to Google Analytics on the sign-up page when registration completes successfully, together with the Google Ads "Signup" conversion.
 - Plan viewed / plan selected, purchase (thank-you page) and cancellation are also wired, plus the Ads "Subscribe page visit" and "Subscribe" conversions.
 
 I could not fire a real login/sign-up event in testing without using a real account, so those two are verified as correctly wired rather than observed end-to-end. If you want, I can run one real sign-in with a throwaway account and confirm the hit.
