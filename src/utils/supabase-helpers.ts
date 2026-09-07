@@ -362,6 +362,27 @@ export const suspendSubscription = async (params: {
   }
 };
 
+export const cancelOwnSubscription = async (
+  action: 'cancel' | 'resume' = 'cancel'
+) => {
+  const { data, error } = await supabase.functions.invoke(
+    'cancel-subscription',
+    { body: { action } }
+  );
+
+  if (error) {
+    console.error('Error changing subscription:', error);
+    throw error;
+  }
+
+  return data as {
+    changed?: boolean;
+    action?: 'cancel' | 'resume';
+    subscription_end?: string | null;
+    message?: string;
+  };
+};
+
 export const unsuspendSubscription = async (params: {
   org_id: string;
   org_name: string;
