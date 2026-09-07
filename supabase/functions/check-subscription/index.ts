@@ -22,6 +22,26 @@ function tierFromAmount(amount: number): string {
   return 'Enterprise';
 }
 
+async function syncOrgState(
+  supabaseClient: any,
+  organizationId: string,
+  state: { level: string; status: string; endsAt: string | null }
+) {
+  try {
+    await supabaseClient
+      .from('organizations')
+      .update({
+        subscription_level: state.level,
+        subscription_status: state.status,
+        trial_ends_at: state.endsAt,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', organizationId);
+  } catch (e) {
+    logStep('Failed to sync organization state', { error: String(e) });
+  }
+}
+
 async function checkTrialStatus(supabaseClient: any, organizationId: string) {
   const { data: org } = await supabaseClient
     .from('organizations')
@@ -152,6 +172,11 @@ serve(async (req) => {
     const cachedActive = orgSub && (cachedEndMs === null || cachedEndMs > nowMs);
     if (orgSub && cachedActive) {
       logStep('Fast path: org subscriber found', { tier: orgSub.subscription_tier });
+      await syncOrgState(supabaseClient, organizationId, {
+        level: String(orgSub.subscription_tier || 'basic').toLowerCase(),
+        status: orgSub.suspended ? 'suspended' : 'active',
+        endsAt: orgSub.subscription_end || null,
+      });
       return json({
         subscribed: true,
         subscription_tier: orgSub.subscription_tier,
@@ -214,6 +239,12 @@ serve(async (req) => {
         logStep('Failed to upsert subscriber cache', { error: String(e) });
       }
 
+      await syncOrgState(supabaseClient, organizationId, {
+        level: tier.toLowerCase(),
+        status: 'active',
+        endsAt: subscriptionEnd,
+      });
+
       return json({
         subscribed: true,
         subscription_tier: tier,
@@ -225,6 +256,11 @@ serve(async (req) => {
     // Fall back to trial based on org creation date
     logStep('No active subscription found for org, checking trial');
     const trialResult = await checkTrialStatus(supabaseClient, organizationId);
+    await syncOrgState(supabaseClient, organizationId, {
+      level: 'trial',
+      status: trialResult.subscribed ? 'trialing' : 'expired',
+      endsAt: trialResult.subscription_end || null,
+    });
     return json(trialResult);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
