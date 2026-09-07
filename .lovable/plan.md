@@ -26,7 +26,7 @@ I could not fire a real login/sign-up event in testing without using a real acco
 
 ### A. Fresh data on the super admin screen
 - Add a **Refresh** button in the header, with a "last updated" timestamp.
-- Reload automatically whenever the browser tab regains focus, and every 60 seconds while the screen is open.
+
 
 ### B. Sorting
 - Add a sort control above the organization list: **Newest / Oldest (created)**, **Trial end date**, **Last login**, **Name (A–Z)**.
