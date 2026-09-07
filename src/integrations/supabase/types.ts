@@ -804,6 +804,7 @@ export type Database = {
           id: string
           organization_id: string | null
           stripe_customer_id: string | null
+          stripe_subscription_id: string | null
           subscribed: boolean
           subscription_end: string | null
           subscription_tier: string | null
@@ -817,6 +818,7 @@ export type Database = {
           id?: string
           organization_id?: string | null
           stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
           subscribed?: boolean
           subscription_end?: string | null
           subscription_tier?: string | null
@@ -830,6 +832,7 @@ export type Database = {
           id?: string
           organization_id?: string | null
           stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
           subscribed?: boolean
           subscription_end?: string | null
           subscription_tier?: string | null
