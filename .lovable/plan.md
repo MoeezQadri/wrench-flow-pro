@@ -8,12 +8,19 @@ The super admin screen loads everything once when it opens, and only reloads aft
 **2. Sorting by date**
 There is no sorting control anywhere on the super admin screens. Organizations arrive newest-first from the server and are shown as cards in that fixed order; the search box filters by name and email only. So there is currently nothing to sort with.
 
-**3. Expired trials**
-You are right that expired trials exist — they just are not stored anywhere. The app decides trial expiry **live**, in the subscription check: trial ends 14 days after the organization was created. Nothing is written back, so no table holds a trial end date (the `trial_ends_at` field is empty on all 40 organizations, and the subscribers table has no end date for trials either). That is why the app front-end correctly treats trials as expired while the super admin screen shows nothing.
+**3. Expired trials — and how lockout actually works today**
+Trial status is never stored. It is decided live, every time someone uses the app, in this order:
 
-The super admin screen instead reads the stored `trial_ends_at` field, which is always empty — so the "Expired Trials" section is always empty and every organization keeps showing "trial / active".
+1. Two hard-coded owner email addresses always get full access.
+2. A paid subscription is looked up — first from the cached `subscribers` row for that organization (used only while its end date is still in the future), otherwise checked directly against Stripe for the organization's owner/admin emails, which also refreshes the cache.
+3. Only if there is no subscription at all does it fall back to a trial: **14 days from the organization's creation date**.
 
-By the app's own 14-day rule, **39 of the 40 organizations are past their trial** and 1 is still inside it.
+So a paying organization is never judged by the trial date — the subscription wins. Nothing is written back to the organization row: `trial_ends_at` is empty on all 40 organizations, `subscription_level` says "trial" and `subscription_status` says "active" for every one of them, and the subscribers table holds exactly one paid row (Basic, ending 13 Sep 2026).
+
+The super admin screen reads those stale stored fields, which is why the Expired Trials list is always empty and everything shows "trial / active".
+
+Counting the same way the app does: 1 organization has a live paid subscription, 38 have no subscription and are past their 14 days, 1 has no subscription and is still inside its trial.
+
 
 
 **4. GA and Google Ads events for login / signup**
