@@ -80,7 +80,7 @@ export default function PaymentSuccess() {
         planName: plan,
       });
     }
-  }, [status, sessionId, plan, subscriptionTier]);
+  }, [status, sessionId, plan, subscriptionTier, purchaseValue]);
 
   return (
     <div className="flex min-h-[70vh] items-center justify-center p-4">
