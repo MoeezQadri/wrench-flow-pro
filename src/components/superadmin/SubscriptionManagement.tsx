@@ -323,6 +323,14 @@ export const SubscriptionManagement = ({
                       <Badge variant="outline">{o.email}</Badge>
                     </div>
                   ))}
+                  {(org.next_billing_date || org.trial_ends_at) && (
+                    <div className="text-xs text-muted-foreground">
+                      Access ends on{' '}
+                      {new Date(
+                        (org.next_billing_date || org.trial_ends_at) as string
+                      ).toLocaleDateString()}
+                    </div>
+                  )}
                 </div>
                 <Button
                   variant="outline"
