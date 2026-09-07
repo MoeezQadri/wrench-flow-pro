@@ -280,15 +280,36 @@ serve(async (req) => {
       });
     }
 
-    // Fall back to trial based on org creation date
+    // No live subscription: either the trial window, or a paid plan that lapsed
     logStep('No active subscription found for org, checking trial');
     const trialResult = await checkTrialStatus(supabaseClient, organizationId);
+
+    if (!trialResult.subscribed && hadPaidLevel) {
+      // Keep the plan name and mark it as ended so this never shows up as an
+      // expired trial.
+      await syncOrgState(supabaseClient, organizationId, {
+        level: storedLevel,
+        status: 'ended',
+        endsAt: null,
+      });
+      return json({
+        subscribed: false,
+        subscription_tier: orgRow?.subscription_level || null,
+        subscription_end: null,
+        expired_reason: 'subscription',
+      });
+    }
+
     await syncOrgState(supabaseClient, organizationId, {
       level: 'trial',
       status: trialResult.subscribed ? 'trialing' : 'expired',
       endsAt: trialResult.subscription_end || null,
     });
-    return json(trialResult);
+    return json({
+      ...trialResult,
+      expired_reason: trialResult.subscribed ? null : 'trial',
+    });
+
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logStep('ERROR', { message: errorMessage });
