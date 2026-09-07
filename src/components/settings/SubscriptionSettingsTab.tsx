@@ -77,19 +77,31 @@ const SubscriptionSettingsTab = () => {
     setCancelWorking(true);
     try {
       const result = await cancelOwnSubscription('cancel');
+      if (result?.changed === false) {
+        toast.warning(
+          result?.message ||
+            'No active subscription was found for your organization.'
+        );
+        return;
+      }
       toast.success(
         result?.message ||
           'Your subscription will stop at the end of the current period.'
       );
       await refreshSubscription();
+      setCancelDialogOpen(false);
     } catch (error) {
       console.error('Error cancelling subscription:', error);
-      toast.error('Could not cancel the subscription. Please try again.');
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : 'Could not cancel the subscription. Please try again.';
+      toast.error(message);
     } finally {
       setCancelWorking(false);
-      setCancelDialogOpen(false);
     }
   };
+
 
 
 
