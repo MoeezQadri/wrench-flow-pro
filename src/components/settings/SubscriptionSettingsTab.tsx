@@ -77,11 +77,13 @@ const SubscriptionSettingsTab = () => {
     setCancelWorking(true);
     try {
       const result = await cancelOwnSubscription('cancel');
-      if (result?.changed === false) {
-        toast.warning(
+      if (result?.stale) {
+        toast.error(
           result?.message ||
-            'No active subscription was found for your organization.'
+            'No live Stripe subscription was found. Your local subscription status was corrected.'
         );
+        await refreshSubscription();
+        setCancelDialogOpen(false);
         return;
       }
       toast.success(
