@@ -100,6 +100,15 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     currentUser?.role === 'superadmin' ||
     currentUser?.role === 'owner';
 
+  // Internal (super admin) sessions are never reported to Google Analytics/Ads.
+  const isPlatformSuperAdmin =
+    currentUser?.role === 'superuser' || currentUser?.role === 'superadmin';
+  useEffect(() => {
+    if (isPlatformSuperAdmin) setAnalyticsOptOut(true);
+  }, [isPlatformSuperAdmin]);
+
+
+
   // Loading timeout management
   useEffect(() => {
     if (loading) {
