@@ -60,14 +60,18 @@ export const SubscriptionManagement = ({
     organizations.filter((org) => getOrgStatus(org) === 'trial_active');
 
   const getExpiredTrials = () =>
-    organizations.filter((org) => getOrgStatus(org) === 'trial_expired');
+    organizations.filter((org) =>
+      ['trial_expired', 'subscription_ended'].includes(getOrgStatus(org))
+    );
+
+  const getCancelingSubscriptions = () =>
+    organizations.filter((org) => getOrgStatus(org) === 'canceling');
 
   const getPaidSubscriptions = () =>
     organizations.filter((org) =>
-      ['paid', 'internal', 'canceling', 'subscription_ended'].includes(
-        getOrgStatus(org)
-      )
+      ['paid', 'internal'].includes(getOrgStatus(org))
     );
+
 
   const getSuspendedSubscriptions = () =>
     organizations.filter((org) => getOrgStatus(org) === 'suspended');
