@@ -1,6 +1,12 @@
 import { serve } from 'https://deno.land/std@0.190.0/http/server.ts';
 import Stripe from 'https://esm.sh/stripe@14.21.0';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
+import {
+  discoverLiveSubscription,
+  getCustomerId,
+  getPeriodEndIso,
+  getPlanName,
+} from '../_shared/stripe-subscriptions.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -51,82 +57,46 @@ serve(async (req) => {
     if (!user?.email) throw new Error('User not authenticated');
     logStep('User authenticated', { userId: user.id });
 
+    const { data: superadmin, error: superadminError } = await supabase
+      .from('superadmins')
+      .select('id')
+      .eq('_id', user.id)
+      .maybeSingle();
+    if (superadminError) throw superadminError;
+    if (!superadmin) {
+      return json({ error: 'Super admin access required' }, 403);
+    }
+
     const organizationId: string = params.org_id;
     const stripe = new Stripe(stripeKey, { apiVersion: '2023-10-16' });
-
-    const { data: subscriberRows } = await supabase
-      .from('subscribers')
-      .select('stripe_customer_id')
-      .eq('organization_id', organizationId)
-      .not('stripe_customer_id', 'is', null);
-
-    const savedCustomerIds = (subscriberRows || [])
-      .map((row: any) => row.stripe_customer_id)
-      .filter(
-        (id: unknown): id is string => typeof id === 'string' && id.length > 0
-      );
 
     const emails: string[] = Array.isArray(params.user_emails)
       ? params.user_emails.filter((e: unknown) => typeof e === 'string' && e)
       : [];
-
-    const customersByEmail = (
-      await Promise.all(
-        emails.map((email) => stripe.customers.list({ email, limit: 100 }))
-      )
-    ).flatMap((res) => res.data);
-
-    const customerIds = Array.from(
-      new Set([...savedCustomerIds, ...customersByEmail.map((c) => c.id)])
-    );
-    logStep('Stripe customers resolved', {
-      saved: savedCustomerIds.length,
-      total: customerIds.length,
+    const discovery = await discoverLiveSubscription({
+      stripe,
+      supabase,
+      organizationId,
+      emails,
     });
-
-    const subscriptions = (
-      await Promise.all(
-        customerIds.map((customerId) =>
-          stripe.subscriptions.list({
-            customer: customerId,
-            status: 'all',
-            limit: 100,
-          })
-        )
-      )
-    )
-      .flatMap((res) => res.data)
-      .filter((s) => ['active', 'trialing', 'past_due'].includes(s.status));
+    const subscription = discovery.subscription;
 
     let periodEnd: string | null = null;
     let resumed = false;
     let tier: string | null = null;
 
-    const scheduled = subscriptions.filter((s) => s.cancel_at_period_end);
-    if (scheduled.length > 0) {
-      await Promise.all(
-        scheduled.map((s) =>
-          stripe.subscriptions.update(s.id, { cancel_at_period_end: false })
-        )
-      );
-      logStep('Cancellation reverted', { ids: scheduled.map((s) => s.id) });
+    let activeSubscription = subscription;
+    if (subscription?.cancel_at_period_end) {
+      activeSubscription = await stripe.subscriptions.update(subscription.id, {
+        cancel_at_period_end: false,
+      });
+      logStep('Cancellation reverted', { source: discovery.source });
     }
 
-    if (subscriptions.length > 0) {
+    if (activeSubscription) {
       resumed = true;
-      const latest = subscriptions.sort(
-        (a, b) => b.current_period_end - a.current_period_end
-      )[0];
-      periodEnd = new Date(latest.current_period_end * 1000).toISOString();
-      const amount = latest.items.data[0]?.price?.unit_amount ?? 0;
-      tier =
-        amount >= 19900
-          ? 'Enterprise'
-          : amount >= 7900
-            ? 'Professional'
-            : amount > 0
-              ? 'Basic'
-              : null;
+      periodEnd = getPeriodEndIso(activeSubscription);
+      tier = getPlanName(activeSubscription, params.sub_level || 'Basic');
     }
 
     const orgUpdate: Record<string, any> = {
@@ -156,6 +126,11 @@ serve(async (req) => {
       subscription_end: periodEnd,
       updated_at: new Date().toISOString(),
     };
+    if (activeSubscription) {
+      subUpdate.stripe_subscription_id = activeSubscription.id;
+      const customerId = getCustomerId(activeSubscription);
+      if (customerId) subUpdate.stripe_customer_id = customerId;
+    }
     if (tier) subUpdate.subscription_tier = tier;
 
     await supabase

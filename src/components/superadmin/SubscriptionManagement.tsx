@@ -105,7 +105,6 @@ export const SubscriptionManagement = ({
   const handleSuspend = async () => {
     if (!orgToSuspend) return;
     const target = orgToSuspend;
-    setOrgToSuspend(null);
     setUpdating(target.id);
     try {
       const result = await suspendSubscription({
@@ -117,14 +116,18 @@ export const SubscriptionManagement = ({
         user_emails: target.emails.filter(Boolean),
       });
       toast({
-        title: result?.billing_changed
+        title: result?.stale
+          ? 'No live subscription found'
+          : result?.billing_changed
           ? 'Billing stopped'
           : 'Organization suspended',
         description:
           result?.message ||
           'The organization has been suspended.',
+        variant: result?.stale ? 'destructive' : 'default',
       });
-      onUpdate();
+      await onUpdate();
+      setOrgToSuspend(null);
     } catch (error: any) {
       console.error(error);
       toast({
@@ -140,7 +143,6 @@ export const SubscriptionManagement = ({
   const handleUnsuspend = async () => {
     if (!orgToUnsuspend) return;
     const target = orgToUnsuspend;
-    setOrgToUnsuspend(null);
     setUpdating(target.id);
     try {
       const result = await unsuspendSubscription({
@@ -158,7 +160,8 @@ export const SubscriptionManagement = ({
           result?.message ||
           'The organization is no longer suspended.',
       });
-      onUpdate();
+      await onUpdate();
+      setOrgToUnsuspend(null);
     } catch (error: any) {
       console.error(error);
       toast({
@@ -421,37 +424,39 @@ export const SubscriptionManagement = ({
                   </div>
                 ))}
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  setOrgToSuspend({
-                    id: org.id,
-                    name: org.name,
-                    subscription_level: org.subscription_level,
-                    accessUntil:
-                      org.next_billing_date || org.trial_ends_at || null,
-                    emails: [
-                      ...owner.map((o) => o.email),
-                      ...others.map((u) => u.email),
-                    ],
-                    userIds: [
-                      ...owner.map((o) => o.user_id),
-                      ...others.map((u) => u.user_id),
-                    ],
-                  })
-                }
-                disabled={updating === org.id}
-              >
-                {updating === org.id ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Suspending…
-                  </>
-                ) : (
-                  'Suspend'
-                )}
-              </Button>
+              {getOrgStatus(org) === 'paid' && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setOrgToSuspend({
+                      id: org.id,
+                      name: org.name,
+                      subscription_level: org.subscription_level,
+                      accessUntil:
+                        org.next_billing_date || org.trial_ends_at || null,
+                      emails: [
+                        ...owner.map((o) => o.email),
+                        ...others.map((u) => u.email),
+                      ],
+                      userIds: [
+                        ...owner.map((o) => o.user_id),
+                        ...others.map((u) => u.user_id),
+                      ],
+                    })
+                  }
+                  disabled={updating === org.id}
+                >
+                  {updating === org.id ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Suspending…
+                    </>
+                  ) : (
+                    'Suspend'
+                  )}
+                </Button>
+              )}
             </div>
 
             {others.length > 0 && (
@@ -494,7 +499,10 @@ export const SubscriptionManagement = ({
 
       <AlertDialog
         open={!!orgToSuspend}
-        onOpenChange={(open) => !open && setOrgToSuspend(null)}
+        onOpenChange={(open) => {
+          if (updating) return;
+          if (!open) setOrgToSuspend(null);
+        }}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -510,9 +518,22 @@ export const SubscriptionManagement = ({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleSuspend}>
-              Suspend
+            <AlertDialogCancel disabled={!!updating}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={!!updating}
+              onClick={(event) => {
+                event.preventDefault();
+                handleSuspend();
+              }}
+            >
+              {updating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Suspending…
+                </>
+              ) : (
+                'Suspend'
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -521,7 +542,10 @@ export const SubscriptionManagement = ({
 
       <AlertDialog
         open={!!orgToUnsuspend}
-        onOpenChange={(open) => !open && setOrgToUnsuspend(null)}
+        onOpenChange={(open) => {
+          if (updating) return;
+          if (!open) setOrgToUnsuspend(null);
+        }}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -536,9 +560,22 @@ export const SubscriptionManagement = ({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleUnsuspend}>
-              Un-suspend
+            <AlertDialogCancel disabled={!!updating}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={!!updating}
+              onClick={(event) => {
+                event.preventDefault();
+                handleUnsuspend();
+              }}
+            >
+              {updating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Restoring…
+                </>
+              ) : (
+                'Un-suspend'
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

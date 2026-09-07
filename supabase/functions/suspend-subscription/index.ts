@@ -1,6 +1,11 @@
 import { serve } from 'https://deno.land/std@0.190.0/http/server.ts';
 import Stripe from 'https://esm.sh/stripe@14.21.0';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
+import {
+  discoverLiveSubscription,
+  getCustomerId,
+  getPeriodEndIso,
+} from '../_shared/stripe-subscriptions.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -52,74 +57,77 @@ serve(async (req) => {
     if (!user?.email) throw new Error('User not authenticated');
     logStep('User authenticated', { userId: user.id });
 
+    const { data: superadmin, error: superadminError } = await supabase
+      .from('superadmins')
+      .select('id')
+      .eq('_id', user.id)
+      .maybeSingle();
+    if (superadminError) throw superadminError;
+    if (!superadmin) {
+      return json({ error: 'Super admin access required' }, 403);
+    }
+
     const organizationId: string = params.org_id;
     const stripe = new Stripe(stripeKey, { apiVersion: '2023-10-16' });
-
-    // Prefer the Stripe customers already saved for this organization; email
-    // lookup stays as a fallback for older subscriber rows.
-    const { data: subscriberRows } = await supabase
-      .from('subscribers')
-      .select('stripe_customer_id')
-      .eq('organization_id', organizationId)
-      .not('stripe_customer_id', 'is', null);
-
-    const savedCustomerIds = (subscriberRows || [])
-      .map((row: any) => row.stripe_customer_id)
-      .filter(
-        (id: unknown): id is string => typeof id === 'string' && id.length > 0
-      );
 
     const emails: string[] = Array.isArray(params.user_emails)
       ? params.user_emails.filter((e: unknown) => typeof e === 'string' && e)
       : [];
-
-    const customersByEmail = (
-      await Promise.all(
-        emails.map((email) => stripe.customers.list({ email, limit: 100 }))
-      )
-    ).flatMap((res) => res.data);
-
-    const customerIds = Array.from(
-      new Set([...savedCustomerIds, ...customersByEmail.map((c) => c.id)])
-    );
-    logStep('Stripe customers resolved', {
-      saved: savedCustomerIds.length,
-      total: customerIds.length,
+    const discovery = await discoverLiveSubscription({
+      stripe,
+      supabase,
+      organizationId,
+      emails,
     });
-
-    const subscriptions = (
-      await Promise.all(
-        customerIds.map((customerId) =>
-          stripe.subscriptions.list({
-            customer: customerId,
-            status: 'all',
-            limit: 100,
-          })
-        )
-      )
-    )
-      .flatMap((res) => res.data)
-      .filter((s) => ['active', 'trialing', 'past_due'].includes(s.status));
+    const subscription = discovery.subscription;
 
     let periodEnd: string | null = null;
     let billingChanged = false;
 
-    if (subscriptions.length === 0) {
+    if (!subscription) {
       logStep('No live subscription found');
+      const endedAt = new Date().toISOString();
+      const { data: organization, error: orgError } = await supabase
+        .from('organizations')
+        .update({
+          subscription_status: 'ended',
+          trial_ends_at: endedAt,
+          updated_at: endedAt,
+        })
+        .eq('id', organizationId)
+        .select()
+        .single();
+      if (orgError) throw orgError;
+
+      await supabase
+        .from('subscribers')
+        .update({
+          subscribed: false,
+          suspended: false,
+          subscription_end: endedAt,
+          updated_at: endedAt,
+        })
+        .eq('organization_id', organizationId);
+
+      return json({
+        suspended: false,
+        stale: true,
+        billing_changed: false,
+        period_end: endedAt,
+        organization,
+        message:
+          'No live Stripe subscription was found. The organization was moved to ended subscriptions.',
+      });
     } else {
-      const targets = subscriptions.filter((s) => !s.cancel_at_period_end);
-      await Promise.all(
-        targets.map((s) =>
-          stripe.subscriptions.update(s.id, { cancel_at_period_end: true })
-        )
-      );
-      billingChanged = true;
-      const latest = subscriptions.sort(
-        (a, b) => b.current_period_end - a.current_period_end
-      )[0];
-      periodEnd = new Date(latest.current_period_end * 1000).toISOString();
+      const updated = subscription.cancel_at_period_end
+        ? subscription
+        : await stripe.subscriptions.update(subscription.id, {
+            cancel_at_period_end: true,
+          });
+      billingChanged = updated.cancel_at_period_end === true;
+      periodEnd = getPeriodEndIso(updated) || getPeriodEndIso(subscription);
       logStep('Stripe set to cancel at period end', {
-        ids: targets.map((s) => s.id),
+        source: discovery.source,
         periodEnd,
       });
     }
@@ -145,6 +153,11 @@ serve(async (req) => {
       suspended: true,
       updated_at: new Date().toISOString(),
     };
+    if (subscription) {
+      subUpdate.stripe_subscription_id = subscription.id;
+      const customerId = getCustomerId(subscription);
+      if (customerId) subUpdate.stripe_customer_id = customerId;
+    }
     if (periodEnd) subUpdate.subscription_end = periodEnd;
 
     await supabase
@@ -164,9 +177,7 @@ serve(async (req) => {
       billing_changed: billingChanged,
       period_end: periodEnd,
       organization,
-      message: billingChanged
-        ? 'Billing stopped. Access ends at the end of the paid period.'
-        : 'Organization suspended, but no live subscription was found in Stripe.',
+      message: 'Billing stopped. Access ends at the end of the paid period.',
     });
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);

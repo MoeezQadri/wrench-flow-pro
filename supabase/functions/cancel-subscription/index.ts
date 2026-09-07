@@ -1,6 +1,13 @@
 import { serve } from 'https://deno.land/std@0.190.0/http/server.ts';
 import Stripe from 'https://esm.sh/stripe@14.21.0';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
+import {
+  asString,
+  discoverLiveSubscription,
+  getCustomerId,
+  getPeriodEndIso,
+  getPlanName,
+} from '../_shared/stripe-subscriptions.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -31,15 +38,9 @@ serve(async (req) => {
     });
 
   try {
-    let action = 'cancel';
-    try {
-      const body = await req.json();
-      if (body?.action === 'resume' || body?.action === 'cancel') {
-        action = body.action;
-      }
-    } catch (_e) {
-      // no body -> default to cancel
-    }
+    let action: 'cancel' | 'resume' = 'cancel';
+    const body = await req.json().catch(() => ({}));
+    if (body?.action === 'resume') action = 'resume';
 
     const stripeKey = Deno.env.get('STRIPE_SECRET_KEY');
     if (!stripeKey) throw new Error('STRIPE_SECRET_KEY is not set');
@@ -48,22 +49,20 @@ serve(async (req) => {
     if (!authHeader) throw new Error('No authorization header provided');
     const token = authHeader.replace('Bearer ', '');
 
-    const { data: userData, error: userError } =
-      await supabase.auth.getUser(token);
+    const { data: userData, error: userError } = await supabase.auth.getUser(token);
     if (userError) throw new Error(`Authentication error: ${userError.message}`);
     const user = userData.user;
     if (!user?.email) throw new Error('User not authenticated');
     logStep('User authenticated', { userId: user.id, action });
 
-    // Caller must be owner/admin of the organization
     const { data: profile } = await supabase
       .from('profiles')
       .select('organization_id, role')
       .eq('id', user.id)
       .single();
 
-    const organizationId = profile?.organization_id;
-    const role = (profile?.role || '').toLowerCase();
+    const organizationId = asString(profile?.organization_id);
+    const role = String(profile?.role || '').toLowerCase();
     if (!organizationId) return json({ error: 'No organization found' }, 400);
     if (!['owner', 'admin'].includes(role)) {
       return json(
@@ -72,7 +71,6 @@ serve(async (req) => {
       );
     }
 
-    // Emails of every owner/admin of the org (the possible Stripe customers)
     const { data: adminProfiles } = await supabase
       .from('profiles')
       .select('id')
@@ -91,101 +89,121 @@ serve(async (req) => {
     logStep('Admin emails resolved', { count: emails.length });
 
     const stripe = new Stripe(stripeKey, { apiVersion: '2023-10-16' });
+    const discovery = await discoverLiveSubscription({
+      stripe,
+      supabase,
+      organizationId,
+      emails,
+    });
+    const subscription = discovery.subscription;
 
-    // The checkout email can differ from the owner's current login email.
-    // Prefer the Stripe customer IDs already tied to this organization, then
-    // retain email lookup as a fallback for older subscriber rows.
-    const { data: subscriberRows, error: subscriberError } = await supabase
-      .from('subscribers')
-      .select('stripe_customer_id')
-      .eq('organization_id', organizationId)
-      .not('stripe_customer_id', 'is', null);
-
-    if (subscriberError) {
-      logStep('Could not read saved Stripe customers', {
-        error: subscriberError.message,
-      });
-    }
-
-    const savedCustomerIds = (subscriberRows || [])
-      .map((row: any) => row.stripe_customer_id)
-      .filter((id: unknown): id is string => typeof id === 'string' && id.length > 0);
-
-    const customersByEmail = (
-      await Promise.all(
-        emails.map((email) => stripe.customers.list({ email, limit: 100 }))
-      )
-    ).flatMap((res) => res.data);
-
-    const customerIds = Array.from(
-      new Set([...savedCustomerIds, ...customersByEmail.map((c) => c.id)])
-    );
-    logStep('Stripe customers resolved', {
-      saved: savedCustomerIds.length,
-      total: customerIds.length,
+    logStep('Stripe subscription discovery complete', {
+      source: discovery.source,
+      customersChecked: discovery.customerIds.length,
+      found: !!subscription,
     });
 
-    const subscriptions = (
-      await Promise.all(
-        customerIds.map((customerId) =>
-          stripe.subscriptions.list({
-            customer: customerId,
-            status: 'all',
-            limit: 100,
-          })
-        )
-      )
-    )
-      .flatMap((res) => res.data)
-      .filter((subscription) =>
-        ['active', 'trialing', 'past_due'].includes(subscription.status)
-      );
+    if (!subscription) {
+      await supabase
+        .from('organizations')
+        .update({
+          subscription_status: 'ended',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', organizationId);
+      await supabase
+        .from('subscribers')
+        .update({
+          subscribed: false,
+          subscription_end: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('organization_id', organizationId);
 
-    if (subscriptions.length === 0) {
-      logStep('No active subscription found');
+      logStep('No live Stripe subscription found; stale local state ended');
       return json({
         changed: false,
-        message: 'No active subscription was found for this organization.',
+        stale: true,
+        message:
+          'No live Stripe subscription was found for this organization. The local subscription status has been marked as ended.',
       });
     }
 
-    const targets =
+    const alreadyInRequestedState =
       action === 'cancel'
-        ? subscriptions.filter((s) => !s.cancel_at_period_end)
-        : subscriptions.filter((s) => s.cancel_at_period_end);
+        ? subscription.cancel_at_period_end === true
+        : subscription.cancel_at_period_end === false;
 
-    await Promise.all(
-      targets.map((s) =>
-        stripe.subscriptions.update(s.id, {
+    const updatedSubscription = alreadyInRequestedState
+      ? subscription
+      : await stripe.subscriptions.update(subscription.id, {
           cancel_at_period_end: action === 'cancel',
-        })
-      )
-    );
-    logStep('Stripe updated', { ids: targets.map((s) => s.id) });
+          metadata: {
+            ...(subscription.metadata || {}),
+            organization_id: organizationId,
+            cancellation_requested_by: user.id,
+          },
+          expand: ['items.data.price.product'],
+        });
 
-    const latest = subscriptions.sort(
-      (a, b) => b.current_period_end - a.current_period_end
-    )[0];
-    const periodEnd = new Date(latest.current_period_end * 1000).toISOString();
+    const verified =
+      action === 'cancel'
+        ? updatedSubscription.cancel_at_period_end === true
+        : updatedSubscription.cancel_at_period_end === false;
+
+    if (!verified) {
+      throw new Error('Stripe did not confirm the subscription change. Please try again.');
+    }
+
+    const periodEnd = getPeriodEndIso(updatedSubscription) || getPeriodEndIso(subscription);
+    const customerId = getCustomerId(updatedSubscription) || getCustomerId(subscription);
+    const tier = getPlanName(updatedSubscription, 'Basic');
 
     await supabase
       .from('organizations')
       .update({
         subscription_status: action === 'cancel' ? 'canceling' : 'active',
+        subscription_level: tier.toLowerCase(),
+        trial_ends_at: periodEnd,
         updated_at: new Date().toISOString(),
       })
       .eq('id', organizationId);
 
+    const subscriberUpdate: Record<string, any> = {
+      stripe_subscription_id: updatedSubscription.id,
+      subscribed: true,
+      subscription_tier: tier,
+      subscription_end: periodEnd,
+      suspended: false,
+      updated_at: new Date().toISOString(),
+    };
+    if (customerId) subscriberUpdate.stripe_customer_id = customerId;
+
     await supabase
       .from('subscribers')
-      .update({
-        subscription_end: periodEnd,
-        updated_at: new Date().toISOString(),
-      })
+      .update(subscriberUpdate)
       .eq('organization_id', organizationId);
 
+    if (discovery.subscriberRows.length === 0 && user.email) {
+      await supabase.from('subscribers').upsert(
+        {
+          user_id: user.id,
+          email: user.email,
+          organization_id: organizationId,
+          ...subscriberUpdate,
+        },
+        { onConflict: 'email' }
+      );
+    }
+
+    logStep('Stripe subscription updated', {
+      action,
+      alreadyInRequestedState,
+      hasPeriodEnd: !!periodEnd,
+    });
+
     return json({
-      changed: true,
+      changed: !alreadyInRequestedState,
       action,
       subscription_end: periodEnd,
       message:

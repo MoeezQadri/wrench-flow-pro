@@ -1,233 +1,246 @@
-// supabase/functions/stripe-webhook/index.ts
+import { serve } from 'https://deno.land/std@0.190.0/http/server.ts';
+import Stripe from 'https://esm.sh/stripe@14.21.0';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
+import {
+  asString,
+  getCustomerId,
+  getPeriodEndIso,
+  getPlanName,
+  isLiveSubscription,
+} from '../_shared/stripe-subscriptions.ts';
 
-import { serve } from 'https://deno.land/std@0.180.0/http/server.ts';
-import Stripe from 'https://esm.sh/stripe@12.0.0?target=deno';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+const stripeKey = Deno.env.get('STRIPE_SECRET_KEY') ?? '';
+const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET') ?? '';
+const stripe = new Stripe(stripeKey, { apiVersion: '2023-10-16' });
 
-const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
-  apiVersion: '2024-06-20',
-});
+const db = () =>
+  createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+    { auth: { persistSession: false } }
+  );
 
-const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET');
+async function resolveOrganizationId(
+  supabase: any,
+  subscription: any,
+  customerId: string | null
+): Promise<string | null> {
+  const metadataOrg = asString(subscription?.metadata?.organization_id);
+  if (metadataOrg) return metadataOrg;
+
+  const subscriptionId = asString(subscription?.id);
+  if (subscriptionId) {
+    const { data } = await supabase
+      .from('subscribers')
+      .select('organization_id')
+      .eq('stripe_subscription_id', subscriptionId)
+      .maybeSingle();
+    if (data?.organization_id) return String(data.organization_id);
+  }
+
+  if (customerId) {
+    const { data } = await supabase
+      .from('subscribers')
+      .select('organization_id')
+      .eq('stripe_customer_id', customerId)
+      .order('updated_at', { ascending: false })
+      .limit(1);
+    if (data?.[0]?.organization_id) return String(data[0].organization_id);
+  }
+
+  return null;
+}
+
+async function syncSubscriptionEvent(subscription: any) {
+  const supabase = db();
+  const subscriptionId = asString(subscription?.id);
+  const customerId = getCustomerId(subscription);
+  const organizationId = await resolveOrganizationId(
+    supabase,
+    subscription,
+    customerId
+  );
+
+  if (!subscriptionId || !organizationId) {
+    console.error('Could not resolve subscription event', {
+      hasSubscriptionId: !!subscriptionId,
+      hasCustomerId: !!customerId,
+      hasOrganizationId: !!organizationId,
+    });
+    return;
+  }
+
+  const live = isLiveSubscription(subscription);
+  const canceling = live && subscription.cancel_at_period_end === true;
+  const { data: currentOrganization } = await supabase
+    .from('organizations')
+    .select('subscription_status')
+    .eq('id', organizationId)
+    .maybeSingle();
+  const remainsSuspended =
+    live && currentOrganization?.subscription_status === 'suspended';
+  const status = live
+    ? remainsSuspended
+      ? 'suspended'
+      : canceling
+        ? 'canceling'
+        : 'active'
+    : 'ended';
+  const periodEnd = getPeriodEndIso(subscription) || new Date().toISOString();
+  const tier = getPlanName(subscription, 'Basic');
+
+  await supabase
+    .from('organizations')
+    .update({
+      subscription_status: status,
+      subscription_level: tier.toLowerCase(),
+      trial_ends_at: periodEnd,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', organizationId);
+
+  const update: Record<string, any> = {
+    stripe_subscription_id: subscriptionId,
+    subscribed: live,
+    subscription_tier: tier,
+    subscription_end: periodEnd,
+    suspended: remainsSuspended,
+    updated_at: new Date().toISOString(),
+  };
+  if (customerId) update.stripe_customer_id = customerId;
+
+  await supabase.from('subscribers').update(update).eq('organization_id', organizationId);
+
+  console.log('Subscription event synchronized', {
+    organizationId,
+    status,
+    live,
+  });
+}
 
 serve(async (req) => {
-  let event;
+  if (!stripeKey || !webhookSecret) {
+    console.error('Stripe webhook secrets are missing');
+    return new Response('Webhook not configured', { status: 500 });
+  }
 
+  let event: any;
   try {
-    const signature = req.headers.get('stripe-signature')!;
+    const signature = req.headers.get('stripe-signature');
+    if (!signature) return new Response('Missing signature', { status: 400 });
     const body = await req.text();
     event = await stripe.webhooks.constructEventAsync(
       body,
       signature,
-      webhookSecret!
+      webhookSecret
     );
-  } catch (err) {
-    console.error('Webhook signature failed', err);
+  } catch (error) {
+    console.error('Webhook signature failed', {
+      message: error instanceof Error ? error.message : String(error),
+    });
     return new Response('Invalid signature', { status: 400 });
   }
 
-  const admin = () =>
-    createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    );
-
-  // --- Subscription ended (cancellation period reached, or payment failure) ---
-  const endsAccess =
-    event.type === 'customer.subscription.deleted' ||
-    (event.type === 'customer.subscription.updated' &&
-      ['canceled', 'unpaid', 'incomplete_expired'].includes(
-        (event.data.object as any)?.status
-      ));
-
-  if (endsAccess) {
-    const sub = event.data.object as any;
-    const db = admin();
-
-    try {
-      const customerId =
-        typeof sub.customer === 'string' ? sub.customer : sub.customer?.id;
-      const customer: any = customerId
-        ? await stripe.customers.retrieve(customerId)
-        : null;
-      const email = customer?.email ?? null;
-
-      const periodEnd = sub.current_period_end
-        ? new Date(sub.current_period_end * 1000).toISOString()
-        : new Date().toISOString();
-
-      // Resolve the organization from the subscribers cache, else from profiles
-      let organizationId: string | null = null;
-
-      if (email) {
-        const { data: subscriberRow } = await db
-          .from('subscribers')
-          .select('user_id, organization_id')
-          .eq('email', email)
-          .maybeSingle();
-
-        if (subscriberRow?.user_id) {
-          const { data: prof } = await db
-            .from('profiles')
-            .select('organization_id')
-            .eq('id', subscriberRow.user_id)
-            .maybeSingle();
-          organizationId = prof?.organization_id ?? null;
-        }
-
-        await db
-          .from('subscribers')
-          .update({
-            subscribed: false,
-            subscription_end: periodEnd,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('email', email);
-      }
-
-      if (organizationId) {
-        await db
-          .from('organizations')
-          .update({
-            subscription_status: 'ended',
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', organizationId);
-
-        await db
-          .from('subscribers')
-          .update({
-            subscribed: false,
-            subscription_end: periodEnd,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('organization_id', organizationId);
-
-        console.log(`Organization ${organizationId} → subscription ended`);
-      } else {
-        console.error('Could not resolve organization for ended subscription', {
-          email,
-        });
-      }
-    } catch (err) {
-      console.error('Error handling ended subscription', err);
-      return new Response('Handler error', { status: 500 });
+  try {
+    if (
+      event.type === 'customer.subscription.created' ||
+      event.type === 'customer.subscription.updated' ||
+      event.type === 'customer.subscription.deleted'
+    ) {
+      await syncSubscriptionEvent(event.data.object);
+      return new Response('Success', { status: 200 });
     }
 
-    return new Response('Success', { status: 200 });
-  }
+    if (event.type !== 'checkout.session.completed') {
+      return new Response('Ignored', { status: 200 });
+    }
 
-  if (event.type !== 'checkout.session.completed') {
-    return new Response('Ignored', { status: 200 });
-  }
+    const session = event.data.object as any;
+    const userId = asString(session?.metadata?.user_id) || asString(session?.client_reference_id);
+    const userEmail = asString(session?.metadata?.user_email) || asString(session?.customer_details?.email);
+    const sessionOrganizationId = asString(session?.metadata?.organization_id);
+    const subscriptionId = asString(session?.subscription?.id) || asString(session?.subscription);
+    const customerId = asString(session?.customer?.id) || asString(session?.customer);
 
+    if (!userId || !subscriptionId) {
+      console.error('Completed checkout missing required identity', {
+        hasUserId: !!userId,
+        hasSubscriptionId: !!subscriptionId,
+      });
+      return new Response('Missing checkout identity', { status: 400 });
+    }
 
-  const session = event.data.object as any;
-  const userId = session?.metadata?.user_id;
-  const userEmail = session?.metadata?.user_email;
+    const supabase = db();
+    let organizationId = sessionOrganizationId;
+    if (!organizationId) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('organization_id')
+        .eq('id', userId)
+        .single();
+      organizationId = asString(profile?.organization_id);
+    }
+    if (!organizationId) return new Response('No organization found', { status: 400 });
 
-  if (!userId) {
-    console.error('Missing user_id in Stripe metadata');
-    return new Response('Missing user_id metadata', { status: 400 });
-  }
-
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-  );
-
-  // 1. Get profile to find organization_id
-  const { data: profile, error: profileError } = await supabase
-    .from('profiles')
-    .select('organization_id')
-    .eq('id', userId)
-    .single();
-
-  if (profileError || !profile) {
-    console.error('Profile not found:', profileError);
-    return new Response('Profile not found', { status: 500 });
-  }
-
-  const organizationId = profile.organization_id;
-
-  if (!organizationId) {
-    console.error('User does not have an organization_id');
-    return new Response('No organization found for user', { status: 400 });
-  }
-
-  // 2. Resolve plan name (prefer Stripe subscription nickname/product, fallback to metadata)
-  const subscriptionId = session.subscription;
-  let planName: string | null = null;
-  let subscriptionEnd: string | null = null;
-
-  if (subscriptionId) {
     const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
       expand: ['items.data.price.product'],
     });
-    const priceItem = subscription.items.data[0];
-    planName =
-      priceItem?.price?.nickname ||
-      (priceItem?.price?.product as any)?.name ||
-      null;
-    if (subscription.current_period_end) {
-      subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
+    if (!isLiveSubscription(subscription)) {
+      console.error('Checkout subscription is not live', { status: subscription.status });
+      return new Response('Subscription is not active', { status: 409 });
     }
-  }
 
-  if (!planName) {
-    planName = session?.metadata?.plan_name ?? 'unknown';
-  }
+    const tier = getPlanName(subscription, session?.metadata?.plan_name || 'Basic');
+    const periodEnd = getPeriodEndIso(subscription);
 
-  const normalizedPlan = String(planName).toLowerCase();
-
-  // 3. Update organization by id (previous code filtered on a non-existent column)
-  const { error: updateError, data: updatedOrg } = await supabase
-    .from('organizations')
-    .update({
-      subscription_status: 'active',
-      subscription_level: normalizedPlan,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', organizationId)
-    .select('id')
-    .maybeSingle();
-
-  if (updateError) {
-    console.error('Error updating organization:', updateError);
-    return new Response('Update failed', { status: 500 });
-  }
-
-  if (!updatedOrg) {
-    console.error(`No organization row matched id=${organizationId}`);
-    return new Response('Organization not found', { status: 404 });
-  }
-
-  // 4. Upsert subscribers cache so check-subscription fast path is correct
-  const stripeCustomerId =
-    typeof session.customer === 'string' ? session.customer : session.customer?.id ?? null;
-
-  const { error: subError } = await supabase
-    .from('subscribers')
-    .upsert(
+    const { error: subscriberError } = await supabase.from('subscribers').upsert(
       {
         user_id: userId,
-        email: userEmail ?? session.customer_details?.email ?? '',
-        stripe_customer_id: stripeCustomerId,
+        email: userEmail || '',
+        organization_id: organizationId,
+        stripe_customer_id: customerId,
+        stripe_subscription_id: subscriptionId,
         subscribed: true,
-        subscription_tier: normalizedPlan,
-        subscription_end: subscriptionEnd,
+        subscription_tier: tier,
+        subscription_end: periodEnd,
+        suspended: false,
         updated_at: new Date().toISOString(),
       },
       { onConflict: 'email' }
     );
+    if (subscriberError) throw subscriberError;
 
-  if (subError) {
-    console.error('Error upserting subscriber:', subError);
+    await supabase
+      .from('organizations')
+      .update({
+        subscription_status: subscription.cancel_at_period_end ? 'canceling' : 'active',
+        subscription_level: tier.toLowerCase(),
+        trial_ends_at: periodEnd,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', organizationId);
+
+    const previousSubscriptionId = asString(session?.metadata?.previous_subscription_id);
+    if (previousSubscriptionId && previousSubscriptionId !== subscriptionId) {
+      try {
+        await stripe.subscriptions.cancel(previousSubscriptionId);
+      } catch (error) {
+        console.error('Could not cancel replaced subscription', {
+          message: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+
+    console.log('Checkout subscription synchronized', {
+      organizationId,
+      tier,
+      hasPeriodEnd: !!periodEnd,
+    });
+    return new Response('Success', { status: 200 });
+  } catch (error) {
+    console.error('Stripe webhook handler failed', {
+      message: error instanceof Error ? error.message : String(error),
+    });
+    return new Response('Handler error', { status: 500 });
   }
-
-  console.log(
-    `Organization ${organizationId} updated → active / ${normalizedPlan} (user=${userId})`
-  );
-
-  return new Response('Success', { status: 200 });
 });
