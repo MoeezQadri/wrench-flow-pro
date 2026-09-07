@@ -97,5 +97,5 @@ entrypoint = "./functions/unsuspend-subscription/index.ts"
 [functions.cancel-subscription]
 enabled = true
 verify_jwt = true
-import_map = "./functions/cancel-subscription/import_map.json"
+import_map = "./functions/cancel-subscription/deno.json"
 entrypoint = "./functions/cancel-subscription/index.ts"
