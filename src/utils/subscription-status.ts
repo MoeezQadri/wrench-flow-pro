@@ -49,7 +49,10 @@ export function getOrgStatus(org: Organization): OrgStatus {
   }
 
   if (org.suspended === true || org.subscription_status === 'suspended') {
-    return 'suspended';
+    // Suspension stops billing but access runs to the end of the paid period.
+    const suspendedUntil = org.next_billing_date || org.trial_ends_at;
+    if (!suspendedUntil || isFuture(suspendedUntil)) return 'suspended';
+    return 'subscription_ended';
   }
 
   const level = (org.subscription_level || '').toLowerCase();
