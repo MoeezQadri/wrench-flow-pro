@@ -64,7 +64,9 @@ export const SubscriptionManagement = ({
 
   const getPaidSubscriptions = () =>
     organizations.filter((org) =>
-      ['paid', 'internal'].includes(getOrgStatus(org))
+      ['paid', 'internal', 'canceling', 'subscription_ended'].includes(
+        getOrgStatus(org)
+      )
     );
 
   const getSuspendedSubscriptions = () =>

@@ -16,6 +16,8 @@ export type OrgStatus =
   | 'internal'
   | 'paid'
   | 'suspended'
+  | 'canceling'
+  | 'subscription_ended'
   | 'trial_active'
   | 'trial_expired';
 
@@ -53,6 +55,16 @@ export function getOrgStatus(org: Organization): OrgStatus {
   const level = (org.subscription_level || '').toLowerCase();
   const isPaidLevel = !!level && level !== 'trial' && level !== 'free';
 
+  // A paid plan the shop asked to stop: still live until the period end.
+  if (isPaidLevel && org.subscription_status === 'canceling') {
+    return 'canceling';
+  }
+
+  // A paid plan that has lapsed is not an expired trial.
+  if (isPaidLevel && org.subscription_status === 'ended') {
+    return 'subscription_ended';
+  }
+
   // A paid plan counts while its renewal / period end is still ahead (or the
   // renewal date is unknown but the stored status says active).
   if (isPaidLevel) {
@@ -70,6 +82,10 @@ export function getOrgStatus(org: Organization): OrgStatus {
 export const isPaidOrg = (org: Organization) => getOrgStatus(org) === 'paid';
 export const isTrialActive = (org: Organization) =>
   getOrgStatus(org) === 'trial_active';
+export const isCanceling = (org: Organization) =>
+  getOrgStatus(org) === 'canceling';
+export const isSubscriptionEnded = (org: Organization) =>
+  getOrgStatus(org) === 'subscription_ended';
 export const isTrialExpired = (org: Organization) =>
   getOrgStatus(org) === 'trial_expired';
 
@@ -88,6 +104,14 @@ export function getStatusLabel(org: Organization): string {
       return 'Internal — full access';
     case 'suspended':
       return 'Suspended';
+    case 'canceling': {
+      const until = org.next_billing_date || org.trial_ends_at;
+      return until
+        ? `Cancelling — access until ${new Date(until).toLocaleDateString()}`
+        : 'Cancelling at period end';
+    }
+    case 'subscription_ended':
+      return `${org.subscription_level || 'Subscription'} — subscription ended`;
     case 'paid': {
       const renew = org.next_billing_date || org.trial_ends_at;
       const level = org.subscription_level || 'Paid';

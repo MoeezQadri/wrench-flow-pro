@@ -26,6 +26,17 @@ import {
   Calendar,
 } from 'lucide-react';
 import PricingPlans from './PricingPlans';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { cancelOwnSubscription } from '@/utils/supabase-helpers';
 import { trackSelectPlan, trackViewPlans } from '@/lib/analytics';
 
 interface SubscriptionPlan {
@@ -45,6 +56,8 @@ const SubscriptionSettingsTab = () => {
     subscriptionSuspended,
     subscriptionTier,
     subscriptionEnd,
+    subscriptionCanceling,
+    subscriptionExpiredReason,
     refreshSubscription,
   } = useAuthContext();
   const [searchParams] = useSearchParams();
@@ -53,6 +66,43 @@ const SubscriptionSettingsTab = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [cancelWorking, setCancelWorking] = useState(false);
+
+  const isPaidPlan =
+    !!subscriptionTier && subscriptionTier.toLowerCase() !== 'trial';
+
+  const handleCancelSubscription = async () => {
+    setCancelWorking(true);
+    try {
+      const result = await cancelOwnSubscription('cancel');
+      toast.success(
+        result?.message ||
+          'Your subscription will stop at the end of the current period.'
+      );
+      await refreshSubscription();
+    } catch (error) {
+      console.error('Error cancelling subscription:', error);
+      toast.error('Could not cancel the subscription. Please try again.');
+    } finally {
+      setCancelWorking(false);
+      setCancelDialogOpen(false);
+    }
+  };
+
+  const handleResumeSubscription = async () => {
+    setCancelWorking(true);
+    try {
+      const result = await cancelOwnSubscription('resume');
+      toast.success(result?.message || 'Your subscription has been resumed.');
+      await refreshSubscription();
+    } catch (error) {
+      console.error('Error resuming subscription:', error);
+      toast.error('Could not resume the subscription. Please try again.');
+    } finally {
+      setCancelWorking(false);
+    }
+  };
 
   // Only owners and admins can manage subscriptions organization-wide
   const canManageSubscription =
@@ -265,7 +315,11 @@ const SubscriptionSettingsTab = () => {
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium">Status:</span>
                 <Badge variant={getStatusColor()}>
-                  {subscribed ? 'Active' : 'No Active Subscription'}
+                  {subscribed
+                    ? subscriptionCanceling
+                      ? 'Cancelling'
+                      : 'Active'
+                    : 'No Active Subscription'}
                 </Badge>
                 {subscriptionSuspended && (
                   <Badge variant={'destructive'}>{'Suspended'}</Badge>
@@ -287,7 +341,9 @@ const SubscriptionSettingsTab = () => {
                 <div className="flex items-center gap-2">
                   <Calendar className="w-4 h-4 text-muted-foreground" />
                   <span className="text-sm font-medium">
-                    {subscriptionSuspended ? 'Active until:' : `Next Billing:`}
+                    {subscriptionSuspended || subscriptionCanceling
+                      ? 'Access until:'
+                      : `Next Billing:`}
                   </span>
                 </div>
                 <p className="text-sm text-muted-foreground">
@@ -296,8 +352,80 @@ const SubscriptionSettingsTab = () => {
               </div>
             )}
           </div>
+
+          {!subscribed && (
+            <div className="mt-6 rounded-md border border-orange-300 bg-orange-50 p-4 dark:bg-orange-950/30">
+              <p className="text-sm font-medium">
+                {subscriptionExpiredReason === 'subscription'
+                  ? 'Your subscription has ended.'
+                  : subscriptionEnd
+                    ? `Your free trial ended on ${formatDate(subscriptionEnd)}.`
+                    : 'Your free trial has ended.'}
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Choose a plan below to restore access. Your data is safe and
+                waiting for you.
+              </p>
+            </div>
+          )}
+
+          {subscribed && isPaidPlan && (
+            <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-muted-foreground">
+                {subscriptionCanceling
+                  ? 'Your plan is set to stop at the end of the period you have already paid for.'
+                  : 'You can stop your plan at any time; it stays active until the end of the period you have paid for.'}
+              </p>
+              {subscriptionCanceling ? (
+                <Button
+                  variant="outline"
+                  onClick={handleResumeSubscription}
+                  disabled={cancelWorking}
+                >
+                  Resume subscription
+                </Button>
+              ) : (
+                <Button
+                  variant="outline"
+                  className="text-destructive"
+                  onClick={() => setCancelDialogOpen(true)}
+                  disabled={cancelWorking}
+                >
+                  Cancel subscription
+                </Button>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
+
+      <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel your subscription?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You keep full access until
+              {subscriptionEnd ? ` ${formatDate(subscriptionEnd)}` : ' the end of the period you have already paid for'}
+              , and you will not be billed again. No refund is issued for the
+              current period. You can resume before that date at any time.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={cancelWorking}>
+              Keep subscription
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleCancelSubscription();
+              }}
+              disabled={cancelWorking}
+            >
+              Yes, cancel
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Separator />
 

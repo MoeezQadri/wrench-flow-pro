@@ -141,6 +141,20 @@ serve(async (req) => {
     }
     logStep('Resolved organization', { organizationId });
 
+    // Current stored state, used to keep "canceling" and to tell a lapsed paid
+    // subscription apart from an expired trial.
+    const { data: orgRow } = await supabaseClient
+      .from('organizations')
+      .select('subscription_level, subscription_status')
+      .eq('id', organizationId)
+      .single();
+
+    const storedLevel = String(orgRow?.subscription_level || '').toLowerCase();
+    const storedStatus = String(orgRow?.subscription_status || '').toLowerCase();
+    const hadPaidLevel =
+      !!storedLevel && storedLevel !== 'trial' && storedLevel !== 'free';
+
+
     // Resolve org owners/admins early so we can apply the owner-email bypass
     // to every sub-account in the same organization.
     const { data: adminProfiles } = await supabaseClient
@@ -185,9 +199,14 @@ serve(async (req) => {
     const cachedActive = orgSub && (cachedEndMs === null || cachedEndMs > nowMs);
     if (orgSub && cachedActive) {
       logStep('Fast path: org subscriber found', { tier: orgSub.subscription_tier });
+      const canceling = storedStatus === 'canceling';
       await syncOrgState(supabaseClient, organizationId, {
         level: String(orgSub.subscription_tier || 'basic').toLowerCase(),
-        status: orgSub.suspended ? 'suspended' : 'active',
+        status: orgSub.suspended
+          ? 'suspended'
+          : canceling
+            ? 'canceling'
+            : 'active',
         endsAt: orgSub.subscription_end || null,
       });
       return json({
@@ -195,8 +214,10 @@ serve(async (req) => {
         subscription_tier: orgSub.subscription_tier,
         subscription_end: orgSub.subscription_end,
         suspended: orgSub.suspended || false,
+        canceling,
       });
     }
+
     if (orgSub && !cachedActive) {
       logStep('Cached subscriber expired, falling through to Stripe', {
         subscription_end: orgSub.subscription_end,
@@ -252,9 +273,11 @@ serve(async (req) => {
         logStep('Failed to upsert subscriber cache', { error: String(e) });
       }
 
+      const canceling = subscription.cancel_at_period_end === true;
+
       await syncOrgState(supabaseClient, organizationId, {
         level: tier.toLowerCase(),
-        status: 'active',
+        status: canceling ? 'canceling' : 'active',
         endsAt: subscriptionEnd,
       });
 
@@ -263,18 +286,41 @@ serve(async (req) => {
         subscription_tier: tier,
         subscription_end: subscriptionEnd,
         suspended: false,
+        canceling,
+      });
+
+    }
+
+    // No live subscription: either the trial window, or a paid plan that lapsed
+    logStep('No active subscription found for org, checking trial');
+    const trialResult = await checkTrialStatus(supabaseClient, organizationId);
+
+    if (!trialResult.subscribed && hadPaidLevel) {
+      // Keep the plan name and mark it as ended so this never shows up as an
+      // expired trial.
+      await syncOrgState(supabaseClient, organizationId, {
+        level: storedLevel,
+        status: 'ended',
+        endsAt: null,
+      });
+      return json({
+        subscribed: false,
+        subscription_tier: orgRow?.subscription_level || null,
+        subscription_end: null,
+        expired_reason: 'subscription',
       });
     }
 
-    // Fall back to trial based on org creation date
-    logStep('No active subscription found for org, checking trial');
-    const trialResult = await checkTrialStatus(supabaseClient, organizationId);
     await syncOrgState(supabaseClient, organizationId, {
       level: 'trial',
       status: trialResult.subscribed ? 'trialing' : 'expired',
       endsAt: trialResult.subscription_end || null,
     });
-    return json(trialResult);
+    return json({
+      ...trialResult,
+      expired_reason: trialResult.subscribed ? null : 'trial',
+    });
+
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logStep('ERROR', { message: errorMessage });
