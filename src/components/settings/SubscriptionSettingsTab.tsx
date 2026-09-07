@@ -90,19 +90,8 @@ const SubscriptionSettingsTab = () => {
     }
   };
 
-  const handleResumeSubscription = async () => {
-    setCancelWorking(true);
-    try {
-      const result = await cancelOwnSubscription('resume');
-      toast.success(result?.message || 'Your subscription has been resumed.');
-      await refreshSubscription();
-    } catch (error) {
-      console.error('Error resuming subscription:', error);
-      toast.error('Could not resume the subscription. Please try again.');
-    } finally {
-      setCancelWorking(false);
-    }
-  };
+
+
 
   // Only owners and admins can manage subscriptions organization-wide
   const canManageSubscription =
