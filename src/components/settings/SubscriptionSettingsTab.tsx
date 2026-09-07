@@ -24,6 +24,7 @@ import {
   Zap,
   Building2,
   Calendar,
+  Loader2,
 } from 'lucide-react';
 import PricingPlans from './PricingPlans';
 import {
@@ -76,19 +77,31 @@ const SubscriptionSettingsTab = () => {
     setCancelWorking(true);
     try {
       const result = await cancelOwnSubscription('cancel');
+      if (result?.changed === false) {
+        toast.warning(
+          result?.message ||
+            'No active subscription was found for your organization.'
+        );
+        return;
+      }
       toast.success(
         result?.message ||
           'Your subscription will stop at the end of the current period.'
       );
       await refreshSubscription();
+      setCancelDialogOpen(false);
     } catch (error) {
       console.error('Error cancelling subscription:', error);
-      toast.error('Could not cancel the subscription. Please try again.');
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : 'Could not cancel the subscription. Please try again.';
+      toast.error(message);
     } finally {
       setCancelWorking(false);
-      setCancelDialogOpen(false);
     }
   };
+
 
 
 
@@ -385,7 +398,14 @@ const SubscriptionSettingsTab = () => {
                 onClick={() => setCancelDialogOpen(true)}
                 disabled={cancelWorking}
               >
-                Cancel subscription
+                {cancelWorking ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Cancelling...
+                  </>
+                ) : (
+                  'Cancel subscription'
+                )}
               </Button>
             </div>
           )}
@@ -393,7 +413,13 @@ const SubscriptionSettingsTab = () => {
         </CardContent>
       </Card>
 
-      <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+      <AlertDialog
+        open={cancelDialogOpen}
+        onOpenChange={(open) => {
+          if (cancelWorking) return;
+          setCancelDialogOpen(open);
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Cancel your subscription?</AlertDialogTitle>
@@ -401,7 +427,8 @@ const SubscriptionSettingsTab = () => {
               You keep full access until
               {subscriptionEnd ? ` ${formatDate(subscriptionEnd)}` : ' the end of the period you have already paid for'}
               , and you will not be billed again. No refund is issued for the
-              current period. You can resume before that date at any time.
+              current period. After that date you can choose a plan again to
+              restore access.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -415,11 +442,19 @@ const SubscriptionSettingsTab = () => {
               }}
               disabled={cancelWorking}
             >
-              Yes, cancel
+              {cancelWorking ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Cancelling...
+                </>
+              ) : (
+                'Yes, cancel'
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
 
       <Separator />
 
