@@ -148,7 +148,7 @@ export const PayableDialog: React.FC<PayableDialogProps> = ({
           {payable?.status !== 'paid' && (
             <>
               <div className="space-y-2">
-                <Label htmlFor="paymentAmount">Payment Amount</Label>
+                <Label htmlFor="paymentAmount">Payment Amount ({getCurrencySymbol()})</Label>
                 <Input
                   id="paymentAmount"
                   type="number"
@@ -201,7 +201,7 @@ export const PayableDialog: React.FC<PayableDialogProps> = ({
             <div className="space-y-2">
               <Label className="text-sm font-medium">Payment Information</Label>
               <div className="p-3 border rounded-md bg-green-50">
-                <p><strong>Amount Paid:</strong> ${payable.paid_amount?.toFixed(2)}</p>
+                <p><strong>Amount Paid:</strong> {formatCurrency(payable.paid_amount || 0)}</p>
                 <p><strong>Payment Method:</strong> {payable.payment_method}</p>
                 {payable.payment_date && (
                   <p><strong>Payment Date:</strong> {formatOrgDate(payable.payment_date)}</p>
