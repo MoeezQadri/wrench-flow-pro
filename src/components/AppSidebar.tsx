@@ -103,6 +103,14 @@ const navItems = [
     action: 'view' as const,
   },
   {
+    title: 'Finance',
+    href: '/finance',
+    icon: Wallet,
+    resource: 'finance',
+    action: 'view' as const,
+  },
+
+  {
     title: 'Reports',
     href: '/reports',
     icon: BarChart3,
