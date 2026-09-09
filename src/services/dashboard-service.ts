@@ -213,7 +213,8 @@ export async function fetchChartData(startDate: Date, endDate: Date): Promise<Ch
           } as any;
           const invoiceBreakdown = calculateInvoiceBreakdown(invoiceWithItems);
           // Revenue excludes tax collected, matching the reports.
-      return sum + invoiceBreakdown.revenueExTax;
+          return sum + invoiceBreakdown.revenueExTax;
+
         }, 0) || 0;
 
       // Calculate expenses for this day
