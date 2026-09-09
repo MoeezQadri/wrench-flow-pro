@@ -228,6 +228,10 @@ export interface Payable {
   payment_date?: string;
   payment_method?: string;
   notes?: string;
+  /** Set when the bill was raised for an inventory part purchase */
+  part_id?: string;
+  quantity?: number;
+  unit_cost?: number;
   created_at?: string;
   updated_at?: string;
 }
