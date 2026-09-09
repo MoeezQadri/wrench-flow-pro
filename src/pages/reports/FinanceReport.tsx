@@ -144,6 +144,7 @@ const FinanceReport = () => {
         invoice_id: invoice.id?.slice(0, 8),
         date: formatOrgDate(invoice.date),
         amount: formatCurrency(invoiceBreakdown.total),
+        revenue_before_tax: formatCurrency(invoiceBreakdown.revenueExTax),
         parts_cost: formatCurrency(invoiceBreakdown.partsCost),
         gross_profit: formatCurrency(invoiceBreakdown.grossProfit),
         gross_margin: `${invoiceBreakdown.grossMargin.toFixed(1)}%`,
