@@ -425,35 +425,36 @@ const FinancialReport = () => {
                   <TableRow>
                     <TableHead>Description</TableHead>
                     <TableHead>Vendor</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Age (Days)</TableHead>
+                    <TableHead>Outstanding</TableHead>
+                    <TableHead>Bill Amount</TableHead>
+                    <TableHead>Due Date</TableHead>
+                    <TableHead>Days Overdue</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {payables.map((expense) => {
-                    const ageInDays = calendarDayDifference(orgToday(), toOrgDateInputValue(expense.date));
+                  {payables.map((payable) => {
+                    const daysOverdue = payable.due_date
+                      ? Math.max(0, calendarDayDifference(orgToday(), toOrgDateInputValue(payable.due_date)))
+                      : 0;
                     
                     return (
-                      <TableRow key={expense.id}>
+                      <TableRow key={payable.id}>
                         <TableCell className="font-medium">
-                          {expense.description || 'N/A'}
+                          {payable.description || 'N/A'}
                         </TableCell>
-                        <TableCell>{expense.vendor_name || 'N/A'}</TableCell>
-                        <TableCell>{formatCurrency(expense.amount)}</TableCell>
-                        <TableCell>{formatDate(expense.date)}</TableCell>
+                        <TableCell>{vendorName(payable.vendor_id)}</TableCell>
+                        <TableCell>{formatCurrency(payableOutstanding(payable))}</TableCell>
+                        <TableCell>{formatCurrency(payable.amount)}</TableCell>
+                        <TableCell>{formatDate(payable.due_date)}</TableCell>
                         <TableCell>
-                          <Badge variant="outline">{expense.category}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <span className={ageInDays > 30 ? 'text-red-600' : ''}>
-                            {ageInDays} days
+                          <span className={daysOverdue > 0 ? 'text-red-600' : ''}>
+                            {daysOverdue > 0 ? `${daysOverdue} days` : '-'}
                           </span>
                         </TableCell>
                       </TableRow>
                     );
                   })}
+
                 </TableBody>
               </Table>
             </CardContent>
