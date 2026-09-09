@@ -9,15 +9,20 @@ export interface InvoiceCalculationBreakdown {
   discountType: 'none' | 'percentage' | 'fixed';
   discountValue: number;
   afterDiscount: number;
+  /** Revenue earned, tax excluded. Tax collected is never income. */
+  revenueExTax: number;
   taxAmount: number;
   taxRate: number;
   total: number;
   paidAmount: number;
   balanceDue: number;
   partsCost: number;
+  /** Part lines with no cost snapshot, so cost of parts sold is incomplete */
+  partLinesMissingCost: number;
   grossProfit: number;
   grossMargin: number;
 }
+
 
 /**
  * Calculate comprehensive invoice breakdown including all components
