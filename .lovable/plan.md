@@ -9,7 +9,7 @@ The Finance section becomes **Payable Management**: money the shop owes (payable
 
 - Remove the Payment Method field from the Add/Edit Expense form. An expense is always created as an unpaid bill.
 - Replace the "Payment Method" column in Expense History with a **Payment status** column: Unpaid, Partly paid (with amount paid), or Paid (with method and date).
-- "Mark as paid" on an expense keeps working, but it opens the same record-payment popup used in Finance and supports partial amounts (today it forces the expense to fully Paid even when less was paid).
+- "Mark as paid" on an expense keeps working, but it opens the same record-payment popup used in Payable Management and supports partial amounts (today it forces the expense to fully Paid even when less was paid).
 - Existing expenses keep whatever method was already stored; nothing is deleted.
 
 ## 2. Currency instead of `$`
@@ -19,8 +19,8 @@ The Finance section becomes **Payable Management**: money the shop owes (payable
 
 ## 3. Parts bought on credit
 
-- When a part is added with a cost, it already creates an unpaid bill. That bill will be clearly named (part name, quantity, vendor) and dated on the purchase date, so it shows up under Finance > Bills > Unpaid and against the vendor.
-- Paying it off — fully or partially — happens from Finance > Bills, or from the vendor's bill list. Partial payments leave the bill Unpaid with the amount paid recorded and the remaining balance shown.
+- When a part is added with a cost, it already creates an unpaid bill. That bill will be clearly named (part name, quantity, vendor) and dated on the purchase date, so it shows up under Payable Management > Bills > Unpaid and against the vendor.
+- Paying it off — fully or partially — happens from Payable Management > Bills, or from the vendor's bill list. Partial payments leave the bill Unpaid with the amount paid recorded and the remaining balance shown.
 - The Parts page gets a small "Unpaid" / "Paid" indicator per part purchase so it's obvious what is still owed, linking to the bill.
 
 ## 4. Vendors: what you're paying against
