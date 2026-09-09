@@ -35,12 +35,14 @@ export const calculateInvoiceBreakdown = (invoice: Invoice): InvoiceCalculationB
       discountType: 'none',
       discountValue: 0,
       afterDiscount: 0,
+      revenueExTax: 0,
       taxAmount: 0,
       taxRate: invoice.tax_rate || 0,
       total: 0,
       paidAmount: 0,
       balanceDue: 0,
       partsCost: 0,
+      partLinesMissingCost: 0,
       grossProfit: 0,
       grossMargin: 0
     };
@@ -52,6 +54,10 @@ export const calculateInvoiceBreakdown = (invoice: Invoice): InvoiceCalculationB
     (sum, item) => sum + (item.type === 'part' ? item.quantity * (item.cost || 0) : 0),
     0
   );
+  // Old part lines saved before cost tracking have no cost snapshot; never guess one.
+  const partLinesMissingCost = invoice.items.filter(
+    item => item.type === 'part' && !(item.cost && item.cost > 0)
+  ).length;
 
   // Apply discounts
   let discountAmount = 0;
@@ -75,8 +81,9 @@ export const calculateInvoiceBreakdown = (invoice: Invoice): InvoiceCalculationB
   // Calculate actual paid amount from payments array
   const paidAmount = invoice.payments?.reduce((sum, payment) => sum + payment.amount, 0) || 0;
   const balanceDue = total - paidAmount;
-  const grossProfit = afterDiscount - partsCost;
-  const grossMargin = afterDiscount > 0 ? (grossProfit / afterDiscount) * 100 : 0;
+  const revenueExTax = afterDiscount;
+  const grossProfit = revenueExTax - partsCost;
+  const grossMargin = revenueExTax > 0 ? (grossProfit / revenueExTax) * 100 : 0;
 
   return {
     subtotal,
@@ -84,16 +91,79 @@ export const calculateInvoiceBreakdown = (invoice: Invoice): InvoiceCalculationB
     discountType,
     discountValue,
     afterDiscount,
+    revenueExTax,
     taxAmount,
     taxRate,
     total,
     paidAmount,
     balanceDue,
     partsCost,
+    partLinesMissingCost,
     grossProfit,
     grossMargin
   };
 };
+
+/** True when an expense is a part/inventory purchase or an invoice cost, i.e. not overhead */
+export const isInventoryOrJobCostExpense = (expense: {
+  category?: string | null;
+  invoice_id?: string | null;
+}): boolean => {
+  const category = (expense.category || '').toLowerCase();
+  return category === 'parts' || !!expense.invoice_id;
+};
+
+export interface ProfitAndLoss {
+  revenueExTax: number;
+  taxCollected: number;
+  partsCost: number;
+  partLinesMissingCost: number;
+  grossProfit: number;
+  grossMargin: number;
+  operatingExpenses: number;
+  netProfit: number;
+  netMargin: number;
+}
+
+/**
+ * Profit and loss for a period: revenue before tax, less cost of parts sold,
+ * less overhead. Part purchases are inventory, so they are excluded from
+ * overhead and only counted through cost of parts sold.
+ */
+export const calculateProfitAndLoss = (
+  billableInvoices: Invoice[],
+  expenses: Array<{ amount: number; category?: string | null; invoice_id?: string | null }>
+): ProfitAndLoss => {
+  const totals = billableInvoices.reduce(
+    (acc, invoice) => {
+      const breakdown = calculateInvoiceBreakdown(invoice);
+      return {
+        revenueExTax: acc.revenueExTax + breakdown.revenueExTax,
+        taxCollected: acc.taxCollected + breakdown.taxAmount,
+        partsCost: acc.partsCost + breakdown.partsCost,
+        partLinesMissingCost: acc.partLinesMissingCost + breakdown.partLinesMissingCost
+      };
+    },
+    { revenueExTax: 0, taxCollected: 0, partsCost: 0, partLinesMissingCost: 0 }
+  );
+
+  const operatingExpenses = expenses
+    .filter(expense => !isInventoryOrJobCostExpense(expense))
+    .reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
+
+  const grossProfit = totals.revenueExTax - totals.partsCost;
+  const netProfit = grossProfit - operatingExpenses;
+
+  return {
+    ...totals,
+    grossProfit,
+    grossMargin: totals.revenueExTax > 0 ? (grossProfit / totals.revenueExTax) * 100 : 0,
+    operatingExpenses,
+    netProfit,
+    netMargin: totals.revenueExTax > 0 ? (netProfit / totals.revenueExTax) * 100 : 0
+  };
+};
+
 
 /**
  * Calculate the total amount for an invoice including items, tax, and discounts
