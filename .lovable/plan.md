@@ -1,6 +1,9 @@
-# Expenses become bills; payments recorded in one place
+# Payable Management — bills and payments in one place
 
-Today an expense form asks for a payment method even though nothing has been paid yet, the payment popup prints `$` regardless of the shop's currency, and parts bought on credit have no clear place to be paid off. This fixes all of that and adds a proper vendor payment view.
+The Finance section becomes **Payable Management**: money the shop owes (payables/bills), not money coming in. Today an expense form asks for a payment method even though nothing has been paid yet, the payment popup prints `$` regardless of the shop's currency, and parts bought on credit have no clear place to be paid off. This fixes all of that and adds a proper vendor payment view.
+
+- Rename the page title/nav from "Finance" to **Payable Management**.
+- Remove the **Money In (Receivables)** card and the overdue-receivables figure from this page — receivables stay on invoices/reports.
 
 ## 1. Expenses are bills only
 
