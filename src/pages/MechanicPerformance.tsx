@@ -20,7 +20,7 @@ const MechanicPerformancePage = () => {
         <h1 className="text-2xl font-bold mb-4">Technician Not Found</h1>
         <Button onClick={() => navigate('/mechanics')}>
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Mechanics
+          Back to Technicians
         </Button>
       </div>
     );
@@ -37,11 +37,11 @@ const MechanicPerformancePage = () => {
           onClick={() => navigate('/mechanics')}
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Mechanics
+          Back to Technicians
         </Button>
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Performance Metrics</h1>
-          <p className="text-muted-foreground">Detailed performance analysis for {technician.name}</p>
+          <p className="text-muted-foreground">Detailed performance analysis for {mechanic.name}</p>
         </div>
       </div>
 

@@ -24,7 +24,7 @@ const AttendancePage: React.FC = () => {
   const [filters, setFilters] = useState({
     status: 'all',
     date: '',
-    technicianId: 'all'
+    mechanicId: 'all'
   });
 
   const {

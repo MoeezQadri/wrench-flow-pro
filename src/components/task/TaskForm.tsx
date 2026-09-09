@@ -85,7 +85,7 @@ const TaskForm = ({ defaultValues, onSubmit, formId, task }: TaskFormProps) => {
       taskType: "internal",
       billingType: "hourly",
       vehicleId: "",
-      technicianId: "",
+      mechanicId: "",
       invoiceId: "",
       hoursEstimated: 0,
       hoursSpent: 0,
@@ -104,7 +104,7 @@ const TaskForm = ({ defaultValues, onSubmit, formId, task }: TaskFormProps) => {
         
         // Ensure mechanics are loaded if they're empty
         if (mechanics_.length === 0) {
-          console.log("Loading technicians in TaskForm...");
+          console.log("Loading mechanics in TaskForm...");
           await loadMechanics();
         }
         
@@ -127,7 +127,7 @@ const TaskForm = ({ defaultValues, onSubmit, formId, task }: TaskFormProps) => {
         
       } catch (error) {
         console.error("Error loading TaskForm data:", error);
-        setMechanicsError("Failed to load mechanics");
+        setMechanicsError("Failed to load technicians");
       } finally {
         setIsLoadingMechanics(false);
       }
@@ -377,14 +377,14 @@ const TaskForm = ({ defaultValues, onSubmit, formId, task }: TaskFormProps) => {
                       <SelectItem value="no-technicians" disabled>No technicians available</SelectItem>
                     )}
                     {mechanics.map((mechanic) => (
-                      <SelectItem key={technician.id} value={technician.id}>
+                      <SelectItem key={mechanic.id} value={mechanic.id}>
                         {mechanic.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
                 {mechanicsError && (
-                  <p className="text-sm text-red-600">{techniciansError}</p>
+                  <p className="text-sm text-red-600">{mechanicsError}</p>
                 )}
                 <FormMessage />
               </FormItem>

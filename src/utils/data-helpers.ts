@@ -39,7 +39,7 @@ export function getVehicleInfo(vehicle: Vehicle | Promise<Vehicle | null> | null
 export function getMechanicName(mechanic: Mechanic | Promise<Mechanic | null> | null): string {
   if (!mechanic) return 'Unassigned';
   if (mechanic instanceof Promise) return 'Loading...';
-  return mechanic.name || 'Unnamed Mechanic';
+  return mechanic.name || 'Unnamed Technician';
 }
 
 // Function to format date strings consistently

@@ -101,7 +101,7 @@ export const useAttendance = () => {
 
         // Validate required fields
         if (!attendanceData.mechanic_id) {
-            const errorMsg = 'Mechanic ID is required';
+            const errorMsg = 'Technician is required';
             toast.error(errorMsg);
             throw new Error(errorMsg);
         }

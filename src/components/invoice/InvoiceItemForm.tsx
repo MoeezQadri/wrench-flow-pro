@@ -692,14 +692,14 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
                     <SelectContent>
                       <SelectItem value="unassigned">Unassigned</SelectItem>
                       {(mechanics || []).map((mechanic) => (
-                        <SelectItem key={technician.id} value={technician.id}>
+                        <SelectItem key={mechanic.id} value={mechanic.id}>
                           {mechanic.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground mt-1">
-                    The task appears in Tasks for this mechanic.
+                    The task appears in Tasks for this technician.
                   </p>
                 </div>
                 <div>

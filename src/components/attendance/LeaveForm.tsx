@@ -72,11 +72,11 @@ const LeaveForm: React.FC<LeaveFormProps> = ({ onSubmit }) => {
         <Label>Technician *</Label>
         <Select value={mechanicId} onValueChange={setMechanicId}>
           <SelectTrigger>
-            <SelectValue placeholder={technicians.length === 0 ? 'No technicians available' : 'Select a technician'} />
+            <SelectValue placeholder={mechanics.length === 0 ? 'No technicians available' : 'Select a technician'} />
           </SelectTrigger>
           <SelectContent>
             {mechanics.map((mechanic) => (
-              <SelectItem key={technician.id} value={technician.id}>
+              <SelectItem key={mechanic.id} value={mechanic.id}>
                 {mechanic.name}
               </SelectItem>
             ))}

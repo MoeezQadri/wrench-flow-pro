@@ -125,7 +125,7 @@ const Mechanics = () => {
       </Button>
       {userCanManageMechanics && (
         <Button onClick={handleAddMechanic}>
-          <Plus className="h-4 w-4 mr-2" /> Add Mechanic
+          <Plus className="h-4 w-4 mr-2" /> Add Technician
         </Button>
       )}
     </div>
@@ -134,7 +134,7 @@ const Mechanics = () => {
   return (
     <PageWrapper
       title="Technicians"
-      subtitle={`Showing ${filteredTechnicians.length} of ${totalTechniciansCount} technicians${showActiveOnly ? ` (${activeTechniciansCount} active)` : ''}`}
+      subtitle={`Showing ${filteredMechanics.length} of ${totalMechanicsCount} technicians${showActiveOnly ? ` (${activeMechanicsCount} active)` : ''}`}
       headerActions={headerActions}
       loadData={async () => {
         await loadMechanics();
@@ -145,13 +145,13 @@ const Mechanics = () => {
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {filteredMechanics.map((mechanic) => (
-          <Card key={technician.id} className={technician.is_active ? "" : "opacity-60"}>
+          <Card key={mechanic.id} className={mechanic.is_active ? "" : "opacity-60"}>
             <CardHeader className="pb-2">
               <div className="flex justify-between items-start">
                 <CardTitle>{mechanic.name}</CardTitle>
                 <div className="flex items-center gap-2">
-                  <Badge variant={technician.is_active ? "default" : "outline"}>
-                    {technician.is_active ? "Active" : "Archived"}
+                  <Badge variant={mechanic.is_active ? "default" : "outline"}>
+                    {mechanic.is_active ? "Active" : "Archived"}
                   </Badge>
                   {userCanManageMechanics && (
                     <DropdownMenu>
@@ -195,7 +195,7 @@ const Mechanics = () => {
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Employment:</span>
-                  <span className="font-medium">{technician.employment_type === 'fulltime' ? 'Full-time' : 'Contractor'}</span>
+                  <span className="font-medium">{mechanic.employment_type === 'fulltime' ? 'Full-time' : 'Contractor'}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Contact:</span>
@@ -222,7 +222,7 @@ const Mechanics = () => {
             <div className="text-center">
               <p className="text-muted-foreground">
                 {showActiveOnly 
-                  ? (technicians.length === 0 ? "No technicians found" : "No active technicians found")
+                  ? (mechanics.length === 0 ? "No technicians found" : "No active technicians found")
                   : "No technicians found"
                 }
               </p>
@@ -263,11 +263,11 @@ const Mechanics = () => {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {technicianToArchive?.is_active ? "Archive Technician" : "Restore Technician"}
+              {mechanicToArchive?.is_active ? "Archive Technician" : "Restore Technician"}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {mechanicToArchive?.is_active 
-                ? `Are you sure you want to archive "${technicianToArchive?.name}"? This will hide them from the active technicians list but keep their data.`
+                ? `Are you sure you want to archive "${mechanicToArchive?.name}"? This will hide them from the active technicians list but keep their data.`
                 : `Are you sure you want to restore "${mechanicToArchive?.name}"? This will make them active again.`
               }
             </AlertDialogDescription>
@@ -275,7 +275,7 @@ const Mechanics = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={confirmArchive}>
-              {technicianToArchive?.is_active ? "Archive" : "Restore"}
+              {mechanicToArchive?.is_active ? "Archive" : "Restore"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
