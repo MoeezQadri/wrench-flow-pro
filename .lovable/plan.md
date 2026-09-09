@@ -4,6 +4,7 @@ The Finance section becomes **Payable Management**: money the shop owes (payable
 
 - Rename the page title/nav from "Finance" to **Payable Management**.
 - Remove the **Money In (Receivables)** card and the overdue-receivables figure from this page — receivables stay on invoices/reports.
+- Remove the **Add bill** button and its dialog from this page; bills are created automatically when expenses or part purchases are recorded.
 
 ## 1. Expenses are bills only
 
