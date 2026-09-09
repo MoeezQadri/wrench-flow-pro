@@ -32,7 +32,7 @@ const Parts: React.FC = () => {
   const [editingPart, setEditingPart] = useState<Part | null>(null);
   const [partToDelete, setPartToDelete] = useState<Part | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [showVendorManagement, setShowVendorManagement] = useState(false);
+  const navigate = useNavigate();
   const [showAssignDialog, setShowAssignDialog] = useState(false);
   const [selectedPartForAssignment, setSelectedPartForAssignment] = useState<Part | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>('');
