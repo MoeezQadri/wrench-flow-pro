@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Payable } from '@/types';
 import { useToast } from '@/hooks/use-toast';
+import { formatOrgDate, orgToday, toOrgDayStart } from '@/utils/datetime';
 
 interface PayableDialogProps {
   open: boolean;
@@ -30,7 +31,7 @@ export const PayableDialog: React.FC<PayableDialogProps> = ({
 }) => {
   const [paymentAmount, setPaymentAmount] = useState(payable?.amount || 0);
   const [paymentMethod, setPaymentMethod] = useState('');
-  const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
+  const [paymentDate, setPaymentDate] = useState(orgToday());
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
@@ -61,7 +62,7 @@ export const PayableDialog: React.FC<PayableDialogProps> = ({
       await onMarkAsPaid(payable.id, {
         amount: paymentAmount,
         payment_method: paymentMethod,
-        payment_date: paymentDate,
+        payment_date: toOrgDayStart(paymentDate),
         notes,
       });
 
@@ -87,7 +88,7 @@ export const PayableDialog: React.FC<PayableDialogProps> = ({
   const resetForm = () => {
     setPaymentAmount(payable?.amount || 0);
     setPaymentMethod('');
-    setPaymentDate(new Date().toISOString().split('T')[0]);
+    setPaymentDate(orgToday());
     setNotes('');
   };
 
@@ -110,7 +111,7 @@ export const PayableDialog: React.FC<PayableDialogProps> = ({
               <p><strong>Total Amount:</strong> ${payable?.amount?.toFixed(2)}</p>
               <p><strong>Outstanding:</strong> ${outstandingAmount.toFixed(2)}</p>
               {payable?.due_date && (
-                <p><strong>Due Date:</strong> {new Date(payable.due_date).toLocaleDateString()}</p>
+                <p><strong>Due Date:</strong> {formatOrgDate(payable.due_date)}</p>
               )}
             </div>
           </div>
@@ -174,7 +175,7 @@ export const PayableDialog: React.FC<PayableDialogProps> = ({
                 <p><strong>Amount Paid:</strong> ${payable.paid_amount?.toFixed(2)}</p>
                 <p><strong>Payment Method:</strong> {payable.payment_method}</p>
                 {payable.payment_date && (
-                  <p><strong>Payment Date:</strong> {new Date(payable.payment_date).toLocaleDateString()}</p>
+                  <p><strong>Payment Date:</strong> {formatOrgDate(payable.payment_date)}</p>
                 )}
                 {payable.notes && <p><strong>Notes:</strong> {payable.notes}</p>}
               </div>

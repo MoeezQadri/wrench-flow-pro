@@ -31,10 +31,10 @@ import ExpenseDialog from "@/components/expense/ExpenseDialog";
 import { MarkAsPaidButton } from "@/components/expense/MarkAsPaidButton";
 import { Expense } from "@/types";
 import { useOrganizationSettings } from "@/hooks/useOrganizationSettings";
-import { format, isThisMonth, isToday, parseISO } from "date-fns";
 import { useAuthContext } from '@/context/AuthContext';
 import { hasPermission } from '@/utils/permissions';
 import { useDataContext } from '@/context/data/DataContext';
+import { formatOrgDate, orgToday, toOrgDateInputValue } from '@/utils/datetime';
 
 const Expenses = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -92,8 +92,10 @@ const Expenses = () => {
   }, [expenses]);
 
   // Calculate expenses for different time periods
-  const todayExpenses = expensesList.filter(expense => isToday(parseISO(expense.date)));
-  const monthExpenses = expensesList.filter(expense => isThisMonth(parseISO(expense.date)));
+  const today = orgToday();
+  const currentMonth = today.slice(0, 7);
+  const todayExpenses = expensesList.filter(expense => toOrgDateInputValue(expense.date) === today);
+  const monthExpenses = expensesList.filter(expense => toOrgDateInputValue(expense.date).startsWith(currentMonth));
   
   const totalToday = todayExpenses.reduce((total, expense) => total + expense.amount, 0);
   const totalMonth = monthExpenses.reduce((total, expense) => total + expense.amount, 0);
@@ -226,7 +228,7 @@ const Expenses = () => {
                 const typeInfo = getExpenseTypeInfo(expense);
                 return (
                   <TableRow key={expense.id}>
-                    <TableCell>{format(parseISO(expense.date), "MMM dd, yyyy")}</TableCell>
+                    <TableCell>{formatOrgDate(expense.date, "MMM dd, yyyy")}</TableCell>
                     <TableCell>
                       <div className={`flex items-center ${typeInfo.color}`}>
                         {typeInfo.icon}

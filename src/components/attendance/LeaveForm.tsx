@@ -13,6 +13,7 @@ import {
 import { toast } from 'sonner';
 import { LeaveType } from '@/types';
 import { useDataContext } from '@/context/data/DataContext';
+import { orgToday } from '@/utils/datetime';
 
 export interface LeaveFormData {
   mechanicId: string;
@@ -28,7 +29,7 @@ interface LeaveFormProps {
 
 const LeaveForm: React.FC<LeaveFormProps> = ({ onSubmit }) => {
   const { mechanics } = useDataContext();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = orgToday();
 
   const [mechanicId, setMechanicId] = useState('');
   const [leaveType, setLeaveType] = useState<LeaveType>('annual');

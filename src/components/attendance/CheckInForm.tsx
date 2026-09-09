@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Attendance } from '@/types';
 import { useDataContext } from '@/context/data/DataContext';
+import { orgToday } from '@/utils/datetime';
 
 const checkInSchema = z.object({
   mechanicId: z.string().min(1, { message: "Technician is required" }),
@@ -39,7 +40,7 @@ const CheckInForm: React.FC<CheckInFormProps> = ({ onSubmit }) => {
     resolver: zodResolver(checkInSchema),
     defaultValues: {
       mechanicId: "",
-      date: new Date().toISOString().slice(0, 10),
+      date: orgToday(),
       checkIn: new Date().toTimeString().slice(0, 5), // Current time as HH:MM
       status: "pending",
       notes: ""

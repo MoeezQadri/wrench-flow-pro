@@ -1,3 +1,4 @@
+import { format } from 'date-fns';
 import { formatInTimeZone, fromZonedTime } from 'date-fns-tz';
 
 /**
@@ -53,6 +54,30 @@ export const formatOrgDateTime = (
 export const toOrgDateInputValue = (value: string | Date | null | undefined): string =>
   formatOrgDate(value, 'yyyy-MM-dd', '');
 
+/** Calendar day selected in a browser control, without applying a timezone shift. */
+export const selectedCalendarDay = (value: string | Date): string => {
+  if (typeof value === 'string') {
+    const match = value.match(/^\d{4}-\d{2}-\d{2}/);
+    if (match) return match[0];
+  }
+  const date = value instanceof Date ? value : new Date(value);
+  return isNaN(date.getTime()) ? '' : format(date, 'yyyy-MM-dd');
+};
+
+/** A local-noon Date for date-picker controls; avoids UTC-midnight moving a day. */
+export const calendarDayToPickerDate = (day: string): Date => {
+  const [year, month, date] = day.slice(0, 10).split('-').map(Number);
+  return new Date(year, month - 1, date, 12, 0, 0, 0);
+};
+
+/** Compare stored timestamps by organization calendar day to picker boundaries. */
+export const isOrgDayWithinRange = (value: string, start: Date, end: Date): boolean => {
+  const day = toOrgDateInputValue(value);
+  const startDay = selectedCalendarDay(start);
+  const endDay = selectedCalendarDay(end);
+  return Boolean(day && startDay && endDay && day >= startDay && day <= endDay);
+};
+
 /**
  * Turns a calendar day (Date or "YYYY-MM-DD") into a timestamp at midday in the
  * organization's timezone, so the stored value always renders back as that same
@@ -62,8 +87,9 @@ export const toOrgDayStart = (value: string | Date | null | undefined): string =
   const day =
     typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)
       ? value.slice(0, 10)
-      : formatOrgDate(value ?? new Date(), 'yyyy-MM-dd', '') ||
-        formatOrgDate(new Date(), 'yyyy-MM-dd');
+      : value instanceof Date
+        ? selectedCalendarDay(value)
+        : formatOrgDate(value ?? new Date(), 'yyyy-MM-dd', '') || orgToday();
 
   return fromZonedTime(`${day}T12:00:00`, getOrgTimezone()).toISOString();
 };

@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { Expense } from "@/types";
 import ExpenseForm, { ExpenseFormValues } from "./ExpenseForm";
 import { useDataContext } from "@/context/data/DataContext";
+import { calendarDayToPickerDate, toOrgDateInputValue, toOrgDayStart } from "@/utils/datetime";
 
 // Generate proper UUID for database
 const generateId = (): string => {
@@ -60,7 +61,7 @@ const ExpenseDialog: React.FC<ExpenseDialogProps> = ({
 
       const expenseData: Expense = {
         id: expense?.id || generateId(),
-        date: data.date.toISOString().split('T')[0],
+        date: toOrgDayStart(data.date),
         amount: data.amount,
         category: data.category,
         description: data.description,
@@ -117,7 +118,7 @@ const ExpenseDialog: React.FC<ExpenseDialogProps> = ({
           defaultValues={
             expense
               ? {
-                date: new Date(expense.date),
+                date: calendarDayToPickerDate(toOrgDateInputValue(expense.date)),
                 category: expense.category,
                 amount: expense.amount,
                 description: expense.description,
