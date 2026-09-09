@@ -72,8 +72,9 @@ const FinancialReport = () => {
   const payables = payables_
     .filter(p => p.status !== 'paid' && payableOutstanding(p) > 0)
     .filter(p =>
+      // Same basis as receivables: when the bill was raised, not when it falls due.
       isOrgDayWithinRange(
-        p.due_date || p.created_at || new Date().toISOString(),
+        p.created_at || p.due_date || new Date().toISOString(),
         appliedDateRange.startDate,
         appliedDateRange.endDate
       )
@@ -85,11 +86,15 @@ const FinancialReport = () => {
     p => p.due_date && toOrgDateInputValue(p.due_date) < orgToday()
   );
 
-  const filteredExpenses = filterByDateRange(expenses, 'date');
   const netPosition = totalReceivables - totalPayables;
   const billableInvoices = filteredInvoices.filter(inv => !isNonBillable(inv.status));
   const partsCost = billableInvoices.reduce((sum, invoice) => sum + calculateInvoiceBreakdown(invoice).partsCost, 0);
   const grossProfit = billableInvoices.reduce((sum, invoice) => sum + calculateInvoiceBreakdown(invoice).grossProfit, 0);
+  const partLinesMissingCost = billableInvoices.reduce(
+    (sum, invoice) => sum + calculateInvoiceBreakdown(invoice).partLinesMissingCost,
+    0
+  );
+
 
 
   const handleDateRangeChange = (startDate: Date, endDate: Date) => {
