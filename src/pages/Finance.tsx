@@ -1,12 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 import { DollarSign, TrendingUp, TrendingDown, Building, CreditCard } from 'lucide-react';
 import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
 import { useDataContext } from '@/context/data/DataContext';
 import { PayableDialog } from '@/components/payable/PayableDialog';
+import { AddBillDialog } from '@/components/payable/AddBillDialog';
+import { PermissionGuard } from '@/components/PermissionGuard';
 import { Payable } from '@/types';
 import { formatOrgDate, orgToday, toOrgDateInputValue } from '@/utils/datetime';
+import { calculateTotalReceivables, calculateOverdueAmount } from '@/utils/invoice-calculations';
+
+const outstandingOf = (p: Payable) => Math.max(0, (p.amount || 0) - (p.paid_amount || 0));
 
 const Finance = () => {
   const { formatCurrency } = useOrganizationSettings();
@@ -14,30 +21,32 @@ const Finance = () => {
     payables, 
     markPayableAsPaid, 
     invoices, 
-    vendors 
+    vendors,
+    loadPayables
   } = useDataContext();
   
   const [selectedPayable, setSelectedPayable] = useState<Payable | undefined>();
   const [isPayableDialogOpen, setIsPayableDialogOpen] = useState(false);
+  const [isAddBillOpen, setIsAddBillOpen] = useState(false);
 
-  // Calculate financial metrics
-  const totalPayables = payables
-    .filter(p => p.status === 'pending')
-    .reduce((sum, p) => sum + p.amount, 0);
+  useEffect(() => {
+    loadPayables();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const overduePayables = payables
-    .filter(p => p.status === 'pending' && p.due_date && toOrgDateInputValue(p.due_date) < orgToday())
-    .reduce((sum, p) => sum + p.amount, 0);
+  const unpaidBills = payables.filter(p => p.status !== 'paid' && p.status !== 'cancelled' && outstandingOf(p) > 0);
+  const paidBills = payables.filter(p => p.status === 'paid' || outstandingOf(p) === 0);
 
-  const totalReceivables = invoices
-    .filter(i => i.status === 'open' || i.status === 'partial')
-    .reduce((sum, invoice) => {
-      const total = (invoice.items || []).reduce((itemSum, item) => 
-        itemSum + (item.quantity * item.price), 0
-      );
-      const taxAmount = total * (invoice.tax_rate || 0) / 100;
-      return sum + total + taxAmount;
-    }, 0);
+  // Money out: what is still owed on bills
+  const totalPayables = unpaidBills.reduce((sum, p) => sum + outstandingOf(p), 0);
+
+  const overduePayables = unpaidBills
+    .filter(p => p.due_date && toOrgDateInputValue(p.due_date) < orgToday())
+    .reduce((sum, p) => sum + outstandingOf(p), 0);
+
+  // Money in: outstanding balances on billable invoices (same formula as reports)
+  const totalReceivables = calculateTotalReceivables(invoices);
+  const overdueReceivables = calculateOverdueAmount(invoices);
 
   const activeVendorCount = vendors.filter(v => v.is_active).length;
 
@@ -56,6 +65,8 @@ const Finance = () => {
     setSelectedPayable(payable);
     setIsPayableDialogOpen(true);
   };
+  
+
   
   return (
     <div className="p-6 space-y-6">
