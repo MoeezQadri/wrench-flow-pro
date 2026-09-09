@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { useDataContext } from '@/context/data/DataContext';
 import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
 import { formatOrgDate, orgToday, toOrgDayStart } from '@/utils/datetime';
+import BillPartDetails from './BillPartDetails';
 
 interface PayVendorDialogProps {
   open: boolean;
