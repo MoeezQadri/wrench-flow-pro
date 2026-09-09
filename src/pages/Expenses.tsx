@@ -42,7 +42,13 @@ const Expenses = () => {
   const [expensesList, setExpensesList] = useState<Expense[]>([]);
   const { currentUser } = useAuthContext();
   const { formatCurrency } = useOrganizationSettings();
-  const { expenses, addExpense, updateExpense, loadExpenses } = useDataContext();
+  const { expenses, addExpense, updateExpense, loadExpenses, payables, loadPayables } = useDataContext();
+
+  // Bills back the payment status shown on each expense
+  React.useEffect(() => {
+    loadPayables();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   
   // Check permissions
   const userCanManageExpenses = hasPermission(currentUser, 'expenses', 'manage') || hasPermission(currentUser, 'expenses', 'create');
