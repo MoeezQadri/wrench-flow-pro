@@ -15,6 +15,8 @@ import {
   Building,
   LogOut,
   ChevronUp,
+  Wallet,
+
 } from 'lucide-react';
 import { useAuthContext } from '@/context/AuthContext';
 import { hasPermission } from '@/utils/permissions';
