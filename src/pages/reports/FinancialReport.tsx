@@ -106,15 +106,20 @@ const FinancialReport = () => {
   };
 
   // Export functions
+  const vendorName = (vendorId?: string | null) =>
+    vendors.find(v => v.id === vendorId)?.name || 'N/A';
+
+  // Export functions
   const exportReceivables = () => {
     const exportData = receivables.map(invoice => ({
       'Invoice ID': invoice.id.slice(0, 8) + '...',
       'Customer ID': invoice.customer_id.slice(0, 8) + '...',
-      'Amount': calculateInvoiceBreakdown(invoice).total,
+      'Outstanding': calculateBalanceDue(invoice),
+      'Invoice Total': calculateInvoiceBreakdown(invoice).total,
       'Due Date': invoice.due_date ? formatOrgDate(invoice.due_date) : 'N/A',
       'Status': invoice.status,
-      'Days Overdue': invoice.due_date 
-        ? Math.max(0, Math.floor((new Date().getTime() - new Date(invoice.due_date).getTime()) / (1000 * 3600 * 24)))
+      'Days Overdue': invoice.due_date
+        ? Math.max(0, calendarDayDifference(orgToday(), toOrgDateInputValue(invoice.due_date)))
         : 0
     }));
     
@@ -123,18 +128,21 @@ const FinancialReport = () => {
   };
 
   const exportPayables = () => {
-    const exportData = payables.map(expense => ({
-      'Description': expense.description || 'N/A',
-      'Vendor': expense.vendor_name || 'N/A',
-      'Amount': expense.amount,
-      'Date': formatOrgDate(expense.date),
-      'Category': expense.category,
-      'Age (Days)': calendarDayDifference(orgToday(), toOrgDateInputValue(expense.date))
+    const exportData = payables.map(payable => ({
+      'Description': payable.description || 'N/A',
+      'Vendor': vendorName(payable.vendor_id),
+      'Outstanding': payableOutstanding(payable),
+      'Bill Amount': payable.amount,
+      'Due Date': payable.due_date ? formatOrgDate(payable.due_date) : 'N/A',
+      'Days Overdue': payable.due_date
+        ? Math.max(0, calendarDayDifference(orgToday(), toOrgDateInputValue(payable.due_date)))
+        : 0
     }));
     
     exportToCSV(exportData, `payables-${orgToday()}.csv`);
     toast.success('Payables exported successfully');
   };
+
 
   const exportVendors = () => {
     const exportData = vendors.map(vendor => {
