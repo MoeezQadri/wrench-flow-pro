@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { isWithinInterval, parseISO, format, eachDayOfInterval } from "date-fns";
 import { calculateInvoiceBreakdown } from "@/utils/invoice-calculations";
 import { isNonBillable } from "@/utils/invoice-status";
+import { formatOrgDate, toOrgDayBoundary } from "@/utils/datetime";
 
 export interface DashboardData {
   totalRevenue: number;
@@ -27,8 +28,8 @@ export interface ChartData {
 
 export async function fetchDashboardData(startDate: Date, endDate: Date): Promise<DashboardData> {
   try {
-    const startIso = startDate.toISOString();
-    const endIso = endDate.toISOString();
+    const startIso = toOrgDayBoundary(startDate);
+    const endIso = toOrgDayBoundary(endDate, true);
 
     // Calculate previous period dates (same duration before current period)
     const duration = endDate.getTime() - startDate.getTime();

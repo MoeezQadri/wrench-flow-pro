@@ -70,6 +70,25 @@ export const calendarDayToPickerDate = (day: string): Date => {
   return new Date(year, month - 1, date, 12, 0, 0, 0);
 };
 
+/** Start/end timestamp for an organization calendar day, used by range queries. */
+export const toOrgDayBoundary = (value: string | Date, endOfDay = false): string => {
+  const day = selectedCalendarDay(value);
+  const time = endOfDay ? '23:59:59.999' : '00:00:00.000';
+  return fromZonedTime(`${day}T${time}`, getOrgTimezone()).toISOString();
+};
+
+/** Whole calendar days between two date-only values, independent of timezone. */
+export const calendarDayDifference = (later: string, earlier: string): number => {
+  const laterParts = selectedCalendarDay(later).split('-').map(Number);
+  const earlierParts = selectedCalendarDay(earlier).split('-').map(Number);
+  if (laterParts.length !== 3 || earlierParts.length !== 3) return 0;
+  return Math.floor(
+    (Date.UTC(laterParts[0], laterParts[1] - 1, laterParts[2]) -
+      Date.UTC(earlierParts[0], earlierParts[1] - 1, earlierParts[2])) /
+      86_400_000
+  );
+};
+
 /** Compare stored timestamps by organization calendar day to picker boundaries. */
 export const isOrgDayWithinRange = (value: string, start: Date, end: Date): boolean => {
   const day = toOrgDateInputValue(value);

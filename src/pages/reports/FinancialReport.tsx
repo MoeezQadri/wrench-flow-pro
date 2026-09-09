@@ -23,7 +23,7 @@ import { calculateInvoiceBreakdown, calculateTotalReceivables, calculateOverdueA
 import { isNonBillable } from '@/utils/invoice-status';
 import { exportToCSV } from '@/utils/csv-export';
 import { toast } from 'sonner';
-import { formatOrgDate, isOrgDayWithinRange, orgToday, selectedCalendarDay, toOrgDateInputValue } from '@/utils/datetime';
+import { calendarDayDifference, formatOrgDate, isOrgDayWithinRange, orgToday, selectedCalendarDay, toOrgDateInputValue } from '@/utils/datetime';
 
 const FinancialReport = () => {
   const { invoices, expenses, vendors } = useDataContext();
@@ -72,10 +72,7 @@ const FinancialReport = () => {
 
   // Calculate overdue payables (expenses past 30 days)
   const overduePayables = payables.filter(exp => {
-    const expenseDate = new Date(exp.date);
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    return expenseDate < thirtyDaysAgo;
+    return calendarDayDifference(orgToday(), toOrgDateInputValue(exp.date)) > 30;
   });
 
   const netPosition = totalReceivables - totalPayables;
@@ -120,7 +117,7 @@ const FinancialReport = () => {
       'Amount': expense.amount,
       'Date': formatOrgDate(expense.date),
       'Category': expense.category,
-      'Age (Days)': Math.floor((new Date().getTime() - new Date(expense.date).getTime()) / (1000 * 3600 * 24))
+      'Age (Days)': calendarDayDifference(orgToday(), toOrgDateInputValue(expense.date))
     }));
     
     exportToCSV(exportData, `payables-${orgToday()}.csv`);
@@ -412,7 +409,7 @@ const FinancialReport = () => {
                 </TableHeader>
                 <TableBody>
                   {payables.map((expense) => {
-                    const ageInDays = Math.floor((new Date().getTime() - new Date(expense.date).getTime()) / (1000 * 3600 * 24));
+                    const ageInDays = calendarDayDifference(orgToday(), toOrgDateInputValue(expense.date));
                     
                     return (
                       <TableRow key={expense.id}>

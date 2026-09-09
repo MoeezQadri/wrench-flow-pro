@@ -224,7 +224,7 @@ const Expenses = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {expensesList.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((expense) => {
+              {expensesList.sort((a, b) => toOrgDateInputValue(b.date).localeCompare(toOrgDateInputValue(a.date))).map((expense) => {
                 const typeInfo = getExpenseTypeInfo(expense);
                 return (
                   <TableRow key={expense.id}>
