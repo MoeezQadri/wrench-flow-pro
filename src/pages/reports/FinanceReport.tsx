@@ -11,7 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { exportToCSV } from '@/utils/csv-export';
 import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
-import { calculateInvoiceBreakdown } from '@/utils/invoice-calculations';
+import { calculateInvoiceBreakdown, calculateProfitAndLoss, isInventoryOrJobCostExpense } from '@/utils/invoice-calculations';
 import { isNonBillable } from '@/utils/invoice-status';
 import { formatOrgDate, isOrgDayWithinRange, selectedCalendarDay } from '@/utils/datetime';
 
