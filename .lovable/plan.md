@@ -32,7 +32,7 @@ So a partly paid invoice is over-reported in both, and the Finance page number c
 
 ## What will change
 
-1. **Make Finance reachable.** Add "Finance" to the side menu (owner/admin), renamed on-page as money in / money out, with the bills list front and centre.
+1. **Make Finance reachable, with the same rules as the rest of the app.** Add "Finance" to the side menu and gate it exactly like other pages: an active subscription or trial is required, and only owners, admins and a finance role can see or open it. Everyone else does not see the menu item, and typing the address directly shows the standard "no access" screen. Today there is no finance role, so a "Finance" role is added to the invite list and given access to Finance, Expenses, Invoices and Reports (view plus record payments), not to technicians, tasks or attendance.
 2. **Bills to pay, end to end.**
    - Every unpaid expense and every part purchase (with or without a vendor) shows up as a bill, described with the vendor and what it was for.
    - Part purchases stop being stamped "cash" while unpaid — no payment method until it is actually paid.
@@ -50,7 +50,10 @@ So a partly paid invoice is over-reported in both, and the Finance page number c
 
 ## Technical notes
 
-- `src/components/AppSidebar.tsx`: add the Finance nav item behind the existing permission guard.
+- `src/utils/permissions.ts`: add a `finance` resource (`view`/`create`/`edit`) for `owner`, `admin`, `finance`, add `finance` to `ROLE_PERMISSIONS`, and include it on `expenses`, `invoices`, `payments` and `reports` view rules.
+- `src/components/AppSidebar.tsx`: Finance nav item using resource `finance`, action `view` (already filtered by `hasPermission` and `subscribed`).
+- `src/App.tsx`: `/finance` stays inside `SubscriptionRoute` and gets wrapped in `PagePermissionGuard` for resource `finance`; role labels/invite options updated wherever roles are listed (`getRoleLabel`, user invite and management UI).
+
 - `src/utils/invoice-calculations.ts`: shared outstanding-balance helper; `calculateTotalReceivables` / `calculateOverdueAmount` switch from `total` to `balanceDue`.
 - `src/pages/Finance.tsx`: use the shared helpers for receivables; bill list with partial-payment support, add-bill dialog, paid history.
 - `src/components/payable/PayableDialog.tsx`: support partial payments (`paid_amount` accumulation, status `pending` vs `paid`) and keep method/date/notes.
