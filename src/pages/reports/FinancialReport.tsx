@@ -270,7 +270,7 @@ const FinancialReport = () => {
               {formatCurrency(totalPayables)}
             </div>
             <p className="text-xs text-muted-foreground">
-              {payables.length} unpaid expense{payables.length !== 1 ? 's' : ''}
+              {payables.length} unpaid bill{payables.length !== 1 ? 's' : ''}
             </p>
           </CardContent>
         </Card>
