@@ -120,8 +120,11 @@ const CheckOutForm: React.FC<CheckOutFormProps> = ({ attendance, onSubmit }) => 
         />
 
         <div className="flex justify-end">
-          <Button type="submit">Check Out</Button>
+          <Button type="submit" disabled={form.formState.isSubmitting}>
+            {form.formState.isSubmitting ? 'Saving...' : 'Check Out'}
+          </Button>
         </div>
+
       </form>
     </Form>
   );

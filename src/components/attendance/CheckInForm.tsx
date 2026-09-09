@@ -186,8 +186,11 @@ const CheckInForm: React.FC<CheckInFormProps> = ({ onSubmit }) => {
         />
 
         <div className="flex justify-end">
-          <Button type="submit">Check In</Button>
+          <Button type="submit" disabled={form.formState.isSubmitting}>
+            {form.formState.isSubmitting ? 'Saving...' : 'Check In'}
+          </Button>
         </div>
+
       </form>
     </Form>
   );
