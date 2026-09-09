@@ -32,7 +32,7 @@ So a partly paid invoice is over-reported in both, and the Finance page number c
 
 ## What will change
 
-1. **Make Finance reachable.** Add "Finance" to the side menu (owner/admin), renamed on-page as money in / money out, with the bills list front and centre.
+1. **Make Finance reachable, with the same rules as the rest of the app.** Add "Finance" to the side menu and gate it exactly like other pages: an active subscription or trial is required, and only owners, admins and a finance role can see or open it. Everyone else does not see the menu item, and typing the address directly shows the standard "no access" screen. Today there is no finance role, so a "Finance" role is added to the invite list and given access to Finance, Expenses, Invoices and Reports (view plus record payments), not to technicians, tasks or attendance.
 2. **Bills to pay, end to end.**
    - Every unpaid expense and every part purchase (with or without a vendor) shows up as a bill, described with the vendor and what it was for.
    - Part purchases stop being stamped "cash" while unpaid — no payment method until it is actually paid.
