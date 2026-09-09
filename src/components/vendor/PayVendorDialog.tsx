@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { useDataContext } from '@/context/data/DataContext';
 import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
 import { formatOrgDate, orgToday, toOrgDayStart } from '@/utils/datetime';
+import BillPartDetails from './BillPartDetails';
 
 interface PayVendorDialogProps {
   open: boolean;
@@ -159,6 +160,7 @@ export const PayVendorDialog: React.FC<PayVendorDialogProps> = ({
                         {bill.due_date ? `Due ${formatOrgDate(bill.due_date)}` : 'No due date'} ·
                         {' '}Outstanding {formatCurrency(outstandingOf(bill))}
                       </p>
+                      <BillPartDetails bill={bill} />
                     </div>
                     <Input
                       className="w-32"

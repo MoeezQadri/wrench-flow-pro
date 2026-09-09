@@ -85,6 +85,13 @@ export const RESOURCE_PERMISSIONS: Record<string, PermissionConfig[]> = {
     { resource: 'finance', action: 'delete', allowedRoles: ['owner', 'admin'] },
     { resource: 'finance', action: 'manage', allowedRoles: ['owner', 'admin'] },
   ],
+  vendors: [
+    { resource: 'vendors', action: 'view', allowedRoles: ['owner', 'admin', 'finance'] },
+    { resource: 'vendors', action: 'create', allowedRoles: ['owner', 'admin', 'finance'] },
+    { resource: 'vendors', action: 'edit', allowedRoles: ['owner', 'admin', 'finance'] },
+    { resource: 'vendors', action: 'delete', allowedRoles: ['owner', 'admin'] },
+    { resource: 'vendors', action: 'manage', allowedRoles: ['owner', 'admin'] },
+  ],
   payments: [
     { resource: 'payments', action: 'view', allowedRoles: ['owner', 'admin', 'manager', 'foreman', 'finance'] },
     { resource: 'payments', action: 'create', allowedRoles: ['owner', 'admin', 'manager', 'finance'] },

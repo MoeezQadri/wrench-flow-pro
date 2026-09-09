@@ -9,6 +9,7 @@ import { Payable } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { formatOrgDate, orgToday, toOrgDayStart } from '@/utils/datetime';
 import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
+import BillPartDetails from '@/components/vendor/BillPartDetails';
 
 interface PayableDialogProps {
   open: boolean;
@@ -137,6 +138,8 @@ export const PayableDialog: React.FC<PayableDialogProps> = ({
                 <p><strong>Already Paid:</strong> {formatCurrency(payable?.paid_amount || 0)}</p>
               )}
               <p><strong>Outstanding:</strong> {formatCurrency(outstandingAmount)}</p>
+              {payable && <BillPartDetails bill={payable} className="mt-2" />}
+
 
 
               {payable?.due_date && (

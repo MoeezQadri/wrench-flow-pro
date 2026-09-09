@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import BillPartDetails from '@/components/vendor/BillPartDetails';
 import { TrendingDown, Building, CreditCard } from 'lucide-react';
 import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
 import { useDataContext } from '@/context/data/DataContext';
@@ -130,6 +131,7 @@ const Finance = () => {
                       {payable.due_date ? `Due: ${formatOrgDate(payable.due_date)}` : 'No due date'}
                       {(payable.paid_amount || 0) > 0 && ` · ${formatCurrency(payable.paid_amount || 0)} already paid`}
                     </p>
+                    <BillPartDetails bill={payable} />
                   </div>
                   <div className="text-right space-y-1">
                     <p className="font-semibold">{formatCurrency(outstandingOf(payable))}</p>
@@ -157,6 +159,7 @@ const Finance = () => {
                       {payable.payment_date ? `Paid: ${formatOrgDate(payable.payment_date)}` : 'Paid'}
                       {payable.payment_method ? ` · ${payable.payment_method}` : ''}
                     </p>
+                    <BillPartDetails bill={payable} />
                   </div>
                   <div className="text-right">
                     <p className="font-semibold">{formatCurrency(payable.amount)}</p>

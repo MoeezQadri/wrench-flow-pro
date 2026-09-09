@@ -111,6 +111,13 @@ const navItems = [
     resource: 'finance',
     action: 'view' as const,
   },
+  {
+    title: 'Vendors',
+    href: '/vendors',
+    icon: Building,
+    resource: 'vendors',
+    action: 'view' as const,
+  },
 
   {
     title: 'Reports',

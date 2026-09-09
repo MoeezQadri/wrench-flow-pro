@@ -62,6 +62,7 @@ const NotFound = lazy(() => import('@/pages/NotFound'));
 // Add Users and Finance pages
 const Users = lazy(() => import('@/pages/Users'));
 const Finance = lazy(() => import('@/pages/Finance'));
+const Vendors = lazy(() => import('@/pages/Vendors'));
 
 // Super Admin pages
 const SuperAdminDashboard = lazy(
@@ -156,6 +157,14 @@ function App() {
                       element={
                         <PagePermissionGuard resource="finance" action="view">
                           <Finance />
+                        </PagePermissionGuard>
+                      }
+                    />
+                    <Route
+                      path="vendors"
+                      element={
+                        <PagePermissionGuard resource="vendors" action="view">
+                          <Vendors />
                         </PagePermissionGuard>
                       }
                     />

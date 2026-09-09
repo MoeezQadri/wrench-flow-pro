@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Plus, Search, Filter, SortAsc, SortDesc, FileText, Users, Package, AlertTriangle, Grid3X3, List, Pencil, Trash2 } from 'lucide-react';
 import PartDialog from '@/components/part/PartDialog';
-import VendorManagement from '@/components/vendor/VendorManagement';
+import { useNavigate } from 'react-router-dom';
 import AssignToInvoiceDialog from '@/components/part/AssignToInvoiceDialog';
 import { Part } from '@/types';
 import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
@@ -32,7 +32,7 @@ const Parts: React.FC = () => {
   const [editingPart, setEditingPart] = useState<Part | null>(null);
   const [partToDelete, setPartToDelete] = useState<Part | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [showVendorManagement, setShowVendorManagement] = useState(false);
+  const navigate = useNavigate();
   const [showAssignDialog, setShowAssignDialog] = useState(false);
   const [selectedPartForAssignment, setSelectedPartForAssignment] = useState<Part | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -114,13 +114,9 @@ const Parts: React.FC = () => {
   };
 
   const handleVendorManagement = () => {
-    setShowVendorManagement(true);
+    navigate('/vendors');
   };
 
-  const handleVendorManagementClose = () => {
-    setShowVendorManagement(false);
-    refreshAllData();
-  };
 
   const getVendorName = (part: any) => {
     if (part.vendor_id && part.vendor_id !== "none") {
@@ -536,12 +532,6 @@ const Parts: React.FC = () => {
             </>
           )}
 
-      {/* Vendor Management Dialog */}
-      <Dialog open={showVendorManagement} onOpenChange={setShowVendorManagement}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <VendorManagement onClose={handleVendorManagementClose} />
-        </DialogContent>
-      </Dialog>
 
       {/* Part Dialog */}
       <PartDialog

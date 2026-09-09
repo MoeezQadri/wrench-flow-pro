@@ -163,7 +163,11 @@ const ensureInventoryParts = async (
           payment_method: 'cash',
           payment_status: 'unpaid',
           invoice_id: invoiceId,
-          organization_id: organizationId
+          organization_id: organizationId,
+          // Ties the resulting bill to the part it was raised for
+          part_id: newPartId,
+          quantity: item.quantity,
+          unit_cost: item.cost || 0
         } as any);
 
       if (expenseError) {

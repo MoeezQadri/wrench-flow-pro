@@ -91,6 +91,10 @@ const PartDialog = ({ open, onOpenChange, onSave, part, invoiceId }: PartDialogP
           vendor_name: vendor?.name,
           payment_status: "unpaid",
           invoice_id: invoiceId || undefined,
+          // Ties the resulting bill to the part it was raised for
+          part_id: newPart.id,
+          quantity: newPart.quantity,
+          unit_cost: newPart.cost || 0,
         };
         
         try {
