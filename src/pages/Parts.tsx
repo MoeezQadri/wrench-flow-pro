@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Plus, Search, Filter, SortAsc, SortDesc, FileText, Users, Package, AlertTriangle, Grid3X3, List, Pencil, Trash2 } from 'lucide-react';
 import PartDialog from '@/components/part/PartDialog';
-import VendorManagement from '@/components/vendor/VendorManagement';
+import { useNavigate } from 'react-router-dom';
 import AssignToInvoiceDialog from '@/components/part/AssignToInvoiceDialog';
 import { Part } from '@/types';
 import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
