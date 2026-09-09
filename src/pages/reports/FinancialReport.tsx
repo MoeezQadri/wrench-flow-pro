@@ -53,9 +53,9 @@ const FinancialReport = () => {
     });
   };
 
-  // Calculate receivables (unpaid invoices) within date range; quotes are not debt.
+  // Receivables = outstanding balances of billable, unpaid invoices; quotes are not debt.
   const filteredInvoices = filterByDateRange(invoices, 'date');
-  const receivables = filteredInvoices.filter(inv => inv.status !== 'paid' && !isNonBillable(inv.status));
+  const receivables = getReceivableInvoices(filteredInvoices);
   const totalReceivables = calculateTotalReceivables(receivables);
 
   // Calculate overdue receivables
@@ -65,20 +65,30 @@ const FinancialReport = () => {
   });
   const overdueReceivablesAmount = calculateOverdueAmount(overdueReceivables);
 
-  // Calculate payables from expenses (unpaid expenses) within date range
+  // Payables = the bills list (same source as the Finance page), by outstanding amount
+  const payableOutstanding = (p: Payable) => Math.max(0, (p.amount || 0) - (p.paid_amount || 0));
+  const payables = payables_
+    .filter(p => p.status !== 'paid' && payableOutstanding(p) > 0)
+    .filter(p =>
+      isOrgDayWithinRange(
+        p.due_date || p.created_at || new Date().toISOString(),
+        appliedDateRange.startDate,
+        appliedDateRange.endDate
+      )
+    );
+  const totalPayables = payables.reduce((sum, p) => sum + payableOutstanding(p), 0);
+
+  // Overdue payables use the real due date
+  const overduePayables = payables.filter(
+    p => p.due_date && toOrgDateInputValue(p.due_date) < orgToday()
+  );
+
   const filteredExpenses = filterByDateRange(expenses, 'date');
-  const payables = filteredExpenses.filter(exp => exp.payment_status !== 'paid');
-  const totalPayables = payables.reduce((sum, exp) => sum + exp.amount, 0);
-
-  // Calculate overdue payables (expenses past 30 days)
-  const overduePayables = payables.filter(exp => {
-    return calendarDayDifference(orgToday(), toOrgDateInputValue(exp.date)) > 30;
-  });
-
   const netPosition = totalReceivables - totalPayables;
   const billableInvoices = filteredInvoices.filter(inv => !isNonBillable(inv.status));
   const partsCost = billableInvoices.reduce((sum, invoice) => sum + calculateInvoiceBreakdown(invoice).partsCost, 0);
   const grossProfit = billableInvoices.reduce((sum, invoice) => sum + calculateInvoiceBreakdown(invoice).grossProfit, 0);
+
 
   const handleDateRangeChange = (startDate: Date, endDate: Date) => {
     setDateRange({ startDate, endDate });
