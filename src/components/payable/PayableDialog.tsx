@@ -29,12 +29,24 @@ export const PayableDialog: React.FC<PayableDialogProps> = ({
   onPayableUpdated,
   onMarkAsPaid,
 }) => {
-  const [paymentAmount, setPaymentAmount] = useState(payable?.amount || 0);
+  const outstandingAmount = Math.max(0, (payable?.amount || 0) - (payable?.paid_amount || 0));
+  const [paymentAmount, setPaymentAmount] = useState(outstandingAmount);
   const [paymentMethod, setPaymentMethod] = useState('');
   const [paymentDate, setPaymentDate] = useState(orgToday());
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+
+  // Default the amount to what is still owed whenever the dialog opens
+  useEffect(() => {
+    if (open) {
+      setPaymentAmount(outstandingAmount);
+      setPaymentMethod('');
+      setPaymentDate(orgToday());
+      setNotes('');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, payable?.id, outstandingAmount]);
 
   const handleMarkAsPaid = async () => {
     if (!payable || !onMarkAsPaid) return;
@@ -56,6 +68,16 @@ export const PayableDialog: React.FC<PayableDialogProps> = ({
       });
       return;
     }
+
+    if (paymentAmount > outstandingAmount + 0.005) {
+      toast({
+        title: "Error",
+        description: `Payment cannot be more than the outstanding amount of $${outstandingAmount.toFixed(2)}`,
+        variant: "destructive",
+      });
+      return;
+    }
+
 
     setIsSubmitting(true);
     try {
