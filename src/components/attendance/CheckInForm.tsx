@@ -75,12 +75,11 @@ const CheckInForm: React.FC<CheckInFormProps> = ({ onSubmit }) => {
       toast.success("Check-in recorded successfully!");
     } catch (error: any) {
       console.error("Error submitting check-in in form:", error);
-      const errorMessage = error?.message || "Failed to record check-in. Please try again.";
-      toast.error(errorMessage);
-      
+      // The data layer already shows the specific error message, so avoid a duplicate toast
       // Re-throw the error so the dialog knows not to close
       throw error;
     }
+
   };
 
   return (
@@ -186,8 +185,11 @@ const CheckInForm: React.FC<CheckInFormProps> = ({ onSubmit }) => {
         />
 
         <div className="flex justify-end">
-          <Button type="submit">Check In</Button>
+          <Button type="submit" disabled={form.formState.isSubmitting}>
+            {form.formState.isSubmitting ? 'Saving...' : 'Check In'}
+          </Button>
         </div>
+
       </form>
     </Form>
   );

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type { Attendance } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -13,6 +13,9 @@ export const useAttendance = () => {
     const { organizationId, isSuperAdmin } = useOrganizationFilter();
     const { currentUser, isAuthenticated } = useAuthContext();
     const { applyOrganizationFilter } = useOrganizationAwareQuery();
+    // Keys of attendance saves currently in flight, to block repeat submits
+    const inFlightSaves = useRef<Set<string>>(new Set());
+
 
     // Set up real-time subscription for attendance data
     useEffect(() => {
@@ -92,6 +95,22 @@ export const useAttendance = () => {
 
     const addAttendance = async (attendanceData: Omit<Attendance, 'id'>) => {
         console.log("useAttendance addAttendance called with:", attendanceData);
+        // Guard against the same entry being submitted twice (double-click / repeat submit)
+        const inFlightKey = `${attendanceData?.mechanic_id}|${attendanceData?.date}|${attendanceData?.record_type || 'attendance'}`;
+        if (inFlightSaves.current.has(inFlightKey)) {
+            console.warn("Duplicate attendance submit ignored (already saving):", inFlightKey);
+            throw new Error('This entry is already being saved. Please wait.');
+        }
+        inFlightSaves.current.add(inFlightKey);
+        try {
+        return await saveAttendance(attendanceData);
+        } finally {
+            inFlightSaves.current.delete(inFlightKey);
+        }
+    };
+
+    const saveAttendance = async (attendanceData: Omit<Attendance, 'id'>) => {
+
         if (!attendanceData || typeof attendanceData !== 'object') {
             const errorMsg = 'Invalid attendance data provided';
             console.error(errorMsg, attendanceData);
@@ -166,11 +185,17 @@ export const useAttendance = () => {
                 // Rollback optimistic update
                 setAttendanceRecords((prev) => (prev || []).filter(a => a.id !== tempId));
                 console.error('Error adding attendance:', error);
-                const errorMsg = error.message || 'Failed to add attendance record';
+                const isDuplicate = (error as any).code === '23505';
+                const errorMsg = isDuplicate
+                    ? (newAttendanceData.record_type === 'leave'
+                        ? 'This technician already has a leave record starting on this date.'
+                        : 'This technician already has an attendance entry for this date.')
+                    : (error.message || 'Failed to add attendance record');
                 setError(errorMsg);
                 toast.error(errorMsg);
-                throw error;
+                throw new Error(errorMsg);
             }
+
             
             if (data && data.length > 0) {
                 const result = data[0] as Attendance;
