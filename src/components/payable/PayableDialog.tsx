@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Payable } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { formatOrgDate, orgToday, toOrgDayStart } from '@/utils/datetime';
+import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
 
 interface PayableDialogProps {
   open: boolean;
