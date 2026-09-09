@@ -273,10 +273,13 @@ export type Database = {
           id: string
           invoice_id: string | null
           organization_id: string | null
+          part_id: string | null
           payment_method:
             | Database["public"]["Enums"]["payment_method_enum"]
             | null
           payment_status: string | null
+          quantity: number | null
+          unit_cost: number | null
           updated_at: string | null
           vendor_id: string | null
           vendor_name: string | null
@@ -290,10 +293,13 @@ export type Database = {
           id?: string
           invoice_id?: string | null
           organization_id?: string | null
+          part_id?: string | null
           payment_method?:
             | Database["public"]["Enums"]["payment_method_enum"]
             | null
           payment_status?: string | null
+          quantity?: number | null
+          unit_cost?: number | null
           updated_at?: string | null
           vendor_id?: string | null
           vendor_name?: string | null
@@ -307,15 +313,26 @@ export type Database = {
           id?: string
           invoice_id?: string | null
           organization_id?: string | null
+          part_id?: string | null
           payment_method?:
             | Database["public"]["Enums"]["payment_method_enum"]
             | null
           payment_status?: string | null
+          quantity?: number | null
+          unit_cost?: number | null
           updated_at?: string | null
           vendor_id?: string | null
           vendor_name?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "expenses_part_id_fkey"
+            columns: ["part_id"]
+            isOneToOne: false
+            referencedRelation: "parts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       invoice_items: {
         Row: {
@@ -654,10 +671,13 @@ export type Database = {
           notes: string | null
           organization_id: string | null
           paid_amount: number | null
+          part_id: string | null
           payment_date: string | null
           payment_method: string | null
+          quantity: number | null
           reference_number: string | null
           status: string
+          unit_cost: number | null
           updated_at: string | null
           vendor_id: string | null
         }
@@ -671,10 +691,13 @@ export type Database = {
           notes?: string | null
           organization_id?: string | null
           paid_amount?: number | null
+          part_id?: string | null
           payment_date?: string | null
           payment_method?: string | null
+          quantity?: number | null
           reference_number?: string | null
           status?: string
+          unit_cost?: number | null
           updated_at?: string | null
           vendor_id?: string | null
         }
@@ -688,10 +711,13 @@ export type Database = {
           notes?: string | null
           organization_id?: string | null
           paid_amount?: number | null
+          part_id?: string | null
           payment_date?: string | null
           payment_method?: string | null
+          quantity?: number | null
           reference_number?: string | null
           status?: string
+          unit_cost?: number | null
           updated_at?: string | null
           vendor_id?: string | null
         }
@@ -701,6 +727,13 @@ export type Database = {
             columns: ["expense_id"]
             isOneToOne: false
             referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payables_part_id_fkey"
+            columns: ["part_id"]
+            isOneToOne: false
+            referencedRelation: "parts"
             referencedColumns: ["id"]
           },
           {
