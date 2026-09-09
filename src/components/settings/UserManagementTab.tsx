@@ -29,6 +29,8 @@ const useAvailableRoles = () => {
     { value: 'admin', label: 'Admin', description: 'Can manage users and settings' },
     { value: 'manager', label: 'Manager', description: 'Can manage operations and view reports' },
     { value: 'foreman', label: 'Foreman', description: 'Can manage workshop operations' },
+    { value: 'finance', label: 'Finance', description: 'Money in and money out: invoices, payments, bills, reports' },
+
     { value: 'mechanic', label: 'Technician', description: 'Basic access to workshop tools' },
     { value: 'member', label: 'Member', description: 'Basic access to core features' },
   ];
