@@ -7,9 +7,10 @@ import { ChevronLeft, Download, Filter } from "lucide-react";
 import { Link } from "react-router-dom";
 import DateRangeDropdown from "@/components/DateRangeDropdown";
 import { Attendance } from "@/types";
-import { isWithinInterval, parseISO, format, subDays } from "date-fns";
+import { format, subDays } from "date-fns";
 import { useDataContext } from "@/context/data/DataContext";
 import { exportToCSV } from "@/utils/csv-export";
+import { isOrgDayWithinRange, selectedCalendarDay } from '@/utils/datetime';
 
 const AttendanceReport = () => {
   const [startDate, setStartDate] = useState<Date>(subDays(new Date(), 30));
@@ -45,8 +46,7 @@ const AttendanceReport = () => {
   // Filter attendance for the selected date range
   const filteredAttendance = (attendanceRecords || []).filter(record => {
     try {
-      const recordDate = parseISO(record.date);
-      return isWithinInterval(recordDate, { start: startDate, end: endDate });
+      return isOrgDayWithinRange(record.date, startDate, endDate);
     } catch (e) {
       // Handle parsing errors (invalid dates)
       return false;
@@ -111,7 +111,7 @@ const AttendanceReport = () => {
       };
     });
 
-    const filename = `attendance-report-${startDate.toISOString().split('T')[0]}-to-${endDate.toISOString().split('T')[0]}.csv`;
+    const filename = `attendance-report-${selectedCalendarDay(startDate)}-to-${selectedCalendarDay(endDate)}.csv`;
     exportToCSV(exportData, filename);
   };
 

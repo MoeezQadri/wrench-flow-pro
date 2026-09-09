@@ -8,11 +8,10 @@ import { Link } from "react-router-dom";
 import { DateRangePicker } from "@/components/dashboard/DateRangePicker";
 import { subDays } from "date-fns";
 import { useDataContext } from "@/context/data/DataContext";
-import { isWithinInterval, parseISO } from "date-fns";
 import { useOrganizationSettings } from "@/hooks/useOrganizationSettings";
 import { calculateInvoiceBreakdown } from '@/utils/invoice-calculations';
 import { isNonBillable } from '@/utils/invoice-status';
-import { formatOrgDate } from '@/utils/datetime';
+import { formatOrgDate, isOrgDayWithinRange } from '@/utils/datetime';
 
 const InvoicingReport = () => {
   const [startDate, setStartDate] = useState<Date>(subDays(new Date(), 30));
@@ -23,8 +22,7 @@ const InvoicingReport = () => {
   // Filter invoices for the selected date range
   const filteredInvoices = invoices.filter(invoice => {
     try {
-      const invoiceDate = parseISO(invoice.date || '');
-      return isWithinInterval(invoiceDate, { start: startDate, end: endDate });
+      return isOrgDayWithinRange(invoice.date || '', startDate, endDate);
     } catch (e) {
       return false;
     }

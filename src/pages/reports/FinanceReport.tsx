@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, Download, Filter } from "lucide-react";
 import { Link } from "react-router-dom";
 import { DateRangePicker } from "@/components/dashboard/DateRangePicker";
-import { subDays, isWithinInterval, parseISO } from 'date-fns';
+import { subDays } from 'date-fns';
 import { resolvePromiseAndSetState } from '@/utils/async-helpers';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -13,7 +13,7 @@ import { exportToCSV } from '@/utils/csv-export';
 import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
 import { calculateInvoiceBreakdown } from '@/utils/invoice-calculations';
 import { isNonBillable } from '@/utils/invoice-status';
-import { formatOrgDate } from '@/utils/datetime';
+import { formatOrgDate, isOrgDayWithinRange, selectedCalendarDay } from '@/utils/datetime';
 
 // Interface for expenses matching Supabase schema
 interface DatabaseExpense {
@@ -101,8 +101,7 @@ const FinanceReport = () => {
   // Filter data based on date range
   const filteredExpenses = expenses.filter(expense => {
     try {
-      const expenseDate = parseISO(expense.date);
-      return isWithinInterval(expenseDate, { start: startDate, end: endDate });
+      return isOrgDayWithinRange(expense.date, startDate, endDate);
     } catch (e) {
       return false;
     }
@@ -110,8 +109,7 @@ const FinanceReport = () => {
 
   const filteredRevenue = revenue.filter(invoice => {
     try {
-      const invoiceDate = parseISO(invoice.date || '');
-      return !isNonBillable(invoice.status) && isWithinInterval(invoiceDate, { start: startDate, end: endDate });
+      return !isNonBillable(invoice.status) && isOrgDayWithinRange(invoice.date || '', startDate, endDate);
     } catch (e) {
       return false;
     }
@@ -159,7 +157,7 @@ const FinanceReport = () => {
       };
     });
 
-    const filename = `revenue-report-${startDate.toISOString().split('T')[0]}-to-${endDate.toISOString().split('T')[0]}.csv`;
+    const filename = `revenue-report-${selectedCalendarDay(startDate)}-to-${selectedCalendarDay(endDate)}.csv`;
     exportToCSV(exportData, filename);
   };
 
@@ -174,7 +172,7 @@ const FinanceReport = () => {
       payment_status: expense.payment_status || ''
     }));
 
-    const filename = `expenses-report-${startDate.toISOString().split('T')[0]}-to-${endDate.toISOString().split('T')[0]}.csv`;
+    const filename = `expenses-report-${selectedCalendarDay(startDate)}-to-${selectedCalendarDay(endDate)}.csv`;
     exportToCSV(exportData, filename);
   };
   

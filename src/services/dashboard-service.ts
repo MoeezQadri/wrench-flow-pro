@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { isWithinInterval, parseISO, format, eachDayOfInterval } from "date-fns";
 import { calculateInvoiceBreakdown } from "@/utils/invoice-calculations";
 import { isNonBillable } from "@/utils/invoice-status";
+import { formatOrgDate, toOrgDayBoundary } from "@/utils/datetime";
 
 export interface DashboardData {
   totalRevenue: number;
@@ -27,8 +28,8 @@ export interface ChartData {
 
 export async function fetchDashboardData(startDate: Date, endDate: Date): Promise<DashboardData> {
   try {
-    const startIso = startDate.toISOString();
-    const endIso = endDate.toISOString();
+    const startIso = toOrgDayBoundary(startDate);
+    const endIso = toOrgDayBoundary(endDate, true);
 
     // Calculate previous period dates (same duration before current period)
     const duration = endDate.getTime() - startDate.getTime();
@@ -198,7 +199,7 @@ export async function fetchChartData(startDate: Date, endDate: Date): Promise<Ch
       
       // Calculate revenue for this day
       const dayRevenue = invoices
-        ?.filter(invoice => !isNonBillable(invoice.status) && format(new Date(invoice.date || ''), 'yyyy-MM-dd') === dayStr)
+        ?.filter(invoice => !isNonBillable(invoice.status) && formatOrgDate(invoice.date || '', 'yyyy-MM-dd', '') === dayStr)
         .reduce((sum, invoice) => {
           const invoiceWithItems = {
             ...invoice,
@@ -214,12 +215,12 @@ export async function fetchChartData(startDate: Date, endDate: Date): Promise<Ch
 
       // Calculate expenses for this day
       const dayExpenses = expenses
-        ?.filter(expense => format(new Date(expense.date || ''), 'yyyy-MM-dd') === dayStr)
+        ?.filter(expense => formatOrgDate(expense.date || '', 'yyyy-MM-dd', '') === dayStr)
         .reduce((sum, expense) => sum + Number(expense.amount), 0) || 0;
 
       // Count invoices for this day
       const dayInvoices = invoices
-        ?.filter(invoice => !isNonBillable(invoice.status) && format(new Date(invoice.date || ''), 'yyyy-MM-dd') === dayStr)
+        ?.filter(invoice => !isNonBillable(invoice.status) && formatOrgDate(invoice.date || '', 'yyyy-MM-dd', '') === dayStr)
         .length || 0;
 
       return {
