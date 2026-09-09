@@ -9,6 +9,7 @@ import { Payable } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { formatOrgDate, orgToday, toOrgDayStart } from '@/utils/datetime';
 import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
+import BillPartDetails from '@/components/vendor/BillPartDetails';
 
 interface PayableDialogProps {
   open: boolean;
