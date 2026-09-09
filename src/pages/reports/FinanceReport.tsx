@@ -196,38 +196,56 @@ const FinanceReport = () => {
         </div>
       </div>
 
-      {/* Financial Summary */}
+      {/* Profit and loss summary */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm">Total Revenue</CardTitle></CardHeader>
-          <CardContent><div className="text-2xl font-bold text-green-600">{formatCurrency(totalRevenue)}</div></CardContent>
+          <CardHeader className="pb-2"><CardTitle className="text-sm">Revenue (before tax)</CardTitle></CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">{formatCurrency(totalRevenue)}</div>
+            <p className="text-xs text-muted-foreground">Plus {formatCurrency(pnl.taxCollected)} tax collected</p>
+          </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm">Parts COGS</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm">Cost of parts sold</CardTitle></CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(partsCost)}</div>
-            <p className="text-xs text-muted-foreground">Cost of parts sold</p>
+            <p className="text-xs text-muted-foreground">Parts billed on invoices</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-sm">Gross Profit</CardTitle></CardHeader>
           <CardContent>
             <div className={`text-2xl font-bold ${grossProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>{formatCurrency(grossProfit)}</div>
-            <p className="text-xs text-muted-foreground">{grossMargin}% margin before overhead</p>
+            <p className="text-xs text-muted-foreground">{grossMargin}% margin before running costs</p>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm">Total Expenses</CardTitle></CardHeader>
-          <CardContent><div className="text-2xl font-bold text-red-600">{formatCurrency(totalExpenses)}</div></CardContent>
+          <CardHeader className="pb-2"><CardTitle className="text-sm">Running costs</CardTitle></CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">{formatCurrency(operatingExpenses)}</div>
+            <p className="text-xs text-muted-foreground">
+              Excludes {formatCurrency(inventoryPurchases)} of parts and job purchases
+            </p>
+          </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-sm">Net Profit</CardTitle></CardHeader>
           <CardContent>
             <div className={`text-2xl font-bold ${netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>{formatCurrency(netProfit)}</div>
-            <p className="text-xs text-muted-foreground">{profitMargin}% after expenses</p>
+            <p className="text-xs text-muted-foreground">{profitMargin}% of revenue</p>
           </CardContent>
         </Card>
       </div>
+
+      {pnl.partLinesMissingCost > 0 && (
+        <Card className="border-yellow-500/50 bg-yellow-500/5">
+          <CardContent className="pt-4 text-sm">
+            Cost of parts sold is incomplete: {pnl.partLinesMissingCost} part lines have no cost recorded.
+            Gross and net profit are higher than reality until those costs are entered.
+          </CardContent>
+        </Card>
+      )}
+
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
