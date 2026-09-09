@@ -227,7 +227,7 @@ const Expenses = () => {
                 <TableHead>Type</TableHead>
                 <TableHead>Category</TableHead>
                 <TableHead>Description</TableHead>
-                <TableHead>Payment Method</TableHead>
+                <TableHead>Payment Status</TableHead>
                 <TableHead>Vendor</TableHead>
                 <TableHead>Amount</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -236,6 +236,7 @@ const Expenses = () => {
             <TableBody>
               {expensesList.sort((a, b) => toOrgDateInputValue(b.date).localeCompare(toOrgDateInputValue(a.date))).map((expense) => {
                 const typeInfo = getExpenseTypeInfo(expense);
+                const paymentInfo = getPaymentInfo(expense);
                 return (
                   <TableRow key={expense.id}>
                     <TableCell>{formatOrgDate(expense.date, "MMM dd, yyyy")}</TableCell>
@@ -250,12 +251,10 @@ const Expenses = () => {
                     </TableCell>
                     <TableCell>{expense.description}</TableCell>
                     <TableCell>
-                      <div className="flex items-center">
-                        {getPaymentMethodIcon(expense.payment_method)}
-                        <span className="ml-2 capitalize">
-                          {expense.payment_method.replace('-', ' ')}
-                        </span>
-                      </div>
+                      <div className={`font-medium ${paymentInfo.className}`}>{paymentInfo.label}</div>
+                      {paymentInfo.detail && (
+                        <div className="text-xs text-muted-foreground capitalize">{paymentInfo.detail}</div>
+                      )}
                     </TableCell>
                     <TableCell>{expense.vendor_name || "—"}</TableCell>
                     <TableCell className="font-medium">{formatCurrency(expense.amount)}</TableCell>
