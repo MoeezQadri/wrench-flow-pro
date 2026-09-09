@@ -208,7 +208,11 @@ const Finance = () => {
       <AddBillDialog
         open={isAddBillOpen}
         onOpenChange={setIsAddBillOpen}
-        onCreated={loadPayables}
+        onCreated={async () => {
+          await loadPayables();
+          await loadExpenses();
+        }}
+
       />
     </div>
   );
