@@ -280,10 +280,12 @@ const Expenses = () => {
                         )}
                         <MarkAsPaidButton 
                           expense={expense} 
-                          onPaymentRecorded={() => {
-                            // Refresh expenses data if needed
+                          onPaymentRecorded={async () => {
+                            await loadPayables();
+                            await loadExpenses();
                           }}
                         />
+
                       </div>
                     </TableCell>
                   </TableRow>
