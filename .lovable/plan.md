@@ -32,23 +32,33 @@ So a partly paid invoice is over-reported in both, and the Finance page number c
 
 ## What will change
 
-1. **Paid needs proof of payment.** Choosing Paid without payments covering the total is refused on save with: "Add payment details before marking this invoice as paid. Recorded payments must cover the invoice total." Partial requires at least one payment. Status auto-follows payments as it does now.
-2. **Never lose payments on save.** Saving an invoice will no longer wipe payments when the form has none loaded; payments are only replaced when the payment list was actually loaded/edited. Payments stay visible (read-only) on paid invoices.
-3. **Clean up existing data.** Move Paid invoices with no payment records back to Open (only those with zero payments; nothing else is touched).
-4. **One definition per number.**
-   - Receivables everywhere = outstanding balance (total minus payments) of billable, unpaid invoices, using the shared invoice calculation.
-   - Payables everywhere = the payables list, with real due dates driving "overdue".
-   - Paying a payable also marks its expense paid.
-5. **Label the reports honestly.** Profit/loss cards get a short note that they are invoice-based, while receivables/payables are cash-based, so the totals are not meant to match. Purchase expenses stay counted once (they are already in expenses; parts cost is shown for margin only).
-6. **Make recording money obvious.** A "Record payment" action on the invoice list/detail for open and partial invoices, and an "Add payable" action on the Finance page for bills that did not come from an expense.
+1. **Make Finance reachable.** Add "Finance" to the side menu (owner/admin), renamed on-page as money in / money out, with the bills list front and centre.
+2. **Bills to pay, end to end.**
+   - Every unpaid expense and every part purchase (with or without a vendor) shows up as a bill, described with the vendor and what it was for.
+   - Part purchases stop being stamped "cash" while unpaid — no payment method until it is actually paid.
+   - Clicking a bill records the payment: amount (full or part), payment method, payment date, notes. Part payments leave the remainder outstanding instead of closing the bill.
+   - Paying a bill marks the linked expense paid with the same method and date, so Expenses, the bills list and the reports all agree.
+   - An "Add bill" action on the Finance page for vendor bills that did not start as an expense.
+3. **Paid needs proof of payment.** Choosing Paid without payments covering the total is refused on save with: "Add payment details before marking this invoice as paid. Recorded payments must cover the invoice total." Partial requires at least one payment. Status auto-follows payments as it does now.
+4. **Never lose payments on save.** Saving an invoice will no longer wipe payments when the form has none loaded; payments are only replaced when the payment list was actually loaded/edited. Payments stay visible (read-only) on paid invoices.
+5. **Clean up existing data.** Move Paid invoices with no payment records back to Open (only those with zero payments; nothing else is touched).
+6. **One definition per number.**
+   - Receivables everywhere = outstanding balance (total minus payments) of billable, unpaid invoices.
+   - Payables everywhere = the bills list, with real due dates driving "overdue".
+7. **Reports agree with each other.** Expense reports show paid vs unpaid consistently, the bills total matches the Finance page, and profit/loss keeps counting each expense once. Profit/loss cards get a short note that they are invoice-based while money in/out is cash-based, so the totals are not meant to match.
+8. **Make recording money in obvious.** A "Record payment" action on the invoice list and detail for open and partial invoices.
 
 ## Technical notes
 
-- `src/utils/invoice-calculations.ts`: add a shared outstanding-balance helper; `calculateTotalReceivables` / `calculateOverdueAmount` switch from `total` to `balanceDue`.
-- `src/pages/Finance.tsx`: drop the local receivables math, use the shared helpers; add payable creation.
-- `src/pages/reports/FinancialReport.tsx`: receivables/payables from the same sources as Finance; overdue by due date.
+- `src/components/AppSidebar.tsx`: add the Finance nav item behind the existing permission guard.
+- `src/utils/invoice-calculations.ts`: shared outstanding-balance helper; `calculateTotalReceivables` / `calculateOverdueAmount` switch from `total` to `balanceDue`.
+- `src/pages/Finance.tsx`: use the shared helpers for receivables; bill list with partial-payment support, add-bill dialog, paid history.
+- `src/components/payable/PayableDialog.tsx`: support partial payments (`paid_amount` accumulation, status `pending` vs `paid`) and keep method/date/notes.
+- `src/context/data/hooks/usePayables.ts`: on payment, accumulate `paid_amount`, set status accordingly, and update the linked expense (`payment_status`, `payment_method`) — the DB trigger already handles expense to payable in the other direction.
+- `src/components/part/PartDialog.tsx`: create the purchase expense without a payment method while unpaid, and create it even when no vendor is selected.
+- `src/pages/reports/FinancialReport.tsx`: payables from the bills list, overdue by due date; receivables by balance.
 - `src/components/InvoiceForm.tsx` + `src/components/invoice/InvoiceDetailsFields.tsx`: status validation before submit with the failure message above.
-- `src/services/optimized-invoice-service.ts` / `smart-invoice-service.ts`: only call `replaceInvoicePayments` when a payment list was provided and loaded; guard against the empty-array wipe.
-- `src/context/data/hooks/usePayables.ts`: on mark-as-paid, also set the linked expense `payment_status` to paid.
-- Data fix: one update statement setting the affected Paid invoices (zero payment rows) to `open`; no schema change.
-- Verification: typecheck, then re-run the paid-without-payment query to confirm zero rows remain.
+- `src/services/optimized-invoice-service.ts` / `smart-invoice-service.ts`: only call `replaceInvoicePayments` when a payment list was actually loaded; guard against the empty-array wipe.
+- Migration only if needed for a nullable `payment_method` on expenses; otherwise no schema change. Data fix: set Paid invoices with zero payment rows back to `open`.
+- Verification: typecheck, re-run the paid-without-payment query, and re-check bill/expense status agreement in the database.
+
