@@ -14,6 +14,8 @@ import PaymentSuccess from '@/pages/PaymentSuccess';
 import PaymentCanceled from '@/pages/PaymentCanceled';
 import PrivateRoute from '@/components/PrivateRoute';
 import PublicRoute from '@/components/PublicRoute';
+import { PagePermissionGuard } from '@/components/PagePermissionGuard';
+
 import { AuthProvider } from '@/context/AuthContext';
 import { DataProvider } from '@/context/data/DataContext';
 
