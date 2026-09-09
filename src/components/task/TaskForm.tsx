@@ -58,7 +58,7 @@ interface TaskFormProps {
 }
 
 const TaskForm = ({ defaultValues, onSubmit, formId, task }: TaskFormProps) => {
-  const [technicians, setMechanics] = useState<any[]>([]);
+  const [mechanics, setMechanics] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [invoices, setInvoices] = useState<any[]>([]);
@@ -67,7 +67,7 @@ const TaskForm = ({ defaultValues, onSubmit, formId, task }: TaskFormProps) => {
   const [mechanicsError, setMechanicsError] = useState<string | null>(null);
   
   const {
-    technicians: technicians_, customers: customers_, invoices: invoices_,
+    mechanics: mechanics_, customers: customers_, invoices: invoices_,
     getVehiclesByCustomerId, loadMechanics,
   } = useDataContext();
   const [selectedCustomer, setSelectedCustomer] = useState<string>("");
@@ -85,7 +85,7 @@ const TaskForm = ({ defaultValues, onSubmit, formId, task }: TaskFormProps) => {
       taskType: "internal",
       billingType: "hourly",
       vehicleId: "",
-      mechanicId: "",
+      technicianId: "",
       invoiceId: "",
       hoursEstimated: 0,
       hoursSpent: 0,
@@ -102,13 +102,13 @@ const TaskForm = ({ defaultValues, onSubmit, formId, task }: TaskFormProps) => {
         setIsLoadingMechanics(true);
         setMechanicsError(null);
         
-        // Ensure technicians are loaded if they're empty
-        if (technicians_.length === 0) {
+        // Ensure mechanics are loaded if they're empty
+        if (mechanics_.length === 0) {
           console.log("Loading technicians in TaskForm...");
           await loadMechanics();
         }
         
-        setMechanics(technicians_);
+        setMechanics(mechanics_);
         setCustomers(customers_);
         setInvoices(invoices_);
         
@@ -119,7 +119,7 @@ const TaskForm = ({ defaultValues, onSubmit, formId, task }: TaskFormProps) => {
         setActiveInvoices(activeInvoicesList);
         
         console.log("TaskForm data loaded:", {
-          technicians: technicians_.length,
+          mechanics: mechanics_.length,
           customers: customers_.length,
           invoices: invoices_.length,
           activeInvoices: activeInvoicesList.length
@@ -127,14 +127,14 @@ const TaskForm = ({ defaultValues, onSubmit, formId, task }: TaskFormProps) => {
         
       } catch (error) {
         console.error("Error loading TaskForm data:", error);
-        setMechanicsError("Failed to load technicians");
+        setMechanicsError("Failed to load mechanics");
       } finally {
         setIsLoadingMechanics(false);
       }
     };
 
     loadData();
-  }, [technicians_, customers_, invoices_, loadMechanics]);
+  }, [mechanics_, customers_, invoices_, loadMechanics]);
 
   useEffect(() => {
     const loadVehicles = async () => {
@@ -354,7 +354,7 @@ const TaskForm = ({ defaultValues, onSubmit, formId, task }: TaskFormProps) => {
             name="mechanicId"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Assigned Mechanic</FormLabel>
+                <FormLabel>Assigned Technician</FormLabel>
                 <Select onValueChange={field.onChange} value={field.value} disabled={isLoadingMechanics}>
                   <FormControl>
                     <SelectTrigger>
@@ -364,7 +364,7 @@ const TaskForm = ({ defaultValues, onSubmit, formId, task }: TaskFormProps) => {
                             ? "Loading technicians..." 
                             : mechanicsError 
                             ? "Error loading technicians" 
-                            : technicians.length === 0 
+                            : mechanics.length === 0 
                             ? "No technicians available" 
                             : "Select technician"
                         } 
@@ -373,18 +373,18 @@ const TaskForm = ({ defaultValues, onSubmit, formId, task }: TaskFormProps) => {
                   </FormControl>
                   <SelectContent>
                     <SelectItem value="unassigned">None</SelectItem>
-                    {technicians.length === 0 && !isLoadingMechanics && !mechanicsError && (
+                    {mechanics.length === 0 && !isLoadingMechanics && !mechanicsError && (
                       <SelectItem value="no-technicians" disabled>No technicians available</SelectItem>
                     )}
-                    {technicians.map((technician) => (
+                    {mechanics.map((mechanic) => (
                       <SelectItem key={technician.id} value={technician.id}>
-                        {technician.name}
+                        {mechanic.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
                 {mechanicsError && (
-                  <p className="text-sm text-red-600">{mechanicsError}</p>
+                  <p className="text-sm text-red-600">{techniciansError}</p>
                 )}
                 <FormMessage />
               </FormItem>

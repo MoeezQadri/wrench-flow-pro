@@ -19,7 +19,7 @@ import { Attendance } from '@/types';
 import { useDataContext } from '@/context/data/DataContext';
 
 const checkInSchema = z.object({
-  mechanicId: z.string().min(1, { message: "Mechanic is required" }),
+  technicianId: z.string().min(1, { message: "Technician is required" }),
   date: z.string().min(1, { message: "Date is required" }),
   checkIn: z.string().min(1, { message: "Check-in time is required" }),
   status: z.enum(["pending", "approved", "rejected", "present", "late", "absent", "half-day"]).default('pending'),
@@ -33,12 +33,12 @@ interface CheckInFormProps {
 }
 
 const CheckInForm: React.FC<CheckInFormProps> = ({ onSubmit }) => {
-  const { technicians } = useDataContext();
+  const { mechanics } = useDataContext();
 
   const form = useForm<CheckInFormValues>({
     resolver: zodResolver(checkInSchema),
     defaultValues: {
-      mechanicId: "",
+      technicianId: "",
       date: new Date().toISOString().slice(0, 10),
       checkIn: new Date().toTimeString().slice(0, 5), // Current time as HH:MM
       status: "pending",
@@ -49,7 +49,7 @@ const CheckInForm: React.FC<CheckInFormProps> = ({ onSubmit }) => {
   const handleSubmit = async (data: CheckInFormValues) => {
     console.log("CheckInForm handleSubmit called with data:", data);
     
-    // Validate that we have a technician selected
+    // Validate that we have a mechanic selected
     if (!data.mechanicId) {
       toast.error("Please select a technician");
       return;
@@ -90,7 +90,7 @@ const CheckInForm: React.FC<CheckInFormProps> = ({ onSubmit }) => {
           name="mechanicId"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Mechanic</FormLabel>
+              <FormLabel>Technician</FormLabel>
               <Select
                 onValueChange={field.onChange}
                 defaultValue={field.value}
@@ -101,9 +101,9 @@ const CheckInForm: React.FC<CheckInFormProps> = ({ onSubmit }) => {
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {technicians.map((technician) => (
+                  {mechanics.map((mechanic) => (
                     <SelectItem key={technician.id} value={technician.id}>
-                      {technician.name}
+                      {mechanic.name}
                     </SelectItem>
                   ))}
                 </SelectContent>

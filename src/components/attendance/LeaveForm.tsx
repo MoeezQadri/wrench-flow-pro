@@ -27,7 +27,7 @@ interface LeaveFormProps {
 }
 
 const LeaveForm: React.FC<LeaveFormProps> = ({ onSubmit }) => {
-  const { technicians } = useDataContext();
+  const { mechanics } = useDataContext();
   const today = new Date().toISOString().slice(0, 10);
 
   const [mechanicId, setMechanicId] = useState('');
@@ -69,15 +69,15 @@ const LeaveForm: React.FC<LeaveFormProps> = ({ onSubmit }) => {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <Label>Mechanic *</Label>
+        <Label>Technician *</Label>
         <Select value={mechanicId} onValueChange={setMechanicId}>
           <SelectTrigger>
             <SelectValue placeholder={technicians.length === 0 ? 'No technicians available' : 'Select a technician'} />
           </SelectTrigger>
           <SelectContent>
-            {technicians.map((technician) => (
+            {mechanics.map((mechanic) => (
               <SelectItem key={technician.id} value={technician.id}>
-                {technician.name}
+                {mechanic.name}
               </SelectItem>
             ))}
           </SelectContent>

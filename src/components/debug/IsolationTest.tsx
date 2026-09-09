@@ -66,7 +66,7 @@ export const IsolationTest: React.FC = () => {
                 <div>Vehicles: {testResults.dataAccess.vehicles}</div>
                 <div>Parts: {testResults.dataAccess.parts}</div>
                 <div>Tasks: {testResults.dataAccess.tasks}</div>
-                <div>Mechanics: {testResults.dataAccess.technicians}</div>
+                <div>Mechanics: {testResults.dataAccess.mechanics}</div>
                 <div>Expenses: {testResults.dataAccess.expenses}</div>
                 <div>Payments: {testResults.dataAccess.payments}</div>
                 <div>Vendors: {testResults.dataAccess.vendors}</div>

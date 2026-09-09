@@ -35,11 +35,11 @@ export function getVehicleInfo(vehicle: Vehicle | Promise<Vehicle | null> | null
   return `${vehicle.make} ${vehicle.model} (${vehicle.year})`;
 }
 
-// Function to safely get technician name from technician object or promise
-export function getMechanicName(technician: Mechanic | Promise<Mechanic | null> | null): string {
-  if (!technician) return 'Unassigned';
-  if (technician instanceof Promise) return 'Loading...';
-  return technician.name || 'Unnamed Mechanic';
+// Function to safely get mechanic name from mechanic object or promise
+export function getMechanicName(mechanic: Mechanic | Promise<Mechanic | null> | null): string {
+  if (!mechanic) return 'Unassigned';
+  if (mechanic instanceof Promise) return 'Loading...';
+  return mechanic.name || 'Unnamed Mechanic';
 }
 
 // Function to format date strings consistently

@@ -6,7 +6,7 @@ import { Task, Mechanic } from "@/types";
 import { Clock, AlertTriangle, CheckCircle } from "lucide-react";
 
 interface MechanicPerformanceProps {
-  technician: Mechanic;
+  mechanic: Mechanic;
   tasks: Task[];
 }
 
@@ -21,11 +21,11 @@ interface PerformanceMetrics {
   recentTasks: Task[];
 }
 
-const MechanicPerformance: React.FC<MechanicPerformanceProps> = ({ technician, tasks }) => {
+const MechanicPerformance: React.FC<MechanicPerformanceProps> = ({ mechanic, tasks }) => {
   // Calculate performance metrics
   const calculatePerformanceMetrics = (): PerformanceMetrics => {
-    // Filter tasks for this technician
-    const mechanicTasks = tasks.filter(task => task.mechanicId === technician.id);
+    // Filter tasks for this mechanic
+    const mechanicTasks = tasks.filter(task => task.mechanicId === mechanic.id);
     const completedTasks = mechanicTasks.filter(task => task.status === 'completed');
     
     // Task completion rate

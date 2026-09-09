@@ -4,20 +4,20 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, CalendarDays } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import MechanicPerformance from "@/components/technician/MechanicPerformance";
+import MechanicPerformance from "@/components/mechanic/MechanicPerformance";
 import { useDataContext } from "@/context/data/DataContext";
 
 const MechanicPerformancePage = () => {
   const { mechanicId } = useParams<{ mechanicId: string }>();
   const navigate = useNavigate();
-  const { technicians, tasks } = useDataContext();
+  const { mechanics, tasks } = useDataContext();
 
-  const technician = technicians.find(m => m.id === mechanicId);
+  const mechanic = mechanics.find(m => m.id === mechanicId);
 
-  if (!technician) {
+  if (!mechanic) {
     return (
       <div className="flex flex-col items-center justify-center h-64">
-        <h1 className="text-2xl font-bold mb-4">Mechanic Not Found</h1>
+        <h1 className="text-2xl font-bold mb-4">Technician Not Found</h1>
         <Button onClick={() => navigate('/mechanics')}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Mechanics
@@ -26,7 +26,7 @@ const MechanicPerformancePage = () => {
     );
   }
 
-  const mechanicTasks = tasks.filter(task => task.mechanicId === technician.id);
+  const mechanicTasks = tasks.filter(task => task.mechanicId === mechanic.id);
 
   return (
     <div className="space-y-6">
@@ -53,7 +53,7 @@ const MechanicPerformancePage = () => {
 
         <TabsContent value="metrics" className="py-4">
           <MechanicPerformance
-            technician={technician}
+            mechanic={mechanic}
             tasks={mechanicTasks}
           />
         </TabsContent>

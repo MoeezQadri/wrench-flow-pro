@@ -238,7 +238,7 @@ const MechanicForm = ({ defaultValues, onSubmit, formId }: MechanicFormProps) =>
               <div className="space-y-0.5">
                 <FormLabel>Active Status</FormLabel>
                 <div className="text-sm text-muted-foreground">
-                  Set whether the technician is currently active
+                  Set whether the mechanic is currently active
                 </div>
               </div>
               <FormControl>

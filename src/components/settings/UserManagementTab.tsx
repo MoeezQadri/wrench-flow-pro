@@ -29,7 +29,7 @@ const useAvailableRoles = () => {
     { value: 'admin', label: 'Admin', description: 'Can manage users and settings' },
     { value: 'manager', label: 'Manager', description: 'Can manage operations and view reports' },
     { value: 'foreman', label: 'Foreman', description: 'Can manage workshop operations' },
-    { value: 'mechanic', label: 'Mechanic', description: 'Basic access to workshop tools' },
+    { value: 'mechanic', label: 'Technician', description: 'Basic access to workshop tools' },
     { value: 'member', label: 'Member', description: 'Basic access to core features' },
   ];
 

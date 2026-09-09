@@ -9,7 +9,7 @@ import { useAuthContext } from '@/context/AuthContext';
 
 interface AttendanceListItemProps {
   record: Attendance;
-  technician: Mechanic | undefined;
+  mechanic: Mechanic | undefined;
   mechanicsLoaded?: boolean;
   onApprove: (id: string) => void;
   onReject: (id: string) => void;
@@ -18,7 +18,7 @@ interface AttendanceListItemProps {
 
 const AttendanceListItem: React.FC<AttendanceListItemProps> = ({
   record,
-  technician,
+  mechanic,
   mechanicsLoaded = true,
   onApprove,
   onReject,
@@ -33,8 +33,8 @@ const AttendanceListItem: React.FC<AttendanceListItemProps> = ({
                     currentUser?.role === 'manager' || 
                     currentUser?.role === 'foreman';
 
-  const mechanicLabel = technician?.name
-    ?? (mechanicsLoaded ? 'Unknown Mechanic' : 'Loading technician...');
+  const mechanicLabel = mechanic?.name
+    ?? (techniciansLoaded ? 'Unknown Technician' : 'Loading technician...');
 
   const leaveTypeLabel = (type?: string) => {
     switch (type) {

@@ -97,7 +97,7 @@ const PermissionTest = () => {
                   { name: 'Customers', resource: 'customers' },
                   { name: 'Vehicles', resource: 'vehicles' },
                   { name: 'Tasks', resource: 'tasks' },
-                  { name: 'Mechanics', resource: 'mechanics' },
+                  { name: 'Technicians', resource: 'mechanics' },
                   { name: 'Attendance', resource: 'attendance' },
                   { name: 'Parts', resource: 'parts' },
                   { name: 'Expenses', resource: 'expenses' },

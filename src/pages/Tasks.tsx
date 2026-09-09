@@ -33,7 +33,7 @@ const Tasks = () => {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const {
     tasks,
-    technicians,
+    mechanics,
     getMechanicById,
     getInvoiceById,
     getVehicleById,
@@ -60,7 +60,7 @@ const Tasks = () => {
     console.log('Filtering tasks...');
     let filtered = tasksList;
 
-    // Filter by technician for technician users
+    // Filter by mechanic for mechanic users
     if (currentUser?.role === 'mechanic' && currentUser?.mechanicId) {
       filtered = filtered.filter(task => task.mechanicId === currentUser?.mechanicId);
     }
@@ -78,7 +78,7 @@ const Tasks = () => {
       filtered = filtered.filter(task => task.status === statusFilter);
     }
 
-    // Apply technician filter if not set to 'all'
+    // Apply mechanic filter if not set to 'all'
     if (mechanicFilter !== 'all') {
       filtered = filtered.filter(task => task.mechanicId === mechanicFilter);
     }
@@ -265,7 +265,7 @@ const Tasks = () => {
   // Prefetch data for displaying in the table
   useEffect(() => {
     const prefetchData = async () => {
-      // Prefetch technician data
+      // Prefetch mechanic data
       for (const task of tasksList) {
         if (task.mechanicId && !mechanicInfoCache[task.mechanicId]) {
           const resp = getMechanicById(task.mechanicId);
@@ -381,13 +381,13 @@ const Tasks = () => {
         {shouldShowAssignmentColumn && (
           <Select value={mechanicFilter} onValueChange={setMechanicFilter}>
             <SelectTrigger>
-              <SelectValue placeholder="Mechanic" />
+              <SelectValue placeholder="Technician" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Mechanics</SelectItem>
-              {technicians.map(technician => (
+              <SelectItem value="all">All Technicians</SelectItem>
+              {mechanics.map(mechanic => (
                 <SelectItem key={technician.id} value={technician.id}>
-                  {technician.name}
+                  {mechanic.name}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -413,7 +413,7 @@ const Tasks = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Task</TableHead>
-                <TableHead>Mechanic</TableHead>
+                <TableHead>Technician</TableHead>
                 <TableHead>Status</TableHead>
                 
                 <TableHead>Est. Hours</TableHead>
@@ -425,7 +425,7 @@ const Tasks = () => {
             </TableHeader>
             <TableBody>
               {filteredTasks.map((task) => {
-                const technician = mechanicInfoCache[task.mechanicId || ""] || null;
+                const mechanic = mechanicInfoCache[task.mechanicId || ""] || null;
                 const vehicleInfo = task.vehicleId ? vehicleInfoCache[task.vehicleId] : null;
                 const invoiceInfo = task.invoiceId ? invoiceInfoCache[task.invoiceId] : null;
 
@@ -435,7 +435,7 @@ const Tasks = () => {
                       <div>{task.title}</div>
                       <div className="text-xs text-muted-foreground">{task.description.substring(0, 60)}{task.description.length > 60 ? '...' : ''}</div>
                     </TableCell>
-                    <TableCell>{technician?.name || "Unknown"}</TableCell>
+                    <TableCell>{mechanic?.name || "Unknown"}</TableCell>
                     <TableCell>
                       <span
                         className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${getStatusBadgeClass(task.status)}`}
@@ -515,7 +515,7 @@ const Tasks = () => {
                           </Button>
                         )}
 
-                        {/* Time tracking button for technicians */}
+                        {/* Time tracking button for mechanics */}
                         {currentUser?.role === 'mechanic' && currentUser?.mechanicId === task.mechanicId && task.status !== 'completed' && (
                           <Button
                             variant="outline"

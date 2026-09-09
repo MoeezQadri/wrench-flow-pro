@@ -17,7 +17,7 @@ const AttendanceReport = () => {
   const hasLoadedAttendance = useRef(false);
   const {
     attendanceRecords,
-    technicians,
+    mechanics,
     loadAttendance,
     attendanceLoading
   } = useDataContext();
@@ -88,7 +88,7 @@ const AttendanceReport = () => {
 
   const handleExportAttendance = () => {
     const exportData = filteredAttendance.map(record => {
-      const technician = technicians.find(m => m.id === record.mechanic_id);
+      const mechanic = mechanics.find(m => m.id === record.mechanic_id);
       const hoursWorked = calculateHoursWorked(record.check_in, record.check_out || "");
       
       let statusDisplay = "Present";
@@ -101,7 +101,7 @@ const AttendanceReport = () => {
       }
 
       return {
-        technician: technician?.name || "Unknown",
+        mechanic: mechanic?.name || "Unknown",
         date: record.date,
         check_in: record.check_in || "N/A",
         check_out: record.check_out || "N/A",
@@ -205,7 +205,7 @@ const AttendanceReport = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Mechanic</TableHead>
+                <TableHead>Technician</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Clock In</TableHead>
                 <TableHead>Clock Out</TableHead>
@@ -222,7 +222,7 @@ const AttendanceReport = () => {
                 </TableRow>
               ) : (
                 filteredAttendance.map((record) => {
-                  const technician = technicians.find(m => m.id === record.mechanic_id);
+                  const mechanic = mechanics.find(m => m.id === record.mechanic_id);
                   const hoursWorked = calculateHoursWorked(record.check_in, record.check_out || "");
 
                   // Derive status display from record
@@ -242,7 +242,7 @@ const AttendanceReport = () => {
 
                   return (
                     <TableRow key={record.id}>
-                      <TableCell className="font-medium">{technician?.name || "Unknown"}</TableCell>
+                      <TableCell className="font-medium">{mechanic?.name || "Unknown"}</TableCell>
                       <TableCell>{record.date}</TableCell>
                       <TableCell>{record.check_in || "N/A"}</TableCell>
                       <TableCell>{record.check_out || "N/A"}</TableCell>

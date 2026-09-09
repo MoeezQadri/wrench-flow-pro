@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { useOrganizationAwareQuery } from '@/hooks/useOrganizationAwareQuery';
 
 export const useMechanics = () => {
-    const [technicians, setMechanics] = useState<Mechanic[]>([]);
+    const [mechanics, setMechanics] = useState<Mechanic[]>([]);
     const { applyOrganizationFilter } = useOrganizationAwareQuery();
 
     const generateUUID = () => crypto.randomUUID();
@@ -19,23 +19,23 @@ export const useMechanics = () => {
             updated_at: new Date().toISOString()
         };
 
-        console.log('Adding technician:', newMechanic);
+        console.log('Adding mechanic:', newMechanic);
         try {
             const { data, error } = await supabase.from('mechanics').insert(newMechanic as any).select();
             if (error) {
-                console.error('Error adding technician:', error);
+                console.error('Error adding mechanic:', error);
                 toast.error('Failed to add technician');
                 throw error;
             }
             if (data && data.length > 0) {
                 const result = data[0] as Mechanic;
                 setMechanics((prev) => [...prev, result]);
-                toast.success('Mechanic added successfully');
+                toast.success('Technician added successfully');
                 return result;
             }
             throw new Error('Failed to add technician');
         } catch (error) {
-            console.error('Error adding technician:', error);
+            console.error('Error adding mechanic:', error);
             toast.error('Failed to add technician');
             throw error;
         }
@@ -45,14 +45,14 @@ export const useMechanics = () => {
         try {
             const { error } = await supabase.from('mechanics').delete().eq('id', id);
             if (error) {
-                console.error('Error removing technician:', error);
+                console.error('Error removing mechanic:', error);
                 toast.error('Failed to delete technician');
                 throw error;
             }
             setMechanics((prev) => prev.filter((item) => item.id !== id));
-            toast.success('Mechanic deleted successfully');
+            toast.success('Technician deleted successfully');
         } catch (error) {
-            console.error('Error removing technician:', error);
+            console.error('Error removing mechanic:', error);
             toast.error('Failed to delete technician');
             throw error;
         }
@@ -64,7 +64,7 @@ export const useMechanics = () => {
             updated_at: new Date().toISOString()
         };
 
-        console.log('Updating technician:', { id, updatedData });
+        console.log('Updating mechanic:', { id, updatedData });
         try {
             const { data, error } = await supabase
                 .from('mechanics')
@@ -73,7 +73,7 @@ export const useMechanics = () => {
                 .select();
 
             if (error) {
-                console.error('Error updating technician:', error);
+                console.error('Error updating mechanic:', error);
                 toast.error('Failed to update technician');
                 throw error;
             }
@@ -84,7 +84,7 @@ export const useMechanics = () => {
                 result = data[0] as Mechanic;
             } else {
                 // Fallback when RLS prevents returning rows: optimistically update local state
-                const existing = technicians.find((m) => m.id === id);
+                const existing = mechanics.find((m) => m.id === id);
                 if (existing) {
                     result = { ...existing, ...updatedData, id } as Mechanic;
                 }
@@ -92,38 +92,38 @@ export const useMechanics = () => {
 
             if (result) {
                 setMechanics((prev) => prev.map((item) => item.id === id ? result as Mechanic : item));
-                toast.success('Mechanic updated successfully');
+                toast.success('Technician updated successfully');
                 return result;
             }
             throw new Error('Failed to update technician');
         } catch (error) {
-            console.error('Error updating technician:', error);
+            console.error('Error updating mechanic:', error);
             toast.error('Failed to update technician');
             throw error;
         }
     };
 
-    const getMechanicById = (id: string) => technicians.find(technician => technician.id === id) || null;
+    const getMechanicById = (id: string) => mechanics.find(mechanic => mechanic.id === id) || null;
 
     const loadMechanics = async () => {
         try {
             const baseQuery = supabase.from('mechanics').select('*');
             const filteredQuery = applyOrganizationFilter(baseQuery);
-            const { data: techniciansData, error: mechanicsError } = await filteredQuery;
+            const { data: mechanicsData, error: mechanicsError } = await filteredQuery;
             if (mechanicsError) {
-                console.error('Error fetching technicians:', mechanicsError);
+                console.error('Error fetching mechanics:', mechanicsError);
                 toast.error('Failed to load technicians');
                 return;
             }
-            setMechanics(techniciansData ?? []);
+            setMechanics(mechanicsData ?? []);
         } catch (error) {
-            console.error('Error fetching technicians:', error);
+            console.error('Error fetching mechanics:', error);
             toast.error('Failed to load technicians');
         }
     };
 
     return {
-        technicians,
+        mechanics,
         setMechanics,
         addMechanic,
         removeMechanic,

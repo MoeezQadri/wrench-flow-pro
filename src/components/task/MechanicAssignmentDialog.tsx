@@ -26,7 +26,7 @@ const MechanicAssignmentDialog: React.FC<MechanicAssignmentDialogProps> = ({
 }) => {
   const [selectedMechanicId, setSelectedMechanicId] = useState(currentMechanicId || "");
   const [isAssigning, setIsAssigning] = useState(false);
-  const { technicians } = useDataContext();
+  const { mechanics } = useDataContext();
 
   useEffect(() => {
     setSelectedMechanicId(currentMechanicId || "");
@@ -42,7 +42,7 @@ const MechanicAssignmentDialog: React.FC<MechanicAssignmentDialogProps> = ({
     
     try {
       await assignMechanicToInvoiceTask(taskId, selectedMechanicId);
-      toast.success("Mechanic assigned successfully");
+      toast.success("Technician assigned successfully");
       
       if (onAssignmentComplete) {
         onAssignmentComplete();
@@ -50,15 +50,15 @@ const MechanicAssignmentDialog: React.FC<MechanicAssignmentDialogProps> = ({
       
       onOpenChange(false);
     } catch (error) {
-      console.error("Error assigning technician:", error);
+      console.error("Error assigning mechanic:", error);
       toast.error("Failed to assign technician. Please try again.");
     } finally {
       setIsAssigning(false);
     }
   };
 
-  const availableMechanics = technicians.filter(technician => technician.is_active);
-  const selectedMechanic = technicians.find(m => m.id === selectedMechanicId);
+  const availableMechanics = mechanics.filter(mechanic => mechanic.is_active);
+  const selectedMechanic = mechanics.find(m => m.id === selectedMechanicId);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -66,10 +66,10 @@ const MechanicAssignmentDialog: React.FC<MechanicAssignmentDialogProps> = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <UserPlus className="h-5 w-5" />
-            Assign Mechanic to Task
+            Assign Technician to Task
           </DialogTitle>
           <DialogDescription>
-            Select a technician to assign to: {taskTitle}
+            Select a mechanic to assign to: {taskTitle}
           </DialogDescription>
         </DialogHeader>
         
@@ -80,12 +80,12 @@ const MechanicAssignmentDialog: React.FC<MechanicAssignmentDialogProps> = ({
                 <SelectValue placeholder="Select a technician" />
               </SelectTrigger>
               <SelectContent>
-                {availableMechanics.map((technician) => (
+                {availableMechanics.map((mechanic) => (
                   <SelectItem key={technician.id} value={technician.id}>
-                    {technician.name}
-                    {technician.specialization && (
+                    {mechanic.name}
+                    {mechanic.specialization && (
                       <span className="text-xs text-muted-foreground ml-1">
-                        ({technician.specialization})
+                        ({mechanic.specialization})
                       </span>
                     )}
                   </SelectItem>
@@ -96,9 +96,9 @@ const MechanicAssignmentDialog: React.FC<MechanicAssignmentDialogProps> = ({
 
           {selectedMechanic && (
             <div className="text-xs text-muted-foreground space-y-1">
-              <p>Selected: {selectedMechanic.name}</p>
+              <p>Selected: {selectedTechnician.name}</p>
               {selectedMechanic.specialization && (
-                <p>Specialization: {selectedMechanic.specialization}</p>
+                <p>Specialization: {selectedTechnician.specialization}</p>
               )}
             </div>
           )}
@@ -116,7 +116,7 @@ const MechanicAssignmentDialog: React.FC<MechanicAssignmentDialogProps> = ({
               disabled={isAssigning || !selectedMechanicId || (currentMechanicId && selectedMechanicId === currentMechanicId)}
               className="flex-1"
             >
-              {isAssigning ? "Assigning..." : currentMechanicId ? "Update Assignment" : "Assign Mechanic"}
+              {isAssigning ? "Assigning..." : currentTechnicianId ? "Update Assignment" : "Assign Technician"}
             </Button>
           </div>
         </div>

@@ -79,7 +79,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
   const [laborHoursEstimated, setLaborHoursEstimated] = useState<number>(1);
   const [laborHoursSpent, setLaborHoursSpent] = useState<number>(0);
 
-  const { technicians, vendors } = useDataContext();
+  const { mechanics, vendors } = useDataContext();
   const { getCurrencySymbol, formatCurrency } = useOrganizationSettings();
 
 
@@ -88,12 +88,12 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
     console.log('InvoiceItemForm debug:', {
       availableParts: availableParts?.length || 0,
       availableTasks: availableTasks?.length || 0,
-      technicians: technicians?.length || 0,
+      mechanics: mechanics?.length || 0,
       partsPreview: availableParts?.slice(0, 2),
       tasksPreview: availableTasks?.slice(0, 2),
-      techniciansPreview: technicians?.slice(0, 2)
+      mechanicsPreview: mechanics?.slice(0, 2)
     });
-  }, [availableParts, availableTasks, technicians]);
+  }, [availableParts, availableTasks, mechanics]);
 
   // Reset form when dialog opens/closes
   useEffect(() => {
@@ -657,7 +657,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
                   </Select>
                   <p className="text-xs text-muted-foreground mt-1">
                     {laborBillingType === 'lumpsum'
-                      ? 'A single flat fee is charged. Mechanic hours are still tracked on the task.'
+                      ? 'A single flat fee is charged. Technician hours are still tracked on the task.'
                       : 'Charged per hour based on quantity.'}
                   </p>
                 </div>
@@ -676,7 +676,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-muted p-4 rounded-lg">
                 <div>
-                  <Label>Assigned Mechanic</Label>
+                  <Label>Assigned Technician</Label>
                   <Select
                     value={laborMechanicId}
                     onValueChange={(value) => {
@@ -691,15 +691,15 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="unassigned">Unassigned</SelectItem>
-                      {(technicians || []).map((technician) => (
+                      {(mechanics || []).map((mechanic) => (
                         <SelectItem key={technician.id} value={technician.id}>
-                          {technician.name}
+                          {mechanic.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground mt-1">
-                    The task appears in Tasks for this technician.
+                    The task appears in Tasks for this mechanic.
                   </p>
                 </div>
                 <div>
