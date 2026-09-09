@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Plus } from 'lucide-react';
 import PageWrapper from '@/components/PageWrapper';
 import { Button } from '@/components/ui/button';
@@ -16,8 +16,17 @@ import { hasPermission } from '@/utils/permissions';
 const Vendors: React.FC = () => {
   const [showVendorDialog, setShowVendorDialog] = useState(false);
   const [selectedVendor, setSelectedVendor] = useState<Vendor | undefined>();
-  const { vendors, refreshAllData } = useDataContext();
+  const { vendors, refreshAllData, loadVendors, loadPayables, loadParts } = useDataContext();
   const { currentUser } = useAuthContext();
+
+  // Vendors, their bills and the parts those bills cover are fetched when the
+  // screen opens, so it no longer depends on visiting the Parts page first.
+  useEffect(() => {
+    loadVendors();
+    loadPayables();
+    loadParts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const canCreate = hasPermission(currentUser, 'vendors', 'create');
 
