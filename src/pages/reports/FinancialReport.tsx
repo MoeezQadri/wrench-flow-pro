@@ -335,9 +335,10 @@ const FinancialReport = () => {
             )}
             {overduePayables.length > 0 && (
               <div className="p-3 bg-red-50 rounded-lg">
-                <h4 className="font-medium text-red-800">Aging Payables</h4>
+                <h4 className="font-medium text-red-800">Overdue Payables</h4>
                 <p className="text-sm text-red-600">
-                  {overduePayables.length} expense{overduePayables.length !== 1 ? 's' : ''} over 30 days old totaling {formatCurrency(overduePayables.reduce((sum, exp) => sum + exp.amount, 0))}
+                  {overduePayables.length} bill{overduePayables.length !== 1 ? 's' : ''} past the due date totaling {formatCurrency(overduePayables.reduce((sum, p) => sum + payableOutstanding(p), 0))}
+
                 </p>
               </div>
             )}
