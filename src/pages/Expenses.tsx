@@ -107,23 +107,33 @@ const Expenses = () => {
   const totalWorkshop = workshopExpenses.reduce((total, expense) => total + expense.amount, 0);
   const totalInvoice = invoiceExpenses.reduce((total, expense) => total + expense.amount, 0);
 
-  // Get payment method icon
-  const getPaymentMethodIcon = (method: 'cash' | 'card' | 'bank-transfer' | 'check' | 'other') => {
-    switch (method) {
-      case 'cash':
-        return <Banknote className="h-4 w-4 text-yellow-500" />;
-      case 'card':
-        return <CreditCard className="h-4 w-4 text-blue-500" />;
-      case 'bank-transfer':
-        return <Building className="h-4 w-4 text-green-500" />;
-      case 'check':
-        return <CheckSquare className="h-4 w-4 text-purple-500" />;
-      case 'other':
-        return <MoreHorizontal className="h-4 w-4 text-gray-500" />;
-      default:
-        return <MoreHorizontal className="h-4 w-4 text-gray-500" />;
+  // Payment status of an expense, derived from its linked bill
+  const getPaymentInfo = (expense: Expense) => {
+    const bill = payables.find(p => p.expense_id === expense.id);
+    const total = bill?.amount ?? expense.amount;
+    const paid = bill?.paid_amount ?? (expense.payment_status === 'paid' ? total : 0);
+    const outstanding = Math.max(0, total - paid);
+
+    if (outstanding <= 0.005 && total > 0) {
+      return {
+        label: 'Paid',
+        className: 'text-green-600',
+        detail: [
+          bill?.payment_method || expense.payment_method,
+          bill?.payment_date ? formatOrgDate(bill.payment_date, 'MMM dd, yyyy') : null,
+        ].filter(Boolean).join(' · '),
+      };
     }
+    if (paid > 0) {
+      return {
+        label: 'Partly paid',
+        className: 'text-amber-600',
+        detail: `${formatCurrency(paid)} paid · ${formatCurrency(outstanding)} left`,
+      };
+    }
+    return { label: 'Unpaid', className: 'text-red-600', detail: formatCurrency(outstanding) };
   };
+
 
   // Get expense type icon and label
   const getExpenseTypeInfo = (expense: Expense) => {
