@@ -160,8 +160,31 @@ const VendorList = ({ vendors, onEditVendor }: VendorListProps) => {
                               Active
                             </Badge>
                           )}
+                          <span className="ml-auto font-medium text-foreground">
+                            Owed: {formatCurrency(owedFor(vendor.id))}
+                          </span>
                         </div>
+
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="px-0"
+                          onClick={() =>
+                            setExpandedVendorId(expandedVendorId === vendor.id ? null : vendor.id)
+                          }
+                        >
+                          {expandedVendorId === vendor.id ? 'Hide bills' : 'View bills & pay'}
+                        </Button>
+
+                        {expandedVendorId === vendor.id && (
+                          <VendorBillsSection
+                            vendor={vendor}
+                            bills={billsFor(vendor.id)}
+                            onRefresh={loadPayables}
+                          />
+                        )}
                       </div>
+
                     </div>
                   </CardContent>
                 </Card>
