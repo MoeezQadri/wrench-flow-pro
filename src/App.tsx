@@ -14,6 +14,8 @@ import PaymentSuccess from '@/pages/PaymentSuccess';
 import PaymentCanceled from '@/pages/PaymentCanceled';
 import PrivateRoute from '@/components/PrivateRoute';
 import PublicRoute from '@/components/PublicRoute';
+import { PagePermissionGuard } from '@/components/PagePermissionGuard';
+
 import { AuthProvider } from '@/context/AuthContext';
 import { DataProvider } from '@/context/data/DataContext';
 
@@ -149,7 +151,15 @@ function App() {
                     <Route path="attendance" element={<Attendance />} />
                     <Route path="vehicles" element={<Vehicles />} />
                     <Route path="users" element={<Users />} />
-                    <Route path="finance" element={<Finance />} />
+                    <Route
+                      path="finance"
+                      element={
+                        <PagePermissionGuard resource="finance" action="view">
+                          <Finance />
+                        </PagePermissionGuard>
+                      }
+                    />
+
                   </Route>
                 </Route>
               </Route>

@@ -15,6 +15,8 @@ import {
   Building,
   LogOut,
   ChevronUp,
+  Wallet,
+
 } from 'lucide-react';
 import { useAuthContext } from '@/context/AuthContext';
 import { hasPermission } from '@/utils/permissions';
@@ -102,6 +104,14 @@ const navItems = [
     resource: 'expenses',
     action: 'view' as const,
   },
+  {
+    title: 'Finance',
+    href: '/finance',
+    icon: Wallet,
+    resource: 'finance',
+    action: 'view' as const,
+  },
+
   {
     title: 'Reports',
     href: '/reports',

@@ -19,14 +19,16 @@ import { Link } from 'react-router-dom';
 import { useDataContext } from '@/context/data/DataContext';
 import { DateRangePicker } from '@/components/dashboard/DateRangePicker';
 import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
-import { calculateInvoiceBreakdown, calculateTotalReceivables, calculateOverdueAmount } from '@/utils/invoice-calculations';
+import { calculateInvoiceBreakdown, calculateBalanceDue, calculateTotalReceivables, calculateOverdueAmount, getReceivableInvoices } from '@/utils/invoice-calculations';
 import { isNonBillable } from '@/utils/invoice-status';
+import type { Payable } from '@/types';
+
 import { exportToCSV } from '@/utils/csv-export';
 import { toast } from 'sonner';
 import { calendarDayDifference, formatOrgDate, isOrgDayWithinRange, orgToday, selectedCalendarDay, toOrgDateInputValue } from '@/utils/datetime';
 
 const FinancialReport = () => {
-  const { invoices, expenses, vendors } = useDataContext();
+  const { invoices, expenses, vendors, payables: payables_ } = useDataContext();
   const { formatCurrency } = useOrganizationSettings();
   const [dateRange, setDateRange] = useState({
     startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
@@ -53,9 +55,9 @@ const FinancialReport = () => {
     });
   };
 
-  // Calculate receivables (unpaid invoices) within date range; quotes are not debt.
+  // Receivables = outstanding balances of billable, unpaid invoices; quotes are not debt.
   const filteredInvoices = filterByDateRange(invoices, 'date');
-  const receivables = filteredInvoices.filter(inv => inv.status !== 'paid' && !isNonBillable(inv.status));
+  const receivables = getReceivableInvoices(filteredInvoices);
   const totalReceivables = calculateTotalReceivables(receivables);
 
   // Calculate overdue receivables
@@ -65,20 +67,30 @@ const FinancialReport = () => {
   });
   const overdueReceivablesAmount = calculateOverdueAmount(overdueReceivables);
 
-  // Calculate payables from expenses (unpaid expenses) within date range
+  // Payables = the bills list (same source as the Finance page), by outstanding amount
+  const payableOutstanding = (p: Payable) => Math.max(0, (p.amount || 0) - (p.paid_amount || 0));
+  const payables = payables_
+    .filter(p => p.status !== 'paid' && payableOutstanding(p) > 0)
+    .filter(p =>
+      isOrgDayWithinRange(
+        p.due_date || p.created_at || new Date().toISOString(),
+        appliedDateRange.startDate,
+        appliedDateRange.endDate
+      )
+    );
+  const totalPayables = payables.reduce((sum, p) => sum + payableOutstanding(p), 0);
+
+  // Overdue payables use the real due date
+  const overduePayables = payables.filter(
+    p => p.due_date && toOrgDateInputValue(p.due_date) < orgToday()
+  );
+
   const filteredExpenses = filterByDateRange(expenses, 'date');
-  const payables = filteredExpenses.filter(exp => exp.payment_status !== 'paid');
-  const totalPayables = payables.reduce((sum, exp) => sum + exp.amount, 0);
-
-  // Calculate overdue payables (expenses past 30 days)
-  const overduePayables = payables.filter(exp => {
-    return calendarDayDifference(orgToday(), toOrgDateInputValue(exp.date)) > 30;
-  });
-
   const netPosition = totalReceivables - totalPayables;
   const billableInvoices = filteredInvoices.filter(inv => !isNonBillable(inv.status));
   const partsCost = billableInvoices.reduce((sum, invoice) => sum + calculateInvoiceBreakdown(invoice).partsCost, 0);
   const grossProfit = billableInvoices.reduce((sum, invoice) => sum + calculateInvoiceBreakdown(invoice).grossProfit, 0);
+
 
   const handleDateRangeChange = (startDate: Date, endDate: Date) => {
     setDateRange({ startDate, endDate });
@@ -94,15 +106,20 @@ const FinancialReport = () => {
   };
 
   // Export functions
+  const vendorName = (vendorId?: string | null) =>
+    vendors.find(v => v.id === vendorId)?.name || 'N/A';
+
+  // Export functions
   const exportReceivables = () => {
     const exportData = receivables.map(invoice => ({
       'Invoice ID': invoice.id.slice(0, 8) + '...',
       'Customer ID': invoice.customer_id.slice(0, 8) + '...',
-      'Amount': calculateInvoiceBreakdown(invoice).total,
+      'Outstanding': calculateBalanceDue(invoice),
+      'Invoice Total': calculateInvoiceBreakdown(invoice).total,
       'Due Date': invoice.due_date ? formatOrgDate(invoice.due_date) : 'N/A',
       'Status': invoice.status,
-      'Days Overdue': invoice.due_date 
-        ? Math.max(0, Math.floor((new Date().getTime() - new Date(invoice.due_date).getTime()) / (1000 * 3600 * 24)))
+      'Days Overdue': invoice.due_date
+        ? Math.max(0, calendarDayDifference(orgToday(), toOrgDateInputValue(invoice.due_date)))
         : 0
     }));
     
@@ -111,18 +128,21 @@ const FinancialReport = () => {
   };
 
   const exportPayables = () => {
-    const exportData = payables.map(expense => ({
-      'Description': expense.description || 'N/A',
-      'Vendor': expense.vendor_name || 'N/A',
-      'Amount': expense.amount,
-      'Date': formatOrgDate(expense.date),
-      'Category': expense.category,
-      'Age (Days)': calendarDayDifference(orgToday(), toOrgDateInputValue(expense.date))
+    const exportData = payables.map(payable => ({
+      'Description': payable.description || 'N/A',
+      'Vendor': vendorName(payable.vendor_id),
+      'Outstanding': payableOutstanding(payable),
+      'Bill Amount': payable.amount,
+      'Due Date': payable.due_date ? formatOrgDate(payable.due_date) : 'N/A',
+      'Days Overdue': payable.due_date
+        ? Math.max(0, calendarDayDifference(orgToday(), toOrgDateInputValue(payable.due_date)))
+        : 0
     }));
     
     exportToCSV(exportData, `payables-${orgToday()}.csv`);
     toast.success('Payables exported successfully');
   };
+
 
   const exportVendors = () => {
     const exportData = vendors.map(vendor => {
@@ -250,7 +270,7 @@ const FinancialReport = () => {
               {formatCurrency(totalPayables)}
             </div>
             <p className="text-xs text-muted-foreground">
-              {payables.length} unpaid expense{payables.length !== 1 ? 's' : ''}
+              {payables.length} unpaid bill{payables.length !== 1 ? 's' : ''}
             </p>
           </CardContent>
         </Card>
@@ -315,9 +335,10 @@ const FinancialReport = () => {
             )}
             {overduePayables.length > 0 && (
               <div className="p-3 bg-red-50 rounded-lg">
-                <h4 className="font-medium text-red-800">Aging Payables</h4>
+                <h4 className="font-medium text-red-800">Overdue Payables</h4>
                 <p className="text-sm text-red-600">
-                  {overduePayables.length} expense{overduePayables.length !== 1 ? 's' : ''} over 30 days old totaling {formatCurrency(overduePayables.reduce((sum, exp) => sum + exp.amount, 0))}
+                  {overduePayables.length} bill{overduePayables.length !== 1 ? 's' : ''} past the due date totaling {formatCurrency(overduePayables.reduce((sum, p) => sum + payableOutstanding(p), 0))}
+
                 </p>
               </div>
             )}
@@ -349,7 +370,8 @@ const FinancialReport = () => {
                   <TableRow>
                     <TableHead>Invoice ID</TableHead>
                     <TableHead>Customer</TableHead>
-                    <TableHead>Amount</TableHead>
+                    <TableHead>Outstanding</TableHead>
+                    <TableHead>Invoice Total</TableHead>
                     <TableHead>Due Date</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Days Overdue</TableHead>
@@ -357,8 +379,8 @@ const FinancialReport = () => {
                 </TableHeader>
                 <TableBody>
                   {receivables.map((invoice) => {
-                    const daysOverdue = invoice.due_date 
-                      ? Math.max(0, Math.floor((new Date().getTime() - new Date(invoice.due_date).getTime()) / (1000 * 3600 * 24)))
+                    const daysOverdue = invoice.due_date
+                      ? Math.max(0, calendarDayDifference(orgToday(), toOrgDateInputValue(invoice.due_date)))
                       : 0;
                     
                     return (
@@ -367,6 +389,7 @@ const FinancialReport = () => {
                           {invoice.id.slice(0, 8)}...
                         </TableCell>
                         <TableCell>Customer {invoice.customer_id.slice(0, 8)}</TableCell>
+                        <TableCell>{formatCurrency(calculateBalanceDue(invoice))}</TableCell>
                         <TableCell>{formatCurrency(calculateInvoiceBreakdown(invoice).total)}</TableCell>
                         <TableCell>{formatDate(invoice.due_date)}</TableCell>
                         <TableCell>
@@ -380,6 +403,7 @@ const FinancialReport = () => {
                       </TableRow>
                     );
                   })}
+
                 </TableBody>
               </Table>
             </CardContent>
@@ -401,35 +425,36 @@ const FinancialReport = () => {
                   <TableRow>
                     <TableHead>Description</TableHead>
                     <TableHead>Vendor</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Age (Days)</TableHead>
+                    <TableHead>Outstanding</TableHead>
+                    <TableHead>Bill Amount</TableHead>
+                    <TableHead>Due Date</TableHead>
+                    <TableHead>Days Overdue</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {payables.map((expense) => {
-                    const ageInDays = calendarDayDifference(orgToday(), toOrgDateInputValue(expense.date));
+                  {payables.map((payable) => {
+                    const daysOverdue = payable.due_date
+                      ? Math.max(0, calendarDayDifference(orgToday(), toOrgDateInputValue(payable.due_date)))
+                      : 0;
                     
                     return (
-                      <TableRow key={expense.id}>
+                      <TableRow key={payable.id}>
                         <TableCell className="font-medium">
-                          {expense.description || 'N/A'}
+                          {payable.description || 'N/A'}
                         </TableCell>
-                        <TableCell>{expense.vendor_name || 'N/A'}</TableCell>
-                        <TableCell>{formatCurrency(expense.amount)}</TableCell>
-                        <TableCell>{formatDate(expense.date)}</TableCell>
+                        <TableCell>{vendorName(payable.vendor_id)}</TableCell>
+                        <TableCell>{formatCurrency(payableOutstanding(payable))}</TableCell>
+                        <TableCell>{formatCurrency(payable.amount)}</TableCell>
+                        <TableCell>{formatDate(payable.due_date)}</TableCell>
                         <TableCell>
-                          <Badge variant="outline">{expense.category}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <span className={ageInDays > 30 ? 'text-red-600' : ''}>
-                            {ageInDays} days
+                          <span className={daysOverdue > 0 ? 'text-red-600' : ''}>
+                            {daysOverdue > 0 ? `${daysOverdue} days` : '-'}
                           </span>
                         </TableCell>
                       </TableRow>
                     );
                   })}
+
                 </TableBody>
               </Table>
             </CardContent>

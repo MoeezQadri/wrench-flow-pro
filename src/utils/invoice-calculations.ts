@@ -1,5 +1,7 @@
 import type { Invoice, InvoiceItem } from '@/types';
 import { isNonBillable } from '@/utils/invoice-status';
+import { orgToday, toOrgDateInputValue } from '@/utils/datetime';
+
 
 export interface InvoiceCalculationBreakdown {
   subtotal: number;
@@ -97,25 +99,45 @@ export const calculateInvoiceTotal = (invoice: Invoice): number => {
 };
 
 /**
- * Calculate total receivables from a list of invoices
+ * Outstanding balance for a single invoice (total minus recorded payments).
+ * Never negative, so overpayments cannot reduce other receivables.
  */
-export const calculateTotalReceivables = (invoices: Invoice[]): number => {
-  return invoices
-    .filter(invoice => invoice.status !== 'paid' && !isNonBillable(invoice.status))
-    .reduce((total, invoice) => total + calculateInvoiceBreakdown(invoice).total, 0);
+export const calculateBalanceDue = (invoice: Invoice): number => {
+  return Math.max(0, calculateInvoiceBreakdown(invoice).balanceDue);
 };
 
 /**
- * Calculate overdue amount from a list of invoices
+ * Invoices that still owe money (billable, not fully paid)
+ */
+export const getReceivableInvoices = (invoices: Invoice[]): Invoice[] => {
+  return invoices.filter(
+    invoice =>
+      invoice.status !== 'paid' &&
+      !isNonBillable(invoice.status) &&
+      calculateBalanceDue(invoice) > 0
+  );
+};
+
+/**
+ * Calculate total receivables from a list of invoices (outstanding balances)
+ */
+export const calculateTotalReceivables = (invoices: Invoice[]): number => {
+  return getReceivableInvoices(invoices).reduce(
+    (total, invoice) => total + calculateBalanceDue(invoice),
+    0
+  );
+};
+
+/**
+ * Calculate overdue receivables (outstanding balance past the due date)
  */
 export const calculateOverdueAmount = (invoices: Invoice[]): number => {
-  return invoices
-    .filter(invoice => {
-      if (invoice.status === 'paid' || isNonBillable(invoice.status) || !invoice.due_date) return false;
-      return new Date(invoice.due_date) < new Date();
-    })
-    .reduce((total, invoice) => total + calculateInvoiceBreakdown(invoice).total, 0);
+  const today = orgToday();
+  return getReceivableInvoices(invoices)
+    .filter(invoice => invoice.due_date && toOrgDateInputValue(invoice.due_date) < today)
+    .reduce((total, invoice) => total + calculateBalanceDue(invoice), 0);
 };
+
 
 /**
  * Enhanced calculation function for data-service.ts compatibility

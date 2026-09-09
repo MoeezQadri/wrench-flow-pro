@@ -70,6 +70,11 @@ export const usePayables = () => {
     }
   };
 
+  /**
+   * Record a payment against a bill. Supports partial payments: the bill stays
+   * pending until the paid amount covers the bill total. Keeps the linked
+   * expense in sync so expense reports show the same payment state.
+   */
   const markAsPaid = async (id: string, paymentData: {
     amount: number;
     payment_method: string;
@@ -77,20 +82,48 @@ export const usePayables = () => {
     notes?: string;
   }): Promise<Payable> => {
     try {
-      const updates: Partial<Payable> = {
-        status: 'paid',
-        paid_amount: paymentData.amount,
-        payment_method: paymentData.payment_method,
-        payment_date: paymentData.payment_date || new Date().toISOString(),
-        notes: paymentData.notes,
-      };
+      const existing = payables.find(p => p.id === id);
+      const billTotal = existing?.amount ?? paymentData.amount;
+      const alreadyPaid = existing?.paid_amount ?? 0;
+      const newPaid = Math.min(billTotal, alreadyPaid + Math.max(0, paymentData.amount));
+      const fullyPaid = newPaid >= billTotal - 0.005;
+      const paymentDate = paymentData.payment_date || new Date().toISOString();
 
-      return await updatePayable(id, updates);
+      const updates: Partial<Payable> = {
+        status: fullyPaid ? 'paid' : 'pending',
+        paid_amount: newPaid,
+        payment_method: paymentData.payment_method,
+        payment_date: paymentDate,
+      };
+      if (paymentData.notes) {
+        updates.notes = existing?.notes
+          ? `${existing.notes}\n${paymentData.notes}`
+          : paymentData.notes;
+      }
+
+      const updated = await updatePayable(id, updates);
+
+      // Keep the linked expense aligned with the bill's payment state
+      if (existing?.expense_id) {
+        const { error: expenseError } = await supabase
+          .from('expenses')
+          .update({
+            payment_status: fullyPaid ? 'paid' : 'partial',
+            payment_method: paymentData.payment_method,
+          } as any)
+          .eq('id', existing.expense_id);
+        if (expenseError) {
+          console.error('Error syncing expense payment state:', expenseError);
+        }
+      }
+
+      return updated;
     } catch (error) {
-      console.error('Error marking payable as paid:', error);
+      console.error('Error recording payable payment:', error);
       throw error;
     }
   };
+
 
   const removePayable = async (id: string): Promise<void> => {
     try {

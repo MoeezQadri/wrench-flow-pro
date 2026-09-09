@@ -11,10 +11,12 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
   'owner': ['view', 'create', 'edit', 'delete', 'manage'], // Full permissions
   'admin': ['view', 'create', 'edit', 'delete', 'manage'], // Same as owner for operational purposes
   'manager': ['view', 'create', 'edit', 'delete'], // Can't manage users/settings
+  'finance': ['view', 'create', 'edit'], // Money in / money out only
   'foreman': ['view', 'create', 'edit'], // Can't delete
   'mechanic': ['view', 'create'], // Limited permissions
   'member': ['view'], // Read-only
 };
+
 
 // Resource-specific permissions
 export const RESOURCE_PERMISSIONS: Record<string, PermissionConfig[]> = {
@@ -70,19 +72,34 @@ export const RESOURCE_PERMISSIONS: Record<string, PermissionConfig[]> = {
     { resource: 'vehicles', action: 'manage', allowedRoles: ['owner', 'admin', 'manager'] },
   ],
   expenses: [
-    { resource: 'expenses', action: 'view', allowedRoles: ['owner', 'admin', 'manager', 'foreman'] },
-    { resource: 'expenses', action: 'create', allowedRoles: ['owner', 'admin', 'manager', 'foreman'] },
-    { resource: 'expenses', action: 'edit', allowedRoles: ['owner', 'admin', 'manager', 'foreman'] },
+    { resource: 'expenses', action: 'view', allowedRoles: ['owner', 'admin', 'manager', 'foreman', 'finance'] },
+    { resource: 'expenses', action: 'create', allowedRoles: ['owner', 'admin', 'manager', 'foreman', 'finance'] },
+    { resource: 'expenses', action: 'edit', allowedRoles: ['owner', 'admin', 'manager', 'foreman', 'finance'] },
     { resource: 'expenses', action: 'delete', allowedRoles: ['owner', 'admin', 'manager'] },
     { resource: 'expenses', action: 'manage', allowedRoles: ['owner', 'admin', 'manager'] },
   ],
+  finance: [
+    { resource: 'finance', action: 'view', allowedRoles: ['owner', 'admin', 'finance'] },
+    { resource: 'finance', action: 'create', allowedRoles: ['owner', 'admin', 'finance'] },
+    { resource: 'finance', action: 'edit', allowedRoles: ['owner', 'admin', 'finance'] },
+    { resource: 'finance', action: 'delete', allowedRoles: ['owner', 'admin'] },
+    { resource: 'finance', action: 'manage', allowedRoles: ['owner', 'admin'] },
+  ],
+  payments: [
+    { resource: 'payments', action: 'view', allowedRoles: ['owner', 'admin', 'manager', 'foreman', 'finance'] },
+    { resource: 'payments', action: 'create', allowedRoles: ['owner', 'admin', 'manager', 'finance'] },
+    { resource: 'payments', action: 'edit', allowedRoles: ['owner', 'admin', 'manager', 'finance'] },
+    { resource: 'payments', action: 'delete', allowedRoles: ['owner', 'admin'] },
+    { resource: 'payments', action: 'manage', allowedRoles: ['owner', 'admin'] },
+  ],
   invoices: [
-    { resource: 'invoices', action: 'view', allowedRoles: ['owner', 'admin', 'manager', 'foreman', 'mechanic'] },
+    { resource: 'invoices', action: 'view', allowedRoles: ['owner', 'admin', 'manager', 'foreman', 'mechanic', 'finance'] },
     { resource: 'invoices', action: 'create', allowedRoles: ['owner', 'admin', 'manager', 'foreman'] },
-    { resource: 'invoices', action: 'edit', allowedRoles: ['owner', 'admin', 'manager', 'foreman'] },
+    { resource: 'invoices', action: 'edit', allowedRoles: ['owner', 'admin', 'manager', 'foreman', 'finance'] },
     { resource: 'invoices', action: 'delete', allowedRoles: ['owner', 'admin'] },
     { resource: 'invoices', action: 'manage', allowedRoles: ['owner', 'admin', 'manager'] },
   ],
+
   attendance: [
     { resource: 'attendance', action: 'view', allowedRoles: ['owner', 'admin', 'manager', 'foreman', 'mechanic'] },
     { resource: 'attendance', action: 'create', allowedRoles: ['owner', 'admin', 'manager', 'foreman', 'mechanic'] },
@@ -91,12 +108,13 @@ export const RESOURCE_PERMISSIONS: Record<string, PermissionConfig[]> = {
     { resource: 'attendance', action: 'manage', allowedRoles: ['owner', 'admin', 'manager'] },
   ],
   reports: [
-    { resource: 'reports', action: 'view', allowedRoles: ['owner', 'admin', 'manager', 'foreman'] },
+    { resource: 'reports', action: 'view', allowedRoles: ['owner', 'admin', 'manager', 'foreman', 'finance'] },
     { resource: 'reports', action: 'manage', allowedRoles: ['owner', 'admin', 'manager'] },
   ],
   dashboard: [
-    { resource: 'dashboard', action: 'view', allowedRoles: ['owner', 'admin', 'manager', 'foreman', 'mechanic', 'member'] },
+    { resource: 'dashboard', action: 'view', allowedRoles: ['owner', 'admin', 'manager', 'foreman', 'mechanic', 'member', 'finance'] },
   ],
+
 };
 
 /**
