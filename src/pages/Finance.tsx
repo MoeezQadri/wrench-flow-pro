@@ -130,6 +130,7 @@ const Finance = () => {
                       {payable.due_date ? `Due: ${formatOrgDate(payable.due_date)}` : 'No due date'}
                       {(payable.paid_amount || 0) > 0 && ` · ${formatCurrency(payable.paid_amount || 0)} already paid`}
                     </p>
+                    <BillPartDetails bill={payable} />
                   </div>
                   <div className="text-right space-y-1">
                     <p className="font-semibold">{formatCurrency(outstandingOf(payable))}</p>
