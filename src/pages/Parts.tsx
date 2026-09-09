@@ -532,12 +532,6 @@ const Parts: React.FC = () => {
             </>
           )}
 
-      {/* Vendor Management Dialog */}
-      <Dialog open={showVendorManagement} onOpenChange={setShowVendorManagement}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <VendorManagement onClose={handleVendorManagementClose} />
-        </DialogContent>
-      </Dialog>
 
       {/* Part Dialog */}
       <PartDialog
