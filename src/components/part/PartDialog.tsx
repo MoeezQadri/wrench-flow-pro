@@ -77,18 +77,18 @@ const PartDialog = ({ open, onOpenChange, onSave, part, invoiceId }: PartDialogP
 
       await onSave(newPart);
 
-      // Create expense for part purchase
-      if (vendorId && !isEditing) {
+      // Record the purchase as an unpaid expense so it becomes a bill in Finance
+      const purchaseCost = (newPart.cost || 0) * newPart.quantity;
+      if (!isEditing && purchaseCost > 0) {
         const vendor = vendors.find((v: Vendor) => v.id === vendorId);
         const expense: Expense = {
           id: generateId("expense"),
           category: "parts",
           description: `Purchase: ${newPart.name}`,
-          amount: (newPart.cost || 0) * newPart.quantity,
+          amount: purchaseCost,
           date: new Date().toISOString(),
-          vendor_id: vendorId,
+          vendor_id: vendorId || undefined,
           vendor_name: vendor?.name,
-          payment_method: "cash",
           payment_status: "unpaid",
           invoice_id: invoiceId || undefined,
         };
@@ -100,6 +100,7 @@ const PartDialog = ({ open, onOpenChange, onSave, part, invoiceId }: PartDialogP
           toast.error("Part added but failed to create expense entry");
         }
       }
+
 
       // If the part is being added to an invoice, show a specialized message
       if (invoiceId && invoice) {
