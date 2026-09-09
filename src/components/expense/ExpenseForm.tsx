@@ -348,6 +348,14 @@ const ExpenseForm = ({ defaultValues, onSubmit, formId }: ExpenseFormProps) => {
           </div>
         )}
 
+        <div className="p-3 rounded-lg border bg-muted/50">
+          <p className="text-sm text-muted-foreground">
+            This expense is recorded as an unpaid bill. Record the payment and how it was paid from
+            Payable Management, or with “Mark as Paid” on the expense list.
+          </p>
+        </div>
+
+
         <VendorDialog
           open={isVendorDialogOpen}
           onOpenChange={setIsVendorDialogOpen}
