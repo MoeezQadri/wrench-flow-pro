@@ -92,6 +92,22 @@ export const useAttendance = () => {
 
     const addAttendance = async (attendanceData: Omit<Attendance, 'id'>) => {
         console.log("useAttendance addAttendance called with:", attendanceData);
+        // Guard against the same entry being submitted twice (double-click / repeat submit)
+        const inFlightKey = `${attendanceData?.mechanic_id}|${attendanceData?.date}|${attendanceData?.record_type || 'attendance'}`;
+        if (inFlightSaves.current.has(inFlightKey)) {
+            console.warn("Duplicate attendance submit ignored (already saving):", inFlightKey);
+            throw new Error('This entry is already being saved. Please wait.');
+        }
+        inFlightSaves.current.add(inFlightKey);
+        try {
+        return await saveAttendance(attendanceData);
+        } finally {
+            inFlightSaves.current.delete(inFlightKey);
+        }
+    };
+
+    const saveAttendance = async (attendanceData: Omit<Attendance, 'id'>) => {
+
         if (!attendanceData || typeof attendanceData !== 'object') {
             const errorMsg = 'Invalid attendance data provided';
             console.error(errorMsg, attendanceData);
