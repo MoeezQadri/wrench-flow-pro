@@ -297,6 +297,7 @@ const ExpenseForm = ({ defaultValues, onSubmit, formId }: ExpenseFormProps) => {
         <div className="grid grid-cols-1 gap-4">
 
 
+
           <div className="space-y-2">
             <FormField
               control={form.control}
