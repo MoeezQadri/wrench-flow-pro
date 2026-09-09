@@ -37,6 +37,8 @@ const userRoles: UserRole[] = [
   'superuser',
   'superadmin',
   'foreman',
+  'finance',
+
 ];
 
 const getRoleLabel = (role: UserRole) =>

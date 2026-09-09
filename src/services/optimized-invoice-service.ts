@@ -381,9 +381,10 @@ export const updateInvoiceOptimized = async (invoiceData: Invoice): Promise<Invo
     await syncLaborTasks(savedItems, id, invoiceResult.organization_id);
   }
 
-  // Persist payments (replace the invoice's payment rows with the current list)
+  // Persist payments. An empty list means "no payment data was loaded/edited",
+  // so existing payment rows are kept instead of being wiped out.
   let savedPayments: Payment[] = [];
-  if (payments) {
+  if (payments && payments.length > 0) {
     const { paymentService } = await import('./payment-service');
     savedPayments = await paymentService.replaceInvoicePayments(
       id,
@@ -395,7 +396,14 @@ export const updateInvoiceOptimized = async (invoiceData: Invoice): Promise<Invo
         organization_id: invoiceResult.organization_id
       }))
     );
+  } else {
+    const { data: existingPayments } = await supabase
+      .from('payments')
+      .select('*')
+      .eq('invoice_id', id);
+    savedPayments = (existingPayments || []) as Payment[];
   }
+
 
   console.log('Optimized invoice update completed');
 

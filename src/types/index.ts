@@ -41,7 +41,7 @@ export type PaymentMethod = 'cash' | 'card' | 'bank-transfer' | 'check' | 'other
 export type EmploymentType = 'fulltime' | 'contractor';
 
 // Define UserRole to include all needed roles
-export type UserRole = 'owner' | 'manager' | 'mechanic' | 'admin' | 'superuser' | 'superadmin' | 'foreman';
+export type UserRole = 'owner' | 'manager' | 'mechanic' | 'admin' | 'superuser' | 'superadmin' | 'foreman' | 'finance';
 
 export interface Payment {
   id: string;
