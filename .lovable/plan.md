@@ -65,3 +65,18 @@ So a partly paid invoice is over-reported in both, and the Finance page number c
 - Migration only if needed for a nullable `payment_method` on expenses; otherwise no schema change. Data fix: set Paid invoices with zero payment rows back to `open`.
 - Verification: typecheck, re-run the paid-without-payment query, and re-check bill/expense status agreement in the database.
 
+## End-to-end test pass after the changes
+
+Walk the whole money flow in the running app and report results:
+
+1. Create an invoice with a workshop part, a labour item and a custom item; confirm totals, tax and discount.
+2. Try to set it to Paid with no payments — confirm the refusal message; then record a part payment (status becomes Partial) and the rest (status becomes Paid).
+3. Reopen and save the paid invoice — confirm the payment history is still intact.
+4. Create an estimate, convert it to an invoice, and confirm it never counted as revenue while it was a quote.
+5. Add an expense and a part purchase — confirm both appear as bills, pay one in part and one in full with a method, and confirm the expense shows as paid.
+6. Check Finance, Expenses, Invoices, the finance/financial reports and the dashboard against each other: receivables equal outstanding balances, bills equal unpaid expenses, profit figures count each expense once.
+7. Access check: Finance visible for owner, admin and finance role; hidden and blocked for technician; blocked when the subscription or trial has ended.
+
+Signed-in browser testing may be limited because this project uses its own Supabase auth; if a step cannot be driven in the browser it will be verified with direct database checks and reported as such.
+
+
