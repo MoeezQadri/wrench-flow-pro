@@ -79,7 +79,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
   const [laborHoursEstimated, setLaborHoursEstimated] = useState<number>(1);
   const [laborHoursSpent, setLaborHoursSpent] = useState<number>(0);
 
-  const { mechanics, vendors } = useDataContext();
+  const { technicians, vendors } = useDataContext();
   const { getCurrencySymbol, formatCurrency } = useOrganizationSettings();
 
 
@@ -88,12 +88,12 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
     console.log('InvoiceItemForm debug:', {
       availableParts: availableParts?.length || 0,
       availableTasks: availableTasks?.length || 0,
-      mechanics: mechanics?.length || 0,
+      technicians: technicians?.length || 0,
       partsPreview: availableParts?.slice(0, 2),
       tasksPreview: availableTasks?.slice(0, 2),
-      mechanicsPreview: mechanics?.slice(0, 2)
+      techniciansPreview: technicians?.slice(0, 2)
     });
-  }, [availableParts, availableTasks, mechanics]);
+  }, [availableParts, availableTasks, technicians]);
 
   // Reset form when dialog opens/closes
   useEffect(() => {
@@ -691,15 +691,15 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="unassigned">Unassigned</SelectItem>
-                      {(mechanics || []).map((mechanic) => (
-                        <SelectItem key={mechanic.id} value={mechanic.id}>
-                          {mechanic.name}
+                      {(technicians || []).map((technician) => (
+                        <SelectItem key={technician.id} value={technician.id}>
+                          {technician.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground mt-1">
-                    The task appears in Tasks for this mechanic.
+                    The task appears in Tasks for this technician.
                   </p>
                 </div>
                 <div>

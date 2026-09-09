@@ -13,7 +13,7 @@ import { useOrganizationSettings } from "@/hooks/useOrganizationSettings";
 const TasksReport = () => {
   const [startDate, setStartDate] = useState<Date>(subDays(new Date(), 30));
   const [endDate, setEndDate] = useState<Date>(new Date());
-  const { tasks, mechanics } = useDataContext();
+  const { tasks, technicians } = useDataContext();
   const { formatCurrency } = useOrganizationSettings();
 
   // Filter tasks for the selected date range
@@ -157,7 +157,7 @@ const TasksReport = () => {
                 </TableRow>
               ) : (
                 filteredTasks.map((task) => {
-                  const mechanic = mechanics.find(m => m.id === task.mechanicId);
+                  const technician = technicians.find(m => m.id === task.mechanicId);
                   const efficiency = task.hoursEstimated && task.hoursSpent 
                     ? ((task.hoursEstimated / task.hoursSpent) * 100).toFixed(1) 
                     : 'N/A';
@@ -165,7 +165,7 @@ const TasksReport = () => {
                   return (
                     <TableRow key={task.id}>
                       <TableCell className="font-medium">{task.title}</TableCell>
-                      <TableCell>{mechanic?.name || "Unassigned"}</TableCell>
+                      <TableCell>{technician?.name || "Unassigned"}</TableCell>
                       <TableCell>
                         <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                           task.status === 'completed' ? 'bg-green-100 text-green-800' :

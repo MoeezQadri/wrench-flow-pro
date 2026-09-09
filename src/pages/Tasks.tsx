@@ -33,7 +33,7 @@ const Tasks = () => {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const {
     tasks,
-    mechanics,
+    technicians,
     getMechanicById,
     getInvoiceById,
     getVehicleById,
@@ -60,7 +60,7 @@ const Tasks = () => {
     console.log('Filtering tasks...');
     let filtered = tasksList;
 
-    // Filter by mechanic for mechanic users
+    // Filter by technician for technician users
     if (currentUser?.role === 'mechanic' && currentUser?.mechanicId) {
       filtered = filtered.filter(task => task.mechanicId === currentUser?.mechanicId);
     }
@@ -78,7 +78,7 @@ const Tasks = () => {
       filtered = filtered.filter(task => task.status === statusFilter);
     }
 
-    // Apply mechanic filter if not set to 'all'
+    // Apply technician filter if not set to 'all'
     if (mechanicFilter !== 'all') {
       filtered = filtered.filter(task => task.mechanicId === mechanicFilter);
     }
@@ -265,7 +265,7 @@ const Tasks = () => {
   // Prefetch data for displaying in the table
   useEffect(() => {
     const prefetchData = async () => {
-      // Prefetch mechanic data
+      // Prefetch technician data
       for (const task of tasksList) {
         if (task.mechanicId && !mechanicInfoCache[task.mechanicId]) {
           const resp = getMechanicById(task.mechanicId);
@@ -385,9 +385,9 @@ const Tasks = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Mechanics</SelectItem>
-              {mechanics.map(mechanic => (
-                <SelectItem key={mechanic.id} value={mechanic.id}>
-                  {mechanic.name}
+              {technicians.map(technician => (
+                <SelectItem key={technician.id} value={technician.id}>
+                  {technician.name}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -425,7 +425,7 @@ const Tasks = () => {
             </TableHeader>
             <TableBody>
               {filteredTasks.map((task) => {
-                const mechanic = mechanicInfoCache[task.mechanicId || ""] || null;
+                const technician = mechanicInfoCache[task.mechanicId || ""] || null;
                 const vehicleInfo = task.vehicleId ? vehicleInfoCache[task.vehicleId] : null;
                 const invoiceInfo = task.invoiceId ? invoiceInfoCache[task.invoiceId] : null;
 
@@ -435,7 +435,7 @@ const Tasks = () => {
                       <div>{task.title}</div>
                       <div className="text-xs text-muted-foreground">{task.description.substring(0, 60)}{task.description.length > 60 ? '...' : ''}</div>
                     </TableCell>
-                    <TableCell>{mechanic?.name || "Unknown"}</TableCell>
+                    <TableCell>{technician?.name || "Unknown"}</TableCell>
                     <TableCell>
                       <span
                         className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${getStatusBadgeClass(task.status)}`}
@@ -515,7 +515,7 @@ const Tasks = () => {
                           </Button>
                         )}
 
-                        {/* Time tracking button for mechanics */}
+                        {/* Time tracking button for technicians */}
                         {currentUser?.role === 'mechanic' && currentUser?.mechanicId === task.mechanicId && task.status !== 'completed' && (
                           <Button
                             variant="outline"

@@ -27,7 +27,7 @@ interface LeaveFormProps {
 }
 
 const LeaveForm: React.FC<LeaveFormProps> = ({ onSubmit }) => {
-  const { mechanics } = useDataContext();
+  const { technicians } = useDataContext();
   const today = new Date().toISOString().slice(0, 10);
 
   const [mechanicId, setMechanicId] = useState('');
@@ -41,7 +41,7 @@ const LeaveForm: React.FC<LeaveFormProps> = ({ onSubmit }) => {
     e.preventDefault();
 
     if (!mechanicId) {
-      toast.error('Please select a mechanic');
+      toast.error('Please select a technician');
       return;
     }
     if (!startDate || !endDate) {
@@ -72,12 +72,12 @@ const LeaveForm: React.FC<LeaveFormProps> = ({ onSubmit }) => {
         <Label>Mechanic *</Label>
         <Select value={mechanicId} onValueChange={setMechanicId}>
           <SelectTrigger>
-            <SelectValue placeholder={mechanics.length === 0 ? 'No mechanics available' : 'Select a mechanic'} />
+            <SelectValue placeholder={technicians.length === 0 ? 'No technicians available' : 'Select a technician'} />
           </SelectTrigger>
           <SelectContent>
-            {mechanics.map((mechanic) => (
-              <SelectItem key={mechanic.id} value={mechanic.id}>
-                {mechanic.name}
+            {technicians.map((technician) => (
+              <SelectItem key={technician.id} value={technician.id}>
+                {technician.name}
               </SelectItem>
             ))}
           </SelectContent>

@@ -26,7 +26,7 @@ const MechanicAssignmentDialog: React.FC<MechanicAssignmentDialogProps> = ({
 }) => {
   const [selectedMechanicId, setSelectedMechanicId] = useState(currentMechanicId || "");
   const [isAssigning, setIsAssigning] = useState(false);
-  const { mechanics } = useDataContext();
+  const { technicians } = useDataContext();
 
   useEffect(() => {
     setSelectedMechanicId(currentMechanicId || "");
@@ -34,7 +34,7 @@ const MechanicAssignmentDialog: React.FC<MechanicAssignmentDialogProps> = ({
 
   const handleAssignment = async () => {
     if (!selectedMechanicId) {
-      toast.error("Please select a mechanic");
+      toast.error("Please select a technician");
       return;
     }
 
@@ -50,15 +50,15 @@ const MechanicAssignmentDialog: React.FC<MechanicAssignmentDialogProps> = ({
       
       onOpenChange(false);
     } catch (error) {
-      console.error("Error assigning mechanic:", error);
-      toast.error("Failed to assign mechanic. Please try again.");
+      console.error("Error assigning technician:", error);
+      toast.error("Failed to assign technician. Please try again.");
     } finally {
       setIsAssigning(false);
     }
   };
 
-  const availableMechanics = mechanics.filter(mechanic => mechanic.is_active);
-  const selectedMechanic = mechanics.find(m => m.id === selectedMechanicId);
+  const availableMechanics = technicians.filter(technician => technician.is_active);
+  const selectedMechanic = technicians.find(m => m.id === selectedMechanicId);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -69,7 +69,7 @@ const MechanicAssignmentDialog: React.FC<MechanicAssignmentDialogProps> = ({
             Assign Mechanic to Task
           </DialogTitle>
           <DialogDescription>
-            Select a mechanic to assign to: {taskTitle}
+            Select a technician to assign to: {taskTitle}
           </DialogDescription>
         </DialogHeader>
         
@@ -77,15 +77,15 @@ const MechanicAssignmentDialog: React.FC<MechanicAssignmentDialogProps> = ({
           <div>
             <Select value={selectedMechanicId} onValueChange={setSelectedMechanicId}>
               <SelectTrigger>
-                <SelectValue placeholder="Select a mechanic" />
+                <SelectValue placeholder="Select a technician" />
               </SelectTrigger>
               <SelectContent>
-                {availableMechanics.map((mechanic) => (
-                  <SelectItem key={mechanic.id} value={mechanic.id}>
-                    {mechanic.name}
-                    {mechanic.specialization && (
+                {availableMechanics.map((technician) => (
+                  <SelectItem key={technician.id} value={technician.id}>
+                    {technician.name}
+                    {technician.specialization && (
                       <span className="text-xs text-muted-foreground ml-1">
-                        ({mechanic.specialization})
+                        ({technician.specialization})
                       </span>
                     )}
                   </SelectItem>

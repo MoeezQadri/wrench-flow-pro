@@ -57,8 +57,8 @@ const Help = () => {
               You can then select a customer, add items, and complete the invoice details.</p>
             </div>
             <div>
-              <h3 className="font-medium">How do I track mechanic hours?</h3>
-              <p className="text-muted-foreground">Use the Attendance section to check in and check out mechanics. 
+              <h3 className="font-medium">How do I track technician hours?</h3>
+              <p className="text-muted-foreground">Use the Attendance section to check in and check out technicians. 
               You can view detailed reports in the Reports section.</p>
             </div>
             <div>

@@ -4,17 +4,17 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, CalendarDays } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import MechanicPerformance from "@/components/mechanic/MechanicPerformance";
+import MechanicPerformance from "@/components/technician/MechanicPerformance";
 import { useDataContext } from "@/context/data/DataContext";
 
 const MechanicPerformancePage = () => {
   const { mechanicId } = useParams<{ mechanicId: string }>();
   const navigate = useNavigate();
-  const { mechanics, tasks } = useDataContext();
+  const { technicians, tasks } = useDataContext();
 
-  const mechanic = mechanics.find(m => m.id === mechanicId);
+  const technician = technicians.find(m => m.id === mechanicId);
 
-  if (!mechanic) {
+  if (!technician) {
     return (
       <div className="flex flex-col items-center justify-center h-64">
         <h1 className="text-2xl font-bold mb-4">Mechanic Not Found</h1>
@@ -26,7 +26,7 @@ const MechanicPerformancePage = () => {
     );
   }
 
-  const mechanicTasks = tasks.filter(task => task.mechanicId === mechanic.id);
+  const mechanicTasks = tasks.filter(task => task.mechanicId === technician.id);
 
   return (
     <div className="space-y-6">
@@ -41,7 +41,7 @@ const MechanicPerformancePage = () => {
         </Button>
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Performance Metrics</h1>
-          <p className="text-muted-foreground">Detailed performance analysis for {mechanic.name}</p>
+          <p className="text-muted-foreground">Detailed performance analysis for {technician.name}</p>
         </div>
       </div>
 
@@ -53,7 +53,7 @@ const MechanicPerformancePage = () => {
 
         <TabsContent value="metrics" className="py-4">
           <MechanicPerformance
-            mechanic={mechanic}
+            technician={technician}
             tasks={mechanicTasks}
           />
         </TabsContent>

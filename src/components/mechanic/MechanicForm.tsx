@@ -194,7 +194,7 @@ const MechanicForm = ({ defaultValues, onSubmit, formId }: MechanicFormProps) =>
                     />
                   </label>
                   <p className="text-xs text-muted-foreground mt-2 text-center">
-                    Upload a clear photo of the mechanic's ID card (PNG or JPEG, max 5MB)
+                    Upload a clear photo of the technician's ID card (PNG or JPEG, max 5MB)
                   </p>
                 </div>
                 <Input
@@ -238,7 +238,7 @@ const MechanicForm = ({ defaultValues, onSubmit, formId }: MechanicFormProps) =>
               <div className="space-y-0.5">
                 <FormLabel>Active Status</FormLabel>
                 <div className="text-sm text-muted-foreground">
-                  Set whether the mechanic is currently active
+                  Set whether the technician is currently active
                 </div>
               </div>
               <FormControl>

@@ -17,7 +17,7 @@ const AttendanceReport = () => {
   const hasLoadedAttendance = useRef(false);
   const {
     attendanceRecords,
-    mechanics,
+    technicians,
     loadAttendance,
     attendanceLoading
   } = useDataContext();
@@ -88,7 +88,7 @@ const AttendanceReport = () => {
 
   const handleExportAttendance = () => {
     const exportData = filteredAttendance.map(record => {
-      const mechanic = mechanics.find(m => m.id === record.mechanic_id);
+      const technician = technicians.find(m => m.id === record.mechanic_id);
       const hoursWorked = calculateHoursWorked(record.check_in, record.check_out || "");
       
       let statusDisplay = "Present";
@@ -101,7 +101,7 @@ const AttendanceReport = () => {
       }
 
       return {
-        mechanic: mechanic?.name || "Unknown",
+        technician: technician?.name || "Unknown",
         date: record.date,
         check_in: record.check_in || "N/A",
         check_out: record.check_out || "N/A",
@@ -222,7 +222,7 @@ const AttendanceReport = () => {
                 </TableRow>
               ) : (
                 filteredAttendance.map((record) => {
-                  const mechanic = mechanics.find(m => m.id === record.mechanic_id);
+                  const technician = technicians.find(m => m.id === record.mechanic_id);
                   const hoursWorked = calculateHoursWorked(record.check_in, record.check_out || "");
 
                   // Derive status display from record
@@ -242,7 +242,7 @@ const AttendanceReport = () => {
 
                   return (
                     <TableRow key={record.id}>
-                      <TableCell className="font-medium">{mechanic?.name || "Unknown"}</TableCell>
+                      <TableCell className="font-medium">{technician?.name || "Unknown"}</TableCell>
                       <TableCell>{record.date}</TableCell>
                       <TableCell>{record.check_in || "N/A"}</TableCell>
                       <TableCell>{record.check_out || "N/A"}</TableCell>

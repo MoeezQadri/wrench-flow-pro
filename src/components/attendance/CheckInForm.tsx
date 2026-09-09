@@ -33,7 +33,7 @@ interface CheckInFormProps {
 }
 
 const CheckInForm: React.FC<CheckInFormProps> = ({ onSubmit }) => {
-  const { mechanics } = useDataContext();
+  const { technicians } = useDataContext();
 
   const form = useForm<CheckInFormValues>({
     resolver: zodResolver(checkInSchema),
@@ -49,9 +49,9 @@ const CheckInForm: React.FC<CheckInFormProps> = ({ onSubmit }) => {
   const handleSubmit = async (data: CheckInFormValues) => {
     console.log("CheckInForm handleSubmit called with data:", data);
     
-    // Validate that we have a mechanic selected
+    // Validate that we have a technician selected
     if (!data.mechanicId) {
-      toast.error("Please select a mechanic");
+      toast.error("Please select a technician");
       return;
     }
 
@@ -97,13 +97,13 @@ const CheckInForm: React.FC<CheckInFormProps> = ({ onSubmit }) => {
               >
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select a mechanic" />
+                    <SelectValue placeholder="Select a technician" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {mechanics.map((mechanic) => (
-                    <SelectItem key={mechanic.id} value={mechanic.id}>
-                      {mechanic.name}
+                  {technicians.map((technician) => (
+                    <SelectItem key={technician.id} value={technician.id}>
+                      {technician.name}
                     </SelectItem>
                   ))}
                 </SelectContent>

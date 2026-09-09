@@ -24,10 +24,10 @@ const TaskMechanicAssignment: React.FC<TaskMechanicAssignmentProps> = ({
 }) => {
   const [selectedMechanicId, setSelectedMechanicId] = useState(currentMechanicId || "");
   const [isAssigning, setIsAssigning] = useState(false);
-  const { mechanics } = useDataContext();
+  const { technicians } = useDataContext();
   const { currentUser } = useAuthContext();
 
-  // Only allow managers and foremen to assign mechanics
+  // Only allow managers and foremen to assign technicians
   const canAssignMechanics = currentUser?.role === 'manager' || 
                             currentUser?.role === 'owner' || 
                             currentUser?.role === 'foreman';
@@ -42,7 +42,7 @@ const TaskMechanicAssignment: React.FC<TaskMechanicAssignmentProps> = ({
 
   const handleAssignment = async () => {
     if (!selectedMechanicId) {
-      toast.error("Please select a mechanic");
+      toast.error("Please select a technician");
       return;
     }
 
@@ -56,15 +56,15 @@ const TaskMechanicAssignment: React.FC<TaskMechanicAssignmentProps> = ({
         onAssignmentComplete();
       }
     } catch (error) {
-      console.error("Error assigning mechanic:", error);
-      toast.error("Failed to assign mechanic. Please try again.");
+      console.error("Error assigning technician:", error);
+      toast.error("Failed to assign technician. Please try again.");
     } finally {
       setIsAssigning(false);
     }
   };
 
-  const availableMechanics = mechanics.filter(mechanic => mechanic.is_active);
-  const selectedMechanic = mechanics.find(m => m.id === selectedMechanicId);
+  const availableMechanics = technicians.filter(technician => technician.is_active);
+  const selectedMechanic = technicians.find(m => m.id === selectedMechanicId);
 
   return (
     <Card className="w-full">
@@ -79,15 +79,15 @@ const TaskMechanicAssignment: React.FC<TaskMechanicAssignmentProps> = ({
         <div>
           <Select value={selectedMechanicId} onValueChange={setSelectedMechanicId}>
             <SelectTrigger>
-              <SelectValue placeholder="Select a mechanic" />
+              <SelectValue placeholder="Select a technician" />
             </SelectTrigger>
             <SelectContent>
-              {availableMechanics.map((mechanic) => (
-                <SelectItem key={mechanic.id} value={mechanic.id}>
-                  {mechanic.name}
-                  {mechanic.specialization && (
+              {availableMechanics.map((technician) => (
+                <SelectItem key={technician.id} value={technician.id}>
+                  {technician.name}
+                  {technician.specialization && (
                     <span className="text-xs text-muted-foreground ml-1">
-                      ({mechanic.specialization})
+                      ({technician.specialization})
                     </span>
                   )}
                 </SelectItem>

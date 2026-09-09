@@ -28,7 +28,7 @@ const AttendancePage: React.FC = () => {
   });
 
   const {
-    mechanics,
+    technicians,
     attendanceRecords,
     addAttendance,
     updateAttendance,
@@ -123,7 +123,7 @@ const AttendancePage: React.FC = () => {
 
   const pendingCount = attendanceRecords.filter(r => r.status === 'pending').length;
 
-  const subtitle = `Track mechanic attendance, leave and working hours${canApprove && pendingCount > 0 ? ` • ${pendingCount} records pending approval` : ''}`;
+  const subtitle = `Track technician attendance, leave and working hours${canApprove && pendingCount > 0 ? ` • ${pendingCount} records pending approval` : ''}`;
 
   const headerActions = userCanManageAttendance ? (
     <div className="flex gap-2">
@@ -158,7 +158,7 @@ const AttendancePage: React.FC = () => {
         onStatusFilter={(status) => setFilters(prev => ({ ...prev, status }))}
         onDateFilter={(date) => setFilters(prev => ({ ...prev, date }))}
         onMechanicFilter={(mechanicId) => setFilters(prev => ({ ...prev, mechanicId }))}
-        mechanics={mechanics.map(m => ({ id: m.id, name: m.name }))}
+        technicians={technicians.map(m => ({ id: m.id, name: m.name }))}
         currentFilters={filters}
       />
 
@@ -182,13 +182,13 @@ const AttendancePage: React.FC = () => {
           filteredRecords
             .sort((a, b) => new Date(b.created_at || b.date).getTime() - new Date(a.created_at || a.date).getTime())
             .map((record) => {
-              const mechanic = mechanics.find(m => m.id === record.mechanic_id);
+              const technician = technicians.find(m => m.id === record.mechanic_id);
               return (
                 <AttendanceListItem
                   key={record.id}
                   record={record}
-                  mechanic={mechanic}
-                  mechanicsLoaded={mechanics.length > 0}
+                  technician={technician}
+                  mechanicsLoaded={technicians.length > 0}
                   onApprove={handleApproveAttendance}
                   onReject={handleRejectAttendance}
                   onCheckOut={handleOpenCheckOut}

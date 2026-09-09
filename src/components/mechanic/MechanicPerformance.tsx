@@ -6,7 +6,7 @@ import { Task, Mechanic } from "@/types";
 import { Clock, AlertTriangle, CheckCircle } from "lucide-react";
 
 interface MechanicPerformanceProps {
-  mechanic: Mechanic;
+  technician: Mechanic;
   tasks: Task[];
 }
 
@@ -21,11 +21,11 @@ interface PerformanceMetrics {
   recentTasks: Task[];
 }
 
-const MechanicPerformance: React.FC<MechanicPerformanceProps> = ({ mechanic, tasks }) => {
+const MechanicPerformance: React.FC<MechanicPerformanceProps> = ({ technician, tasks }) => {
   // Calculate performance metrics
   const calculatePerformanceMetrics = (): PerformanceMetrics => {
-    // Filter tasks for this mechanic
-    const mechanicTasks = tasks.filter(task => task.mechanicId === mechanic.id);
+    // Filter tasks for this technician
+    const mechanicTasks = tasks.filter(task => task.mechanicId === technician.id);
     const completedTasks = mechanicTasks.filter(task => task.status === 'completed');
     
     // Task completion rate
@@ -94,7 +94,7 @@ const MechanicPerformance: React.FC<MechanicPerformanceProps> = ({ mechanic, tas
       <Card>
         <CardHeader>
           <CardTitle>Performance Summary</CardTitle>
-          <CardDescription>Performance metrics for {mechanic.name}</CardDescription>
+          <CardDescription>Performance metrics for {technician.name}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -135,7 +135,7 @@ const MechanicPerformance: React.FC<MechanicPerformanceProps> = ({ mechanic, tas
       <Card>
         <CardHeader>
           <CardTitle>Efficiency by Task Type</CardTitle>
-          <CardDescription>How efficient is the mechanic at different types of tasks</CardDescription>
+          <CardDescription>How efficient is the technician at different types of tasks</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="h-72">

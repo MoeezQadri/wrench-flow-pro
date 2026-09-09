@@ -9,7 +9,7 @@ interface AttendanceFiltersProps {
   onStatusFilter: (status: string) => void;
   onDateFilter: (date: string) => void;
   onMechanicFilter: (mechanicId: string) => void;
-  mechanics: Array<{ id: string; name: string }>;
+  technicians: Array<{ id: string; name: string }>;
   currentFilters: {
     status: string;
     date: string;
@@ -21,7 +21,7 @@ const AttendanceFilters: React.FC<AttendanceFiltersProps> = ({
   onStatusFilter,
   onDateFilter,
   onMechanicFilter,
-  mechanics,
+  technicians,
   currentFilters
 }) => {
   const clearFilters = () => {
@@ -60,9 +60,9 @@ const AttendanceFilters: React.FC<AttendanceFiltersProps> = ({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">All Mechanics</SelectItem>
-          {mechanics.map((mechanic) => (
-            <SelectItem key={mechanic.id} value={mechanic.id}>
-              {mechanic.name}
+          {technicians.map((technician) => (
+            <SelectItem key={technician.id} value={technician.id}>
+              {technician.name}
             </SelectItem>
           ))}
         </SelectContent>

@@ -31,8 +31,8 @@ import { useDataContext } from "@/context/data/DataContext";
 interface MechanicDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  mechanic?: Mechanic | null;
-  onSave: (mechanic: Mechanic) => void;
+  technician?: Mechanic | null;
+  onSave: (technician: Mechanic) => void;
 }
 
 interface MechanicFormValues {
@@ -55,7 +55,7 @@ const mechanicSchema = z.object({
   is_active: z.boolean().default(true),
 });
 
-const MechanicDialog: React.FC<MechanicDialogProps> = ({ open, onOpenChange, mechanic, onSave }) => {
+const MechanicDialog: React.FC<MechanicDialogProps> = ({ open, onOpenChange, technician, onSave }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const {
     addMechanic, updateMechanic
@@ -64,27 +64,27 @@ const MechanicDialog: React.FC<MechanicDialogProps> = ({ open, onOpenChange, mec
   const form = useForm<MechanicFormValues>({
     resolver: zodResolver(mechanicSchema),
     defaultValues: {
-      name: mechanic?.name || "",
-      specialization: mechanic?.specialization || "",
-      phone: mechanic?.phone || "",
-      address: mechanic?.address || "",
-      employment_type: mechanic?.employment_type || "fulltime",
-      is_active: mechanic?.is_active ?? true,
+      name: technician?.name || "",
+      specialization: technician?.specialization || "",
+      phone: technician?.phone || "",
+      address: technician?.address || "",
+      employment_type: technician?.employment_type || "fulltime",
+      is_active: technician?.is_active ?? true,
     },
   });
 
   useEffect(() => {
-    if (mechanic) {
+    if (technician) {
       form.reset({
-        name: mechanic.name,
-        specialization: mechanic.specialization || "",
-        phone: mechanic.phone || "",
-        address: mechanic.address || "",
-        employment_type: mechanic.employment_type,
-        is_active: mechanic.is_active,
+        name: technician.name,
+        specialization: technician.specialization || "",
+        phone: technician.phone || "",
+        address: technician.address || "",
+        employment_type: technician.employment_type,
+        is_active: technician.is_active,
       });
     }
-  }, [mechanic, form]);
+  }, [technician, form]);
 
   const handleSubmit = async (data: MechanicFormValues) => {
     if (isSubmitting) return;
@@ -100,22 +100,22 @@ const MechanicDialog: React.FC<MechanicDialogProps> = ({ open, onOpenChange, mec
         is_active: data.is_active,
       };
 
-      if (mechanic) {
-        // Update existing mechanic
-        await updateMechanic(mechanic.id, mechanicData);
-        onSave({ ...mechanic, ...mechanicData });
+      if (technician) {
+        // Update existing technician
+        await updateMechanic(technician.id, mechanicData);
+        onSave({ ...technician, ...mechanicData });
       } else {
-        // Add new mechanic
+        // Add new technician
         const newMechanic = await addMechanic(mechanicData);
         onSave(newMechanic);
       }
 
-      toast.success(mechanic ? "Mechanic updated successfully!" : "Mechanic added successfully!");
+      toast.success(technician ? "Mechanic updated successfully!" : "Mechanic added successfully!");
       form.reset();
       onOpenChange(false);
     } catch (error) {
-      console.error("Error adding/updating mechanic:", error);
-      toast.error("Failed to save mechanic. Please try again.");
+      console.error("Error adding/updating technician:", error);
+      toast.error("Failed to save technician. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -125,9 +125,9 @@ const MechanicDialog: React.FC<MechanicDialogProps> = ({ open, onOpenChange, mec
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>{mechanic ? "Edit Mechanic" : "Add New Mechanic"}</DialogTitle>
+          <DialogTitle>{technician ? "Edit Mechanic" : "Add New Mechanic"}</DialogTitle>
           <DialogDescription>
-            {mechanic ? "Update mechanic details." : "Enter the details for the new mechanic."}
+            {technician ? "Update technician details." : "Enter the details for the new technician."}
           </DialogDescription>
         </DialogHeader>
 
@@ -219,7 +219,7 @@ const MechanicDialog: React.FC<MechanicDialogProps> = ({ open, onOpenChange, mec
                   <div className="space-y-0.5">
                     <FormLabel className="text-sm">Active</FormLabel>
                     <FormDescription>
-                      Whether the mechanic is currently active
+                      Whether the technician is currently active
                     </FormDescription>
                   </div>
                   <FormControl>
@@ -238,8 +238,8 @@ const MechanicDialog: React.FC<MechanicDialogProps> = ({ open, onOpenChange, mec
               </Button>
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting 
-                  ? (mechanic ? "Updating..." : "Adding...") 
-                  : (mechanic ? "Update Mechanic" : "Add Mechanic")
+                  ? (technician ? "Updating..." : "Adding...") 
+                  : (technician ? "Update Mechanic" : "Add Mechanic")
                 }
               </Button>
             </DialogFooter>
