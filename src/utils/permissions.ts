@@ -108,12 +108,13 @@ export const RESOURCE_PERMISSIONS: Record<string, PermissionConfig[]> = {
     { resource: 'attendance', action: 'manage', allowedRoles: ['owner', 'admin', 'manager'] },
   ],
   reports: [
-    { resource: 'reports', action: 'view', allowedRoles: ['owner', 'admin', 'manager', 'foreman'] },
+    { resource: 'reports', action: 'view', allowedRoles: ['owner', 'admin', 'manager', 'foreman', 'finance'] },
     { resource: 'reports', action: 'manage', allowedRoles: ['owner', 'admin', 'manager'] },
   ],
   dashboard: [
-    { resource: 'dashboard', action: 'view', allowedRoles: ['owner', 'admin', 'manager', 'foreman', 'mechanic', 'member'] },
+    { resource: 'dashboard', action: 'view', allowedRoles: ['owner', 'admin', 'manager', 'foreman', 'mechanic', 'member', 'finance'] },
   ],
+
 };
 
 /**
