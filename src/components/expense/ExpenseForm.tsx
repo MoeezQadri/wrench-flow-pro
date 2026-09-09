@@ -38,7 +38,6 @@ const expenseSchema = z.object({
   category: z.string().min(1, { message: "Category is required" }),
   amount: z.coerce.number().min(0.01, { message: "Amount must be at least 0.01" }),
   description: z.string().min(1, { message: "Description is required" }),
-  paymentMethod: z.enum(["cash", "card", "bank-transfer", "check", "other"]),
   expenseType: z.enum(["invoice", "workshop"]),
   vendorId: z.string().optional(),
   invoiceId: z.string().optional(),
