@@ -14,19 +14,38 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Edit, Trash2, Search, Building2, Phone, Mail, MapPin } from "lucide-react";
-import { Vendor } from "@/types";
+import { Payable, Vendor } from "@/types";
 import { useDataContext } from "@/context/data/DataContext";
 import { toast } from "sonner";
+import { useOrganizationSettings } from "@/hooks/useOrganizationSettings";
+import { VendorBillsSection } from "./VendorBillsSection";
 
 interface VendorListProps {
   vendors: Vendor[];
   onEditVendor: (vendor: Vendor) => void;
 }
 
+const outstandingOf = (p: Payable) => Math.max(0, (p.amount || 0) - (p.paid_amount || 0));
+
 const VendorList = ({ vendors, onEditVendor }: VendorListProps) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [vendorToDelete, setVendorToDelete] = useState<Vendor | null>(null);
-  const { removeVendor } = useDataContext();
+  const [expandedVendorId, setExpandedVendorId] = useState<string | null>(null);
+  const { removeVendor, payables, loadPayables } = useDataContext();
+  const { formatCurrency } = useOrganizationSettings();
+
+  // Bills are needed to show what each vendor is owed
+  React.useEffect(() => {
+    loadPayables();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const billsFor = (vendorId: string) => payables.filter(p => p.vendor_id === vendorId);
+  const owedFor = (vendorId: string) =>
+    billsFor(vendorId)
+      .filter(p => p.status !== 'cancelled')
+      .reduce((sum, p) => sum + outstandingOf(p), 0);
+
 
   const filteredVendors = vendors.filter(vendor =>
     vendor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
