@@ -7,6 +7,7 @@ import { formatOrgDate, orgToday, toOrgDateInputValue } from '@/utils/datetime';
 import { PayableDialog } from '@/components/payable/PayableDialog';
 import { PayVendorDialog } from './PayVendorDialog';
 import { useDataContext } from '@/context/data/DataContext';
+import BillPartDetails from './BillPartDetails';
 
 interface VendorBillsSectionProps {
   vendor: Vendor;
