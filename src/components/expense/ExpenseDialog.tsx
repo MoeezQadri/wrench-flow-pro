@@ -125,7 +125,6 @@ const ExpenseDialog: React.FC<ExpenseDialogProps> = ({
                 category: expense.category,
                 amount: expense.amount,
                 description: expense.description,
-                paymentMethod: expense.payment_method,
                 expenseType: getExpenseType(expense),
                 vendorId: expense.vendor_id || "none",
                 invoiceId: (expense as any).invoice_id || "",
