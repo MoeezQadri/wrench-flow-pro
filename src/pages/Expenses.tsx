@@ -18,13 +18,8 @@ import {
   Calendar,
   ArrowUpCircle,
   ArrowDownCircle,
-  CreditCard,
-  Banknote,
-  Building,
   Receipt,
-  Wrench,
-  CheckSquare,
-  MoreHorizontal
+  Wrench
 } from "lucide-react";
 import { toast } from "sonner";
 import ExpenseDialog from "@/components/expense/ExpenseDialog";
