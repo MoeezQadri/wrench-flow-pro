@@ -255,6 +255,10 @@ export interface Expense {
   invoice_id?: string;
   receipt_url?: string;
   notes?: string;
+  /** Set when the expense is an inventory part purchase */
+  part_id?: string;
+  quantity?: number;
+  unit_cost?: number;
   organization_id?: string;
   created_at?: string;
   updated_at?: string;
