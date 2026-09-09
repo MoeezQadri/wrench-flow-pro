@@ -38,6 +38,10 @@ export const formatOrgDate = (
   pattern = 'dd MMM yyyy',
   fallback = 'N/A'
 ): string => {
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [year, month, day] = value.split('-').map(Number);
+    return format(new Date(year, month - 1, day, 12), pattern);
+  }
   const date = toDate(value);
   if (!date) return fallback;
   return formatInTimeZone(date, getOrgTimezone(), pattern);
