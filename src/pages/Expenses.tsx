@@ -86,6 +86,9 @@ const Expenses = () => {
           return [...prev, expense];
         }
       });
+
+      // A new expense creates a bill, so refresh bills to show its payment status
+      await loadPayables();
     } catch (error) {
       console.error("Error saving expense:", error);
       toast.error("Failed to save expense");
