@@ -39,6 +39,9 @@ const userRoles: UserRole[] = [
   'foreman',
 ];
 
+const getRoleLabel = (role: UserRole) =>
+  role === 'mechanic' ? 'Technician' : role.charAt(0).toUpperCase() + role.slice(1);
+
 const InviteUserDialog: React.FC<InviteUserDialogProps> = ({
   open,
   onOpenChange,
@@ -208,7 +211,7 @@ const InviteUserDialog: React.FC<InviteUserDialogProps> = ({
               <SelectContent>
                 {userRoles.map((role) => (
                   <SelectItem key={role} value={role}>
-                    {role.charAt(0).toUpperCase() + role.slice(1)}
+                    {getRoleLabel(role)}
                   </SelectItem>
                 ))}
               </SelectContent>
