@@ -31,7 +31,7 @@ The Finance section becomes **Payable Management**: money the shop owes (payable
 
 ## 5. Consistency
 
-- Expenses, Finance, the profit/loss and financial reports all read the same outstanding-balance figures, so a partial payment shows the same way everywhere.
+- Expenses, Payable Management, the profit/loss and financial reports all read the same outstanding-balance figures, so a partial payment shows the same way everywhere. (Receivables are not shown on this page.)
 
 ## Technical notes
 
