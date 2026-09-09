@@ -149,7 +149,15 @@ function App() {
                     <Route path="attendance" element={<Attendance />} />
                     <Route path="vehicles" element={<Vehicles />} />
                     <Route path="users" element={<Users />} />
-                    <Route path="finance" element={<Finance />} />
+                    <Route
+                      path="finance"
+                      element={
+                        <PagePermissionGuard resource="finance" action="view">
+                          <Finance />
+                        </PagePermissionGuard>
+                      }
+                    />
+
                   </Route>
                 </Route>
               </Route>
