@@ -26,7 +26,7 @@ import { toast } from 'sonner';
 import { calendarDayDifference, formatOrgDate, isOrgDayWithinRange, orgToday, selectedCalendarDay, toOrgDateInputValue } from '@/utils/datetime';
 
 const FinancialReport = () => {
-  const { invoices, expenses, vendors } = useDataContext();
+  const { invoices, expenses, vendors, payables: payables_ } = useDataContext();
   const { formatCurrency } = useOrganizationSettings();
   const [dateRange, setDateRange] = useState({
     startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
