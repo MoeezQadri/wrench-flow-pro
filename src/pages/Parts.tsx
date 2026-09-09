@@ -114,13 +114,9 @@ const Parts: React.FC = () => {
   };
 
   const handleVendorManagement = () => {
-    setShowVendorManagement(true);
+    navigate('/vendors');
   };
 
-  const handleVendorManagementClose = () => {
-    setShowVendorManagement(false);
-    refreshAllData();
-  };
 
   const getVendorName = (part: any) => {
     if (part.vendor_id && part.vendor_id !== "none") {
