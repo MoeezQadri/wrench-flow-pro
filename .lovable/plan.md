@@ -50,7 +50,10 @@ So a partly paid invoice is over-reported in both, and the Finance page number c
 
 ## Technical notes
 
-- `src/components/AppSidebar.tsx`: add the Finance nav item behind the existing permission guard.
+- `src/utils/permissions.ts`: add a `finance` resource (`view`/`create`/`edit`) for `owner`, `admin`, `finance`, add `finance` to `ROLE_PERMISSIONS`, and include it on `expenses`, `invoices`, `payments` and `reports` view rules.
+- `src/components/AppSidebar.tsx`: Finance nav item using resource `finance`, action `view` (already filtered by `hasPermission` and `subscribed`).
+- `src/App.tsx`: `/finance` stays inside `SubscriptionRoute` and gets wrapped in `PagePermissionGuard` for resource `finance`; role labels/invite options updated wherever roles are listed (`getRoleLabel`, user invite and management UI).
+
 - `src/utils/invoice-calculations.ts`: shared outstanding-balance helper; `calculateTotalReceivables` / `calculateOverdueAmount` switch from `total` to `balanceDue`.
 - `src/pages/Finance.tsx`: use the shared helpers for receivables; bill list with partial-payment support, add-bill dialog, paid history.
 - `src/components/payable/PayableDialog.tsx`: support partial payments (`paid_amount` accumulation, status `pending` vs `paid`) and keep method/date/notes.
