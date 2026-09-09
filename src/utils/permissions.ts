@@ -11,10 +11,12 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
   'owner': ['view', 'create', 'edit', 'delete', 'manage'], // Full permissions
   'admin': ['view', 'create', 'edit', 'delete', 'manage'], // Same as owner for operational purposes
   'manager': ['view', 'create', 'edit', 'delete'], // Can't manage users/settings
+  'finance': ['view', 'create', 'edit'], // Money in / money out only
   'foreman': ['view', 'create', 'edit'], // Can't delete
   'mechanic': ['view', 'create'], // Limited permissions
   'member': ['view'], // Read-only
 };
+
 
 // Resource-specific permissions
 export const RESOURCE_PERMISSIONS: Record<string, PermissionConfig[]> = {
