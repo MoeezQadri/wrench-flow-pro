@@ -30,6 +30,7 @@ export const PayableDialog: React.FC<PayableDialogProps> = ({
   onPayableUpdated,
   onMarkAsPaid,
 }) => {
+  const { formatCurrency, getCurrencySymbol } = useOrganizationSettings();
   const outstandingAmount = Math.max(0, (payable?.amount || 0) - (payable?.paid_amount || 0));
   const [paymentAmount, setPaymentAmount] = useState(outstandingAmount);
   const [paymentMethod, setPaymentMethod] = useState('');
@@ -73,7 +74,7 @@ export const PayableDialog: React.FC<PayableDialogProps> = ({
     if (paymentAmount > outstandingAmount + 0.005) {
       toast({
         title: "Error",
-        description: `Payment cannot be more than the outstanding amount of $${outstandingAmount.toFixed(2)}`,
+        description: `Payment cannot be more than the outstanding amount of ${formatCurrency(outstandingAmount)}`,
         variant: "destructive",
       });
       return;
@@ -131,11 +132,12 @@ export const PayableDialog: React.FC<PayableDialogProps> = ({
             <Label className="text-sm font-medium">Payable Details</Label>
             <div className="mt-2 p-3 border rounded-md bg-muted/50">
               <p><strong>Description:</strong> {payable?.description}</p>
-              <p><strong>Total Amount:</strong> ${payable?.amount?.toFixed(2)}</p>
+              <p><strong>Total Amount:</strong> {formatCurrency(payable?.amount || 0)}</p>
               {(payable?.paid_amount || 0) > 0 && (
-                <p><strong>Already Paid:</strong> ${(payable?.paid_amount || 0).toFixed(2)}</p>
+                <p><strong>Already Paid:</strong> {formatCurrency(payable?.paid_amount || 0)}</p>
               )}
-              <p><strong>Outstanding:</strong> ${outstandingAmount.toFixed(2)}</p>
+              <p><strong>Outstanding:</strong> {formatCurrency(outstandingAmount)}</p>
+
 
               {payable?.due_date && (
                 <p><strong>Due Date:</strong> {formatOrgDate(payable.due_date)}</p>
