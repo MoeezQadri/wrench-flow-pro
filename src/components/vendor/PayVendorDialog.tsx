@@ -159,6 +159,7 @@ export const PayVendorDialog: React.FC<PayVendorDialogProps> = ({
                         {bill.due_date ? `Due ${formatOrgDate(bill.due_date)}` : 'No due date'} ·
                         {' '}Outstanding {formatCurrency(outstandingOf(bill))}
                       </p>
+                      <BillPartDetails bill={bill} />
                     </div>
                     <Input
                       className="w-32"
