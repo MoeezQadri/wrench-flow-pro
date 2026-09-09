@@ -75,7 +75,6 @@ const ExpenseForm = ({ defaultValues, onSubmit, formId }: ExpenseFormProps) => {
       category: "",
       amount: 0,
       description: "",
-      paymentMethod: "cash",
       expenseType: "workshop",
       vendorId: "none",
       invoiceId: "",
