@@ -42,14 +42,14 @@ const InvoicingReport = () => {
     return sum + invoiceBreakdown.total;
   }, 0);
 
+  // Count every payment on these invoices, including partial ones on open invoices.
+  const billableInvoiceIds = new Set(billableInvoices.map(inv => inv.id));
   const paidAmount = payments
-    .filter(payment => {
-      const invoice = billableInvoices.find(inv => inv.id === payment.invoice_id);
-      return invoice && invoice.status === 'paid';
-    })
+    .filter(payment => billableInvoiceIds.has(payment.invoice_id))
     .reduce((sum, payment) => sum + Number(payment.amount), 0);
 
-  const outstandingAmount = totalRevenue - paidAmount;
+  const outstandingAmount = Math.max(0, totalRevenue - paidAmount);
+
 
   const handleDateRangeChange = (newStartDate: Date, newEndDate: Date) => {
     setStartDate(newStartDate);

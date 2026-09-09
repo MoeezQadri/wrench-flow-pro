@@ -102,7 +102,8 @@ export async function fetchDashboardData(startDate: Date, endDate: Date): Promis
         status: invoice.status as any
       } as any;
       const invoiceBreakdown = calculateInvoiceBreakdown(invoiceWithItems);
-      return sum + invoiceBreakdown.total;
+      // Revenue excludes tax collected, matching the reports.
+      return sum + invoiceBreakdown.revenueExTax;
     }, 0) || 0;
 
     const totalInvoices = billableInvoices.length;
@@ -123,7 +124,8 @@ export async function fetchDashboardData(startDate: Date, endDate: Date): Promis
         status: invoice.status as any
       } as any;
       const invoiceBreakdown = calculateInvoiceBreakdown(invoiceWithItems);
-      return sum + invoiceBreakdown.total;
+      // Revenue excludes tax collected, matching the reports.
+      return sum + invoiceBreakdown.revenueExTax;
     }, 0) || 0;
 
     const previousInvoicesCount = previousBillableInvoices.length;
@@ -210,7 +212,9 @@ export async function fetchChartData(startDate: Date, endDate: Date): Promise<Ch
             status: invoice.status as any
           } as any;
           const invoiceBreakdown = calculateInvoiceBreakdown(invoiceWithItems);
-          return sum + invoiceBreakdown.total;
+          // Revenue excludes tax collected, matching the reports.
+          return sum + invoiceBreakdown.revenueExTax;
+
         }, 0) || 0;
 
       // Calculate expenses for this day
