@@ -158,6 +158,7 @@ const Finance = () => {
                       {payable.payment_date ? `Paid: ${formatOrgDate(payable.payment_date)}` : 'Paid'}
                       {payable.payment_method ? ` · ${payable.payment_method}` : ''}
                     </p>
+                    <BillPartDetails bill={payable} />
                   </div>
                   <div className="text-right">
                     <p className="font-semibold">{formatCurrency(payable.amount)}</p>
