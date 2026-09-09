@@ -65,12 +65,15 @@ const ExpenseDialog: React.FC<ExpenseDialogProps> = ({
         amount: data.amount,
         category: data.category,
         description: data.description,
-        payment_method: data.paymentMethod,
+        payment_status: expense?.payment_status || 'unpaid',
         vendor_name: expenseVendorName,
         vendor_id: data.vendorId && data.vendorId !== "none" ? data.vendorId : undefined,
         created_at: expense?.created_at || new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
+      if (expense?.payment_method) {
+        expenseData.payment_method = expense.payment_method;
+      }
 
       // Add invoice_id if this is an invoice expense
       if (expenseInvoiceId) {
@@ -122,7 +125,6 @@ const ExpenseDialog: React.FC<ExpenseDialogProps> = ({
                 category: expense.category,
                 amount: expense.amount,
                 description: expense.description,
-                paymentMethod: expense.payment_method,
                 expenseType: getExpenseType(expense),
                 vendorId: expense.vendor_id || "none",
                 invoiceId: (expense as any).invoice_id || "",

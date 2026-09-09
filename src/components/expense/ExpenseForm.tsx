@@ -38,7 +38,6 @@ const expenseSchema = z.object({
   category: z.string().min(1, { message: "Category is required" }),
   amount: z.coerce.number().min(0.01, { message: "Amount must be at least 0.01" }),
   description: z.string().min(1, { message: "Description is required" }),
-  paymentMethod: z.enum(["cash", "card", "bank-transfer", "check", "other"]),
   expenseType: z.enum(["invoice", "workshop"]),
   vendorId: z.string().optional(),
   invoiceId: z.string().optional(),
@@ -76,7 +75,6 @@ const ExpenseForm = ({ defaultValues, onSubmit, formId }: ExpenseFormProps) => {
       category: "",
       amount: 0,
       description: "",
-      paymentMethod: "cash",
       expenseType: "workshop",
       vendorId: "none",
       invoiceId: "",
@@ -296,35 +294,9 @@ const ExpenseForm = ({ defaultValues, onSubmit, formId }: ExpenseFormProps) => {
           )}
         />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="paymentMethod"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Payment Method</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                  value={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select payment method" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="cash">Cash</SelectItem>
-                    <SelectItem value="card">Card</SelectItem>
-                    <SelectItem value="bank-transfer">Bank Transfer</SelectItem>
-                    <SelectItem value="check">Check</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+        <div className="grid grid-cols-1 gap-4">
+
+
 
           <div className="space-y-2">
             <FormField
@@ -375,6 +347,14 @@ const ExpenseForm = ({ defaultValues, onSubmit, formId }: ExpenseFormProps) => {
             </p>
           </div>
         )}
+
+        <div className="p-3 rounded-lg border bg-muted/50">
+          <p className="text-sm text-muted-foreground">
+            This expense is recorded as an unpaid bill. Record the payment and how it was paid from
+            Payable Management, or with “Mark as Paid” on the expense list.
+          </p>
+        </div>
+
 
         <VendorDialog
           open={isVendorDialogOpen}

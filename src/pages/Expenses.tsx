@@ -18,13 +18,8 @@ import {
   Calendar,
   ArrowUpCircle,
   ArrowDownCircle,
-  CreditCard,
-  Banknote,
-  Building,
   Receipt,
-  Wrench,
-  CheckSquare,
-  MoreHorizontal
+  Wrench
 } from "lucide-react";
 import { toast } from "sonner";
 import ExpenseDialog from "@/components/expense/ExpenseDialog";
@@ -42,7 +37,13 @@ const Expenses = () => {
   const [expensesList, setExpensesList] = useState<Expense[]>([]);
   const { currentUser } = useAuthContext();
   const { formatCurrency } = useOrganizationSettings();
-  const { expenses, addExpense, updateExpense, loadExpenses } = useDataContext();
+  const { expenses, addExpense, updateExpense, loadExpenses, payables, loadPayables } = useDataContext();
+
+  // Bills back the payment status shown on each expense
+  React.useEffect(() => {
+    loadPayables();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   
   // Check permissions
   const userCanManageExpenses = hasPermission(currentUser, 'expenses', 'manage') || hasPermission(currentUser, 'expenses', 'create');
@@ -80,6 +81,9 @@ const Expenses = () => {
           return [...prev, expense];
         }
       });
+
+      // A new expense creates a bill, so refresh bills to show its payment status
+      await loadPayables();
     } catch (error) {
       console.error("Error saving expense:", error);
       toast.error("Failed to save expense");
@@ -107,23 +111,33 @@ const Expenses = () => {
   const totalWorkshop = workshopExpenses.reduce((total, expense) => total + expense.amount, 0);
   const totalInvoice = invoiceExpenses.reduce((total, expense) => total + expense.amount, 0);
 
-  // Get payment method icon
-  const getPaymentMethodIcon = (method: 'cash' | 'card' | 'bank-transfer' | 'check' | 'other') => {
-    switch (method) {
-      case 'cash':
-        return <Banknote className="h-4 w-4 text-yellow-500" />;
-      case 'card':
-        return <CreditCard className="h-4 w-4 text-blue-500" />;
-      case 'bank-transfer':
-        return <Building className="h-4 w-4 text-green-500" />;
-      case 'check':
-        return <CheckSquare className="h-4 w-4 text-purple-500" />;
-      case 'other':
-        return <MoreHorizontal className="h-4 w-4 text-gray-500" />;
-      default:
-        return <MoreHorizontal className="h-4 w-4 text-gray-500" />;
+  // Payment status of an expense, derived from its linked bill
+  const getPaymentInfo = (expense: Expense) => {
+    const bill = payables.find(p => p.expense_id === expense.id);
+    const total = bill?.amount ?? expense.amount;
+    const paid = bill?.paid_amount ?? (expense.payment_status === 'paid' ? total : 0);
+    const outstanding = Math.max(0, total - paid);
+
+    if (outstanding <= 0.005 && total > 0) {
+      return {
+        label: 'Paid',
+        className: 'text-green-600',
+        detail: [
+          bill?.payment_method || expense.payment_method,
+          bill?.payment_date ? formatOrgDate(bill.payment_date, 'MMM dd, yyyy') : null,
+        ].filter(Boolean).join(' · '),
+      };
     }
+    if (paid > 0) {
+      return {
+        label: 'Partly paid',
+        className: 'text-amber-600',
+        detail: `${formatCurrency(paid)} paid · ${formatCurrency(outstanding)} left`,
+      };
+    }
+    return { label: 'Unpaid', className: 'text-red-600', detail: formatCurrency(outstanding) };
   };
+
 
   // Get expense type icon and label
   const getExpenseTypeInfo = (expense: Expense) => {
@@ -217,7 +231,7 @@ const Expenses = () => {
                 <TableHead>Type</TableHead>
                 <TableHead>Category</TableHead>
                 <TableHead>Description</TableHead>
-                <TableHead>Payment Method</TableHead>
+                <TableHead>Payment Status</TableHead>
                 <TableHead>Vendor</TableHead>
                 <TableHead>Amount</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -226,6 +240,7 @@ const Expenses = () => {
             <TableBody>
               {expensesList.sort((a, b) => toOrgDateInputValue(b.date).localeCompare(toOrgDateInputValue(a.date))).map((expense) => {
                 const typeInfo = getExpenseTypeInfo(expense);
+                const paymentInfo = getPaymentInfo(expense);
                 return (
                   <TableRow key={expense.id}>
                     <TableCell>{formatOrgDate(expense.date, "MMM dd, yyyy")}</TableCell>
@@ -240,12 +255,10 @@ const Expenses = () => {
                     </TableCell>
                     <TableCell>{expense.description}</TableCell>
                     <TableCell>
-                      <div className="flex items-center">
-                        {getPaymentMethodIcon(expense.payment_method)}
-                        <span className="ml-2 capitalize">
-                          {expense.payment_method.replace('-', ' ')}
-                        </span>
-                      </div>
+                      <div className={`font-medium ${paymentInfo.className}`}>{paymentInfo.label}</div>
+                      {paymentInfo.detail && (
+                        <div className="text-xs text-muted-foreground capitalize">{paymentInfo.detail}</div>
+                      )}
                     </TableCell>
                     <TableCell>{expense.vendor_name || "—"}</TableCell>
                     <TableCell className="font-medium">{formatCurrency(expense.amount)}</TableCell>
@@ -262,10 +275,12 @@ const Expenses = () => {
                         )}
                         <MarkAsPaidButton 
                           expense={expense} 
-                          onPaymentRecorded={() => {
-                            // Refresh expenses data if needed
+                          onPaymentRecorded={async () => {
+                            await loadPayables();
+                            await loadExpenses();
                           }}
                         />
+
                       </div>
                     </TableCell>
                   </TableRow>

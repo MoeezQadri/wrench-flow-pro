@@ -105,7 +105,7 @@ const navItems = [
     action: 'view' as const,
   },
   {
-    title: 'Finance',
+    title: 'Payable Management',
     href: '/finance',
     icon: Wallet,
     resource: 'finance',

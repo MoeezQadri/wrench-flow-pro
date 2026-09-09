@@ -84,7 +84,7 @@ const PartDialog = ({ open, onOpenChange, onSave, part, invoiceId }: PartDialogP
         const expense: Expense = {
           id: generateId("expense"),
           category: "parts",
-          description: `Purchase: ${newPart.name}`,
+          description: `Parts purchase: ${newPart.quantity} × ${newPart.name}${vendor?.name ? ` from ${vendor.name}` : ""}`,
           amount: purchaseCost,
           date: new Date().toISOString(),
           vendor_id: vendorId || undefined,

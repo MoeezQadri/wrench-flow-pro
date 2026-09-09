@@ -3,33 +3,26 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { DollarSign, TrendingUp, TrendingDown, Building, CreditCard } from 'lucide-react';
+import { TrendingDown, Building, CreditCard } from 'lucide-react';
 import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
 import { useDataContext } from '@/context/data/DataContext';
 import { PayableDialog } from '@/components/payable/PayableDialog';
-import { AddBillDialog } from '@/components/payable/AddBillDialog';
-import { PermissionGuard } from '@/components/PermissionGuard';
 import { Payable } from '@/types';
 import { formatOrgDate, orgToday, toOrgDateInputValue } from '@/utils/datetime';
-import { calculateTotalReceivables, calculateOverdueAmount } from '@/utils/invoice-calculations';
 
 const outstandingOf = (p: Payable) => Math.max(0, (p.amount || 0) - (p.paid_amount || 0));
 
 const Finance = () => {
   const { formatCurrency } = useOrganizationSettings();
-  const { 
-    payables, 
-    markPayableAsPaid, 
-    invoices, 
+  const {
+    payables,
+    markPayableAsPaid,
     vendors,
     loadPayables,
-    loadExpenses
   } = useDataContext();
 
-  
   const [selectedPayable, setSelectedPayable] = useState<Payable | undefined>();
   const [isPayableDialogOpen, setIsPayableDialogOpen] = useState(false);
-  const [isAddBillOpen, setIsAddBillOpen] = useState(false);
 
   useEffect(() => {
     loadPayables();
@@ -39,16 +32,12 @@ const Finance = () => {
   const unpaidBills = payables.filter(p => p.status !== 'paid' && p.status !== 'cancelled' && outstandingOf(p) > 0);
   const paidBills = payables.filter(p => p.status === 'paid' || outstandingOf(p) === 0);
 
-  // Money out: what is still owed on bills
+  // What is still owed on bills
   const totalPayables = unpaidBills.reduce((sum, p) => sum + outstandingOf(p), 0);
 
   const overduePayables = unpaidBills
     .filter(p => p.due_date && toOrgDateInputValue(p.due_date) < orgToday())
     .reduce((sum, p) => sum + outstandingOf(p), 0);
-
-  // Money in: outstanding balances on billable invoices (same formula as reports)
-  const totalReceivables = calculateTotalReceivables(invoices);
-  const overdueReceivables = calculateOverdueAmount(invoices);
 
   const activeVendorCount = vendors.filter(v => v.is_active).length;
 
@@ -67,38 +56,20 @@ const Finance = () => {
     setSelectedPayable(payable);
     setIsPayableDialogOpen(true);
   };
-  
 
-  
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Finance</h1>
-          <p className="text-muted-foreground">Money coming in and money going out</p>
+          <h1 className="text-3xl font-bold">Payable Management</h1>
+          <p className="text-muted-foreground">Bills the workshop owes and payments made against them</p>
         </div>
-        <PermissionGuard resource="finance" action="create">
-          <Button onClick={() => setIsAddBillOpen(true)}>Add bill</Button>
-        </PermissionGuard>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Money In (Receivables)</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold break-words text-green-600">{formatCurrency(totalReceivables)}</div>
-            <p className="text-xs text-muted-foreground">
-              Unpaid invoice balances · {formatCurrency(overdueReceivables)} overdue
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Money Out (Payables)</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Payables</CardTitle>
             <TrendingDown className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -119,7 +90,7 @@ const Finance = () => {
             <p className="text-xs text-muted-foreground">Past the due date</p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active Vendors</CardTitle>
@@ -135,6 +106,9 @@ const Finance = () => {
       <Card>
         <CardHeader>
           <CardTitle>Bills</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Bills are created automatically when an expense is recorded or parts are purchased.
+          </p>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="unpaid">
@@ -203,16 +177,6 @@ const Finance = () => {
         onOpenChange={setIsPayableDialogOpen}
         payable={selectedPayable}
         onMarkAsPaid={handleMarkAsPaid}
-      />
-
-      <AddBillDialog
-        open={isAddBillOpen}
-        onOpenChange={setIsAddBillOpen}
-        onCreated={async () => {
-          await loadPayables();
-          await loadExpenses();
-        }}
-
       />
     </div>
   );
