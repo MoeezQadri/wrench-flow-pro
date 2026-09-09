@@ -23,6 +23,7 @@ import { calculateInvoiceBreakdown, calculateTotalReceivables, calculateOverdueA
 import { isNonBillable } from '@/utils/invoice-status';
 import { exportToCSV } from '@/utils/csv-export';
 import { toast } from 'sonner';
+import { formatOrgDate, isOrgDayWithinRange, orgToday, selectedCalendarDay, toOrgDateInputValue } from '@/utils/datetime';
 
 const FinancialReport = () => {
   const { invoices, expenses, vendors } = useDataContext();
@@ -42,14 +43,13 @@ const FinancialReport = () => {
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString();
+    return formatOrgDate(dateString);
   };
 
   // Filter data based on applied date range
   const filterByDateRange = (items: any[], dateField: string) => {
     return items.filter(item => {
-      const itemDate = new Date(item[dateField]);
-      return itemDate >= appliedDateRange.startDate && itemDate <= appliedDateRange.endDate;
+      return isOrgDayWithinRange(item[dateField], appliedDateRange.startDate, appliedDateRange.endDate);
     });
   };
 
@@ -61,7 +61,7 @@ const FinancialReport = () => {
   // Calculate overdue receivables
   const overdueReceivables = receivables.filter(inv => {
     if (!inv.due_date) return false;
-    return new Date(inv.due_date) < new Date();
+    return toOrgDateInputValue(inv.due_date) < orgToday();
   });
   const overdueReceivablesAmount = calculateOverdueAmount(overdueReceivables);
 
@@ -102,14 +102,14 @@ const FinancialReport = () => {
       'Invoice ID': invoice.id.slice(0, 8) + '...',
       'Customer ID': invoice.customer_id.slice(0, 8) + '...',
       'Amount': calculateInvoiceBreakdown(invoice).total,
-      'Due Date': invoice.due_date ? new Date(invoice.due_date).toLocaleDateString() : 'N/A',
+      'Due Date': invoice.due_date ? formatOrgDate(invoice.due_date) : 'N/A',
       'Status': invoice.status,
       'Days Overdue': invoice.due_date 
         ? Math.max(0, Math.floor((new Date().getTime() - new Date(invoice.due_date).getTime()) / (1000 * 3600 * 24)))
         : 0
     }));
     
-    exportToCSV(exportData, `receivables-${new Date().toISOString().split('T')[0]}.csv`);
+    exportToCSV(exportData, `receivables-${orgToday()}.csv`);
     toast.success('Receivables exported successfully');
   };
 
@@ -118,12 +118,12 @@ const FinancialReport = () => {
       'Description': expense.description || 'N/A',
       'Vendor': expense.vendor_name || 'N/A',
       'Amount': expense.amount,
-      'Date': new Date(expense.date).toLocaleDateString(),
+      'Date': formatOrgDate(expense.date),
       'Category': expense.category,
       'Age (Days)': Math.floor((new Date().getTime() - new Date(expense.date).getTime()) / (1000 * 3600 * 24))
     }));
     
-    exportToCSV(exportData, `payables-${new Date().toISOString().split('T')[0]}.csv`);
+    exportToCSV(exportData, `payables-${orgToday()}.csv`);
     toast.success('Payables exported successfully');
   };
 
@@ -141,7 +141,7 @@ const FinancialReport = () => {
       };
     });
     
-    exportToCSV(exportData, `vendors-${new Date().toISOString().split('T')[0]}.csv`);
+    exportToCSV(exportData, `vendors-${orgToday()}.csv`);
     toast.success('Vendors exported successfully');
   };
 
@@ -152,12 +152,12 @@ const FinancialReport = () => {
       'Net Cash Flow': netPosition,
       'Outstanding Receivables Count': receivables.length,
       'Outstanding Payables Count': payables.length,
-      'Report Date': new Date().toLocaleDateString(),
-      'Period Start': appliedDateRange.startDate.toLocaleDateString(),
-      'Period End': appliedDateRange.endDate.toLocaleDateString()
+      'Report Date': formatOrgDate(new Date()),
+      'Period Start': selectedCalendarDay(appliedDateRange.startDate),
+      'Period End': selectedCalendarDay(appliedDateRange.endDate)
     }];
     
-    exportToCSV(exportData, `cash-flow-${new Date().toISOString().split('T')[0]}.csv`);
+    exportToCSV(exportData, `cash-flow-${orgToday()}.csv`);
     toast.success('Cash flow exported successfully');
   };
 
@@ -179,7 +179,7 @@ const FinancialReport = () => {
             <h1 className="text-3xl font-bold">Financial Report</h1>
             <p className="text-muted-foreground">Receivables, payables and cash flow analysis</p>
             <div className="text-sm text-muted-foreground mt-1">
-              Period: {appliedDateRange.startDate.toLocaleDateString()} - {appliedDateRange.endDate.toLocaleDateString()}
+              Period: {selectedCalendarDay(appliedDateRange.startDate)} - {selectedCalendarDay(appliedDateRange.endDate)}
             </div>
           </div>
         </div>

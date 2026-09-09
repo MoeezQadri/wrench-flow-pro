@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Check, X, Clock, User, Plane } from 'lucide-react';
 import { Attendance, Mechanic } from '@/types';
 import { useAuthContext } from '@/context/AuthContext';
+import { calendarDayToPickerDate, formatOrgDate, selectedCalendarDay } from '@/utils/datetime';
 
 interface AttendanceListItemProps {
   record: Attendance;
@@ -82,8 +83,8 @@ const AttendanceListItem: React.FC<AttendanceListItemProps> = ({
 
   const leaveDays = () => {
     if (!record.leave_end_date) return 1;
-    const start = new Date(record.date);
-    const end = new Date(record.leave_end_date);
+    const start = calendarDayToPickerDate(selectedCalendarDay(record.date));
+    const end = calendarDayToPickerDate(selectedCalendarDay(record.leave_end_date));
     const diff = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
     return diff > 0 ? diff : 1;
   };
@@ -111,10 +112,10 @@ const AttendanceListItem: React.FC<AttendanceListItemProps> = ({
             {isLeave ? (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm text-muted-foreground">
                 <div>
-                  <span className="font-medium">From:</span> {record.date}
+                  <span className="font-medium">From:</span> {formatOrgDate(record.date)}
                 </div>
                 <div>
-                  <span className="font-medium">To:</span> {record.leave_end_date || record.date}
+                  <span className="font-medium">To:</span> {formatOrgDate(record.leave_end_date || record.date)}
                 </div>
                 <div>
                   <span className="font-medium">Days:</span> {leaveDays()}

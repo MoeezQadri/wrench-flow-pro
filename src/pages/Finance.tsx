@@ -6,6 +6,7 @@ import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
 import { useDataContext } from '@/context/data/DataContext';
 import { PayableDialog } from '@/components/payable/PayableDialog';
 import { Payable } from '@/types';
+import { formatOrgDate, orgToday, toOrgDateInputValue } from '@/utils/datetime';
 
 const Finance = () => {
   const { formatCurrency } = useOrganizationSettings();
@@ -25,7 +26,7 @@ const Finance = () => {
     .reduce((sum, p) => sum + p.amount, 0);
 
   const overduePayables = payables
-    .filter(p => p.status === 'pending' && p.due_date && new Date(p.due_date) < new Date())
+    .filter(p => p.status === 'pending' && p.due_date && toOrgDateInputValue(p.due_date) < orgToday())
     .reduce((sum, p) => sum + p.amount, 0);
 
   const totalReceivables = invoices
@@ -132,7 +133,7 @@ const Finance = () => {
                   <div>
                     <p className="font-medium">{payable.description}</p>
                     <p className="text-sm text-muted-foreground">
-                      {payable.due_date && `Due: ${new Date(payable.due_date).toLocaleDateString()}`}
+                      {payable.due_date && `Due: ${formatOrgDate(payable.due_date)}`}
                     </p>
                   </div>
                   <div className="text-right">
