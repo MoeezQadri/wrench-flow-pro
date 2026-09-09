@@ -87,6 +87,7 @@ export const VendorBillsSection: React.FC<VendorBillsSectionProps> = ({ vendor, 
                     {bill.due_date ? `Due ${formatOrgDate(bill.due_date)}` : 'No due date'}
                     {(bill.paid_amount || 0) > 0 && ` · ${formatCurrency(bill.paid_amount || 0)} paid`}
                   </p>
+                  <BillPartDetails bill={bill} />
                 </div>
                 <div className="text-right">
                   <p className="text-sm font-semibold">{formatCurrency(bill.amount || 0)}</p>
