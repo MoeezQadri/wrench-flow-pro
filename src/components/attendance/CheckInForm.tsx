@@ -19,7 +19,7 @@ import { Attendance } from '@/types';
 import { useDataContext } from '@/context/data/DataContext';
 
 const checkInSchema = z.object({
-  technicianId: z.string().min(1, { message: "Technician is required" }),
+  mechanicId: z.string().min(1, { message: "Technician is required" }),
   date: z.string().min(1, { message: "Date is required" }),
   checkIn: z.string().min(1, { message: "Check-in time is required" }),
   status: z.enum(["pending", "approved", "rejected", "present", "late", "absent", "half-day"]).default('pending'),
@@ -38,7 +38,7 @@ const CheckInForm: React.FC<CheckInFormProps> = ({ onSubmit }) => {
   const form = useForm<CheckInFormValues>({
     resolver: zodResolver(checkInSchema),
     defaultValues: {
-      technicianId: "",
+      mechanicId: "",
       date: new Date().toISOString().slice(0, 10),
       checkIn: new Date().toTimeString().slice(0, 5), // Current time as HH:MM
       status: "pending",
@@ -102,7 +102,7 @@ const CheckInForm: React.FC<CheckInFormProps> = ({ onSubmit }) => {
                 </FormControl>
                 <SelectContent>
                   {mechanics.map((mechanic) => (
-                    <SelectItem key={technician.id} value={technician.id}>
+                    <SelectItem key={mechanic.id} value={mechanic.id}>
                       {mechanic.name}
                     </SelectItem>
                   ))}

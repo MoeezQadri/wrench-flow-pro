@@ -386,7 +386,7 @@ const Tasks = () => {
             <SelectContent>
               <SelectItem value="all">All Technicians</SelectItem>
               {mechanics.map(mechanic => (
-                <SelectItem key={technician.id} value={technician.id}>
+                <SelectItem key={mechanic.id} value={mechanic.id}>
                   {mechanic.name}
                 </SelectItem>
               ))}

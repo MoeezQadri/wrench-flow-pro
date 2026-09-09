@@ -110,7 +110,7 @@ const MechanicDialog: React.FC<MechanicDialogProps> = ({ open, onOpenChange, mec
         onSave(newMechanic);
       }
 
-      toast.success(technician ? "Technician updated successfully!" : "Technician added successfully!");
+      toast.success(mechanic ? "Technician updated successfully!" : "Technician added successfully!");
       form.reset();
       onOpenChange(false);
     } catch (error) {
@@ -125,9 +125,9 @@ const MechanicDialog: React.FC<MechanicDialogProps> = ({ open, onOpenChange, mec
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>{technician ? "Edit Technician" : "Add New Technician"}</DialogTitle>
+          <DialogTitle>{mechanic ? "Edit Technician" : "Add New Technician"}</DialogTitle>
           <DialogDescription>
-            {technician ? "Update technician details." : "Enter the details for the new technician."}
+            {mechanic ? "Update technician details." : "Enter the details for the new technician."}
           </DialogDescription>
         </DialogHeader>
 
@@ -238,8 +238,8 @@ const MechanicDialog: React.FC<MechanicDialogProps> = ({ open, onOpenChange, mec
               </Button>
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting 
-                  ? (technician ? "Updating..." : "Adding...") 
-                  : (technician ? "Update Technician" : "Add Technician")
+                  ? (mechanic ? "Updating..." : "Adding...") 
+                  : (mechanic ? "Update Technician" : "Add Technician")
                 }
               </Button>
             </DialogFooter>

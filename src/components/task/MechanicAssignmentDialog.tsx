@@ -69,7 +69,7 @@ const MechanicAssignmentDialog: React.FC<MechanicAssignmentDialogProps> = ({
             Assign Technician to Task
           </DialogTitle>
           <DialogDescription>
-            Select a mechanic to assign to: {taskTitle}
+            Select a technician to assign to: {taskTitle}
           </DialogDescription>
         </DialogHeader>
         
@@ -81,7 +81,7 @@ const MechanicAssignmentDialog: React.FC<MechanicAssignmentDialogProps> = ({
               </SelectTrigger>
               <SelectContent>
                 {availableMechanics.map((mechanic) => (
-                  <SelectItem key={technician.id} value={technician.id}>
+                  <SelectItem key={mechanic.id} value={mechanic.id}>
                     {mechanic.name}
                     {mechanic.specialization && (
                       <span className="text-xs text-muted-foreground ml-1">
@@ -96,9 +96,9 @@ const MechanicAssignmentDialog: React.FC<MechanicAssignmentDialogProps> = ({
 
           {selectedMechanic && (
             <div className="text-xs text-muted-foreground space-y-1">
-              <p>Selected: {selectedTechnician.name}</p>
+              <p>Selected: {selectedMechanic.name}</p>
               {selectedMechanic.specialization && (
-                <p>Specialization: {selectedTechnician.specialization}</p>
+                <p>Specialization: {selectedMechanic.specialization}</p>
               )}
             </div>
           )}
@@ -116,7 +116,7 @@ const MechanicAssignmentDialog: React.FC<MechanicAssignmentDialogProps> = ({
               disabled={isAssigning || !selectedMechanicId || (currentMechanicId && selectedMechanicId === currentMechanicId)}
               className="flex-1"
             >
-              {isAssigning ? "Assigning..." : currentTechnicianId ? "Update Assignment" : "Assign Technician"}
+              {isAssigning ? "Assigning..." : currentMechanicId ? "Update Assignment" : "Assign Technician"}
             </Button>
           </div>
         </div>

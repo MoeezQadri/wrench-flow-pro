@@ -76,7 +76,7 @@ const navItems = [
   },
   {
     title: 'Technicians',
-    href: '/technicians',
+    href: '/mechanics',
     icon: Wrench,
     resource: 'mechanics',
     action: 'view' as const,
