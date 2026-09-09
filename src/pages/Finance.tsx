@@ -73,43 +73,48 @@ const Finance = () => {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">Finance</h1>
-          <p className="text-muted-foreground">Financial overview and management</p>
+          <p className="text-muted-foreground">Money coming in and money going out</p>
         </div>
+        <PermissionGuard resource="finance" action="create">
+          <Button onClick={() => setIsAddBillOpen(true)}>Add bill</Button>
+        </PermissionGuard>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Receivables</CardTitle>
+            <CardTitle className="text-sm font-medium">Money In (Receivables)</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold break-words text-green-600">{formatCurrency(totalReceivables)}</div>
-            <p className="text-xs text-muted-foreground">Outstanding invoices</p>
+            <p className="text-xs text-muted-foreground">
+              Unpaid invoice balances · {formatCurrency(overdueReceivables)} overdue
+            </p>
           </CardContent>
         </Card>
         
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Payables</CardTitle>
+            <CardTitle className="text-sm font-medium">Money Out (Payables)</CardTitle>
             <TrendingDown className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold break-words text-red-600">{formatCurrency(totalPayables)}</div>
             <p className="text-xs text-muted-foreground">
-              {payables.filter(p => p.status === 'pending').length} pending items
+              {unpaidBills.length} unpaid bill{unpaidBills.length !== 1 ? 's' : ''}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Overdue</CardTitle>
+            <CardTitle className="text-sm font-medium">Overdue Bills</CardTitle>
             <CreditCard className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold break-words text-orange-600">{formatCurrency(overduePayables)}</div>
-            <p className="text-xs text-muted-foreground">Past due payables</p>
+            <p className="text-xs text-muted-foreground">Past the due date</p>
           </CardContent>
         </Card>
         
@@ -125,17 +130,19 @@ const Finance = () => {
         </Card>
       </div>
 
-      {/* Pending Payables Section */}
       <Card>
         <CardHeader>
-          <CardTitle>Pending Payables</CardTitle>
+          <CardTitle>Bills</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {payables
-              .filter(p => p.status === 'pending')
-              .slice(0, 10)
-              .map((payable) => (
+          <Tabs defaultValue="unpaid">
+            <TabsList>
+              <TabsTrigger value="unpaid">Unpaid ({unpaidBills.length})</TabsTrigger>
+              <TabsTrigger value="paid">Paid ({paidBills.length})</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="unpaid" className="space-y-3 pt-4">
+              {unpaidBills.map((payable) => (
                 <div 
                   key={payable.id} 
                   className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 cursor-pointer"
@@ -144,21 +151,48 @@ const Finance = () => {
                   <div>
                     <p className="font-medium">{payable.description}</p>
                     <p className="text-sm text-muted-foreground">
-                      {payable.due_date && `Due: ${formatOrgDate(payable.due_date)}`}
+                      {payable.due_date ? `Due: ${formatOrgDate(payable.due_date)}` : 'No due date'}
+                      {(payable.paid_amount || 0) > 0 && ` · ${formatCurrency(payable.paid_amount || 0)} already paid`}
                     </p>
                   </div>
-                  <div className="text-right">
-                    <p className="font-semibold">{formatCurrency(payable.amount)}</p>
+                  <div className="text-right space-y-1">
+                    <p className="font-semibold">{formatCurrency(outstandingOf(payable))}</p>
                     <Button size="sm" variant="outline">
-                      Pay Now
+                      Record payment
                     </Button>
                   </div>
                 </div>
               ))}
-            {payables.filter(p => p.status === 'pending').length === 0 && (
-              <p className="text-center text-muted-foreground py-4">No pending payables</p>
-            )}
-          </div>
+              {unpaidBills.length === 0 && (
+                <p className="text-center text-muted-foreground py-4">No unpaid bills</p>
+              )}
+            </TabsContent>
+
+            <TabsContent value="paid" className="space-y-3 pt-4">
+              {paidBills.slice(0, 50).map((payable) => (
+                <div 
+                  key={payable.id} 
+                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 cursor-pointer"
+                  onClick={() => handlePayableClick(payable)}
+                >
+                  <div>
+                    <p className="font-medium">{payable.description}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {payable.payment_date ? `Paid: ${formatOrgDate(payable.payment_date)}` : 'Paid'}
+                      {payable.payment_method ? ` · ${payable.payment_method}` : ''}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold">{formatCurrency(payable.amount)}</p>
+                    <Badge variant="secondary">Paid</Badge>
+                  </div>
+                </div>
+              ))}
+              {paidBills.length === 0 && (
+                <p className="text-center text-muted-foreground py-4">No paid bills yet</p>
+              )}
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
 
@@ -167,6 +201,12 @@ const Finance = () => {
         onOpenChange={setIsPayableDialogOpen}
         payable={selectedPayable}
         onMarkAsPaid={handleMarkAsPaid}
+      />
+
+      <AddBillDialog
+        open={isAddBillOpen}
+        onOpenChange={setIsAddBillOpen}
+        onCreated={loadPayables}
       />
     </div>
   );
