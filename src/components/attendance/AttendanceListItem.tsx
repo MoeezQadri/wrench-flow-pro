@@ -34,7 +34,7 @@ const AttendanceListItem: React.FC<AttendanceListItemProps> = ({
                     currentUser?.role === 'foreman';
 
   const mechanicLabel = mechanic?.name
-    ?? (mechanicsLoaded ? 'Unknown Mechanic' : 'Loading mechanic...');
+    ?? (techniciansLoaded ? 'Unknown Technician' : 'Loading technician...');
 
   const leaveTypeLabel = (type?: string) => {
     switch (type) {

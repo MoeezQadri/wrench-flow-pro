@@ -56,12 +56,12 @@ const AttendanceFilters: React.FC<AttendanceFiltersProps> = ({
       
       <Select value={currentFilters.mechanicId} onValueChange={onMechanicFilter}>
         <SelectTrigger className="w-48">
-          <SelectValue placeholder="Select Mechanic" />
+          <SelectValue placeholder="Select Technician" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">All Mechanics</SelectItem>
+          <SelectItem value="all">All Technicians</SelectItem>
           {mechanics.map((mechanic) => (
-            <SelectItem key={mechanic.id} value={mechanic.id}>
+            <SelectItem key={technician.id} value={technician.id}>
               {mechanic.name}
             </SelectItem>
           ))}

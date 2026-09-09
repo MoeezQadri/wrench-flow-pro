@@ -140,7 +140,7 @@ const TasksReport = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Task</TableHead>
-                <TableHead>Mechanic</TableHead>
+                <TableHead>Technician</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Price</TableHead>
                 <TableHead>Hours Est.</TableHead>

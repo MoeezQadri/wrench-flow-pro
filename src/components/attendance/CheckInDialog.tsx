@@ -24,7 +24,7 @@ interface CheckInDialogProps {
 export function CheckInDialog({
   trigger,
   title = "Check In",
-  description = "Record check-in time for a mechanic.",
+  description = "Record check-in time for a technician.",
   onSave,
   open,
   onOpenChange,

@@ -205,7 +205,7 @@ const AttendanceReport = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Mechanic</TableHead>
+                <TableHead>Technician</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Clock In</TableHead>
                 <TableHead>Clock Out</TableHead>

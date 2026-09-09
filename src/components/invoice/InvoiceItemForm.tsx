@@ -657,7 +657,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
                   </Select>
                   <p className="text-xs text-muted-foreground mt-1">
                     {laborBillingType === 'lumpsum'
-                      ? 'A single flat fee is charged. Mechanic hours are still tracked on the task.'
+                      ? 'A single flat fee is charged. Technician hours are still tracked on the task.'
                       : 'Charged per hour based on quantity.'}
                   </p>
                 </div>
@@ -676,7 +676,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-muted p-4 rounded-lg">
                 <div>
-                  <Label>Assigned Mechanic</Label>
+                  <Label>Assigned Technician</Label>
                   <Select
                     value={laborMechanicId}
                     onValueChange={(value) => {
@@ -692,7 +692,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
                     <SelectContent>
                       <SelectItem value="unassigned">Unassigned</SelectItem>
                       {(mechanics || []).map((mechanic) => (
-                        <SelectItem key={mechanic.id} value={mechanic.id}>
+                        <SelectItem key={technician.id} value={technician.id}>
                           {mechanic.name}
                         </SelectItem>
                       ))}

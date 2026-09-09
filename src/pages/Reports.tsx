@@ -9,13 +9,13 @@ const Reports = () => {
   const reports = [
     {
       title: "Attendance Report",
-      description: "Track mechanic attendance and working hours",
+      description: "Track technician attendance and working hours",
       icon: <Calendar className="h-8 w-8 text-primary" />,
       path: "/reports/attendance"
     },
     {
       title: "Tasks Report",
-      description: "View time spent on tasks and mechanic efficiency",
+      description: "View time spent on tasks and technician efficiency",
       icon: <Clock className="h-8 w-8 text-primary" />,
       path: "/reports/tasks"
     },

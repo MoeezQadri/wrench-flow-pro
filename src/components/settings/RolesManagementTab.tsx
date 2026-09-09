@@ -79,7 +79,7 @@ const defaultRoles = [
   },
   {
     id: 'mechanic',
-    name: 'Mechanic',
+    name: 'Technician',
     description: 'Basic access to workshop tools',
     permissions: [
       'customers.view',

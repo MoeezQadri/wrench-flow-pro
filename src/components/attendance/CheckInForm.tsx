@@ -19,7 +19,7 @@ import { Attendance } from '@/types';
 import { useDataContext } from '@/context/data/DataContext';
 
 const checkInSchema = z.object({
-  mechanicId: z.string().min(1, { message: "Mechanic is required" }),
+  technicianId: z.string().min(1, { message: "Technician is required" }),
   date: z.string().min(1, { message: "Date is required" }),
   checkIn: z.string().min(1, { message: "Check-in time is required" }),
   status: z.enum(["pending", "approved", "rejected", "present", "late", "absent", "half-day"]).default('pending'),
@@ -38,7 +38,7 @@ const CheckInForm: React.FC<CheckInFormProps> = ({ onSubmit }) => {
   const form = useForm<CheckInFormValues>({
     resolver: zodResolver(checkInSchema),
     defaultValues: {
-      mechanicId: "",
+      technicianId: "",
       date: new Date().toISOString().slice(0, 10),
       checkIn: new Date().toTimeString().slice(0, 5), // Current time as HH:MM
       status: "pending",
@@ -51,7 +51,7 @@ const CheckInForm: React.FC<CheckInFormProps> = ({ onSubmit }) => {
     
     // Validate that we have a mechanic selected
     if (!data.mechanicId) {
-      toast.error("Please select a mechanic");
+      toast.error("Please select a technician");
       return;
     }
 
@@ -90,19 +90,19 @@ const CheckInForm: React.FC<CheckInFormProps> = ({ onSubmit }) => {
           name="mechanicId"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Mechanic</FormLabel>
+              <FormLabel>Technician</FormLabel>
               <Select
                 onValueChange={field.onChange}
                 defaultValue={field.value}
               >
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select a mechanic" />
+                    <SelectValue placeholder="Select a technician" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
                   {mechanics.map((mechanic) => (
-                    <SelectItem key={mechanic.id} value={mechanic.id}>
+                    <SelectItem key={technician.id} value={technician.id}>
                       {mechanic.name}
                     </SelectItem>
                   ))}

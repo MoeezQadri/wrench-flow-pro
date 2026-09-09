@@ -85,7 +85,7 @@ const TaskForm = ({ defaultValues, onSubmit, formId, task }: TaskFormProps) => {
       taskType: "internal",
       billingType: "hourly",
       vehicleId: "",
-      mechanicId: "",
+      technicianId: "",
       invoiceId: "",
       hoursEstimated: 0,
       hoursSpent: 0,
@@ -104,7 +104,7 @@ const TaskForm = ({ defaultValues, onSubmit, formId, task }: TaskFormProps) => {
         
         // Ensure mechanics are loaded if they're empty
         if (mechanics_.length === 0) {
-          console.log("Loading mechanics in TaskForm...");
+          console.log("Loading technicians in TaskForm...");
           await loadMechanics();
         }
         
@@ -283,7 +283,7 @@ const TaskForm = ({ defaultValues, onSubmit, formId, task }: TaskFormProps) => {
                 </FormControl>
                 <p className="text-xs text-muted-foreground">
                   {field.value === 'lumpsum'
-                    ? 'The price below is charged as a single flat fee. Hours are still logged for mechanic performance only.'
+                    ? 'The price below is charged as a single flat fee. Hours are still logged for technician performance only.'
                     : 'The price below is charged per estimated hour.'}
                 </p>
                 <FormMessage />
@@ -354,19 +354,19 @@ const TaskForm = ({ defaultValues, onSubmit, formId, task }: TaskFormProps) => {
             name="mechanicId"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Assigned Mechanic</FormLabel>
+                <FormLabel>Assigned Technician</FormLabel>
                 <Select onValueChange={field.onChange} value={field.value} disabled={isLoadingMechanics}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue 
                         placeholder={
                           isLoadingMechanics 
-                            ? "Loading mechanics..." 
+                            ? "Loading technicians..." 
                             : mechanicsError 
-                            ? "Error loading mechanics" 
+                            ? "Error loading technicians" 
                             : mechanics.length === 0 
-                            ? "No mechanics available" 
-                            : "Select mechanic"
+                            ? "No technicians available" 
+                            : "Select technician"
                         } 
                       />
                     </SelectTrigger>
@@ -374,17 +374,17 @@ const TaskForm = ({ defaultValues, onSubmit, formId, task }: TaskFormProps) => {
                   <SelectContent>
                     <SelectItem value="unassigned">None</SelectItem>
                     {mechanics.length === 0 && !isLoadingMechanics && !mechanicsError && (
-                      <SelectItem value="no-mechanics" disabled>No mechanics available</SelectItem>
+                      <SelectItem value="no-technicians" disabled>No technicians available</SelectItem>
                     )}
                     {mechanics.map((mechanic) => (
-                      <SelectItem key={mechanic.id} value={mechanic.id}>
+                      <SelectItem key={technician.id} value={technician.id}>
                         {mechanic.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
                 {mechanicsError && (
-                  <p className="text-sm text-red-600">{mechanicsError}</p>
+                  <p className="text-sm text-red-600">{techniciansError}</p>
                 )}
                 <FormMessage />
               </FormItem>

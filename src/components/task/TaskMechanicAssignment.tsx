@@ -42,7 +42,7 @@ const TaskMechanicAssignment: React.FC<TaskMechanicAssignmentProps> = ({
 
   const handleAssignment = async () => {
     if (!selectedMechanicId) {
-      toast.error("Please select a mechanic");
+      toast.error("Please select a technician");
       return;
     }
 
@@ -50,14 +50,14 @@ const TaskMechanicAssignment: React.FC<TaskMechanicAssignmentProps> = ({
     
     try {
       await assignMechanicToInvoiceTask(taskId, selectedMechanicId);
-      toast.success("Mechanic assigned successfully");
+      toast.success("Technician assigned successfully");
       
       if (onAssignmentComplete) {
         onAssignmentComplete();
       }
     } catch (error) {
       console.error("Error assigning mechanic:", error);
-      toast.error("Failed to assign mechanic. Please try again.");
+      toast.error("Failed to assign technician. Please try again.");
     } finally {
       setIsAssigning(false);
     }
@@ -71,7 +71,7 @@ const TaskMechanicAssignment: React.FC<TaskMechanicAssignmentProps> = ({
       <CardHeader className="pb-2">
         <CardTitle className="text-sm flex items-center gap-2">
           <UserPlus className="h-4 w-4" />
-          Assign Mechanic to Task
+          Assign Technician to Task
         </CardTitle>
         <p className="text-xs text-muted-foreground">{taskTitle}</p>
       </CardHeader>
@@ -79,11 +79,11 @@ const TaskMechanicAssignment: React.FC<TaskMechanicAssignmentProps> = ({
         <div>
           <Select value={selectedMechanicId} onValueChange={setSelectedMechanicId}>
             <SelectTrigger>
-              <SelectValue placeholder="Select a mechanic" />
+              <SelectValue placeholder="Select a technician" />
             </SelectTrigger>
             <SelectContent>
               {availableMechanics.map((mechanic) => (
-                <SelectItem key={mechanic.id} value={mechanic.id}>
+                <SelectItem key={technician.id} value={technician.id}>
                   {mechanic.name}
                   {mechanic.specialization && (
                     <span className="text-xs text-muted-foreground ml-1">
@@ -98,9 +98,9 @@ const TaskMechanicAssignment: React.FC<TaskMechanicAssignmentProps> = ({
 
         {selectedMechanic && (
           <div className="text-xs text-muted-foreground">
-            <p>Current assignment: {selectedMechanic.name}</p>
+            <p>Current assignment: {selectedTechnician.name}</p>
             {selectedMechanic.specialization && (
-              <p>Specialization: {selectedMechanic.specialization}</p>
+              <p>Specialization: {selectedTechnician.specialization}</p>
             )}
           </div>
         )}
@@ -111,7 +111,7 @@ const TaskMechanicAssignment: React.FC<TaskMechanicAssignmentProps> = ({
           className="w-full"
           size="sm"
         >
-          {isAssigning ? "Assigning..." : currentMechanicId ? "Update Assignment" : "Assign Mechanic"}
+          {isAssigning ? "Assigning..." : currentTechnicianId ? "Update Assignment" : "Assign Technician"}
         </Button>
       </CardContent>
     </Card>

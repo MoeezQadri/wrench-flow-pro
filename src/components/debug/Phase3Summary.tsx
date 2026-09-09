@@ -29,7 +29,7 @@ export const Phase3Summary: React.FC = () => {
               <p><strong>Tasks:</strong> 6 in Default Org</p>
             </div>
             <div>
-              <p><strong>Mechanics:</strong> 9 in Default Org</p>
+              <p><strong>Technicians:</strong> 9 in Default Org</p>
               <p><strong>Organizations:</strong> 5 total (1 with data)</p>
               <p><strong>Users:</strong> 8 in Default Org</p>
               <p><strong>Isolation:</strong> 100% data segregated</p>

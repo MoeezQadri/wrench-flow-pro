@@ -183,7 +183,7 @@ const Dashboard = () => {
                 <div className="rounded-full bg-primary/10 p-2">
                   <Wrench className="h-5 w-5 text-primary" />
                 </div>
-                <h3 className="mt-2 font-medium">Add Mechanic</h3>
+                <h3 className="mt-2 font-medium">Add Technician</h3>
               </Link>
             </div>
           </CardContent>

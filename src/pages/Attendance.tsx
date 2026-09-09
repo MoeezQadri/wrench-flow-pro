@@ -24,7 +24,7 @@ const AttendancePage: React.FC = () => {
   const [filters, setFilters] = useState({
     status: 'all',
     date: '',
-    mechanicId: 'all'
+    technicianId: 'all'
   });
 
   const {
@@ -123,7 +123,7 @@ const AttendancePage: React.FC = () => {
 
   const pendingCount = attendanceRecords.filter(r => r.status === 'pending').length;
 
-  const subtitle = `Track mechanic attendance, leave and working hours${canApprove && pendingCount > 0 ? ` • ${pendingCount} records pending approval` : ''}`;
+  const subtitle = `Track technician attendance, leave and working hours${canApprove && pendingCount > 0 ? ` • ${pendingCount} records pending approval` : ''}`;
 
   const headerActions = userCanManageAttendance ? (
     <div className="flex gap-2">

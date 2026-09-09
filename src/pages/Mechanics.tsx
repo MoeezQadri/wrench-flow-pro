@@ -101,11 +101,11 @@ const Mechanics = () => {
       });
       toast.success(
         mechanicToArchive.is_active 
-          ? "Mechanic archived successfully" 
-          : "Mechanic restored successfully"
+          ? "Technician archived successfully" 
+          : "Technician restored successfully"
       );
     } catch (error) {
-      toast.error("Failed to update mechanic status");
+      toast.error("Failed to update technician status");
     } finally {
       setArchiveDialogOpen(false);
       setMechanicToArchive(null);
@@ -121,7 +121,7 @@ const Mechanics = () => {
         className="flex items-center gap-2"
       >
         <Users className="h-4 w-4" />
-        {showActiveOnly ? "Show All Mechanics" : "Show Active Mechanics"}
+        {showActiveOnly ? "Show All Technicians" : "Show Active Technicians"}
       </Button>
       {userCanManageMechanics && (
         <Button onClick={handleAddMechanic}>
@@ -133,8 +133,8 @@ const Mechanics = () => {
 
   return (
     <PageWrapper
-      title="Mechanics"
-      subtitle={`Showing ${filteredMechanics.length} of ${totalMechanicsCount} mechanics${showActiveOnly ? ` (${activeMechanicsCount} active)` : ''}`}
+      title="Technicians"
+      subtitle={`Showing ${filteredTechnicians.length} of ${totalTechniciansCount} technicians${showActiveOnly ? ` (${activeTechniciansCount} active)` : ''}`}
       headerActions={headerActions}
       loadData={async () => {
         await loadMechanics();
@@ -145,13 +145,13 @@ const Mechanics = () => {
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {filteredMechanics.map((mechanic) => (
-          <Card key={mechanic.id} className={mechanic.is_active ? "" : "opacity-60"}>
+          <Card key={technician.id} className={technician.is_active ? "" : "opacity-60"}>
             <CardHeader className="pb-2">
               <div className="flex justify-between items-start">
                 <CardTitle>{mechanic.name}</CardTitle>
                 <div className="flex items-center gap-2">
-                  <Badge variant={mechanic.is_active ? "default" : "outline"}>
-                    {mechanic.is_active ? "Active" : "Archived"}
+                  <Badge variant={technician.is_active ? "default" : "outline"}>
+                    {technician.is_active ? "Active" : "Archived"}
                   </Badge>
                   {userCanManageMechanics && (
                     <DropdownMenu>
@@ -195,7 +195,7 @@ const Mechanics = () => {
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Employment:</span>
-                  <span className="font-medium">{mechanic.employment_type === 'fulltime' ? 'Full-time' : 'Contractor'}</span>
+                  <span className="font-medium">{technician.employment_type === 'fulltime' ? 'Full-time' : 'Contractor'}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Contact:</span>
@@ -222,8 +222,8 @@ const Mechanics = () => {
             <div className="text-center">
               <p className="text-muted-foreground">
                 {showActiveOnly 
-                  ? (mechanics.length === 0 ? "No mechanics found" : "No active mechanics found")
-                  : "No mechanics found"
+                  ? (technicians.length === 0 ? "No technicians found" : "No active technicians found")
+                  : "No technicians found"
                 }
               </p>
               {userCanManageMechanics && mechanics.length === 0 && (
@@ -233,7 +233,7 @@ const Mechanics = () => {
                   className="mt-2"
                   onClick={handleAddMechanic}
                 >
-                  Add your first mechanic
+                  Add your first technician
                 </Button>
               )}
               {showActiveOnly && mechanics.length > 0 && filteredMechanics.length === 0 && (
@@ -243,7 +243,7 @@ const Mechanics = () => {
                   className="mt-2"
                   onClick={() => setShowActiveOnly(false)}
                 >
-                  Show all mechanics
+                  Show all technicians
                 </Button>
               )}
             </div>
@@ -263,11 +263,11 @@ const Mechanics = () => {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {mechanicToArchive?.is_active ? "Archive Mechanic" : "Restore Mechanic"}
+              {technicianToArchive?.is_active ? "Archive Technician" : "Restore Technician"}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {mechanicToArchive?.is_active 
-                ? `Are you sure you want to archive "${mechanicToArchive?.name}"? This will hide them from the active mechanics list but keep their data.`
+                ? `Are you sure you want to archive "${technicianToArchive?.name}"? This will hide them from the active technicians list but keep their data.`
                 : `Are you sure you want to restore "${mechanicToArchive?.name}"? This will make them active again.`
               }
             </AlertDialogDescription>
@@ -275,7 +275,7 @@ const Mechanics = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={confirmArchive}>
-              {mechanicToArchive?.is_active ? "Archive" : "Restore"}
+              {technicianToArchive?.is_active ? "Archive" : "Restore"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

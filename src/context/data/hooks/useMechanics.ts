@@ -24,19 +24,19 @@ export const useMechanics = () => {
             const { data, error } = await supabase.from('mechanics').insert(newMechanic as any).select();
             if (error) {
                 console.error('Error adding mechanic:', error);
-                toast.error('Failed to add mechanic');
+                toast.error('Failed to add technician');
                 throw error;
             }
             if (data && data.length > 0) {
                 const result = data[0] as Mechanic;
                 setMechanics((prev) => [...prev, result]);
-                toast.success('Mechanic added successfully');
+                toast.success('Technician added successfully');
                 return result;
             }
-            throw new Error('Failed to add mechanic');
+            throw new Error('Failed to add technician');
         } catch (error) {
             console.error('Error adding mechanic:', error);
-            toast.error('Failed to add mechanic');
+            toast.error('Failed to add technician');
             throw error;
         }
     };
@@ -46,14 +46,14 @@ export const useMechanics = () => {
             const { error } = await supabase.from('mechanics').delete().eq('id', id);
             if (error) {
                 console.error('Error removing mechanic:', error);
-                toast.error('Failed to delete mechanic');
+                toast.error('Failed to delete technician');
                 throw error;
             }
             setMechanics((prev) => prev.filter((item) => item.id !== id));
-            toast.success('Mechanic deleted successfully');
+            toast.success('Technician deleted successfully');
         } catch (error) {
             console.error('Error removing mechanic:', error);
-            toast.error('Failed to delete mechanic');
+            toast.error('Failed to delete technician');
             throw error;
         }
     };
@@ -74,7 +74,7 @@ export const useMechanics = () => {
 
             if (error) {
                 console.error('Error updating mechanic:', error);
-                toast.error('Failed to update mechanic');
+                toast.error('Failed to update technician');
                 throw error;
             }
 
@@ -92,13 +92,13 @@ export const useMechanics = () => {
 
             if (result) {
                 setMechanics((prev) => prev.map((item) => item.id === id ? result as Mechanic : item));
-                toast.success('Mechanic updated successfully');
+                toast.success('Technician updated successfully');
                 return result;
             }
-            throw new Error('Failed to update mechanic');
+            throw new Error('Failed to update technician');
         } catch (error) {
             console.error('Error updating mechanic:', error);
-            toast.error('Failed to update mechanic');
+            toast.error('Failed to update technician');
             throw error;
         }
     };
@@ -112,13 +112,13 @@ export const useMechanics = () => {
             const { data: mechanicsData, error: mechanicsError } = await filteredQuery;
             if (mechanicsError) {
                 console.error('Error fetching mechanics:', mechanicsError);
-                toast.error('Failed to load mechanics');
+                toast.error('Failed to load technicians');
                 return;
             }
             setMechanics(mechanicsData ?? []);
         } catch (error) {
             console.error('Error fetching mechanics:', error);
-            toast.error('Failed to load mechanics');
+            toast.error('Failed to load technicians');
         }
     };
 

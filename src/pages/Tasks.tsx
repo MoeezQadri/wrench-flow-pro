@@ -381,12 +381,12 @@ const Tasks = () => {
         {shouldShowAssignmentColumn && (
           <Select value={mechanicFilter} onValueChange={setMechanicFilter}>
             <SelectTrigger>
-              <SelectValue placeholder="Mechanic" />
+              <SelectValue placeholder="Technician" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Mechanics</SelectItem>
+              <SelectItem value="all">All Technicians</SelectItem>
               {mechanics.map(mechanic => (
-                <SelectItem key={mechanic.id} value={mechanic.id}>
+                <SelectItem key={technician.id} value={technician.id}>
                   {mechanic.name}
                 </SelectItem>
               ))}
@@ -413,7 +413,7 @@ const Tasks = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Task</TableHead>
-                <TableHead>Mechanic</TableHead>
+                <TableHead>Technician</TableHead>
                 <TableHead>Status</TableHead>
                 
                 <TableHead>Est. Hours</TableHead>

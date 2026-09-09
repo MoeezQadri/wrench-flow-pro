@@ -45,7 +45,7 @@ interface MechanicFormValues {
 }
 
 const mechanicSchema = z.object({
-  name: z.string().min(1, { message: "Mechanic name is required" }),
+  name: z.string().min(1, { message: "Technician name is required" }),
   specialization: z.string().optional().or(z.literal("")),
   phone: z.string().min(1, { message: "Phone number is required" }),
   address: z.string().optional().or(z.literal("")),
@@ -110,12 +110,12 @@ const MechanicDialog: React.FC<MechanicDialogProps> = ({ open, onOpenChange, mec
         onSave(newMechanic);
       }
 
-      toast.success(mechanic ? "Mechanic updated successfully!" : "Mechanic added successfully!");
+      toast.success(technician ? "Technician updated successfully!" : "Technician added successfully!");
       form.reset();
       onOpenChange(false);
     } catch (error) {
       console.error("Error adding/updating mechanic:", error);
-      toast.error("Failed to save mechanic. Please try again.");
+      toast.error("Failed to save technician. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -125,9 +125,9 @@ const MechanicDialog: React.FC<MechanicDialogProps> = ({ open, onOpenChange, mec
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>{mechanic ? "Edit Mechanic" : "Add New Mechanic"}</DialogTitle>
+          <DialogTitle>{technician ? "Edit Technician" : "Add New Technician"}</DialogTitle>
           <DialogDescription>
-            {mechanic ? "Update mechanic details." : "Enter the details for the new mechanic."}
+            {technician ? "Update technician details." : "Enter the details for the new technician."}
           </DialogDescription>
         </DialogHeader>
 
@@ -238,8 +238,8 @@ const MechanicDialog: React.FC<MechanicDialogProps> = ({ open, onOpenChange, mec
               </Button>
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting 
-                  ? (mechanic ? "Updating..." : "Adding...") 
-                  : (mechanic ? "Update Mechanic" : "Add Mechanic")
+                  ? (technician ? "Updating..." : "Adding...") 
+                  : (technician ? "Update Technician" : "Add Technician")
                 }
               </Button>
             </DialogFooter>

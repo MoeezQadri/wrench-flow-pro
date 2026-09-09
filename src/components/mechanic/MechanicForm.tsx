@@ -194,7 +194,7 @@ const MechanicForm = ({ defaultValues, onSubmit, formId }: MechanicFormProps) =>
                     />
                   </label>
                   <p className="text-xs text-muted-foreground mt-2 text-center">
-                    Upload a clear photo of the mechanic's ID card (PNG or JPEG, max 5MB)
+                    Upload a clear photo of the technician's ID card (PNG or JPEG, max 5MB)
                   </p>
                 </div>
                 <Input

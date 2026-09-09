@@ -41,7 +41,7 @@ const LeaveForm: React.FC<LeaveFormProps> = ({ onSubmit }) => {
     e.preventDefault();
 
     if (!mechanicId) {
-      toast.error('Please select a mechanic');
+      toast.error('Please select a technician');
       return;
     }
     if (!startDate || !endDate) {
@@ -69,14 +69,14 @@ const LeaveForm: React.FC<LeaveFormProps> = ({ onSubmit }) => {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <Label>Mechanic *</Label>
+        <Label>Technician *</Label>
         <Select value={mechanicId} onValueChange={setMechanicId}>
           <SelectTrigger>
-            <SelectValue placeholder={mechanics.length === 0 ? 'No mechanics available' : 'Select a mechanic'} />
+            <SelectValue placeholder={technicians.length === 0 ? 'No technicians available' : 'Select a technician'} />
           </SelectTrigger>
           <SelectContent>
             {mechanics.map((mechanic) => (
-              <SelectItem key={mechanic.id} value={mechanic.id}>
+              <SelectItem key={technician.id} value={technician.id}>
                 {mechanic.name}
               </SelectItem>
             ))}

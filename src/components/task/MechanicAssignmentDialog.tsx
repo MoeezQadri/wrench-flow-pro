@@ -34,7 +34,7 @@ const MechanicAssignmentDialog: React.FC<MechanicAssignmentDialogProps> = ({
 
   const handleAssignment = async () => {
     if (!selectedMechanicId) {
-      toast.error("Please select a mechanic");
+      toast.error("Please select a technician");
       return;
     }
 
@@ -42,7 +42,7 @@ const MechanicAssignmentDialog: React.FC<MechanicAssignmentDialogProps> = ({
     
     try {
       await assignMechanicToInvoiceTask(taskId, selectedMechanicId);
-      toast.success("Mechanic assigned successfully");
+      toast.success("Technician assigned successfully");
       
       if (onAssignmentComplete) {
         onAssignmentComplete();
@@ -51,7 +51,7 @@ const MechanicAssignmentDialog: React.FC<MechanicAssignmentDialogProps> = ({
       onOpenChange(false);
     } catch (error) {
       console.error("Error assigning mechanic:", error);
-      toast.error("Failed to assign mechanic. Please try again.");
+      toast.error("Failed to assign technician. Please try again.");
     } finally {
       setIsAssigning(false);
     }
@@ -66,7 +66,7 @@ const MechanicAssignmentDialog: React.FC<MechanicAssignmentDialogProps> = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <UserPlus className="h-5 w-5" />
-            Assign Mechanic to Task
+            Assign Technician to Task
           </DialogTitle>
           <DialogDescription>
             Select a mechanic to assign to: {taskTitle}
@@ -77,11 +77,11 @@ const MechanicAssignmentDialog: React.FC<MechanicAssignmentDialogProps> = ({
           <div>
             <Select value={selectedMechanicId} onValueChange={setSelectedMechanicId}>
               <SelectTrigger>
-                <SelectValue placeholder="Select a mechanic" />
+                <SelectValue placeholder="Select a technician" />
               </SelectTrigger>
               <SelectContent>
                 {availableMechanics.map((mechanic) => (
-                  <SelectItem key={mechanic.id} value={mechanic.id}>
+                  <SelectItem key={technician.id} value={technician.id}>
                     {mechanic.name}
                     {mechanic.specialization && (
                       <span className="text-xs text-muted-foreground ml-1">
@@ -96,9 +96,9 @@ const MechanicAssignmentDialog: React.FC<MechanicAssignmentDialogProps> = ({
 
           {selectedMechanic && (
             <div className="text-xs text-muted-foreground space-y-1">
-              <p>Selected: {selectedMechanic.name}</p>
+              <p>Selected: {selectedTechnician.name}</p>
               {selectedMechanic.specialization && (
-                <p>Specialization: {selectedMechanic.specialization}</p>
+                <p>Specialization: {selectedTechnician.specialization}</p>
               )}
             </div>
           )}
@@ -116,7 +116,7 @@ const MechanicAssignmentDialog: React.FC<MechanicAssignmentDialogProps> = ({
               disabled={isAssigning || !selectedMechanicId || (currentMechanicId && selectedMechanicId === currentMechanicId)}
               className="flex-1"
             >
-              {isAssigning ? "Assigning..." : currentMechanicId ? "Update Assignment" : "Assign Mechanic"}
+              {isAssigning ? "Assigning..." : currentTechnicianId ? "Update Assignment" : "Assign Technician"}
             </Button>
           </div>
         </div>

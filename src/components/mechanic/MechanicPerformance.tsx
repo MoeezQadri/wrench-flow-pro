@@ -94,7 +94,7 @@ const MechanicPerformance: React.FC<MechanicPerformanceProps> = ({ mechanic, tas
       <Card>
         <CardHeader>
           <CardTitle>Performance Summary</CardTitle>
-          <CardDescription>Performance metrics for {mechanic.name}</CardDescription>
+          <CardDescription>Performance metrics for {technician.name}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -135,7 +135,7 @@ const MechanicPerformance: React.FC<MechanicPerformanceProps> = ({ mechanic, tas
       <Card>
         <CardHeader>
           <CardTitle>Efficiency by Task Type</CardTitle>
-          <CardDescription>How efficient is the mechanic at different types of tasks</CardDescription>
+          <CardDescription>How efficient is the technician at different types of tasks</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="h-72">

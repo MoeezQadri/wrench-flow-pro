@@ -81,8 +81,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
       icon: ListChecks,
     },
     {
-      title: "Mechanics",
-      href: "/mechanics",
+      title: "Technicians",
+      href: "/technicians",
       icon: Wrench,
     },
     {

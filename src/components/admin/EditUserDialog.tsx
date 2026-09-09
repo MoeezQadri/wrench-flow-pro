@@ -129,7 +129,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
                   <SelectContent>
                     <SelectItem value="owner">Owner</SelectItem>
                     <SelectItem value="manager">Manager</SelectItem>
-                    <SelectItem value="mechanic">Mechanic</SelectItem>
+                    <SelectItem value="mechanic">Technician</SelectItem>
                     <SelectItem value="admin">Admin</SelectItem>
                     <SelectItem value="superuser">Super User</SelectItem>
                     <SelectItem value="superadmin">Super Admin</SelectItem>

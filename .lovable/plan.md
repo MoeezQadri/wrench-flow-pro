@@ -1,21 +1,24 @@
-# Relabel Mechanics as Technicians
+# Complete the Technician Label Update
 
 ## Goal
-Change every user-visible reference from **Mechanic/Mechanics** to **Technician/Technicians** throughout the app without changing how existing data works.
+Finish changing every user-visible **Mechanic/Mechanics** label to **Technician/Technicians**, while preserving all existing data, permissions, links, and behavior.
 
-## Changes
-- Update navigation, page titles, headings, descriptions, buttons, dialogs, confirmations, notifications, filters, dropdown labels, empty states, reports, attendance screens, task assignment screens, help text, and role labels.
-- Preserve correct singular/plural wording and capitalization in each location.
-- Keep the underlying role value as `mechanic`, while displaying it as **Technician** in user-management forms and lists.
-- Review all remaining visible text after the replacements so no old label remains.
+## Correct the partial update
+- Restore accidentally renamed internal form fields, variables, and references to their existing mechanic-based names.
+- Restore both sidebar destinations to `/mechanics`; only their displayed title remains **Technicians**.
+- Fix the current compile errors across technician listing, task assignment, attendance, invoice labor assignment, and performance screens.
+
+## Finish visible wording
+- Replace remaining visible mechanic wording in buttons, descriptions, validation messages, task/invoice assignment help, attendance messages, reports, debug screens, and fallback names.
+- Keep singular/plural wording and capitalization natural in each location.
+- Keep the stored role value `mechanic`, but display it as **Technician** in role and user-management controls.
 
 ## Technical boundary
-- Keep the existing `mechanics` database table and `mechanic_id` fields unchanged.
-- Keep internal code names, permission keys, and API contracts unchanged.
-- Keep `/mechanics` URLs unchanged, so existing links and bookmarks continue working.
-- Do not alter existing technician records, assignments, attendance, tasks, permissions, or reports.
+- Do not rename the `mechanics` table, `mechanic_id` fields, TypeScript models, API functions, permission resource keys, or stored role values.
+- Do not change `/mechanics` routes or navigation destinations.
+- Do not alter technician records, task assignments, attendance data, reports, or permissions.
 
 ## Verification
-- Check the main navigation, Technicians page, add/edit forms, tasks, invoices, attendance, reports, dashboard, user management, and help screens.
-- Confirm dropdown values and permissions still work after their displayed labels change.
-- Run the project checks and scan the interface source for any remaining user-visible “Mechanic” wording.
+- Run the project checks until the current compile errors are cleared.
+- Scan interface strings for any remaining user-visible **Mechanic/Mechanics** labels.
+- Verify navigation and representative Technicians, Tasks, Attendance, Invoice, Reports, Dashboard, Help, and User Management screens.
