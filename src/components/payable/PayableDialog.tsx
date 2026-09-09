@@ -131,7 +131,11 @@ export const PayableDialog: React.FC<PayableDialogProps> = ({
             <div className="mt-2 p-3 border rounded-md bg-muted/50">
               <p><strong>Description:</strong> {payable?.description}</p>
               <p><strong>Total Amount:</strong> ${payable?.amount?.toFixed(2)}</p>
+              {(payable?.paid_amount || 0) > 0 && (
+                <p><strong>Already Paid:</strong> ${(payable?.paid_amount || 0).toFixed(2)}</p>
+              )}
               <p><strong>Outstanding:</strong> ${outstandingAmount.toFixed(2)}</p>
+
               {payable?.due_date && (
                 <p><strong>Due Date:</strong> {formatOrgDate(payable.due_date)}</p>
               )}
