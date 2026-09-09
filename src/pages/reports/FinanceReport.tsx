@@ -115,25 +115,20 @@ const FinanceReport = () => {
     }
   });
 
-  // Calculate totals
-  const totalExpenses = filteredExpenses.reduce((sum, expense) => sum + Number(expense.amount), 0);
-  const invoiceTotals = filteredRevenue.reduce((totals, invoice) => {
-    const breakdown = calculateInvoiceBreakdown(invoice);
-    return {
-      revenue: totals.revenue + breakdown.total,
-      partsCost: totals.partsCost + breakdown.partsCost,
-      grossProfit: totals.grossProfit + breakdown.grossProfit,
-    };
-  }, { revenue: 0, partsCost: 0, grossProfit: 0 });
-  const totalRevenue = invoiceTotals.revenue;
-  const partsCost = invoiceTotals.partsCost;
-  const grossProfit = invoiceTotals.grossProfit;
+  // Profit and loss: revenue before tax, less cost of parts sold, less overhead.
+  // Part purchases are inventory, so they are not counted again as overhead.
+  const pnl = calculateProfitAndLoss(filteredRevenue as any, filteredExpenses);
+  const totalRevenue = pnl.revenueExTax;
+  const partsCost = pnl.partsCost;
+  const grossProfit = pnl.grossProfit;
+  const operatingExpenses = pnl.operatingExpenses;
+  const netProfit = pnl.netProfit;
+  const inventoryPurchases = filteredExpenses
+    .filter(expense => isInventoryOrJobCostExpense(expense))
+    .reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
+  const profitMargin = pnl.netMargin.toFixed(1);
+  const grossMargin = pnl.grossMargin.toFixed(1);
 
-  // Purchase expenses are already included in totalExpenses; COGS is shown separately
-  // for margin analysis and is not subtracted again from net profit.
-  const netProfit = totalRevenue - totalExpenses;
-  const profitMargin = totalRevenue > 0 ? ((netProfit / totalRevenue) * 100).toFixed(1) : '0';
-  const grossMargin = totalRevenue > 0 ? ((grossProfit / totalRevenue) * 100).toFixed(1) : '0';
 
   const handleDateRangeChange = (newStartDate: Date, newEndDate: Date) => {
     setStartDate(newStartDate);
