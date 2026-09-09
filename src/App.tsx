@@ -159,6 +159,14 @@ function App() {
                         </PagePermissionGuard>
                       }
                     />
+                    <Route
+                      path="vendors"
+                      element={
+                        <PagePermissionGuard resource="vendors" action="view">
+                          <Vendors />
+                        </PagePermissionGuard>
+                      }
+                    />
 
                   </Route>
                 </Route>
