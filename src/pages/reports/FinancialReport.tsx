@@ -370,7 +370,8 @@ const FinancialReport = () => {
                   <TableRow>
                     <TableHead>Invoice ID</TableHead>
                     <TableHead>Customer</TableHead>
-                    <TableHead>Amount</TableHead>
+                    <TableHead>Outstanding</TableHead>
+                    <TableHead>Invoice Total</TableHead>
                     <TableHead>Due Date</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Days Overdue</TableHead>
@@ -378,8 +379,8 @@ const FinancialReport = () => {
                 </TableHeader>
                 <TableBody>
                   {receivables.map((invoice) => {
-                    const daysOverdue = invoice.due_date 
-                      ? Math.max(0, Math.floor((new Date().getTime() - new Date(invoice.due_date).getTime()) / (1000 * 3600 * 24)))
+                    const daysOverdue = invoice.due_date
+                      ? Math.max(0, calendarDayDifference(orgToday(), toOrgDateInputValue(invoice.due_date)))
                       : 0;
                     
                     return (
@@ -388,6 +389,7 @@ const FinancialReport = () => {
                           {invoice.id.slice(0, 8)}...
                         </TableCell>
                         <TableCell>Customer {invoice.customer_id.slice(0, 8)}</TableCell>
+                        <TableCell>{formatCurrency(calculateBalanceDue(invoice))}</TableCell>
                         <TableCell>{formatCurrency(calculateInvoiceBreakdown(invoice).total)}</TableCell>
                         <TableCell>{formatDate(invoice.due_date)}</TableCell>
                         <TableCell>
@@ -401,6 +403,7 @@ const FinancialReport = () => {
                       </TableRow>
                     );
                   })}
+
                 </TableBody>
               </Table>
             </CardContent>
