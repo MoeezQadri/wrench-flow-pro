@@ -519,9 +519,21 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
       return;
     }
 
+    // An invoice can only be Paid or Partial when real payments back it up
+    const recordedPayments = payments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+    if (status === 'paid' && recordedPayments < totals.total - 0.005) {
+      toast.error("Add payment details before marking this invoice as paid. Recorded payments must cover the invoice total.");
+      return;
+    }
+    if (status === 'partial' && recordedPayments <= 0) {
+      toast.error("Add at least one payment before marking this invoice as partially paid.");
+      return;
+    }
+
     // Reset error states
     setNetworkIssue(false);
     setFormErrors([]);
+
 
     // Set robust submission lock and state
     submissionLock.current = true;
