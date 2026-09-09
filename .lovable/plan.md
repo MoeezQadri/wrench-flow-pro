@@ -15,15 +15,20 @@ So a partly paid invoice is over-reported in both, and the Finance page number c
 
 **Profit / loss** — Finance report: net profit = invoiced revenue - all expenses; gross profit = revenue after discount - parts cost. This is invoice-based (accrual), while receivables/payables are cash-based, so they legitimately differ — but nothing in the app says so, which is why the figures look contradictory.
 
+**Why you cannot find the Finance page** — the page exists at `/finance` but there is no link to it anywhere in the side menu, so it is effectively hidden. Same for the payables list that lives on it.
+
 **Marking money as received/paid** — there *are* ways, they are just buried:
 - Money in: Payments box inside the invoice edit screen.
-- Money out: Finance page > Pending Payables > click a row > record payment. Expenses can also be saved directly as paid.
+- Money out: Finance page (unreachable today) > Pending Payables > click a row > record payment. Expenses can also be saved directly as paid.
+
+**Bills for expenses and parts** — every workshop expense that is not already paid automatically becomes a pending bill. A part bought with a vendor selected also creates an unpaid expense (cost x quantity), so it becomes a bill too — but only when a vendor is chosen, and it is always stamped "cash" as the method even though nothing has been paid yet.
 
 ## Problems found in the data
 
 - 3 invoices are marked **Paid** with no payment records at all (plus 1 more with items and none).
 - Recording a payment on a saved invoice writes it immediately, but saving the invoice afterwards **replaces** its whole payment list with whatever the form is holding. If the form opened without payments loaded, saving wipes them — this matches the invoice where payment details disappeared.
-- Paying a payable does not push the status back onto the originating expense, so expense-based reports can keep showing it as unpaid.
+- Paying a bill does not push the paid status back onto the originating expense, so expense-based reports can keep showing it as unpaid.
+
 
 ## What will change
 
