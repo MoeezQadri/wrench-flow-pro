@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -108,13 +108,13 @@ export const PayableDialog: React.FC<PayableDialogProps> = ({
   };
 
   const resetForm = () => {
-    setPaymentAmount(payable?.amount || 0);
+    setPaymentAmount(outstandingAmount);
     setPaymentMethod('');
     setPaymentDate(orgToday());
     setNotes('');
   };
 
-  const outstandingAmount = (payable?.amount || 0) - (payable?.paid_amount || 0);
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
