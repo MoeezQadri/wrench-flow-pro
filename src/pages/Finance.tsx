@@ -22,8 +22,10 @@ const Finance = () => {
     markPayableAsPaid, 
     invoices, 
     vendors,
-    loadPayables
+    loadPayables,
+    loadExpenses
   } = useDataContext();
+
   
   const [selectedPayable, setSelectedPayable] = useState<Payable | undefined>();
   const [isPayableDialogOpen, setIsPayableDialogOpen] = useState(false);
