@@ -6,6 +6,48 @@ import { toast } from 'sonner';
 import { createInvoiceOptimized, updateInvoiceOptimized, deleteInvoiceOptimized, CreateInvoiceData } from '@/services/optimized-invoice-service';
 import { useOrganizationAwareQuery } from '@/hooks/useOrganizationAwareQuery';
 
+const INVOICE_SELECT = `
+                    *,
+                    invoice_items(*),
+                    payments(*),
+                    vehicles(make, model, year, license_plate)
+                `;
+
+// Shared row -> Invoice mapping so single-invoice and list loads stay identical.
+const transformInvoiceRow = (invoice: any) => ({
+    ...invoice,
+    items: invoice.invoice_items?.map((item: any) => ({
+        id: item.id,
+        description: item.description,
+        type: item.type,
+        quantity: item.quantity,
+        price: item.price,
+        part_id: item.part_id,
+        task_id: item.task_id,
+        is_auto_added: item.is_auto_added || false,
+        cost: item.cost || 0,
+        unit_of_measure: item.unit_of_measure || 'piece',
+        creates_inventory_part: item.creates_inventory_part || false,
+        creates_task: item.creates_task || false,
+        custom_part_data: item.custom_part_data,
+        custom_labor_data: item.custom_labor_data
+    })) || [],
+    payments: invoice.payments?.map((payment: any) => ({
+        id: payment.id,
+        invoice_id: payment.invoice_id,
+        amount: payment.amount,
+        method: payment.method,
+        date: payment.date,
+        notes: payment.notes || ''
+    })) || [],
+    vehicleInfo: invoice.vehicles ? {
+        make: invoice.vehicles.make,
+        model: invoice.vehicles.model,
+        year: invoice.vehicles.year,
+        license_plate: invoice.vehicles.license_plate
+    } : undefined
+});
+
 export const useInvoices = () => {
     const { applyOrganizationFilter } = useOrganizationAwareQuery();
     const [invoices, setInvoices] = useState<Invoice[]>([]);
