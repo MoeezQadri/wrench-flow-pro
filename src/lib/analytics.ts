@@ -226,7 +226,9 @@ export function trackEvent(name: string, params: Record<string, unknown> = {}) {
   if (!MEASUREMENT_ID) return;
   if (trackingSuppressed()) return;
   ensureAnalytics();
-  gtag('event', name, params);
+  // Explicit events are allowed from any page, so lift the GA switch for it.
+  setAnalyticsEnabled(true);
+  gtag('event', name, { send_to: MEASUREMENT_ID, ...params });
   restoreKillSwitch();
 }
 
