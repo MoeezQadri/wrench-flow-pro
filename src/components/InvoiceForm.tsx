@@ -24,7 +24,9 @@ import { deduplicateItems, mergeItemQuantities } from "./invoice/InvoiceItemDedu
 import { toast } from "sonner";
 import { useDataContext } from "@/context/data/DataContext";
 import { getAssignedPartsForInvoice, getAssignedTasksForInvoice } from "@/services/supabase-service";
-import { createInvoiceOptimized } from "@/services/optimized-invoice-service";
+import { createInvoiceOptimized, isInvoiceConflictError } from "@/services/optimized-invoice-service";
+import { supabase } from "@/integrations/supabase/client";
+
 
 import { useOptimizedInvoiceEdit } from "@/hooks/useOptimizedInvoiceEdit";
 import { useSmartDataLoading } from "@/hooks/useSmartDataLoading";
@@ -60,6 +62,11 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
   const [formErrors, setFormErrors] = useState<string[]>([]);
   const [networkIssue, setNetworkIssue] = useState(false);
   const [submissionAttempts, setSubmissionAttempts] = useState(0);
+  // Version of the invoice this screen loaded, used to spot another person's save
+  const [loadedUpdatedAt, setLoadedUpdatedAt] = useState<string | null>(null);
+  const [changedElsewhere, setChangedElsewhere] = useState(false);
+  const [conflict, setConflict] = useState(false);
+
   
   // Add refs to track state and prevent unnecessary reinitializations
   const initialDataLoaded = useRef(false);
@@ -219,12 +226,40 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
       setNotes(invoiceData.notes || "");
       setItems(invoiceData.items || []);
       setPayments(invoiceData.payments || []);
+      setLoadedUpdatedAt((invoiceData as any).updated_at || null);
+      setConflict(false);
+      setChangedElsewhere(false);
       
       // Set the invoice ID in the form for PaymentsSection
       form.setValue('invoiceId', invoiceData.id);
       initialDataLoaded.current = true;
+
     }
   }, [invoiceData?.id]); // Only depend on invoice ID to prevent form reinitialization
+
+  // Quietly notice when somebody else saves this same invoice while it is open
+  useEffect(() => {
+    if (!isEditing || !invoiceData?.id) return;
+
+    const channel = supabase
+      .channel(`invoice-watch-${invoiceData.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'invoices', filter: `id=eq.${invoiceData.id}` },
+        (payload) => {
+          const incoming = (payload.new as any)?.updated_at as string | undefined;
+          if (incoming && loadedUpdatedAt && incoming !== loadedUpdatedAt) {
+            setChangedElsewhere(true);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isEditing, invoiceData?.id, loadedUpdatedAt]);
+
 
   // Load assigned parts and tasks - skip auto-assignment for editing invoices
   useEffect(() => {
@@ -509,17 +544,20 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
           discount_value: discountValue,
           notes: notes,
           items: items,
-          payments: payments
+          payments: payments,
+          // Only save when the invoice is still the version this screen loaded
+          expected_updated_at: loadedUpdatedAt || undefined,
+          payments_loaded: true
         };
 
-        console.log("INVOICE_FORM: Updating invoice data:", updatedInvoiceData);
-        
         // Payments are persisted as part of the update
         const result = await updateInvoiceWithHook(updatedInvoiceData as unknown as Invoice);
         
         if (result) {
           // Reset user change tracking after successful save
           userHasChangedForm.current = false;
+          setLoadedUpdatedAt((result as any).updated_at || null);
+          setChangedElsewhere(false);
 
           // Refresh just this invoice instead of re-downloading every invoice
           if (fetchInvoiceById) {
@@ -531,6 +569,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
         } else {
           throw new Error("Update returned no result");
         }
+
       } else {
         console.log("Creating new invoice");
         console.log("Items before sending:", items);
@@ -625,9 +664,19 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
     } catch (error) {
       console.error(`Error saving invoice (submission ${currentSubmissionId}):`, error);
       console.error("Error details:", error instanceof Error ? error.message : String(error));
-      
+
+      // Somebody else saved this invoice first: nothing was overwritten
+      if (isInvoiceConflictError(error)) {
+        setConflict(true);
+        setChangedElsewhere(true);
+        toast.dismiss(`invoice-creation-${currentSubmissionId}`);
+        toast.error("This invoice was changed by someone else. Reload to see their version.");
+        return;
+      }
+
       // Track submission attempts
       setSubmissionAttempts(prev => prev + 1);
+
       
       // Enhanced error handling with specific messages
       let errorMessage = "Failed to save invoice";
@@ -680,7 +729,31 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
   return (
     <FormProvider {...form}>
       <div>
+        {/* Somebody else saved this invoice while it was open here */}
+        {isEditing && (conflict || changedElsewhere) && (
+          <div className="mb-4 p-3 rounded-lg border border-amber-200 bg-amber-50 flex items-start justify-between gap-4">
+            <div>
+              <h4 className="font-medium text-amber-900 mb-1">
+                {conflict ? 'Your changes were not saved' : 'This invoice was just changed by someone else'}
+              </h4>
+              <p className="text-sm text-amber-800">
+                {conflict
+                  ? 'Someone else saved this invoice first, so nothing was overwritten. Reload to see their version, then make your changes again.'
+                  : 'Reload to see their version before saving, otherwise your save will be stopped.'}
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => window.location.reload()}
+            >
+              Reload
+            </Button>
+          </div>
+        )}
+
         {/* Show form errors if any */}
+
         {formErrors.length > 0 && (
           <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
             <h4 className="font-medium text-red-800 mb-2">Please fix the following errors:</h4>

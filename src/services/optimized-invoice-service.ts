@@ -310,10 +310,24 @@ export const createInvoiceOptimized = async (invoiceData: CreateInvoiceData): Pr
   }
 };
 
+/** Thrown when somebody else saved the same invoice after this screen loaded it. */
+export class InvoiceConflictError extends Error {
+  constructor() {
+    super('This invoice was changed by someone else. Reload to see their version.');
+    this.name = 'InvoiceConflictError';
+  }
+}
+
+export const isInvoiceConflictError = (error: unknown): boolean =>
+  error instanceof InvoiceConflictError ||
+  (error instanceof Error && error.name === 'InvoiceConflictError');
+
 // Optimized invoice update with smart item diffing
 export const updateInvoiceOptimized = async (invoiceData: Invoice): Promise<Invoice> => {
   const { id, customer_id, vehicle_id, date, tax_rate, discount_type, discount_value, notes, status, items, payments } =
     invoiceData as Invoice & { payments?: Payment[] };
+  const expectedUpdatedAt = (invoiceData as any).expected_updated_at as string | undefined;
+  const paymentsLoaded = (invoiceData as any).payments_loaded === true;
   console.log('Starting optimized invoice update:', id);
 
   const { data: previous, error: previousError } = await supabase
@@ -326,7 +340,7 @@ export const updateInvoiceOptimized = async (invoiceData: Invoice): Promise<Invo
     throw new Error(`Failed to load invoice: ${previousError.message}`);
   }
 
-  const { data: invoiceResult, error: invoiceError } = await supabase
+  let updateQuery = supabase
     .from('invoices')
     .update({
       customer_id,
@@ -339,14 +353,27 @@ export const updateInvoiceOptimized = async (invoiceData: Invoice): Promise<Invo
       status,
       updated_at: new Date().toISOString()
     })
-    .eq('id', id)
+    .eq('id', id);
+
+  // Optimistic lock: the row must still be the version this screen loaded.
+  if (expectedUpdatedAt) {
+    updateQuery = updateQuery.eq('updated_at', expectedUpdatedAt);
+  }
+
+  const { data: invoiceResult, error: invoiceError } = await updateQuery
     .select('*, organization_id')
-    .single();
+    .maybeSingle();
 
   if (invoiceError) {
     console.error('Error updating invoice:', invoiceError);
     throw new Error(`Failed to update invoice: ${invoiceError.message}`);
   }
+
+  if (!invoiceResult) {
+    // The guarded update matched nothing: someone else saved first.
+    throw new InvoiceConflictError();
+  }
+
 
   let savedItems: InvoiceItem[] = items || [];
 
@@ -385,20 +412,23 @@ export const updateInvoiceOptimized = async (invoiceData: Invoice): Promise<Invo
     await syncLaborTasks(savedItems, id, invoiceResult.organization_id);
   }
 
-  // Persist payments. An empty list means "no payment data was loaded/edited",
-  // so existing payment rows are kept instead of being wiped out.
+  // Persist payments row by row (insert / update / remove) so a payment recorded
+  // elsewhere while this screen was open is never wiped out. Removals only apply
+  // when the saving screen actually had the payment list loaded.
   let savedPayments: Payment[] = [];
-  if (payments && payments.length > 0) {
+  if (payments && (payments.length > 0 || paymentsLoaded)) {
     const { paymentService } = await import('./payment-service');
-    savedPayments = await paymentService.replaceInvoicePayments(
+    savedPayments = await paymentService.syncInvoicePayments(
       id,
       payments.map(payment => ({
+        id: payment.id,
         amount: Number(payment.amount),
         method: payment.method,
-        date: payment.date,
-        notes: payment.notes || undefined,
-        organization_id: invoiceResult.organization_id
-      }))
+        date: payment.date as string,
+        notes: payment.notes || undefined
+      })),
+      invoiceResult.organization_id,
+      paymentsLoaded
     );
   } else {
     const { data: existingPayments } = await supabase
@@ -407,6 +437,7 @@ export const updateInvoiceOptimized = async (invoiceData: Invoice): Promise<Invo
       .eq('invoice_id', id);
     savedPayments = (existingPayments || []) as Payment[];
   }
+
 
 
   console.log('Optimized invoice update completed');
@@ -508,75 +539,34 @@ const syncLaborTasks = async (items: InvoiceItem[], invoiceId: string, organizat
   }
 };
 
+export interface InvoiceDeletePreview {
+  status: string;
+  payment_count: number;
+  task_count: number;
+  expense_count: number;
+  parts_restored: { part_id: string; name: string; quantity: number }[];
+}
+
+/** What deleting this invoice will undo, for the confirmation dialog. */
+export const getInvoiceDeletePreview = async (invoiceId: string): Promise<InvoiceDeletePreview> => {
+  const { data, error } = await supabase.rpc('invoice_delete_preview', { p_invoice_id: invoiceId });
+
+  if (error) throw new Error(error.message);
+
+  return data as unknown as InvoiceDeletePreview;
+};
+
 /**
- * Deletes an invoice (or estimate) and undoes only the side effects it actually
- * created. Aborts with a real error instead of leaving a half-deleted document.
- *
- * Order matters: guard -> restore stock -> unlink tasks -> remove purchase
- * expenses -> delete line items -> delete payments -> delete the invoice.
+ * Deletes an invoice (or estimate) in one all-or-nothing database operation:
+ * payments block the delete, parts go back into stock (skipped for estimates and
+ * declined estimates), jobs are released so they can be billed again, purchase
+ * bills raised by the invoice are removed, then the lines and the invoice go.
  */
 export const deleteInvoiceOptimized = async (invoiceId: string): Promise<void> => {
-  const { data: invoice, error: invoiceError } = await supabase
-    .from('invoices')
-    .select('id, status')
-    .eq('id', invoiceId)
-    .maybeSingle();
+  const { error } = await supabase.rpc('delete_invoice_cascade', { p_invoice_id: invoiceId });
 
-  if (invoiceError) throw new Error(`Failed to load invoice: ${invoiceError.message}`);
-  if (!invoice) throw new Error('Invoice not found');
-
-  const { data: payments, error: paymentsReadError } = await supabase
-    .from('payments')
-    .select('id')
-    .eq('invoice_id', invoiceId);
-
-  if (paymentsReadError) throw new Error(`Failed to check payments: ${paymentsReadError.message}`);
-  if (payments && payments.length > 0) {
-    throw new Error(
-      'This invoice has payments recorded. Remove the payments first, then delete the invoice.'
-    );
+  if (error) {
+    throw new Error(error.message);
   }
-
-  const { data: items, error: itemsReadError } = await supabase
-    .from('invoice_items')
-    .select('id, type, part_id, quantity')
-    .eq('invoice_id', invoiceId);
-
-  if (itemsReadError) throw new Error(`Failed to load invoice items: ${itemsReadError.message}`);
-
-  // Estimates and declined estimates never consumed stock, so nothing to give back.
-  if (!isNonStockStatus(invoice.status)) {
-    const consumed = countPartQuantities(items || []);
-    await applyInventoryChanges(consumed, new Map(), invoiceId);
-  }
-
-  // Work orders survive the invoice; they just lose the link.
-  const { error: taskError } = await supabase
-    .from('tasks')
-    .update({ invoice_id: null, updated_at: new Date().toISOString() })
-    .eq('invoice_id', invoiceId);
-
-  if (taskError) throw new Error(`Failed to unlink work orders: ${taskError.message}`);
-
-  // Purchase expenses this invoice created have no source document any more.
-  const { error: expenseError } = await supabase
-    .from('expenses')
-    .delete()
-    .eq('invoice_id', invoiceId);
-
-  if (expenseError) throw new Error(`Failed to remove purchase expenses: ${expenseError.message}`);
-
-  const { error: deleteItemsError } = await supabase
-    .from('invoice_items')
-    .delete()
-    .eq('invoice_id', invoiceId);
-
-  if (deleteItemsError) throw new Error(`Failed to remove invoice items: ${deleteItemsError.message}`);
-
-  const { error: deleteInvoiceError } = await supabase
-    .from('invoices')
-    .delete()
-    .eq('id', invoiceId);
-
-  if (deleteInvoiceError) throw new Error(`Failed to delete invoice: ${deleteInvoiceError.message}`);
 };
+

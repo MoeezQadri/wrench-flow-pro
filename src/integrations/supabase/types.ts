@@ -1375,6 +1375,7 @@ export type Database = {
       }
       current_user_org: { Args: never; Returns: string }
       current_user_org_secure: { Args: never; Returns: string }
+      delete_invoice_cascade: { Args: { p_invoice_id: string }; Returns: Json }
       get_current_user_organization: { Args: never; Returns: string }
       get_inactive_users: {
         Args: { days_inactive?: number }
@@ -1418,6 +1419,7 @@ export type Database = {
         Args: { token_to_invalidate: string }
         Returns: boolean
       }
+      invoice_delete_preview: { Args: { p_invoice_id: string }; Returns: Json }
       is_current_user_superadmin: { Args: never; Returns: boolean }
       is_organization_admin: { Args: never; Returns: boolean }
       is_super_admin: { Args: never; Returns: boolean }
