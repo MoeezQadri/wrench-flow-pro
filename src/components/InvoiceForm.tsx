@@ -60,6 +60,11 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
   const [formErrors, setFormErrors] = useState<string[]>([]);
   const [networkIssue, setNetworkIssue] = useState(false);
   const [submissionAttempts, setSubmissionAttempts] = useState(0);
+  // Version of the invoice this screen loaded, used to spot another person's save
+  const [loadedUpdatedAt, setLoadedUpdatedAt] = useState<string | null>(null);
+  const [changedElsewhere, setChangedElsewhere] = useState(false);
+  const [conflict, setConflict] = useState(false);
+
   
   // Add refs to track state and prevent unnecessary reinitializations
   const initialDataLoaded = useRef(false);
