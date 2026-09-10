@@ -175,6 +175,50 @@ export const useVehicles = () => {
         }
     };
 
+    // Batch version of getVehiclesByCustomerId: one request for many customers,
+    // returning the same mapped shape grouped by customer id.
+    const getVehiclesByCustomerIds = async (customerIds: string[]): Promise<Record<string, Vehicle[]>> => {
+        const ids = Array.from(new Set((customerIds || []).filter(Boolean)));
+        if (ids.length === 0) return {};
+
+        try {
+            const query = supabase
+                .from('vehicles')
+                .select('*')
+                .in('customer_id', ids)
+                .order('created_at', { ascending: false });
+            const { data, error } = await applyOrganizationFilter(query);
+
+            if (error) {
+                console.error('Error fetching vehicles:', error);
+                toast.error('Failed to load vehicles');
+                return {};
+            }
+
+            const grouped: Record<string, Vehicle[]> = {};
+            (data || []).forEach((v: any) => {
+                const mapped: Vehicle = {
+                    id: v.id,
+                    customer_id: v.customer_id,
+                    make: v.make,
+                    model: v.model,
+                    year: v.year,
+                    license_plate: v.license_plate,
+                    vin: v.vin,
+                    color: v.color,
+                    organization_id: v.organization_id
+                } as Vehicle;
+                if (!grouped[v.customer_id]) grouped[v.customer_id] = [];
+                grouped[v.customer_id].push(mapped);
+            });
+            return grouped;
+        } catch (error) {
+            console.error('Error fetching vehicles:', error);
+            toast.error('Failed to load vehicles');
+            return {};
+        }
+    };
+
     // Server-side vehicle search (per customer) for large vehicle lists
     const searchVehicles = async (customerId: string, term: string, limit: number = 20): Promise<Vehicle[]> => {
         const trimmed = (term || '').trim().replace(/[%,()]/g, ' ').trim();
@@ -233,6 +277,7 @@ export const useVehicles = () => {
         updateVehicle,
         getVehicleDependencies,
         getVehiclesByCustomerId,
+        getVehiclesByCustomerIds,
         searchVehicles,
         getVehicleById,
 

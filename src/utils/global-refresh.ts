@@ -71,11 +71,6 @@ export class GlobalRefresh {
 
   // Medium refresh: Clear data cache and re-fetch
   private static async mediumRefresh(): Promise<void> {
-    // Clear React Query cache if available
-    if ((window as any).reactQueryClient) {
-      (window as any).reactQueryClient.clear();
-    }
-
     // Clear custom caches
     if ('caches' in window) {
       try {

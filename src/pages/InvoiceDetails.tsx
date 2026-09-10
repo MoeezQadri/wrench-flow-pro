@@ -24,6 +24,7 @@ const InvoiceDetails: React.FC = () => {
   const {
 
     getInvoiceById,
+    fetchInvoiceById,
     customers,
     getVehiclesByCustomerId,
     loadInvoices,
@@ -45,26 +46,17 @@ const InvoiceDetails: React.FC = () => {
 
       try {
         console.log("Loading invoice details with ID:", id);
-        
-        // Load data efficiently
-        const loadPromises = [];
-        
-        // Load invoices and customers
-        if (loadInvoices) {
-          loadPromises.push(smartLoad('invoices', loadInvoices));
-        }
-        
-        if (loadCustomers) {
-          loadPromises.push(smartLoad('customers', loadCustomers));
-        }
-        
-        if (loadPromises.length > 0) {
-          await Promise.all(loadPromises);
-        }
-        
-        // Get invoice from context
-        const foundInvoice = getInvoiceById(id);
+
+        // Fetch only this invoice, plus customers for the name lookup.
+        const [fetchedInvoice] = await Promise.all([
+          fetchInvoiceById(id),
+          loadCustomers ? smartLoad('customers', loadCustomers) : Promise.resolve(),
+        ]);
+
+        // Fall back to whatever is already in context if the direct fetch failed.
+        const foundInvoice = fetchedInvoice || getInvoiceById(id);
         console.log("Found invoice:", foundInvoice);
+        
         
         if (foundInvoice) {
           setInvoice(foundInvoice);
