@@ -6,7 +6,7 @@ Confirmed from the delete routine in the invoice service:
 
 - **Payments**: if any payment is recorded, the delete is refused with a message asking you to remove the payments first.
 - **Parts / stock**: the parts on the invoice are added back into stock (and the invoice is removed from each part's usage list). Estimates and declined estimates are skipped, because they never took stock out.
-- **Jobs (work orders)**: the jobs are kept, they just lose their link to the invoice. Hours, assigned technician and "completed" state stay as they were.
+- **Jobs (work orders)**: the jobs are kept, they just lose their link to the deleted invoice, and because the job picker offers every completed job with no invoice link, they can be billed again on a new invoice. Hours, assigned technician and "completed" state stay as they were.
 - **Purchase bills**: expenses that this invoice created for parts bought in are deleted.
 - **Line items and the invoice** are then removed.
 - Each step stops with a real error message if it fails, but there is no single all-or-nothing transaction, so a failure halfway can leave part of the work done.
