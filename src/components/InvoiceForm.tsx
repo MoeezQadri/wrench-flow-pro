@@ -219,10 +219,14 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
       setNotes(invoiceData.notes || "");
       setItems(invoiceData.items || []);
       setPayments(invoiceData.payments || []);
+      setLoadedUpdatedAt((invoiceData as any).updated_at || null);
+      setConflict(false);
+      setChangedElsewhere(false);
       
       // Set the invoice ID in the form for PaymentsSection
       form.setValue('invoiceId', invoiceData.id);
       initialDataLoaded.current = true;
+
     }
   }, [invoiceData?.id]); // Only depend on invoice ID to prevent form reinitialization
 
