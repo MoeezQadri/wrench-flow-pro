@@ -99,6 +99,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
     tasks,
     mechanics,
     loadInvoices,
+    fetchInvoiceById,
     updateInvoice: updateInvoiceInContext,
     addInvoice,
     loadMechanics,
@@ -517,19 +518,14 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
         const result = await updateInvoiceWithHook(updatedInvoiceData as unknown as Invoice);
         
         if (result) {
-          console.log("Invoice update result:", result);
-          
           // Reset user change tracking after successful save
           userHasChangedForm.current = false;
-          
-          // Force reload invoices to get fresh data
-          if (loadInvoices) {
-            console.log("Reloading invoices after update");
-            await loadInvoices();
+
+          // Refresh just this invoice instead of re-downloading every invoice
+          if (fetchInvoiceById) {
+            await fetchInvoiceById(invoiceData.id);
           }
-          
-          // Only navigate after successful completion
-          console.log("Invoice updated successfully, navigating to invoices page");
+
           toast.success("Invoice updated successfully!");
           navigate("/invoices");
         } else {
