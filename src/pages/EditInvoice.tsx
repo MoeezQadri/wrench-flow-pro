@@ -15,7 +15,7 @@ const EditInvoice = () => {
   const navigate = useNavigate();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
-  const { getInvoiceById, loadInvoices, loadCustomers } = useDataContext();
+  const { getInvoiceById, fetchInvoiceById, loadInvoices, loadCustomers } = useDataContext();
   const { smartLoad, isLoaded, resetLoadedState } = useSmartDataLoading();
 
   useEffect(() => {
