@@ -24,6 +24,7 @@ const InvoiceDetails: React.FC = () => {
   const {
 
     getInvoiceById,
+    fetchInvoiceById,
     customers,
     getVehiclesByCustomerId,
     loadInvoices,
