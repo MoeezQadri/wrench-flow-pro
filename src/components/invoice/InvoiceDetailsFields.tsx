@@ -8,9 +8,12 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { useOrganizationSettings } from "@/hooks/useOrganizationSettings";
 
 const InvoiceDetailsFields = () => {
   const form = useFormContext();
+  const { getCurrencySymbol } = useOrganizationSettings();
+  const currencySymbol = getCurrencySymbol();
   
   // Get values with safe defaults
   const discountType = form.watch("discountType") || "none";
@@ -132,7 +135,7 @@ const InvoiceDetailsFields = () => {
               <SelectContent>
                 <SelectItem value="none">No Discount</SelectItem>
                 <SelectItem value="percentage">Percentage (%)</SelectItem>
-                <SelectItem value="fixed">Fixed Amount ($)</SelectItem>
+                <SelectItem value="fixed">{`Fixed Amount (${currencySymbol})`}</SelectItem>
               </SelectContent>
             </Select>
             <FormMessage />
@@ -148,7 +151,7 @@ const InvoiceDetailsFields = () => {
           render={({ field }) => (
             <FormItem>
               <FormLabel>
-                {discountType === "percentage" ? "Discount Percentage (%)" : "Discount Amount ($)"}
+                {discountType === "percentage" ? "Discount Percentage (%)" : `Discount Amount (${currencySymbol})`}
               </FormLabel>
               <FormControl>
                 <Input 

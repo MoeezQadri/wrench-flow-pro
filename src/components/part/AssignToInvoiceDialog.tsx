@@ -15,6 +15,7 @@ import { Part } from "@/types";
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from "sonner";
 import { X, FileText } from "lucide-react";
+import { useOrganizationSettings } from "@/hooks/useOrganizationSettings";
 
 interface AssignToInvoiceDialogProps {
   open: boolean;
@@ -29,6 +30,7 @@ const AssignToInvoiceDialog: React.FC<AssignToInvoiceDialogProps> = ({
   part,
   onAssignmentComplete
 }) => {
+  const { formatCurrency } = useOrganizationSettings();
   const [invoiceNumber, setInvoiceNumber] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [isAssigning, setIsAssigning] = useState(false);
@@ -292,7 +294,7 @@ const AssignToInvoiceDialog: React.FC<AssignToInvoiceDialogProps> = ({
               {part.part_number && <span className="text-muted-foreground"> • Part #{part.part_number}</span>}
             </div>
             <div className="text-xs text-muted-foreground mt-1">
-              Stock: {part.quantity} • Price: ${part.price.toFixed(2)}
+              Stock: {part.quantity} • Price: {formatCurrency(part.price)}
             </div>
           </div>
         </div>
