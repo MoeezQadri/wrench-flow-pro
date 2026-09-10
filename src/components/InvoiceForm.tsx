@@ -662,9 +662,19 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
     } catch (error) {
       console.error(`Error saving invoice (submission ${currentSubmissionId}):`, error);
       console.error("Error details:", error instanceof Error ? error.message : String(error));
-      
+
+      // Somebody else saved this invoice first: nothing was overwritten
+      if (isInvoiceConflictError(error)) {
+        setConflict(true);
+        setChangedElsewhere(true);
+        toast.dismiss(`invoice-creation-${currentSubmissionId}`);
+        toast.error("This invoice was changed by someone else. Reload to see their version.");
+        return;
+      }
+
       // Track submission attempts
       setSubmissionAttempts(prev => prev + 1);
+
       
       // Enhanced error handling with specific messages
       let errorMessage = "Failed to save invoice";
