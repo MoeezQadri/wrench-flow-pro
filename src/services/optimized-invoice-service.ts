@@ -310,10 +310,24 @@ export const createInvoiceOptimized = async (invoiceData: CreateInvoiceData): Pr
   }
 };
 
+/** Thrown when somebody else saved the same invoice after this screen loaded it. */
+export class InvoiceConflictError extends Error {
+  constructor() {
+    super('This invoice was changed by someone else. Reload to see their version.');
+    this.name = 'InvoiceConflictError';
+  }
+}
+
+export const isInvoiceConflictError = (error: unknown): boolean =>
+  error instanceof InvoiceConflictError ||
+  (error instanceof Error && error.name === 'InvoiceConflictError');
+
 // Optimized invoice update with smart item diffing
 export const updateInvoiceOptimized = async (invoiceData: Invoice): Promise<Invoice> => {
   const { id, customer_id, vehicle_id, date, tax_rate, discount_type, discount_value, notes, status, items, payments } =
     invoiceData as Invoice & { payments?: Payment[] };
+  const expectedUpdatedAt = (invoiceData as any).expected_updated_at as string | undefined;
+  const paymentsLoaded = (invoiceData as any).payments_loaded === true;
   console.log('Starting optimized invoice update:', id);
 
   const { data: previous, error: previousError } = await supabase
@@ -326,7 +340,7 @@ export const updateInvoiceOptimized = async (invoiceData: Invoice): Promise<Invo
     throw new Error(`Failed to load invoice: ${previousError.message}`);
   }
 
-  const { data: invoiceResult, error: invoiceError } = await supabase
+  let updateQuery = supabase
     .from('invoices')
     .update({
       customer_id,
@@ -339,14 +353,27 @@ export const updateInvoiceOptimized = async (invoiceData: Invoice): Promise<Invo
       status,
       updated_at: new Date().toISOString()
     })
-    .eq('id', id)
+    .eq('id', id);
+
+  // Optimistic lock: the row must still be the version this screen loaded.
+  if (expectedUpdatedAt) {
+    updateQuery = updateQuery.eq('updated_at', expectedUpdatedAt);
+  }
+
+  const { data: invoiceResult, error: invoiceError } = await updateQuery
     .select('*, organization_id')
-    .single();
+    .maybeSingle();
 
   if (invoiceError) {
     console.error('Error updating invoice:', invoiceError);
     throw new Error(`Failed to update invoice: ${invoiceError.message}`);
   }
+
+  if (!invoiceResult) {
+    // The guarded update matched nothing: someone else saved first.
+    throw new InvoiceConflictError();
+  }
+
 
   let savedItems: InvoiceItem[] = items || [];
 
