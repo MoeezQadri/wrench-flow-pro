@@ -15,7 +15,7 @@ const EditInvoice = () => {
   const navigate = useNavigate();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
-  const { getInvoiceById, loadInvoices, loadCustomers } = useDataContext();
+  const { getInvoiceById, fetchInvoiceById, loadInvoices, loadCustomers } = useDataContext();
   const { smartLoad, isLoaded, resetLoadedState } = useSmartDataLoading();
 
   useEffect(() => {
@@ -24,28 +24,22 @@ const EditInvoice = () => {
         try {
           console.log("Fetching invoice with ID:", id);
           
-          // Always force reload invoices to get the latest data when editing
-          const loadPromises = [];
-          
-          if (loadInvoices) {
-            console.log('Force reloading invoices for fresh edit data');
-            resetLoadedState('invoices'); // Reset cache to force reload
-            loadPromises.push(smartLoad('invoices', loadInvoices, true)); // Force reload
-          }
-          
+          // Load only this invoice, plus customers if they are not loaded yet
+          const loadPromises: Promise<unknown>[] = [];
+
           if (!isLoaded('customers') && loadCustomers) {
             loadPromises.push(smartLoad('customers', loadCustomers));
           }
-          
-          if (loadPromises.length > 0) {
-            console.log('Loading data for editing...');
-            await Promise.all(loadPromises);
-          }
-          
-          console.log('Smart data loading completed');
-          
-          // Find the invoice in the context invoices array
-          const foundInvoice = getInvoiceById(id);
+
+          const invoicePromise = fetchInvoiceById
+            ? fetchInvoiceById(id)
+            : (async () => {
+                resetLoadedState('invoices');
+                await smartLoad('invoices', loadInvoices, true);
+                return getInvoiceById(id);
+              })();
+
+          const [foundInvoice] = await Promise.all([invoicePromise, ...loadPromises]);
           console.log("Found invoice for editing:", foundInvoice);
 
           if (foundInvoice) {

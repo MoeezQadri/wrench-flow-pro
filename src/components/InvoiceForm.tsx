@@ -99,6 +99,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
     tasks,
     mechanics,
     loadInvoices,
+    fetchInvoiceById,
     updateInvoice: updateInvoiceInContext,
     addInvoice,
     loadMechanics,
@@ -106,17 +107,8 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
     loadParts,
   } = useDataContext();
 
-  // Debug logging for data availability
-  useEffect(() => {
-    console.log('InvoiceForm data debug:', {
-      mechanics: mechanics?.length || 0,
-      tasks: tasks?.length || 0,
-      parts: parts?.length || 0,
-      mechanicsData: mechanics?.slice(0, 2),
-      tasksData: tasks?.slice(0, 2),
-      partsData: parts?.slice(0, 2)
-    });
-  }, [mechanics, tasks, parts]);
+
+
 
   // Smart data loading - only load what's needed
   useEffect(() => {
@@ -155,22 +147,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
 
   // Fetch parts and tasks - separate workshop parts from invoice-assigned parts
   useEffect(() => {
-    console.log('Parts filtering debug:', {
-      totalParts: parts?.length || 0,
-      isEditing,
-      invoiceId: invoiceData?.id
-    });
-    
     if (parts && parts.length > 0) {
-      parts.forEach((part, index) => {
-        console.log(`Part ${index}:`, {
-          id: part.id,
-          name: part.name,
-          invoice_ids: part.invoice_ids,
-          quantity: part.quantity
-        });
-      });
-
       // Workshop parts: parts that are available in inventory
       // OR parts assigned to the current invoice being edited
       const workshopParts = parts.filter(part => {
@@ -178,40 +155,19 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
         if (isEditing && part.invoice_ids && part.invoice_ids.includes(invoiceData?.id || '')) {
           return true;
         }
-        
+
         // Workshop parts: have inventory quantity (regardless of previous assignments)
-        const hasInventory = part.quantity > 0;
-        
-        return hasInventory;
+        return part.quantity > 0;
       });
-      
-      console.log('Workshop parts (available for selection):', {
-        count: workshopParts.length,
-        parts: workshopParts.map(p => ({ 
-          id: p.id, 
-          name: p.name, 
-          invoice_ids: p.invoice_ids,
-          quantity: p.quantity 
-        }))
-      });
-      
+
       setAvailableParts(workshopParts);
 
       // Invoice-assigned parts: parts specifically tagged to this invoice (for auto-assignment)
-      const invoiceAssignedParts = parts.filter(part => 
-        part.invoice_ids && 
-        part.invoice_ids.includes(invoiceData?.id || selectedVehicleId) && 
+      const invoiceAssignedParts = parts.filter(part =>
+        part.invoice_ids &&
+        part.invoice_ids.includes(invoiceData?.id || selectedVehicleId) &&
         !isEditing
       );
-      
-      console.log('Invoice-assigned parts (for auto-assignment):', {
-        count: invoiceAssignedParts.length,
-        parts: invoiceAssignedParts.map(p => ({ 
-          id: p.id, 
-          name: p.name, 
-          invoice_ids: p.invoice_ids 
-        }))
-      });
 
       setAssignedParts(invoiceAssignedParts);
     }
@@ -219,29 +175,14 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
 
   // Filter available tasks
   useEffect(() => {
-    console.log('Tasks filtering debug:', {
-      totalTasks: tasks?.length || 0,
-      tasksData: tasks?.slice(0, 3).map(t => ({ 
-        id: t.id, 
-        title: t.title, 
-        status: t.status,
-        invoiceId: t.invoiceId 
-      }))
-    });
-
     if (tasks && tasks.length > 0) {
-      const availableTasksFiltered = tasks.filter(task => 
+      const availableTasksFiltered = tasks.filter(task =>
         task.status === 'completed' && (
-          !task.invoiceId || 
+          !task.invoiceId ||
           (isEditing && task.invoiceId === invoiceData?.id)
         )
       );
-      
-      console.log('Filtered available tasks:', {
-        count: availableTasksFiltered.length,
-        tasks: availableTasksFiltered.map(t => ({ id: t.id, title: t.title, invoiceId: t.invoiceId }))
-      });
-      
+
       setAvailableTasks(availableTasksFiltered);
     }
   }, [tasks, isEditing, invoiceData]);
@@ -577,19 +518,14 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
         const result = await updateInvoiceWithHook(updatedInvoiceData as unknown as Invoice);
         
         if (result) {
-          console.log("Invoice update result:", result);
-          
           // Reset user change tracking after successful save
           userHasChangedForm.current = false;
-          
-          // Force reload invoices to get fresh data
-          if (loadInvoices) {
-            console.log("Reloading invoices after update");
-            await loadInvoices();
+
+          // Refresh just this invoice instead of re-downloading every invoice
+          if (fetchInvoiceById) {
+            await fetchInvoiceById(invoiceData.id);
           }
-          
-          // Only navigate after successful completion
-          console.log("Invoice updated successfully, navigating to invoices page");
+
           toast.success("Invoice updated successfully!");
           navigate("/invoices");
         } else {

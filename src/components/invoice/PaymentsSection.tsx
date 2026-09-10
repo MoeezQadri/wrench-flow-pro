@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,6 +28,9 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({ payments, setPayments
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("");
   const [paymentNotes, setPaymentNotes] = useState("");
+  const [isSavingPayment, setIsSavingPayment] = useState(false);
+  // Guards against a second click landing before the first save finishes.
+  const savingRef = useRef(false);
   const { formatCurrency } = useOrganizationSettings();
   const { setValue, watch } = useFormContext();
   const { addPayment, removePayment } = usePayments();
@@ -46,13 +49,27 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({ payments, setPayments
       return;
     }
 
+    // A repeated click while the first payment is still saving must do nothing,
+    // otherwise the same payment gets recorded twice.
+    if (savingRef.current) {
+      return;
+    }
+
     const amount = parseFloat(paymentAmount);
-    const totalPaid = payments.reduce((sum, payment) => sum + payment.amount, 0);
-    
-    if (totalPaid + amount > total) {
+    if (!Number.isFinite(amount) || amount <= 0) {
+      toast.error("Enter a payment amount greater than zero.");
+      return;
+    }
+
+    const totalPaid = payments.reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+
+    if (totalPaid + amount > total + 0.005) {
       toast.error(`Payment amount exceeds remaining balance. Remaining: ${formatCurrency(total - totalPaid)}`);
       return;
     }
+
+    savingRef.current = true;
+    setIsSavingPayment(true);
 
     try {
       if (invoiceId && organizationId) {
@@ -65,9 +82,15 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({ payments, setPayments
           notes: paymentNotes || undefined,
           organization_id: organizationId
         });
-        
-        console.log("PAYMENTS_SECTION: Payment saved to database:", newPayment);
-        setPayments(prev => [...prev, newPayment]);
+
+        setPayments(prev => {
+          // Never append a payment that would push the invoice past its total.
+          const already = prev.reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+          if (prev.some(payment => payment.id === newPayment.id) || already + amount > total + 0.005) {
+            return prev;
+          }
+          return [...prev, newPayment];
+        });
       } else {
         // If no invoice ID, add to local state (for new invoices)
         const tempPayment: Payment = {
@@ -80,8 +103,13 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({ payments, setPayments
           organization_id: organizationId
         };
 
-        console.log("PAYMENTS_SECTION: Adding temporary payment:", tempPayment);
-        setPayments(prev => [...prev, tempPayment]);
+        setPayments(prev => {
+          const already = prev.reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+          if (already + amount > total + 0.005) {
+            return prev;
+          }
+          return [...prev, tempPayment];
+        });
       }
 
       // Reset form
@@ -90,8 +118,8 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({ payments, setPayments
       setPaymentNotes("");
 
       // Update invoice status based on payments
-      const newTotalPaid = payments.reduce((sum, payment) => sum + payment.amount, 0) + amount;
-      if (newTotalPaid >= total) {
+      const newTotalPaid = totalPaid + amount;
+      if (newTotalPaid >= total - 0.005) {
         setValue("status", "paid");
       } else if (newTotalPaid > 0) {
         setValue("status", "partial");
@@ -99,6 +127,9 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({ payments, setPayments
     } catch (error) {
       console.error("Error adding payment:", error);
       // Error already handled by the hook with toast
+    } finally {
+      savingRef.current = false;
+      setIsSavingPayment(false);
     }
   }, [paymentAmount, paymentMethod, paymentNotes, payments, total, invoiceId, organizationId, addPayment, setPayments, setValue, formatCurrency]);
 
@@ -177,8 +208,19 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({ payments, setPayments
               />
             </div>
             <div className="flex items-end">
-              <Button onClick={handleAddPayment} disabled={!paymentAmount || !paymentMethod}>
-                Add Payment
+              <Button
+                type="button"
+                onClick={handleAddPayment}
+                disabled={!paymentAmount || !paymentMethod || isSavingPayment}
+              >
+                {isSavingPayment ? (
+                  <>
+                    <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                    Saving...
+                  </>
+                ) : (
+                  "Add Payment"
+                )}
               </Button>
             </div>
           </div>
