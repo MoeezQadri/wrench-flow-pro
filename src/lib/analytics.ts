@@ -148,7 +148,10 @@ export function ensureAnalytics() {
     setTrackingEnabled(false);
     return;
   }
-  setTrackingEnabled(true);
+  // Ads reports every page; GA4 only on the agreed pages.
+  setAnalyticsEnabled(
+    typeof window !== 'undefined' && isTrackedPath(window.location.pathname)
+  );
   if (initialized || typeof window === 'undefined') return;
   if (!MEASUREMENT_ID) {
     console.warn('[analytics] Google Analytics measurement ID not configured');
@@ -176,11 +179,27 @@ export function ensureAnalytics() {
   );
 }
 
+/** GA4 page view — allowed pages only. */
 export function trackPageView(path: string) {
   if (!MEASUREMENT_ID) return;
   if (trackingSuppressed() || isBlockedPath(path)) return;
   ensureAnalytics();
+  setAnalyticsEnabled(true);
   gtag('event', 'page_view', {
+    send_to: MEASUREMENT_ID,
+    page_path: path,
+    page_location: window.location.href,
+    page_title: document.title,
+  });
+}
+
+/** Google Ads page view — every page, including internal screens. */
+export function trackAdsPageView(path: string) {
+  if (typeof window === 'undefined') return;
+  if (trackingSuppressed() || isBlockedPath(path)) return;
+  ensureAnalytics();
+  gtag('event', 'page_view', {
+    send_to: GOOGLE_ADS_ID,
     page_path: path,
     page_location: window.location.href,
     page_title: document.title,
@@ -188,8 +207,8 @@ export function trackPageView(path: string) {
 }
 
 /**
- * Puts the kill switch back after an explicit event was sent from a page where
- * automatic tracking is not allowed (e.g. the Subscription tab in Settings).
+ * Puts the Analytics kill switch back after an explicit event was sent from a
+ * page where GA reporting is not allowed (e.g. the Subscription tab in Settings).
  */
 function restoreKillSwitch() {
   if (typeof window === 'undefined') return;
@@ -199,7 +218,7 @@ function restoreKillSwitch() {
   }
   if (isTrackedPath(window.location.pathname)) return;
   window.setTimeout(() => {
-    if (!isTrackedPath(window.location.pathname)) setTrackingEnabled(false);
+    if (!isTrackedPath(window.location.pathname)) setAnalyticsEnabled(false);
   }, 1500);
 }
 
