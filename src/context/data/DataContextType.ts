@@ -31,6 +31,7 @@ export interface DataContextType {
     updateVehicle: (id: string, updates: Partial<Vehicle>) => Promise<void>;
     getVehicleDependencies: (id: string) => Promise<{ invoices: number; estimates: number; tasks: number; total: number }>;
     getVehiclesByCustomerId: (id: string) => Promise<Vehicle[]>;
+    getVehiclesByCustomerIds: (ids: string[]) => Promise<Record<string, Vehicle[]>>;
     searchVehicles: (customerId: string, term: string, limit?: number) => Promise<Vehicle[]>;
     getVehicleById: (id: string) => Vehicle | null;
     loadVehicles: () => Promise<void>;
@@ -41,6 +42,7 @@ export interface DataContextType {
     removeInvoice: (id: string) => Promise<void>;
     updateInvoice: (id: string, updates: Partial<Invoice>) => Promise<Invoice>;
     getInvoiceById: (id: string) => Invoice | null;
+    fetchInvoiceById: (id: string) => Promise<Invoice | null>;
     loadInvoices: () => Promise<void>;
 
     expenses: Expense[];
