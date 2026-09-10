@@ -1,31 +1,37 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import {
+  ensureAnalytics,
   isTrackedPath,
   restoreNativeHistory,
-  setTrackingEnabled,
+  setAnalyticsEnabled,
+  trackAdsPageView,
   trackPageView,
 } from '@/lib/analytics';
 
 /**
- * Sends a GA page_view on client-side route changes, but only on the pages
- * where tracking is allowed (login, sign-up, subscribe, payment result pages).
- * On every other page the tags are switched off so no hits are sent, even if
- * gtag.js was already loaded earlier in the session.
+ * The Google Ads tag reports every page. Google Analytics only reports the
+ * allowed pages (login, sign-up, subscribe, payment result pages); everywhere
+ * else GA is switched off so no hit is sent.
  */
 export default function AnalyticsTracker() {
   const location = useLocation();
 
   useEffect(() => {
+    const path = location.pathname + location.search;
+    ensureAnalytics();
+    trackAdsPageView(path);
+
     if (!isTrackedPath(location.pathname)) {
-      setTrackingEnabled(false);
-      return;
+      setAnalyticsEnabled(false);
+    } else {
+      trackPageView(path);
     }
-    trackPageView(location.pathname + location.search);
     // gtag re-hooks the history API as it initializes; unhook again so leaving
-    // this page does not report the next one.
+    // this page does not report the next one automatically.
     restoreNativeHistory();
   }, [location.pathname, location.search]);
 
   return null;
 }
+
