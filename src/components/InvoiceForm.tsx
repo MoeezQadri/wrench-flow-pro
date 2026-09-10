@@ -106,17 +106,8 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
     loadParts,
   } = useDataContext();
 
-  // Debug logging for data availability
-  useEffect(() => {
-    console.log('InvoiceForm data debug:', {
-      mechanics: mechanics?.length || 0,
-      tasks: tasks?.length || 0,
-      parts: parts?.length || 0,
-      mechanicsData: mechanics?.slice(0, 2),
-      tasksData: tasks?.slice(0, 2),
-      partsData: parts?.slice(0, 2)
-    });
-  }, [mechanics, tasks, parts]);
+
+
 
   // Smart data loading - only load what's needed
   useEffect(() => {
@@ -183,29 +174,14 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
 
   // Filter available tasks
   useEffect(() => {
-    console.log('Tasks filtering debug:', {
-      totalTasks: tasks?.length || 0,
-      tasksData: tasks?.slice(0, 3).map(t => ({ 
-        id: t.id, 
-        title: t.title, 
-        status: t.status,
-        invoiceId: t.invoiceId 
-      }))
-    });
-
     if (tasks && tasks.length > 0) {
-      const availableTasksFiltered = tasks.filter(task => 
+      const availableTasksFiltered = tasks.filter(task =>
         task.status === 'completed' && (
-          !task.invoiceId || 
+          !task.invoiceId ||
           (isEditing && task.invoiceId === invoiceData?.id)
         )
       );
-      
-      console.log('Filtered available tasks:', {
-        count: availableTasksFiltered.length,
-        tasks: availableTasksFiltered.map(t => ({ id: t.id, title: t.title, invoiceId: t.invoiceId }))
-      });
-      
+
       setAvailableTasks(availableTasksFiltered);
     }
   }, [tasks, isEditing, invoiceData]);
