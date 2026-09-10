@@ -539,75 +539,34 @@ const syncLaborTasks = async (items: InvoiceItem[], invoiceId: string, organizat
   }
 };
 
+export interface InvoiceDeletePreview {
+  status: string;
+  payment_count: number;
+  task_count: number;
+  expense_count: number;
+  parts_restored: { part_id: string; name: string; quantity: number }[];
+}
+
+/** What deleting this invoice will undo, for the confirmation dialog. */
+export const getInvoiceDeletePreview = async (invoiceId: string): Promise<InvoiceDeletePreview> => {
+  const { data, error } = await supabase.rpc('invoice_delete_preview', { p_invoice_id: invoiceId });
+
+  if (error) throw new Error(error.message);
+
+  return data as unknown as InvoiceDeletePreview;
+};
+
 /**
- * Deletes an invoice (or estimate) and undoes only the side effects it actually
- * created. Aborts with a real error instead of leaving a half-deleted document.
- *
- * Order matters: guard -> restore stock -> unlink tasks -> remove purchase
- * expenses -> delete line items -> delete payments -> delete the invoice.
+ * Deletes an invoice (or estimate) in one all-or-nothing database operation:
+ * payments block the delete, parts go back into stock (skipped for estimates and
+ * declined estimates), jobs are released so they can be billed again, purchase
+ * bills raised by the invoice are removed, then the lines and the invoice go.
  */
 export const deleteInvoiceOptimized = async (invoiceId: string): Promise<void> => {
-  const { data: invoice, error: invoiceError } = await supabase
-    .from('invoices')
-    .select('id, status')
-    .eq('id', invoiceId)
-    .maybeSingle();
+  const { error } = await supabase.rpc('delete_invoice_cascade', { p_invoice_id: invoiceId });
 
-  if (invoiceError) throw new Error(`Failed to load invoice: ${invoiceError.message}`);
-  if (!invoice) throw new Error('Invoice not found');
-
-  const { data: payments, error: paymentsReadError } = await supabase
-    .from('payments')
-    .select('id')
-    .eq('invoice_id', invoiceId);
-
-  if (paymentsReadError) throw new Error(`Failed to check payments: ${paymentsReadError.message}`);
-  if (payments && payments.length > 0) {
-    throw new Error(
-      'This invoice has payments recorded. Remove the payments first, then delete the invoice.'
-    );
+  if (error) {
+    throw new Error(error.message);
   }
-
-  const { data: items, error: itemsReadError } = await supabase
-    .from('invoice_items')
-    .select('id, type, part_id, quantity')
-    .eq('invoice_id', invoiceId);
-
-  if (itemsReadError) throw new Error(`Failed to load invoice items: ${itemsReadError.message}`);
-
-  // Estimates and declined estimates never consumed stock, so nothing to give back.
-  if (!isNonStockStatus(invoice.status)) {
-    const consumed = countPartQuantities(items || []);
-    await applyInventoryChanges(consumed, new Map(), invoiceId);
-  }
-
-  // Work orders survive the invoice; they just lose the link.
-  const { error: taskError } = await supabase
-    .from('tasks')
-    .update({ invoice_id: null, updated_at: new Date().toISOString() })
-    .eq('invoice_id', invoiceId);
-
-  if (taskError) throw new Error(`Failed to unlink work orders: ${taskError.message}`);
-
-  // Purchase expenses this invoice created have no source document any more.
-  const { error: expenseError } = await supabase
-    .from('expenses')
-    .delete()
-    .eq('invoice_id', invoiceId);
-
-  if (expenseError) throw new Error(`Failed to remove purchase expenses: ${expenseError.message}`);
-
-  const { error: deleteItemsError } = await supabase
-    .from('invoice_items')
-    .delete()
-    .eq('invoice_id', invoiceId);
-
-  if (deleteItemsError) throw new Error(`Failed to remove invoice items: ${deleteItemsError.message}`);
-
-  const { error: deleteInvoiceError } = await supabase
-    .from('invoices')
-    .delete()
-    .eq('id', invoiceId);
-
-  if (deleteInvoiceError) throw new Error(`Failed to delete invoice: ${deleteInvoiceError.message}`);
 };
+
