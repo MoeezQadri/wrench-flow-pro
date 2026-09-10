@@ -29,12 +29,16 @@ export const useOptimizedInvoiceEdit = () => {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
       console.error('Invoice update failed:', err);
-      
+
       toast.dismiss('invoice-update');
-      toast.error(`Failed to update invoice: ${errorMessage}`);
-      
+      // A clash with someone else's save is reported by the form itself
+      if (!isInvoiceConflictError(err)) {
+        toast.error(`Failed to update invoice: ${errorMessage}`);
+      }
+
       setError(errorMessage);
       throw err;
+
     } finally {
       setIsSubmitting(false);
     }
