@@ -138,5 +138,92 @@ export const paymentService = {
 
     console.log('[PaymentService] Successfully replaced payments:', data?.length || 0);
     return data || [];
+  },
+
+  /**
+   * Adds, updates and removes payment rows individually instead of wiping the
+   * whole set, so a payment recorded by one person is never lost to another
+   * person's save.
+   */
+  async syncInvoicePayments(
+    invoiceId: string,
+    payments: (Partial<CreatePaymentData> & { id?: string; amount: number; method: string; date: string })[],
+    organizationId: string,
+    allowDeletes: boolean
+  ): Promise<Payment[]> {
+    const { data: existing, error: readError } = await supabase
+      .from('payments')
+      .select('*')
+      .eq('invoice_id', invoiceId);
+
+    if (readError) {
+      throw new Error(`Failed to load existing payments: ${readError.message}`);
+    }
+
+    const existingRows = (existing || []) as Payment[];
+    const existingById = new Map(existingRows.map(row => [row.id, row]));
+    const keptIds = new Set<string>();
+
+    for (const payment of payments) {
+      const current = payment.id ? existingById.get(payment.id) : undefined;
+
+      if (current) {
+        keptIds.add(current.id);
+
+        const changed =
+          Number(current.amount) !== Number(payment.amount) ||
+          current.method !== payment.method ||
+          new Date(current.date as string).getTime() !== new Date(payment.date).getTime() ||
+          (current.notes || null) !== (payment.notes || null);
+
+        if (changed) {
+          const { error } = await supabase
+            .from('payments')
+            .update({
+              amount: Number(payment.amount),
+              method: payment.method,
+              date: new Date(payment.date).toISOString(),
+              notes: payment.notes || null
+            })
+            .eq('id', current.id);
+
+          if (error) throw new Error(`Failed to update payment: ${error.message}`);
+        }
+        continue;
+      }
+
+      const { data: inserted, error } = await supabase
+        .from('payments')
+        .insert({
+          invoice_id: invoiceId,
+          amount: Number(payment.amount),
+          method: payment.method,
+          date: new Date(payment.date).toISOString(),
+          notes: payment.notes || null,
+          organization_id: organizationId
+        })
+        .select()
+        .single();
+
+      if (error) throw new Error(`Failed to create payment: ${error.message}`);
+      if (inserted?.id) keptIds.add(inserted.id);
+    }
+
+    if (allowDeletes) {
+      const removed = existingRows.filter(row => !keptIds.has(row.id)).map(row => row.id);
+      if (removed.length > 0) {
+        const { error } = await supabase.from('payments').delete().in('id', removed);
+        if (error) throw new Error(`Failed to remove payment: ${error.message}`);
+      }
+    }
+
+    const { data: finalRows, error: finalError } = await supabase
+      .from('payments')
+      .select('*')
+      .eq('invoice_id', invoiceId);
+
+    if (finalError) throw new Error(`Failed to reload payments: ${finalError.message}`);
+
+    return (finalRows || []) as Payment[];
   }
 };
