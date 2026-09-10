@@ -40,10 +40,14 @@ Two smaller things: the invoice list pulls every invoice with all its lines, pay
 
 ## What will not change
 
+This is a speed-only change. The absolute requirement is that everything works exactly as it does today — nothing changes, nothing fails, nothing breaks.
+
 - No feature, page, figure, filter or permission changes.
 - No loading spinners, skeletons or page-transition styles change.
 - No pagination or "load more" is introduced — every screen still shows everything it shows today.
 - No change to invoice, tax, discount, profit, payable or report maths.
+- Same access rules for every role, including super admin — the permission changes only affect how often the rules are evaluated, never who passes them.
+- If any single step can't be made faster without risking behaviour, that step is dropped rather than shipped.
 
 ## Technical detail
 
@@ -55,10 +59,22 @@ Two smaller things: the invoice list pulls every invoice with all its lines, pay
 - `src/pages/InvoiceDetails.tsx`: replace the `loadInvoices()` fallback with a single-invoice fetch by id (same nested select shape, `.eq('id', id).maybeSingle()`).
 - Delete `src/hooks/useAsyncData.ts` (no importers) and the dead `window.reactQueryClient` branch in `src/utils/global-refresh.ts`. Leave `useSmartDataLoading`, `useDataCache`, `useEnhancedDataLoading` and `useIncrementalDataLoading` in place — they are all in use and changing them risks behaviour.
 
-## How I'll verify
+## How I'll verify nothing broke
+
+Work goes in small steps — database first, then the customer list, then invoices, then cleanup — checking after each one, so if anything regresses it's obvious which step caused it and it can be reverted on its own.
+
+Speed checks:
 
 - Re-run the database's slow-query report before and after, and confirm the permission lookup's call count and total time collapse.
 - `EXPLAIN` the car-by-customer and invoice-lines-by-invoice reads to confirm the new indexes are used.
 - Load the customer list in a browser with the network log captured and confirm one cars request instead of one per card, and no repeat storms on re-render.
-- Walk invoices (list, detail, create, edit, estimate), customers, parts, vendors, finance, tasks, attendance and reports to confirm identical data and identical loading behaviour.
-- Type check and build.
+
+Nothing-broken checks (run after the changes, before I report done):
+
+- Access rules: read back every policy after the rewrite and confirm each one is logically identical to what it replaced; confirm a normal user still sees only their own shop's data and still cannot read another shop's, and that super admin still sees everything.
+- Every screen loaded and compared against today's behaviour: dashboard, customers (list, detail, edit, add car, transfer car), invoices (list, detail, create with workshop and custom items, edit, payments, estimate convert and decline, delete), parts (add, edit, delete, assign to invoice), vendors and bills (record payment, part details), finance/payable management, expenses, tasks, technicians, attendance (check in/out, leave), users, settings/subscription, super admin, and all five reports.
+- Figures verified unchanged: invoice totals, tax, discounts, payments and balances, receivables, payables, COGS and profit on each report, dashboard cards — compared to the values showing before the change.
+- Role and subscription gates re-checked on Finance and Vendors (owner/admin/finance only, active subscription or trial).
+- Console and network logs read for new errors or failed requests; type check and build must pass clean.
+
+If any check fails, the step that caused it is reverted before anything else continues.
