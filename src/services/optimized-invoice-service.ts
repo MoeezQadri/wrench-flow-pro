@@ -412,20 +412,23 @@ export const updateInvoiceOptimized = async (invoiceData: Invoice): Promise<Invo
     await syncLaborTasks(savedItems, id, invoiceResult.organization_id);
   }
 
-  // Persist payments. An empty list means "no payment data was loaded/edited",
-  // so existing payment rows are kept instead of being wiped out.
+  // Persist payments row by row (insert / update / remove) so a payment recorded
+  // elsewhere while this screen was open is never wiped out. Removals only apply
+  // when the saving screen actually had the payment list loaded.
   let savedPayments: Payment[] = [];
-  if (payments && payments.length > 0) {
+  if (payments && (payments.length > 0 || paymentsLoaded)) {
     const { paymentService } = await import('./payment-service');
-    savedPayments = await paymentService.replaceInvoicePayments(
+    savedPayments = await paymentService.syncInvoicePayments(
       id,
       payments.map(payment => ({
+        id: payment.id,
         amount: Number(payment.amount),
         method: payment.method,
-        date: payment.date,
-        notes: payment.notes || undefined,
-        organization_id: invoiceResult.organization_id
-      }))
+        date: payment.date as string,
+        notes: payment.notes || undefined
+      })),
+      invoiceResult.organization_id,
+      paymentsLoaded
     );
   } else {
     const { data: existingPayments } = await supabase
@@ -434,6 +437,7 @@ export const updateInvoiceOptimized = async (invoiceData: Invoice): Promise<Invo
       .eq('invoice_id', id);
     savedPayments = (existingPayments || []) as Payment[];
   }
+
 
 
   console.log('Optimized invoice update completed');
