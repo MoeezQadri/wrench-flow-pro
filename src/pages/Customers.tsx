@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -23,6 +23,7 @@ import { useAuthContext } from '@/context/AuthContext';
 import { PageContainer } from '@/components/PageContainer';
 import { usePageLoader } from '@/hooks/usePageLoader';
 import { canManageCustomers, hasPermission } from '@/utils/permissions';
+import { calculateInvoiceTotalWithBreakdown } from '@/utils/invoice-calculations';
 
 // Define the form validation schema using Zod
 const customerSchema = z.object({
@@ -97,13 +98,16 @@ const Customers = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [vehiclesByCustomer, setVehiclesByCustomer] = useState<Record<string, Vehicle[]>>({});
   const { toast } = useToast();
   const {
     customers,
     customersLoading,
     customersError,
+    invoices,
     getCustomerAnalytics,
     getVehiclesByCustomerId,
+    getVehiclesByCustomerIds,
     addCustomer,
     addVehicle,
     refreshAllData,
@@ -221,6 +225,39 @@ const Customers = () => {
     const searchLower = searchQuery.toLowerCase();
     return customer.name.toLowerCase().includes(searchLower) || customer.email.toLowerCase().includes(searchLower) || customer.phone.includes(searchQuery) || customer.address.toLowerCase().includes(searchLower);
   });
+
+  // Load every customer's vehicles in ONE request instead of one per card.
+  const customerIdsKey = customers.map(c => c.id).sort().join(',');
+  useEffect(() => {
+    let isMounted = true;
+    const ids = customerIdsKey ? customerIdsKey.split(',') : [];
+    if (ids.length === 0) {
+      setVehiclesByCustomer({});
+      return;
+    }
+    getVehiclesByCustomerIds(ids)
+      .then(grouped => {
+        if (isMounted) setVehiclesByCustomer(grouped);
+      })
+      .catch(error => console.error('Error loading customer vehicles:', error));
+    return () => {
+      isMounted = false;
+    };
+  }, [customerIdsKey, getVehiclesByCustomerIds]);
+
+  // Same figures as getCustomerAnalytics, computed once from the loaded invoices.
+  const analyticsByCustomer = useMemo(() => {
+    const map: Record<string, { totalInvoices: number; lifetimeValue: number }> = {};
+    invoices.forEach(invoice => {
+      const key = invoice.customer_id;
+      if (!key) return;
+      const { total } = calculateInvoiceTotalWithBreakdown(invoice);
+      if (!map[key]) map[key] = { totalInvoices: 0, lifetimeValue: 0 };
+      map[key].totalInvoices += 1;
+      map[key].lifetimeValue += total;
+    });
+    return map;
+  }, [invoices]);
 
   // Handle CSV export
   const handleExportCSV = async () => {
