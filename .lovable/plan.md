@@ -43,3 +43,15 @@ There is no protection at all. Saving overwrites the whole invoice: all line ite
 - Replace `replaceInvoicePayments` with a diff (insert new ids, update changed rows, delete removed ids) in `src/services/payment-service.ts`, so omitted arrays and concurrent additions cannot destroy payment rows.
 - Stock changes for an edit are computed from the freshly-read database items rather than the form's loaded copy.
 - No changes to invoice maths, permissions (delete stays owner/admin), layout or report formulas. Migration adds the two RPCs only; no table changes.
+
+## Testing once applied
+
+Full pass after the changes, with figures checked before and after so nothing shifts:
+
+- Create an invoice with parts and labour, record a payment, edit it, and confirm totals, stock and payments are all correct.
+- Delete an estimate (no stock change), delete an open invoice with parts and jobs (stock returned exactly, jobs released, purchase bills removed), and confirm a paid invoice is refused.
+- Re-bill a released job on a new invoice and check hours and price come through.
+- Two-window clash test: open the same invoice twice, save in one, then save in the other — expect the reload prompt, no lost lines, no lost payments.
+- Check parts stock, expenses, vendor bills, dashboard and every report show the same figures as before the change.
+- Role and subscription checks (owner/admin/finance/technician), plus typecheck, build and a clean console/network pass.
+- Note: authenticated browser testing may not be runnable here because this project uses your own Supabase; anything I cannot verify I will name explicitly for you to try in the preview.
