@@ -40,10 +40,14 @@ Two smaller things: the invoice list pulls every invoice with all its lines, pay
 
 ## What will not change
 
+This is a speed-only change. The absolute requirement is that everything works exactly as it does today — nothing changes, nothing fails, nothing breaks.
+
 - No feature, page, figure, filter or permission changes.
 - No loading spinners, skeletons or page-transition styles change.
 - No pagination or "load more" is introduced — every screen still shows everything it shows today.
 - No change to invoice, tax, discount, profit, payable or report maths.
+- Same access rules for every role, including super admin — the permission changes only affect how often the rules are evaluated, never who passes them.
+- If any single step can't be made faster without risking behaviour, that step is dropped rather than shipped.
 
 ## Technical detail
 
