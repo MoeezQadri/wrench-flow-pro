@@ -235,6 +235,30 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
     }
   }, [invoiceData?.id]); // Only depend on invoice ID to prevent form reinitialization
 
+  // Quietly notice when somebody else saves this same invoice while it is open
+  useEffect(() => {
+    if (!isEditing || !invoiceData?.id) return;
+
+    const channel = supabase
+      .channel(`invoice-watch-${invoiceData.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'invoices', filter: `id=eq.${invoiceData.id}` },
+        (payload) => {
+          const incoming = (payload.new as any)?.updated_at as string | undefined;
+          if (incoming && loadedUpdatedAt && incoming !== loadedUpdatedAt) {
+            setChangedElsewhere(true);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isEditing, invoiceData?.id, loadedUpdatedAt]);
+
+
   // Load assigned parts and tasks - skip auto-assignment for editing invoices
   useEffect(() => {
     const loadAssignedItems = async () => {
