@@ -208,8 +208,19 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({ payments, setPayments
               />
             </div>
             <div className="flex items-end">
-              <Button onClick={handleAddPayment} disabled={!paymentAmount || !paymentMethod}>
-                Add Payment
+              <Button
+                type="button"
+                onClick={handleAddPayment}
+                disabled={!paymentAmount || !paymentMethod || isSavingPayment}
+              >
+                {isSavingPayment ? (
+                  <>
+                    <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                    Saving...
+                  </>
+                ) : (
+                  "Add Payment"
+                )}
               </Button>
             </div>
           </div>
