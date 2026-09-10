@@ -15,6 +15,7 @@ import { Task } from "@/types";
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from "sonner";
 import { X, FileText, Wrench } from "lucide-react";
+import { useOrganizationSettings } from "@/hooks/useOrganizationSettings";
 
 interface AssignToInvoiceDialogProps {
   open: boolean;
@@ -29,6 +30,7 @@ const AssignToInvoiceDialog: React.FC<AssignToInvoiceDialogProps> = ({
   task,
   onAssignmentComplete
 }) => {
+  const { formatCurrency } = useOrganizationSettings();
   const [invoiceNumber, setInvoiceNumber] = useState('');
   const [isAssigning, setIsAssigning] = useState(false);
 
@@ -191,7 +193,7 @@ const AssignToInvoiceDialog: React.FC<AssignToInvoiceDialogProps> = ({
               <span className="text-muted-foreground"> • Status: {task.status}</span>
             </div>
             <div className="text-xs text-muted-foreground mt-1">
-              Hours: {task.hoursEstimated || 'N/A'} estimated, {task.hoursSpent || 0} spent • Price: ${(task.price || 0).toFixed(2)}
+              Hours: {task.hoursEstimated || 'N/A'} estimated, {task.hoursSpent || 0} spent • Price: {formatCurrency(task.price || 0)}
             </div>
             {task.description && (
               <div className="text-xs text-muted-foreground mt-1">

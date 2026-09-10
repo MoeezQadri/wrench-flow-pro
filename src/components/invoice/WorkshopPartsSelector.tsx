@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Part, Task } from "@/types";
 import { Plus, Minus, Search, Package, Wrench } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useOrganizationSettings } from "@/hooks/useOrganizationSettings";
 
 interface WorkshopPartsSelectorProps {
   open: boolean;
@@ -32,6 +33,7 @@ const WorkshopPartsSelector: React.FC<WorkshopPartsSelectorProps> = ({
   onAddParts,
   onAddTasks
 }) => {
+  const { formatCurrency } = useOrganizationSettings();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedParts, setSelectedParts] = useState<Record<string, number>>({});
   const [selectedTasks, setSelectedTasks] = useState<Record<string, number>>({});
@@ -244,7 +246,7 @@ const WorkshopPartsSelector: React.FC<WorkshopPartsSelectorProps> = ({
                               </Badge>
                             )}
                           </td>
-                          <td className="p-3 text-right font-medium">${part.price.toFixed(2)}</td>
+                          <td className="p-3 text-right font-medium">{formatCurrency(part.price)}</td>
                           <td className="p-3">
                             <div className="flex items-center justify-center gap-2">
                               <Button
@@ -269,7 +271,7 @@ const WorkshopPartsSelector: React.FC<WorkshopPartsSelectorProps> = ({
                             </div>
                             {selectedQuantity > 0 && (
                               <div className="text-center text-sm text-muted-foreground mt-1">
-                                Total: ${(part.price * selectedQuantity).toFixed(2)}
+                                Total: {formatCurrency(part.price * selectedQuantity)}
                               </div>
                             )}
                           </td>
@@ -327,7 +329,7 @@ const WorkshopPartsSelector: React.FC<WorkshopPartsSelectorProps> = ({
                           </td>
                           <td className="p-3 text-sm">{task.description || 'N/A'}</td>
                           <td className="p-3 text-right">{task.hoursEstimated || task.hoursSpent || 1}h</td>
-                          <td className="p-3 text-right font-medium">${(task.price || 0).toFixed(2)}</td>
+                          <td className="p-3 text-right font-medium">{formatCurrency(task.price || 0)}</td>
                           <td className="p-3">
                             <div className="flex items-center justify-center gap-2">
                               <Button
@@ -351,7 +353,7 @@ const WorkshopPartsSelector: React.FC<WorkshopPartsSelectorProps> = ({
                             </div>
                             {selectedQuantity > 0 && (
                               <div className="text-center text-sm text-muted-foreground mt-1">
-                                Total: ${((task.price || 0) * selectedQuantity).toFixed(2)}
+                                Total: {formatCurrency((task.price || 0) * selectedQuantity)}
                               </div>
                             )}
                           </td>

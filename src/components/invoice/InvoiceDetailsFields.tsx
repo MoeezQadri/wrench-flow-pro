@@ -8,9 +8,12 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { useOrganizationSettings } from "@/hooks/useOrganizationSettings";
 
 const InvoiceDetailsFields = () => {
   const form = useFormContext();
+  const { getCurrencySymbol } = useOrganizationSettings();
+  const currencySymbol = getCurrencySymbol();
   
   // Get values with safe defaults
   const discountType = form.watch("discountType") || "none";
