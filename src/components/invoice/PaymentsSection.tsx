@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,6 +28,9 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({ payments, setPayments
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("");
   const [paymentNotes, setPaymentNotes] = useState("");
+  const [isSavingPayment, setIsSavingPayment] = useState(false);
+  // Guards against a second click landing before the first save finishes.
+  const savingRef = useRef(false);
   const { formatCurrency } = useOrganizationSettings();
   const { setValue, watch } = useFormContext();
   const { addPayment, removePayment } = usePayments();
