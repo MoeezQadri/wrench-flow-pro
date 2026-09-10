@@ -135,7 +135,7 @@ const InvoiceDetailsFields = () => {
               <SelectContent>
                 <SelectItem value="none">No Discount</SelectItem>
                 <SelectItem value="percentage">Percentage (%)</SelectItem>
-                <SelectItem value="fixed">Fixed Amount ($)</SelectItem>
+                <SelectItem value="fixed">{`Fixed Amount (${currencySymbol})`}</SelectItem>
               </SelectContent>
             </Select>
             <FormMessage />
@@ -151,7 +151,7 @@ const InvoiceDetailsFields = () => {
           render={({ field }) => (
             <FormItem>
               <FormLabel>
-                {discountType === "percentage" ? "Discount Percentage (%)" : "Discount Amount ($)"}
+                {discountType === "percentage" ? "Discount Percentage (%)" : `Discount Amount (${currencySymbol})`}
               </FormLabel>
               <FormControl>
                 <Input 
