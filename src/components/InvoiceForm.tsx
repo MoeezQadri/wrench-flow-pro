@@ -542,17 +542,20 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
           discount_value: discountValue,
           notes: notes,
           items: items,
-          payments: payments
+          payments: payments,
+          // Only save when the invoice is still the version this screen loaded
+          expected_updated_at: loadedUpdatedAt || undefined,
+          payments_loaded: true
         };
 
-        console.log("INVOICE_FORM: Updating invoice data:", updatedInvoiceData);
-        
         // Payments are persisted as part of the update
         const result = await updateInvoiceWithHook(updatedInvoiceData as unknown as Invoice);
         
         if (result) {
           // Reset user change tracking after successful save
           userHasChangedForm.current = false;
+          setLoadedUpdatedAt((result as any).updated_at || null);
+          setChangedElsewhere(false);
 
           // Refresh just this invoice instead of re-downloading every invoice
           if (fetchInvoiceById) {
@@ -564,6 +567,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
         } else {
           throw new Error("Update returned no result");
         }
+
       } else {
         console.log("Creating new invoice");
         console.log("Items before sending:", items);
