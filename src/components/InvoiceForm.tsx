@@ -727,7 +727,31 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
   return (
     <FormProvider {...form}>
       <div>
+        {/* Somebody else saved this invoice while it was open here */}
+        {isEditing && (conflict || changedElsewhere) && (
+          <div className="mb-4 p-3 rounded-lg border border-amber-200 bg-amber-50 flex items-start justify-between gap-4">
+            <div>
+              <h4 className="font-medium text-amber-900 mb-1">
+                {conflict ? 'Your changes were not saved' : 'This invoice was just changed by someone else'}
+              </h4>
+              <p className="text-sm text-amber-800">
+                {conflict
+                  ? 'Someone else saved this invoice first, so nothing was overwritten. Reload to see their version, then make your changes again.'
+                  : 'Reload to see their version before saving, otherwise your save will be stopped.'}
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => window.location.reload()}
+            >
+              Reload
+            </Button>
+          </div>
+        )}
+
         {/* Show form errors if any */}
+
         {formErrors.length > 0 && (
           <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
             <h4 className="font-medium text-red-800 mb-2">Please fix the following errors:</h4>
