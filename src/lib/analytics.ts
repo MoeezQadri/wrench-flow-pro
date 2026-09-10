@@ -99,6 +99,18 @@ export function setTrackingEnabled(enabled: boolean) {
 }
 
 /**
+ * Analytics-only switch: the Google Ads tag stays enabled so it can report every
+ * page, while GA4 only reports the agreed pages and actions.
+ */
+export function setAnalyticsEnabled(enabled: boolean) {
+  if (typeof window === 'undefined') return;
+  const w = window as unknown as Record<string, boolean>;
+  if (MEASUREMENT_ID) w[`ga-disable-${MEASUREMENT_ID}`] = !enabled;
+  // Ads must never be disabled by this switch.
+  w[`ga-disable-${GOOGLE_ADS_ID}`] = false;
+}
+
+/**
  * gtag.js reacts to address changes immediately (before React renders the new
  * page), so switching the tags off from a route effect is too late — the first
  * in-app page after sign-in still gets reported. This wraps the history API and
