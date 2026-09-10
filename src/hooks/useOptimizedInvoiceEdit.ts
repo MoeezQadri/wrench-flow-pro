@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { Invoice } from '@/types';
-import { updateInvoiceOptimized } from '@/services/optimized-invoice-service';
+import { updateInvoiceOptimized, isInvoiceConflictError } from '@/services/optimized-invoice-service';
 import { toast } from 'sonner';
 
 export const useOptimizedInvoiceEdit = () => {
