@@ -556,48 +556,18 @@ const Customers = () => {
 
 // Extracted component for customer card
 const CustomerCard = ({
-  customer
+  customer,
+  analytics,
+  vehicles
 }: {
   customer: any;
+  analytics: { totalInvoices: number; lifetimeValue: number };
+  vehicles: Vehicle[];
 }) => {
-  const [analytics, setAnalytics] = useState<any>({
-    totalInvoices: 0,
-    lifetimeValue: 0
-  });
-  const [vehicles, setVehicles] = useState<any[]>([]);
   const {
     formatCurrency
   } = useOrganizationSettings();
-  const {
-    getCustomerAnalytics,
-    getVehiclesByCustomerId
-  } = useDataContext();
 
-  useEffect(() => {
-    let isMounted = true;
-    
-    const loadData = async () => {
-      try {
-        const [analyticsData, vehiclesData] = await Promise.all([
-          getCustomerAnalytics(customer.id),
-          getVehiclesByCustomerId(customer.id)
-        ]);
-        
-        if (isMounted) {
-          setAnalytics(analyticsData);
-          setVehicles(vehiclesData);
-        }
-      } catch (error) {
-        console.error('Error loading customer card data:', error);
-      }
-    };
-    
-    loadData();
-    
-    return () => {
-      isMounted = false;
-    };
-  }, [customer.id, getCustomerAnalytics, getVehiclesByCustomerId]);
   return <Link to={`/customers/${customer.id}`}>
       <Card className="h-full hover:shadow-md transition-shadow duration-200">
         <CardContent className="p-6">
