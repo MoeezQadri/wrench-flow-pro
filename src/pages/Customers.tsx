@@ -364,7 +364,12 @@ const Customers = () => {
       {filteredCustomers.length > 0 && (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {filteredCustomers.map(customer => (
-            <CustomerCard key={customer.id} customer={customer} />
+            <CustomerCard
+              key={customer.id}
+              customer={customer}
+              analytics={analyticsByCustomer[customer.id] || { totalInvoices: 0, lifetimeValue: 0 }}
+              vehicles={vehiclesByCustomer[customer.id] || []}
+            />
           ))}
         </div>
       )}
