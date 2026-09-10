@@ -24,7 +24,9 @@ import { deduplicateItems, mergeItemQuantities } from "./invoice/InvoiceItemDedu
 import { toast } from "sonner";
 import { useDataContext } from "@/context/data/DataContext";
 import { getAssignedPartsForInvoice, getAssignedTasksForInvoice } from "@/services/supabase-service";
-import { createInvoiceOptimized } from "@/services/optimized-invoice-service";
+import { createInvoiceOptimized, isInvoiceConflictError } from "@/services/optimized-invoice-service";
+import { supabase } from "@/integrations/supabase/client";
+
 
 import { useOptimizedInvoiceEdit } from "@/hooks/useOptimizedInvoiceEdit";
 import { useSmartDataLoading } from "@/hooks/useSmartDataLoading";
