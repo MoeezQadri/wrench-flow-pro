@@ -155,22 +155,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
 
   // Fetch parts and tasks - separate workshop parts from invoice-assigned parts
   useEffect(() => {
-    console.log('Parts filtering debug:', {
-      totalParts: parts?.length || 0,
-      isEditing,
-      invoiceId: invoiceData?.id
-    });
-    
     if (parts && parts.length > 0) {
-      parts.forEach((part, index) => {
-        console.log(`Part ${index}:`, {
-          id: part.id,
-          name: part.name,
-          invoice_ids: part.invoice_ids,
-          quantity: part.quantity
-        });
-      });
-
       // Workshop parts: parts that are available in inventory
       // OR parts assigned to the current invoice being edited
       const workshopParts = parts.filter(part => {
@@ -178,40 +163,19 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
         if (isEditing && part.invoice_ids && part.invoice_ids.includes(invoiceData?.id || '')) {
           return true;
         }
-        
+
         // Workshop parts: have inventory quantity (regardless of previous assignments)
-        const hasInventory = part.quantity > 0;
-        
-        return hasInventory;
+        return part.quantity > 0;
       });
-      
-      console.log('Workshop parts (available for selection):', {
-        count: workshopParts.length,
-        parts: workshopParts.map(p => ({ 
-          id: p.id, 
-          name: p.name, 
-          invoice_ids: p.invoice_ids,
-          quantity: p.quantity 
-        }))
-      });
-      
+
       setAvailableParts(workshopParts);
 
       // Invoice-assigned parts: parts specifically tagged to this invoice (for auto-assignment)
-      const invoiceAssignedParts = parts.filter(part => 
-        part.invoice_ids && 
-        part.invoice_ids.includes(invoiceData?.id || selectedVehicleId) && 
+      const invoiceAssignedParts = parts.filter(part =>
+        part.invoice_ids &&
+        part.invoice_ids.includes(invoiceData?.id || selectedVehicleId) &&
         !isEditing
       );
-      
-      console.log('Invoice-assigned parts (for auto-assignment):', {
-        count: invoiceAssignedParts.length,
-        parts: invoiceAssignedParts.map(p => ({ 
-          id: p.id, 
-          name: p.name, 
-          invoice_ids: p.invoice_ids 
-        }))
-      });
 
       setAssignedParts(invoiceAssignedParts);
     }
