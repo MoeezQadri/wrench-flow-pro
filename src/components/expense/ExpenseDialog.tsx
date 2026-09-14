@@ -132,7 +132,7 @@ const ExpenseDialog: React.FC<ExpenseDialogProps> = ({
               : {
                 date: new Date(),
                 category: "",
-                amount: undefined as unknown as number,
+                amount: "" as unknown as number,
                 description: "",
                 vendorId: "none",
                 expenseType: invoiceId ? "invoice" : "workshop",

@@ -34,9 +34,9 @@ import { useDataContext } from "@/context/data/DataContext";
 import { useOrganizationSettings } from "@/hooks/useOrganizationSettings";
 
 const expenseSchema = z.object({
-  date: z.date(),
+  date: z.date({ invalid_type_error: "Pick a date", required_error: "Pick a date" }),
   category: z.string().min(1, { message: "Category is required" }),
-  amount: z.coerce.number().min(0.01, { message: "Amount must be at least 0.01" }),
+  amount: z.coerce.number({ invalid_type_error: "Enter an amount" }).min(0.01, { message: "Enter an amount greater than zero" }),
   description: z.string().min(1, { message: "Description is required" }),
   expenseType: z.enum(["invoice", "workshop"]),
   vendorId: z.string().optional(),
