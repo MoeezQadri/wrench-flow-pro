@@ -5,7 +5,8 @@
 Three separate blocks were found in the code:
 - The invoice list hides Edit for **Paid** and **Completed**, and the edit screen itself refuses to open anything that is not Open, In progress, Partial, Draft or Estimate. So a Completed invoice can never be opened — and Add Payment only exists inside the edit screen. There are 7 completed invoices right now.
 - On an invoice you *can* open, the payment box disappears the moment the status dropdown is set to **Paid**. Anyone who marks the invoice Paid first then has nowhere to enter the payment, and saving is refused with "Add payment details before marking this invoice as paid" — a dead end.
-- A payment is refused when it would exceed the amount still due. If the invoice total is still zero (no lines added yet) every amount is refused, and the message doesn't explain why.
+- A partial payment can silently vanish. The payment row is written to the database straight away only when the app already knows which shop you are in; otherwise it is only held on screen and written when you press Update — and if that save is refused (someone else edited it, a validation message, or you navigate away) the payment is lost while the status change to Partial can still stick. The live data shows this: two invoices sit in Partial and two in Completed with no payment recorded at all.
+- A payment is also refused when it would exceed the amount still due; if the invoice total is still zero (no lines added yet) every amount is refused, and the message doesn't explain why.
 
 Changes:
 - **Completed** means the work is finished but money is still due: Completed invoices open for editing and can take payments.
