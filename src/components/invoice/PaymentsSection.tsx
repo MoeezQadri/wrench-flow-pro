@@ -252,6 +252,12 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({ payments, setPayments
           </div>
         )}
 
+        {canEditPayments && !invoiceId && (
+          <p className="text-sm text-muted-foreground">
+            Payments listed here are saved together with the invoice.
+          </p>
+        )}
+
         {payments.length > 0 ? (
           <Table>
             <TableHeader>

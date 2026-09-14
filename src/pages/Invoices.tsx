@@ -254,7 +254,7 @@ const Invoices: React.FC = () => {
                         >
                           View
                         </Link>
-                        {userCanEditInvoices && invoice.status !== 'paid' && invoice.status !== 'completed' && invoice.status !== 'declined' && (
+                        {userCanEditInvoices && invoice.status !== 'paid' && invoice.status !== 'declined' && (
                           <Link
                             to={`/invoices/${invoice.id}/edit`}
                             className="text-success hover:text-success/80 underline"

@@ -44,7 +44,8 @@ const EditInvoice = () => {
 
           if (foundInvoice) {
             // Check if invoice status allows editing
-            const canEdit = ['open', 'in-progress', 'partial', 'draft', 'estimate'].includes(foundInvoice.status);
+            // Completed means the work is done but money is still due, so it stays editable.
+            const canEdit = ['open', 'in-progress', 'partial', 'draft', 'estimate', 'completed'].includes(foundInvoice.status);
 
             if (!canEdit) {
               toast.error("This invoice cannot be edited in its current status.");
