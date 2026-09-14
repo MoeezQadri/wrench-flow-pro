@@ -227,7 +227,12 @@ const Expenses = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {expensesList.sort((a, b) => toOrgDateInputValue(b.date).localeCompare(toOrgDateInputValue(a.date))).map((expense) => {
+              {[...expensesList].sort((a, b) => {
+                const byDate = toOrgDateInputValue(b.date).localeCompare(toOrgDateInputValue(a.date));
+                if (byDate !== 0) return byDate;
+                // Same day: the most recently entered expense comes first
+                return String(b.created_at ?? '').localeCompare(String(a.created_at ?? ''));
+              }).map((expense) => {
                 const typeInfo = getExpenseTypeInfo(expense);
                 const paymentInfo = getPaymentInfo(expense);
                 return (
