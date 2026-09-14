@@ -11,7 +11,7 @@ Three separate blocks were found in the code:
 Changes:
 - **Completed** means the work is finished but money is still due: Completed invoices open for editing and can take payments.
 - The payment box stays visible for every status except Estimate and Declined, so you can record the payment whether you set the status first or after.
-- When payments cover the full amount the invoice becomes **Paid** automatically; a partial payment makes it **Partial**.
+- On an invoice that already exists, every payment is written to the database the moment you add it (the shop is taken from the invoice itself, not from the screen), so it can no longer be lost by a failed Update or by leaving the page. Partial and Paid are then set from payments that are actually recorded.
 - **Paid** invoices stay view-only. The Edit button is replaced with a short note: remove a payment first to change it.
 
 ## 2. Add Payment messages
@@ -48,6 +48,7 @@ Nothing about how figures are calculated (profit, payables, COGS, tax) changes.
 - `src/pages/Invoices.tsx`: drop `completed` from the Edit-hiding condition; keep `paid` and `declined` locked, show a reason instead of the button.
 - `src/pages/EditInvoice.tsx`: add `completed` to the `canEdit` status list (this redirect is the hard block today).
 - `src/components/invoice/PaymentsSection.tsx`: `canEditPayments` excludes only `estimate`/`declined` (drop the `paid`/`cancelled` exclusion so the box stays visible); keep the concurrency and remaining-balance guards, improve messages; status transitions stay `partial`/`paid` via `setValue`.
+- Payment persistence: stop gating the immediate insert on `selectedOrganizationId || currentUser?.organization_id`; read `organization_id` from the loaded invoice (fall back to a lookup) so an existing invoice always inserts immediately, then re-read rows via `getPaymentsByInvoice`. For a not-yet-created invoice, label the list "saves with the invoice".
 - `src/components/invoice/InvoiceDetailsFields.tsx`: keep `completed` in the editable-discount statuses.
 - `src/components/expense/ExpenseDialog.tsx`: default `date: new Date()`, `amount: undefined` with clear validation, description empty; return the persisted row from `handleSaveExpense`.
 - `src/pages/Expenses.tsx`: after save call `loadExpenses()` rather than splicing the form object; sort by `date` then `created_at` desc.
