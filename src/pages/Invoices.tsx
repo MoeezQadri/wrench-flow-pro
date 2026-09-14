@@ -9,6 +9,7 @@ import { Search, Filter, SortAsc, SortDesc, Plus, Trash2 } from 'lucide-react';
 import { useAuthContext } from '@/context/AuthContext';
 import { hasPermission } from '@/utils/permissions';
 import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
+import { useDebounce } from '@/hooks/useDebounce';
 import { calculateInvoiceBreakdown } from '@/utils/invoice-calculations';
 import { PageWrapper } from '@/components/PageWrapper';
 import { formatOrgDate } from '@/utils/datetime';
@@ -18,6 +19,7 @@ import DeleteInvoiceDialog from '@/components/invoice/DeleteInvoiceDialog';
 
 const Invoices: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState<string>('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 250);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<string>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
@@ -56,9 +58,10 @@ const Invoices: React.FC = () => {
       const invoiceId = invoice.id.substring(0, 8);
       
       // Search filter
-      const matchesSearch = searchTerm === '' || 
-        customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        invoiceId.toLowerCase().includes(searchTerm.toLowerCase());
+      const search = debouncedSearchTerm.trim().toLowerCase();
+      const matchesSearch = search === '' || 
+        customerName.toLowerCase().includes(search) ||
+        invoiceId.toLowerCase().includes(search);
       
       // Status filter
       const matchesStatus = statusFilter === 'all' || invoice.status === statusFilter;
@@ -100,7 +103,7 @@ const Invoices: React.FC = () => {
     });
 
     return filtered;
-  }, [contextInvoices, contextCustomers, searchTerm, statusFilter, sortBy, sortOrder]);
+  }, [contextInvoices, contextCustomers, debouncedSearchTerm, statusFilter, sortBy, sortOrder]);
 
   const toggleSortOrder = () => {
     setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
@@ -254,13 +257,21 @@ const Invoices: React.FC = () => {
                         >
                           View
                         </Link>
-                        {userCanEditInvoices && invoice.status !== 'paid' && invoice.status !== 'completed' && invoice.status !== 'declined' && (
+                        {userCanEditInvoices && invoice.status !== 'paid' && invoice.status !== 'declined' && (
                           <Link
                             to={`/invoices/${invoice.id}/edit`}
                             className="text-success hover:text-success/80 underline"
                           >
                             Edit
                           </Link>
+                        )}
+                        {userCanEditInvoices && invoice.status === 'paid' && (
+                          <span
+                            className="text-muted-foreground"
+                            title="Paid invoices are view only. Remove a payment first to change it."
+                          >
+                            Paid — view only
+                          </span>
                         )}
                         {userCanDeleteInvoices && (
                           <button

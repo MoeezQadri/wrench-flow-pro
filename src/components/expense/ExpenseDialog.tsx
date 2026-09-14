@@ -130,6 +130,11 @@ const ExpenseDialog: React.FC<ExpenseDialogProps> = ({
                 invoiceId: (expense as any).invoice_id || "",
               }
               : {
+                date: new Date(),
+                category: "",
+                amount: "" as unknown as number,
+                description: "",
+                vendorId: "none",
                 expenseType: invoiceId ? "invoice" : "workshop",
                 invoiceId: invoiceId || "",
               }

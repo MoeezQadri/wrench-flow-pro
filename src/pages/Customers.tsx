@@ -22,6 +22,7 @@ import { useDataContext } from '@/context/data/DataContext';
 import { useAuthContext } from '@/context/AuthContext';
 import { PageContainer } from '@/components/PageContainer';
 import { usePageLoader } from '@/hooks/usePageLoader';
+import { useDebounce } from '@/hooks/useDebounce';
 import { canManageCustomers, hasPermission } from '@/utils/permissions';
 import { calculateInvoiceTotalWithBreakdown } from '@/utils/invoice-calculations';
 
@@ -96,6 +97,7 @@ type CustomerFormValues = {
 };
 const Customers = () => {
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearchQuery = useDebounce(searchQuery, 250);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [vehiclesByCustomer, setVehiclesByCustomer] = useState<Record<string, Vehicle[]>>({});
@@ -220,11 +222,19 @@ const Customers = () => {
     }
   }, [addCustomer, addVehicle, form, isSubmitting]);
 
-  // Filter customers based on search query - use customers from context directly
-  const filteredCustomers = customers.filter(customer => {
-    const searchLower = searchQuery.toLowerCase();
-    return customer.name.toLowerCase().includes(searchLower) || customer.email.toLowerCase().includes(searchLower) || customer.phone.includes(searchQuery) || customer.address.toLowerCase().includes(searchLower);
-  });
+  // Filter customers based on search query - missing fields are treated as empty,
+  // and the list is only recalculated when the text or the data actually changes.
+  const filteredCustomers = useMemo(() => {
+    const searchLower = debouncedSearchQuery.trim().toLowerCase();
+    if (!searchLower) return customers;
+    return customers.filter(customer => {
+      const name = (customer.name ?? '').toLowerCase();
+      const email = (customer.email ?? '').toLowerCase();
+      const phone = (customer.phone ?? '');
+      const address = (customer.address ?? '').toLowerCase();
+      return name.includes(searchLower) || email.includes(searchLower) || phone.includes(searchLower) || address.includes(searchLower);
+    });
+  }, [customers, debouncedSearchQuery]);
 
   // Load every customer's vehicles in ONE request instead of one per card.
   const customerIdsKey = customers.map(c => c.id).sort().join(',');

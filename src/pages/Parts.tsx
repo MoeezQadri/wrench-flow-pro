@@ -26,6 +26,7 @@ import { useNavigate } from 'react-router-dom';
 import AssignToInvoiceDialog from '@/components/part/AssignToInvoiceDialog';
 import { Part } from '@/types';
 import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
+import { useDebounce } from '@/hooks/useDebounce';
 
 const Parts: React.FC = () => {
   const [showPartDialog, setShowPartDialog] = useState(false);
@@ -36,6 +37,7 @@ const Parts: React.FC = () => {
   const [showAssignDialog, setShowAssignDialog] = useState(false);
   const [selectedPartForAssignment, setSelectedPartForAssignment] = useState<Part | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 250);
   const [stockFilter, setStockFilter] = useState<string>('all');
   const [assignmentFilter, setAssignmentFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<string>('name');
@@ -145,11 +147,12 @@ const Parts: React.FC = () => {
   const filteredAndSortedParts = useMemo(() => {
     let filtered = parts.filter(part => {
       // Search filter
-      const matchesSearch = searchTerm === '' || 
-        part.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        part.part_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        part.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        getVendorName(part).toLowerCase().includes(searchTerm.toLowerCase());
+      const search = debouncedSearchTerm.trim().toLowerCase();
+      const matchesSearch = search === '' || 
+        (part.name ?? '').toLowerCase().includes(search) ||
+        (part.part_number ?? '').toLowerCase().includes(search) ||
+        (part.description ?? '').toLowerCase().includes(search) ||
+        getVendorName(part).toLowerCase().includes(search);
       
       // Stock filter
       const isLowStock = part.quantity <= (part.reorder_level || 5);
@@ -204,7 +207,7 @@ const Parts: React.FC = () => {
     });
 
     return filtered;
-  }, [parts, searchTerm, stockFilter, assignmentFilter, sortBy, sortOrder, vendors]);
+  }, [parts, debouncedSearchTerm, stockFilter, assignmentFilter, sortBy, sortOrder, vendors]);
 
   const toggleSortOrder = () => {
     setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
