@@ -36,16 +36,30 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({ payments, setPayments
   const { addPayment, removePayment } = usePayments();
   const { currentUser } = useAuthContext();
   const { selectedOrganizationId } = useOrganizationContext();
-  
+
   // Get organization ID from current user or selected organization
-  const organizationId = selectedOrganizationId || currentUser?.organization_id || '';
+  const contextOrganizationId = selectedOrganizationId || currentUser?.organization_id || '';
   const status = watch("status");
 
   // Estimates and declined quotes are not payable documents.
-  const canEditPayments = status !== "paid" && status !== "cancelled" && status !== "estimate" && status !== "declined";
+  const canEditPayments = status !== "estimate" && status !== "declined";
+
+  // The invoice itself is the source of truth for the shop, so a payment on an
+  // existing invoice is never held back just because the screen has no org id.
+  const resolveOrganizationId = useCallback(async (): Promise<string> => {
+    if (contextOrganizationId) return contextOrganizationId;
+    if (!invoiceId) return '';
+    const { data } = await supabase
+      .from('invoices')
+      .select('organization_id')
+      .eq('id', invoiceId)
+      .maybeSingle();
+    return data?.organization_id || '';
+  }, [contextOrganizationId, invoiceId]);
 
   const handleAddPayment = useCallback(async () => {
     if (!paymentAmount || !paymentMethod) {
+      toast.error("Enter an amount and choose a payment method.");
       return;
     }
 
@@ -63,8 +77,15 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({ payments, setPayments
 
     const totalPaid = payments.reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
 
+    if (total <= 0) {
+      toast.error("Add invoice lines first — this invoice has no amount to pay against.");
+      return;
+    }
+
     if (totalPaid + amount > total + 0.005) {
-      toast.error(`Payment amount exceeds remaining balance. Remaining: ${formatCurrency(total - totalPaid)}`);
+      toast.error(
+        `That is more than the amount still due. Still due: ${formatCurrency(Math.max(total - totalPaid, 0))}.`
+      );
       return;
     }
 
@@ -72,8 +93,11 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({ payments, setPayments
     setIsSavingPayment(true);
 
     try {
+      const organizationId = await resolveOrganizationId();
+
       if (invoiceId && organizationId) {
-        // If we have an invoice ID, save to database immediately
+        // Existing invoice: save to the database straight away so the payment
+        // cannot be lost if the invoice save is later refused.
         const newPayment = await addPayment({
           invoice_id: invoiceId,
           amount: amount,
@@ -92,7 +116,7 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({ payments, setPayments
           return [...prev, newPayment];
         });
       } else {
-        // If no invoice ID, add to local state (for new invoices)
+        // No invoice yet (new invoice screen): held on screen, saved with the invoice.
         const tempPayment: Payment = {
           id: nanoid(),
           invoice_id: invoiceId || "",
@@ -120,18 +144,19 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({ payments, setPayments
       // Update invoice status based on payments
       const newTotalPaid = totalPaid + amount;
       if (newTotalPaid >= total - 0.005) {
-        setValue("status", "paid");
+        setValue("status", "paid", { shouldDirty: true });
       } else if (newTotalPaid > 0) {
-        setValue("status", "partial");
+        setValue("status", "partial", { shouldDirty: true });
       }
     } catch (error) {
       console.error("Error adding payment:", error);
-      // Error already handled by the hook with toast
+      toast.error(error instanceof Error ? `Payment could not be saved: ${error.message}` : "Payment could not be saved.");
     } finally {
       savingRef.current = false;
       setIsSavingPayment(false);
     }
-  }, [paymentAmount, paymentMethod, paymentNotes, payments, total, invoiceId, organizationId, addPayment, setPayments, setValue, formatCurrency]);
+  }, [paymentAmount, paymentMethod, paymentNotes, payments, total, invoiceId, resolveOrganizationId, addPayment, setPayments, setValue, formatCurrency]);
+
 
   const handleRemovePayment = useCallback(async (paymentId: string) => {
     try {
