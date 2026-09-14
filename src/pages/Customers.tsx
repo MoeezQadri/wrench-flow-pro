@@ -22,6 +22,7 @@ import { useDataContext } from '@/context/data/DataContext';
 import { useAuthContext } from '@/context/AuthContext';
 import { PageContainer } from '@/components/PageContainer';
 import { usePageLoader } from '@/hooks/usePageLoader';
+import { useDebounce } from '@/hooks/useDebounce';
 import { canManageCustomers, hasPermission } from '@/utils/permissions';
 import { calculateInvoiceTotalWithBreakdown } from '@/utils/invoice-calculations';
 
@@ -96,6 +97,7 @@ type CustomerFormValues = {
 };
 const Customers = () => {
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearchQuery = useDebounce(searchQuery, 250);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [vehiclesByCustomer, setVehiclesByCustomer] = useState<Record<string, Vehicle[]>>({});
