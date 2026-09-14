@@ -70,20 +70,9 @@ const Expenses = () => {
         await addExpense(expense);
       }
       
-      // Update local state as well for immediate UI update
-      setExpensesList(prev => {
-        const index = prev.findIndex(e => e.id === expense.id);
-        if (index >= 0) {
-          const updated = [...prev];
-          updated[index] = expense;
-          return updated;
-        } else {
-          return [...prev, expense];
-        }
-      });
+      // Reload the saved records so the list always shows what was persisted
+      await Promise.all([loadExpenses(), loadPayables()]);
 
-      // A new expense creates a bill, so refresh bills to show its payment status
-      await loadPayables();
     } catch (error) {
       console.error("Error saving expense:", error);
       toast.error("Failed to save expense");
