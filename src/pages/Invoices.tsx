@@ -262,6 +262,14 @@ const Invoices: React.FC = () => {
                             Edit
                           </Link>
                         )}
+                        {userCanEditInvoices && invoice.status === 'paid' && (
+                          <span
+                            className="text-muted-foreground"
+                            title="Paid invoices are view only. Remove a payment first to change it."
+                          >
+                            Paid — view only
+                          </span>
+                        )}
                         {userCanDeleteInvoices && (
                           <button
                             type="button"
