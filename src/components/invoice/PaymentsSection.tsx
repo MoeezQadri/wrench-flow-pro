@@ -16,6 +16,7 @@ import { useOrganizationContext } from "@/hooks/useOrganizationContext";
 import { useAuthContext } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { formatOrgDate } from '@/utils/datetime';
+import { supabase } from '@/integrations/supabase/client';
 
 interface PaymentsSectionProps {
   payments: Payment[];
