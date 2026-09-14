@@ -45,7 +45,8 @@ Nothing about how figures are calculated (profit, payables, COGS, tax) changes.
 ## Technical notes
 
 - `src/pages/Invoices.tsx`: drop `completed` from the Edit-hiding condition; keep `paid` and `declined` locked, show a reason instead of the button.
-- `src/components/invoice/PaymentsSection.tsx`: keep the concurrency/limit guards, improve messages; status transitions stay `partial`/`paid` via `setValue`.
+- `src/pages/EditInvoice.tsx`: add `completed` to the `canEdit` status list (this redirect is the hard block today).
+- `src/components/invoice/PaymentsSection.tsx`: `canEditPayments` excludes only `estimate`/`declined` (drop the `paid`/`cancelled` exclusion so the box stays visible); keep the concurrency and remaining-balance guards, improve messages; status transitions stay `partial`/`paid` via `setValue`.
 - `src/components/invoice/InvoiceDetailsFields.tsx`: keep `completed` in the editable-discount statuses.
 - `src/components/expense/ExpenseDialog.tsx`: default `date: new Date()`, `amount: undefined` with clear validation, description empty; return the persisted row from `handleSaveExpense`.
 - `src/pages/Expenses.tsx`: after save call `loadExpenses()` rather than splicing the form object; sort by `date` then `created_at` desc.
