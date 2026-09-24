@@ -23,7 +23,7 @@ const generateId = (): string => {
 interface ExpenseDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (expense: Expense) => void;
+  onSave: (expense: Expense) => void | Promise<void>;
   expense?: Expense;
   invoiceId?: string;
 }
@@ -80,7 +80,7 @@ const ExpenseDialog: React.FC<ExpenseDialogProps> = ({
         (expenseData as any).invoice_id = expenseInvoiceId;
       }
 
-      onSave(expenseData);
+      await onSave(expenseData);
 
       // Show success message based on expense type
       if (data.expenseType === "invoice") {
