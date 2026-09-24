@@ -91,8 +91,8 @@ const ExpenseDialog: React.FC<ExpenseDialogProps> = ({
 
       onOpenChange(false);
     } catch (error) {
+      // The page already explains the failure; keep the form open with the entries intact.
       console.error("Error saving expense:", error);
-      toast.error("Failed to save expense. Please try again.");
     }
   };
 
