@@ -142,7 +142,13 @@ export const useEnhancedRealtime = <T extends { id: string; organization_id?: st
           console.error(`Error processing realtime update for ${tableName}:`, error);
         }
 
-        return updatedData;
+        // Never keep two copies of the same record
+        const seen = new Set<string>();
+        return updatedData.filter(item => {
+          if (!item?.id || seen.has(item.id)) return false;
+          seen.add(item.id);
+          return true;
+        });
       });
     };
 
