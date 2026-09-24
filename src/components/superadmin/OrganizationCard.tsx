@@ -1,3 +1,4 @@
+import { formatUtcDate, formatUtcDateTime, formatUtcTime } from '@/utils/datetime';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -113,7 +114,7 @@ export const OrganizationCard = ({
           <div className="flex items-center gap-2">
             <Calendar className="h-4 w-4 text-muted-foreground" />
             <span className="text-muted-foreground">
-              Created {new Date(organization.created_at).toLocaleDateString()}
+              Created {formatUtcDate(organization.created_at)}
             </span>
           </div>
 
@@ -122,9 +123,7 @@ export const OrganizationCard = ({
               <CreditCard className="h-4 w-4 text-muted-foreground" />
               <span className="text-muted-foreground">
                 {status === 'paid' ? 'Renews ' : 'Trial ends '}
-                {new Date(
-                  organization.next_billing_date || organization.trial_ends_at
-                ).toLocaleDateString()}
+                {formatUtcDate(organization.next_billing_date || organization.trial_ends_at)}
               </span>
             </div>
           )}

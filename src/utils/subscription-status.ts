@@ -1,3 +1,4 @@
+import { formatUtcDate, formatUtcDateTime, formatUtcTime } from '@/utils/datetime';
 import { Organization } from '@/components/admin/types';
 
 /**
@@ -109,13 +110,13 @@ export function getStatusLabel(org: Organization): string {
     case 'suspended': {
       const until = org.next_billing_date || org.trial_ends_at;
       return until
-        ? `Suspended — access until ${new Date(until).toLocaleDateString()}`
+        ? `Suspended — access until ${formatUtcDate(until)}`
         : 'Suspended';
     }
     case 'canceling': {
       const until = org.next_billing_date || org.trial_ends_at;
       return until
-        ? `Cancelling — access until ${new Date(until).toLocaleDateString()}`
+        ? `Cancelling — access until ${formatUtcDate(until)}`
         : 'Cancelling at period end';
     }
     case 'subscription_ended':
@@ -124,7 +125,7 @@ export function getStatusLabel(org: Organization): string {
       const renew = org.next_billing_date || org.trial_ends_at;
       const level = org.subscription_level || 'Paid';
       return renew
-        ? `${level} — renews ${new Date(renew).toLocaleDateString()}`
+        ? `${level} — renews ${formatUtcDate(renew)}`
         : `${level} — active`;
     }
     case 'trial_active': {

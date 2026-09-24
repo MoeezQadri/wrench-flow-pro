@@ -1,3 +1,4 @@
+import { formatUtcDate, formatUtcDateTime, formatUtcTime } from '@/utils/datetime';
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -218,7 +219,7 @@ export const SubscriptionManagement = ({
               <div className="flex items-center gap-2">
                 <Badge variant="outline">{org.email}</Badge>
                 <Badge variant="outline">
-                  {new Date(org.created_at).toDateString()}
+                  {formatUtcDate(org.created_at)}
                 </Badge>
               </div>
             </div>
@@ -329,9 +330,7 @@ export const SubscriptionManagement = ({
                   {(org.next_billing_date || org.trial_ends_at) && (
                     <div className="text-xs text-muted-foreground">
                       Access ends on{' '}
-                      {new Date(
-                        (org.next_billing_date || org.trial_ends_at) as string
-                      ).toLocaleDateString()}
+                      {formatUtcDate((org.next_billing_date || org.trial_ends_at) as string)}
                     </div>
                   )}
                 </div>
@@ -511,7 +510,7 @@ export const SubscriptionManagement = ({
               Billing stops now, but the shop keeps access until the end of the
               period it has already paid for
               {orgToSuspend?.accessUntil
-                ? ` — ${new Date(orgToSuspend.accessUntil).toLocaleDateString()}`
+                ? ` — ${formatUtcDate(orgToSuspend.accessUntil)}`
                 : ''}
               . After that date everything except Settings is locked and the
               shop appears under ended subscriptions.
