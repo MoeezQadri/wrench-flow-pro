@@ -19,17 +19,14 @@ export const useExpenses = () => {
             const { data, error } = await supabase.from('expenses').insert(payload).select();
             if (error) {
                 console.error('Error adding expense:', error);
-                toast.error('Failed to add expense');
                 throw error;
             }
             if (data && data.length > 0) {
                 const result = data[0] as Expense;
                 setExpenses((prev) => [...prev, result]);
-                toast.success('Expense added successfully');
             }
         } catch (error) {
             console.error('Error adding expense:', error);
-            toast.error('Failed to add expense');
             throw error;
         }
     };

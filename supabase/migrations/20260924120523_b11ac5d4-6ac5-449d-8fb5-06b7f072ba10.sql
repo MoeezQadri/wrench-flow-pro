@@ -1,0 +1,2 @@
+ALTER TABLE public.expenses DROP CONSTRAINT IF EXISTS expenses_payment_status_check;
+ALTER TABLE public.expenses ADD CONSTRAINT expenses_payment_status_check CHECK (payment_status IS NULL OR payment_status IN ('paid','pending','overdue','unpaid','partial'));

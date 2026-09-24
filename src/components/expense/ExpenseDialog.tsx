@@ -23,7 +23,7 @@ const generateId = (): string => {
 interface ExpenseDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (expense: Expense) => void;
+  onSave: (expense: Expense) => void | Promise<void>;
   expense?: Expense;
   invoiceId?: string;
 }
@@ -80,7 +80,7 @@ const ExpenseDialog: React.FC<ExpenseDialogProps> = ({
         (expenseData as any).invoice_id = expenseInvoiceId;
       }
 
-      onSave(expenseData);
+      await onSave(expenseData);
 
       // Show success message based on expense type
       if (data.expenseType === "invoice") {
@@ -91,8 +91,8 @@ const ExpenseDialog: React.FC<ExpenseDialogProps> = ({
 
       onOpenChange(false);
     } catch (error) {
+      // The page already explains the failure; keep the form open with the entries intact.
       console.error("Error saving expense:", error);
-      toast.error("Failed to save expense. Please try again.");
     }
   };
 

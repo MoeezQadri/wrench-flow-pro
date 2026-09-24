@@ -75,7 +75,9 @@ const Expenses = () => {
 
     } catch (error) {
       console.error("Error saving expense:", error);
-      toast.error("Failed to save expense");
+      const msg = (error as any)?.message;
+      toast.error(msg ? `Couldn't save the expense: ${msg}` : "Couldn't save the expense. Please try again.");
+      throw error;
     }
   };
 
