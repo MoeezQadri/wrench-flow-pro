@@ -1,3 +1,4 @@
+import { formatUtcDate, formatUtcDateTime, formatUtcTime } from '@/utils/datetime';
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -252,7 +253,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
                   </CardContent>
                   <CardFooter className="flex justify-between">
                     <div className="text-xs text-muted-foreground">
-                      Last updated: {new Date(script.updatedAt).toLocaleString()}
+                      Last updated: {formatUtcDateTime(script.updatedAt)}
                     </div>
                     <div className="space-x-2">
                       <Button

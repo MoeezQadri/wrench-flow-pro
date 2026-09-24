@@ -119,3 +119,24 @@ export const toOrgDayStart = (value: string | Date | null | undefined): string =
 
 /** Today's calendar day in the organization's timezone, as "YYYY-MM-DD". */
 export const orgToday = (): string => formatOrgDate(new Date(), 'yyyy-MM-dd');
+
+/** Super Admin: fixed UTC rendering, e.g. "24 Sep 2026". */
+const utcDateFmt = new Intl.DateTimeFormat('en-GB', { timeZone: 'UTC', day: '2-digit', month: 'short', year: 'numeric' });
+const utcTimeFmt = new Intl.DateTimeFormat('en-GB', { timeZone: 'UTC', hour: '2-digit', minute: '2-digit', hour12: false });
+const toValidDate = (v: string | Date | null | undefined) => {
+  if (!v) return null;
+  const d = v instanceof Date ? v : new Date(v);
+  return isNaN(d.getTime()) ? null : d;
+};
+export const formatUtcDate = (v: string | Date | null | undefined): string => {
+  const d = toValidDate(v);
+  return d ? utcDateFmt.format(d) : '';
+};
+export const formatUtcDateTime = (v: string | Date | null | undefined): string => {
+  const d = toValidDate(v);
+  return d ? `${utcDateFmt.format(d)}, ${utcTimeFmt.format(d)} UTC` : '';
+};
+export const formatUtcTime = (v: string | Date | null | undefined): string => {
+  const d = toValidDate(v);
+  return d ? `${utcTimeFmt.format(d)} UTC` : '';
+};

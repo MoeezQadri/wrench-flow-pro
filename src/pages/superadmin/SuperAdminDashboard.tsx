@@ -1,3 +1,4 @@
+import { formatUtcDate, formatUtcDateTime, formatUtcTime } from '@/utils/datetime';
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -271,7 +272,7 @@ const SuperAdminDashboard: React.FC = () => {
             </Button>
             <span className="text-xs text-muted-foreground mt-1">
               {lastUpdatedAt
-                ? `Updated ${lastUpdatedAt.toLocaleTimeString()}`
+                ? `Updated ${formatUtcTime(lastUpdatedAt)}`
                 : 'Loading...'}
             </span>
           </div>
