@@ -121,7 +121,8 @@ export const toOrgDayStart = (value: string | Date | null | undefined): string =
 export const orgToday = (): string => formatOrgDate(new Date(), 'yyyy-MM-dd');
 
 /** Super Admin: fixed UTC rendering, e.g. "24 Sep 2026". */
-const utcDateFmt = new Intl.DateTimeFormat('en-GB', { timeZone: 'UTC', day: '2-digit', month: 'short', year: 'numeric' });
+const UTC_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const utcDateFmt = { format: (d: Date) => `${String(d.getUTCDate()).padStart(2, '0')} ${UTC_MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}` };
 const utcTimeFmt = new Intl.DateTimeFormat('en-GB', { timeZone: 'UTC', hour: '2-digit', minute: '2-digit', hour12: false });
 const toValidDate = (v: string | Date | null | undefined) => {
   if (!v) return null;
