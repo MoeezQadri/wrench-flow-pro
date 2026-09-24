@@ -10,6 +10,7 @@ export const TRIAL_DAYS = 14;
 export const INTERNAL_EMAILS = [
   'gearheadgarage.pk@gmail.com',
   'daniyal.reviewer@gmail.com',
+  'rajamurad@gmail.com',
 ];
 
 export type OrgStatus =

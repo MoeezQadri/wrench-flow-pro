@@ -122,8 +122,9 @@ serve(async (req) => {
     const OWNER_EMAILS = [
       'gearheadgarage.pk@gmail.com',
       'daniyal.reviewer@gmail.com',
+      'rajamurad@gmail.com',
     ];
-    if (OWNER_EMAILS.includes(user.email)) {
+    if (OWNER_EMAILS.includes(user.email.toLowerCase())) {
       logStep('Owner account detected, granting Enterprise access');
       return json({
         subscribed: true,
@@ -180,7 +181,7 @@ serve(async (req) => {
     }
     logStep('Admin candidates', { count: candidates.length });
 
-    if (candidates.some((c) => OWNER_EMAILS.includes(c.email))) {
+    if (candidates.some((c) => OWNER_EMAILS.includes(c.email.toLowerCase()))) {
       logStep('Org owner is bypass account, granting Enterprise access');
       return json({
         subscribed: true,
