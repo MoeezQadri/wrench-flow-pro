@@ -115,7 +115,14 @@ export const useEnhancedDataLoading = <T extends Record<string, any>>(
         throw fetchError;
       }
 
-      const safeData = Array.isArray(fetchedData) ? (fetchedData as unknown as T[]) : [];
+      const rawData = Array.isArray(fetchedData) ? (fetchedData as unknown as T[]) : [];
+      const seenIds = new Set<string>();
+      const safeData = rawData.filter((row: any) => {
+        if (!row?.id) return true;
+        if (seenIds.has(row.id)) return false;
+        seenIds.add(row.id);
+        return true;
+      });
       console.log(`${tableName} loaded:`, safeData.length, 'records');
       
       setData(safeData);
