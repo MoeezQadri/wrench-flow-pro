@@ -40,33 +40,49 @@ const InvoiceItemsSection: React.FC<InvoiceItemsSectionProps> = ({
   };
 
   const handleAddPartsFromWorkshop = (selectedParts: { part: Part; quantity: number }[]) => {
-    const newItems: InvoiceItem[] = selectedParts.map(({ part, quantity }) => ({
-      id: `workshop-part-${part.id}-${Date.now()}`,
-      description: part.name,
-      type: 'part' as const,
-      quantity: quantity,
-      price: part.price,
-      cost: part.cost || 0,
-      part_id: part.id,
-      is_auto_added: false
-    }));
-
-    onItemsChange(prev => [...prev, ...newItems]);
+    onItemsChange(prev => {
+      const next = [...prev];
+      for (const { part, quantity } of selectedParts) {
+        // Same part already on the invoice: raise its quantity instead of adding a second line
+        const idx = next.findIndex(i => i.type === 'part' && i.part_id === part.id);
+        if (idx !== -1) {
+          next[idx] = { ...next[idx], quantity: Number(next[idx].quantity || 0) + quantity };
+          continue;
+        }
+        next.push({
+          id: `workshop-part-${part.id}-${Date.now()}`,
+          description: part.name,
+          type: 'part' as const,
+          quantity: quantity,
+          price: part.price,
+          cost: part.cost || 0,
+          part_id: part.id,
+          is_auto_added: false
+        });
+      }
+      return next;
+    });
     setShowPartsSelector(false);
   };
 
   const handleAddTasksFromWorkshop = (selectedTasks: { task: Task; quantity: number }[]) => {
-    const newItems: InvoiceItem[] = selectedTasks.map(({ task, quantity }) => ({
-      id: `workshop-task-${task.id}-${Date.now()}`,
-      description: task.title,
-      type: 'labor' as const,
-      quantity: quantity,
-      price: task.price || 0,
-      task_id: task.id,
-      is_auto_added: false
-    }));
-
-    onItemsChange(prev => [...prev, ...newItems]);
+    onItemsChange(prev => {
+      const next = [...prev];
+      for (const { task, quantity } of selectedTasks) {
+        // A job is billed once per invoice
+        if (next.some(i => i.task_id === task.id)) continue;
+        next.push({
+          id: `workshop-task-${task.id}-${Date.now()}`,
+          description: task.title,
+          type: 'labor' as const,
+          quantity: quantity,
+          price: task.price || 0,
+          task_id: task.id,
+          is_auto_added: false
+        });
+      }
+      return next;
+    });
     setShowPartsSelector(false);
   };
 

@@ -13,8 +13,7 @@ export const usePayments = () => {
     const addPayment = useCallback(async (paymentData: CreatePaymentData): Promise<Payment> => {
         try {
             const payment = await paymentService.createPayment(paymentData);
-            setPayments((prev) => [...prev, payment]);
-            toast.success('Payment added successfully');
+            setPayments((prev) => prev.some(p => p.id === payment.id) ? prev : [...prev, payment]);
             return payment;
         } catch (error) {
             console.error('Error adding payment:', error);

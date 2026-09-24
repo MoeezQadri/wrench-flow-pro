@@ -889,6 +889,45 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
             </div>
           )}
 
+          {/* Jobs linked to this invoice that have no line on it yet */}
+          {isEditing && invoiceData?.id && (() => {
+            const unbilled = (tasks || []).filter(t =>
+              t.invoiceId === invoiceData.id && !items.some(i => i.task_id === t.id)
+            );
+            if (unbilled.length === 0) return null;
+            return (
+              <div className="rounded-lg border p-4 space-y-2">
+                <h3 className="font-medium">Linked jobs not yet billed</h3>
+                <p className="text-sm text-muted-foreground">
+                  These jobs are linked to this invoice but have no line on it.
+                </p>
+                {unbilled.map(t => (
+                  <div key={t.id} className="flex items-center justify-between gap-2">
+                    <span className="text-sm">{t.title} · {formatCurrency(Number(t.price || 0))}</span>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleItemsChange(prev =>
+                        prev.some(i => i.task_id === t.id) ? prev : [...prev, {
+                          id: `linked-task-${t.id}-${Date.now()}`,
+                          description: t.title,
+                          type: 'labor' as const,
+                          quantity: 1,
+                          price: Number(t.price || 0),
+                          task_id: t.id,
+                          is_auto_added: false,
+                        }]
+                      )}
+                    >
+                      Add
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+
           {/* Invoice Items */}
           <InvoiceItemsSection
             items={items}
