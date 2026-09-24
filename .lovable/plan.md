@@ -1,7 +1,7 @@
-# Jobs assigned to invoices, and payments appearing twice
+# Jobs assigned to invoices, and parts appearing twice
 
 ## 1. Assigning a saved job to an invoice (confirmed broken)
-What the checks found:
+What I checked:
 - On the Jobs page, "Assign to invoice" asks you to type the invoice's full internal ID, which is 36 characters long. The app never shows that ID, so in practice the job almost never gets assigned.
 - When it does assign, it only links the job to the invoice. It never adds a labor line, so the invoice total doesn't change and the job isn't billed.
 - 19 jobs are linked to an invoice but have no line on it, some on invoices already marked Paid.
@@ -16,23 +16,32 @@ Changes:
 - On the invoice edit screen, jobs linked to that invoice but missing a line appear as "Linked jobs not yet billed", with an Add button.
 - The 19 existing linked-but-unbilled jobs stay as they are, because most are on paid invoices and adding lines would change totals that were already paid. I'll list them for you so you can decide.
 
-## 2. Payments or payables appearing twice (not found yet)
-What the checks found:
-- In the database, no invoice has duplicate payments in the last 30 days.
-- No bill has more paid against it than it's worth.
-- The only duplicate expense set is an old test invoice from 11 August.
-- The save code checks for existing payments by their ID, so it can't insert the same payment twice.
-- Adding a payment shows two green confirmation messages. That can look like it was added twice.
+## 2. A part edited in inventory showing twice on the invoice (cause not confirmed yet)
+What I checked:
+- Saving an edited part updates the existing record. It doesn't create a new part, and it doesn't add a line to any invoice.
+- No invoice has the same part on two lines in the database.
+- Invoices where the same name shows twice (for example "Indrive/ ride") are two genuinely separate parts. They were bought at different times and prices, because each custom invoice line creates its own inventory part.
+- A likely on-screen cause: the app listens for live changes to parts. When an edited part isn't already in the app's list at that moment, the listener adds it to the end. If the list is then reloaded or reopened on the invoice screen, the same part can appear twice in the picker.
+- I haven't confirmed that this is the cause.
 
-Next step: I need one invoice where you saw it happen: the invoice number, plus whether it was a customer payment or a vendor bill payment. I'll trace that one exactly. For now I'll only remove the extra confirmation message.
+Changes:
+- First, reproduce it: edit a part in inventory, open an invoice's part picker, and see where the duplicate comes from.
+- Keep the parts list unique by part ID everywhere it's kept and shown, so one part can never appear twice, whatever the cause.
+- Add a picker check: if a part is already on the invoice, adding it again increases the quantity instead of adding a second line.
+- If the reproduction shows a different cause, I'll fix that and tell you what it was.
+
+## Payments showing twice
+- The database has no duplicate payments in the last 30 days.
+- Adding a payment shows two green messages, which can look like a double entry. I'll remove the extra one.
 
 ## Test
-- Create a job, mark it completed, and assign it to an open invoice by picking from the list. The line appears and the total goes up.
-- Remove the assignment. The line goes away.
-- Try assigning to a paid invoice. It's blocked with a reason.
-- Add a partial payment and then the rest. Each payment appears once, and you see one message.
+- Create a job, mark it completed, and assign it to an open invoice from the list. The line appears and the total goes up. Remove the assignment and the line goes away. Paid invoices are blocked with a reason.
+- Edit a part in inventory, then open a new invoice and an existing one. The part is listed once, and adding it twice increases the quantity.
+- Add a partial payment. It appears once, with one message.
 
 ## Technical details
-- `src/components/task/AssignToInvoiceDialog.tsx`: query the eligible invoices with customer and vehicle, and use a combobox. On assign: update `tasks.invoice_id`, and insert an `invoice_items` row (`type 'labor'`, `task_id`, `description = title`, quantity from hours or 1 for lump sum, `price`, `cost 0`), unless one with that `task_id` already exists. On remove: delete the `invoice_items` row with that `task_id` and clear the link. Block this if the invoice is paid, estimate or declined.
-- `src/components/InvoiceForm.tsx`: in edit mode, show tasks where `invoiceId === invoice.id` that have no item with that `task_id`, with an Add action. Don't change any formulas.
-- `usePayments.addPayment`: drop the success toast, because PaymentsSection already reports the result.
+- `src/components/task/AssignToInvoiceDialog.tsx`: invoice combobox. On assign: set `tasks.invoice_id` and insert an `invoice_items` labor row (`task_id`, title, quantity from hours or 1 for lump sum, `price`, `cost 0`) unless one with that `task_id` already exists. On remove: delete that row and clear the link. Block paid, estimate and declined.
+- `src/components/InvoiceForm.tsx` (edit mode): list linked tasks that have no item for their `task_id`, with an Add action.
+- `src/hooks/useEnhancedRealtime.ts` and `useParts`: dedupe by `id` after every update. On UPDATE for an unknown id, replace rather than blindly append.
+- `WorkshopPartsSelector` / `InvoiceForm` part add: when `part_id` already exists on the invoice, increase its quantity.
+- `usePayments.addPayment`: drop the duplicate success toast.
