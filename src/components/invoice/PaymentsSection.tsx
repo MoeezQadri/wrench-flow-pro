@@ -251,9 +251,6 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({ payments, setPayments
 
     // Percentage discounts are converted to their fixed amount first so the
     // extra discount can be added on top in currency.
-    const subtotal = totalPaid > 0 || true ? undefined : undefined; // placeholder removed below
-    void subtotal;
-
     // Tax is charged on the discounted amount, so the extra discount is the
     // balance worked back through the tax rate.
     const extraDiscount = balance / (1 + taxRate / 100);
