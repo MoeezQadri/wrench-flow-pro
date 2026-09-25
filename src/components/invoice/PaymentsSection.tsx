@@ -254,8 +254,10 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({ payments, setPayments
     // Tax is charged on the discounted amount, so the extra discount is the
     // balance worked back through the tax rate.
     const extraDiscount = balance / (1 + taxRate / 100);
+    const items = (watch("items") as Array<{ quantity?: number; price?: number }> | undefined) || [];
+    const subtotal = items.reduce((sum, item) => sum + (Number(item.quantity) || 0) * (Number(item.price) || 0), 0);
     const existingFixed = currentType === 'percentage'
-      ? currentValue / 100 * (Number(watch("subtotal")) || 0)
+      ? currentValue / 100 * subtotal
       : currentType === 'fixed' ? currentValue : 0;
 
     const newDiscountValue = Math.round((existingFixed + extraDiscount) * 100) / 100;
