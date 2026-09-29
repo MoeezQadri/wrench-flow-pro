@@ -44,10 +44,31 @@ With 10 parts this is easily 30-50 server trips in a row.
 
 Gross profit = revenue - COGS. Net profit = gross profit - overhead.
 
-**Known gap to fix:** the dashboard's daily revenue/expense chart adds up **all** expenses including part purchases, while the reports and profit figures exclude part purchases. Align the chart with the reports so the numbers match everywhere.
+**Fix: dashboard chart expenses.** The daily chart will show overhead only (leaving out part purchases and invoice-linked costs), the same rule the reports and profit figures use. The chart's revenue bars will also follow the new revenue timing rule below, so the dashboard, chart and reports all match.
+
+### Is this the right accounting method?
+
+Mostly yes. Revenue before tax, tax kept separate, cost of parts matched to the invoice that used them, and part purchases treated as stock rather than overhead are all standard.
+
+**One thing to change: when revenue counts.** Right now revenue counts on the **invoice date** as soon as the invoice exists, even if it is still Open or In progress. Under normal accrual accounting, revenue counts **when the work is done**, whether or not it has been paid. That means:
+- Open / In progress invoices: not revenue yet (work in progress).
+- Completed, Partial or Paid invoices: revenue, dated the day the work was completed.
+- Estimates / Declined: never revenue (no change).
+- COGS moves with revenue, so parts cost counts on the same completion date.
+- Receivables still include anything invoiced and unpaid.
+- Expenses stay on their expense date (no change).
+
+**How we'll do it:**
+1. Save a "work completed on" date on each invoice, filled in automatically the first time it moves to Completed, Partial or Paid. Moving it back to Open or In progress clears it.
+2. Fill in this date for existing invoices already Completed, Partial or Paid, using the invoice date (safest guess, since the real completion day was never recorded). You can adjust any invoice afterwards.
+3. Dashboard, chart, Finance and all reports count revenue and COGS by this completion date and only for completed work.
+4. Show the date on the invoice screen so staff can correct it if the job finished on another day.
+
+Result: a big job invoiced this month but finished next month shows its revenue next month.
 
 ## Technical details
 - Conflict: `PaymentsSection.persistInvoiceFields` returns the new `updated_at`; add an `onInvoiceSaved(updatedAt)` prop from `InvoiceForm` that calls `setLoadedUpdatedAt` and clears `changedElsewhere`. Realtime watcher unchanged otherwise.
 - Speed: in `optimized-invoice-service.ts` batch `applyInventoryChanges` reads with `.in('id', ids)` and run updates via `Promise.all`; `Promise.all` for `linkSelectedTasks`/`syncLaborTasks`; in `payment-service.replaceInvoicePayments` run changed updates/inserts/deletes in parallel; in `InvoiceForm` navigate immediately and fire `fetchInvoiceById` without awaiting.
-- Chart: `dashboard-service` daily expenses filtered with `isInventoryOrJobCostExpense` to match `calculateProfitAndLoss`.
+- Chart: `dashboard-service.fetchChartData` selects `category, invoice_id` on expenses and filters with `isInventoryOrJobCostExpense` to match `calculateProfitAndLoss`.
+- Revenue timing: migration adds nullable `invoices.completed_at timestamptz`; trigger sets it (if null) when status enters completed/partial/paid and clears it on open/in-progress/estimate/declined; backfill `completed_at = date` for existing completed/partial/paid. Shared helper `isRecognizedRevenue(invoice)` + `revenueDate(invoice)` in `invoice-calculations.ts`, used by dashboard-service (query by `completed_at` range), FinancialReport, FinanceReport, Reports, InvoicingReport. Receivables logic unchanged. Editable date field in InvoiceForm for completed invoices.
 - Verify: typecheck, build, and a before/after timing of the save path; manual test of add payment then Save (no warning) on an existing invoice.
