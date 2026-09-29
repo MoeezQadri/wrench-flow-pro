@@ -11,7 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { exportToCSV } from '@/utils/csv-export';
 import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
-import { calculateInvoiceBreakdown, calculateProfitAndLoss, isInventoryOrJobCostExpense } from '@/utils/invoice-calculations';
+import { calculateInvoiceBreakdown, calculateProfitAndLoss, isInventoryOrJobCostExpense, isRecognizedRevenue, revenueDate } from '@/utils/invoice-calculations';
 import { isNonBillable } from '@/utils/invoice-status';
 import { formatOrgDate, isOrgDayWithinRange, selectedCalendarDay } from '@/utils/datetime';
 
@@ -109,7 +109,8 @@ const FinanceReport = () => {
 
   const filteredRevenue = revenue.filter(invoice => {
     try {
-      return !isNonBillable(invoice.status) && isOrgDayWithinRange(invoice.date || '', startDate, endDate);
+      // Revenue counts when the work is completed, on the completion date
+      return isRecognizedRevenue(invoice) && isOrgDayWithinRange(revenueDate(invoice as any), startDate, endDate);
     } catch (e) {
       return false;
     }

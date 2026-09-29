@@ -54,6 +54,8 @@ export interface Payment {
 }
 
 export interface Invoice {
+  /** Day the work was completed; revenue counts on this date */
+  completed_at?: string | null;
   id: string;
   customer_id: string;
   vehicle_id: string;

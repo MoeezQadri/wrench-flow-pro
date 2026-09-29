@@ -19,7 +19,7 @@ import { Link } from 'react-router-dom';
 import { useDataContext } from '@/context/data/DataContext';
 import { DateRangePicker } from '@/components/dashboard/DateRangePicker';
 import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
-import { calculateInvoiceBreakdown, calculateBalanceDue, calculateTotalReceivables, calculateOverdueAmount, getReceivableInvoices } from '@/utils/invoice-calculations';
+import { isRecognizedRevenue, revenueDate, calculateInvoiceBreakdown, calculateBalanceDue, calculateTotalReceivables, calculateOverdueAmount, getReceivableInvoices } from '@/utils/invoice-calculations';
 import { isNonBillable } from '@/utils/invoice-status';
 import type { Payable } from '@/types';
 
@@ -87,7 +87,11 @@ const FinancialReport = () => {
   );
 
   const netPosition = totalReceivables - totalPayables;
-  const billableInvoices = filteredInvoices.filter(inv => !isNonBillable(inv.status));
+  // Profit figures follow the revenue rule: completed work, by completion date
+  const billableInvoices = invoices.filter(
+    inv => isRecognizedRevenue(inv) &&
+      isOrgDayWithinRange(revenueDate(inv as any), appliedDateRange.startDate, appliedDateRange.endDate)
+  );
   const partsCost = billableInvoices.reduce((sum, invoice) => sum + calculateInvoiceBreakdown(invoice).partsCost, 0);
   const grossProfit = billableInvoices.reduce((sum, invoice) => sum + calculateInvoiceBreakdown(invoice).grossProfit, 0);
   const partLinesMissingCost = billableInvoices.reduce(
