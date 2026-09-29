@@ -143,7 +143,7 @@ const FinanceReport = () => {
       
       return {
         invoice_id: invoice.id?.slice(0, 8),
-        date: formatOrgDate(invoice.date),
+        completed_on: formatOrgDate(revenueDate(invoice)),
         amount: formatCurrency(invoiceBreakdown.total),
         revenue_before_tax: formatCurrency(invoiceBreakdown.revenueExTax),
         parts_cost: formatCurrency(invoiceBreakdown.partsCost),
@@ -273,7 +273,7 @@ const FinanceReport = () => {
                       <div>
                         <p className="font-medium">Invoice #{invoice.id?.slice(0, 8)}</p>
                         <p className="text-sm text-muted-foreground">
-                          {formatOrgDate(invoice.date)}
+                          {formatOrgDate(revenueDate(invoice))}
                         </p>
                       </div>
                       <div className="text-right">
