@@ -164,7 +164,8 @@ export const paymentService = {
     const existingById = new Map(existingRows.map(row => [row.id, row]));
     const keptIds = new Set<string>();
 
-    for (const payment of payments) {
+    // Each payment row is saved independently, so run the changes together
+    const writes = payments.map(async (payment) => {
       const current = payment.id ? existingById.get(payment.id) : undefined;
 
       if (current) {
@@ -189,7 +190,7 @@ export const paymentService = {
 
           if (error) throw new Error(`Failed to update payment: ${error.message}`);
         }
-        continue;
+        return;
       }
 
       const { data: inserted, error } = await supabase
@@ -207,7 +208,9 @@ export const paymentService = {
 
       if (error) throw new Error(`Failed to create payment: ${error.message}`);
       if (inserted?.id) keptIds.add(inserted.id);
-    }
+    });
+
+    await Promise.all(writes);
 
     if (allowDeletes) {
       const removed = existingRows.filter(row => !keptIds.has(row.id)).map(row => row.id);

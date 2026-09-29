@@ -46,6 +46,8 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
   const [selectedVehicleId, setSelectedVehicleId] = useState("");
   const [date, setDate] = useState(orgToday());
+  // Day the work was completed; revenue counts on this date
+  const [completedOn, setCompletedOn] = useState<string>('');
   const [status, setStatus] = useState<InvoiceStatus>(isEditing ? (invoiceData?.status || 'open') : initialStatus);
   const [taxRate, setTaxRate] = useState(orgDefaultTaxRate);
   const [discountType, setDiscountType] = useState<'none' | 'percentage' | 'fixed'>('none');
@@ -74,6 +76,13 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
   const submissionLock = useRef(false);
   const submissionTimeoutRef = useRef<any>(null);
   const submissionId = useRef<string | null>(null);
+  const ownSaveTimes = useRef<Set<number>>(new Set());
+  const handleOwnInvoiceSave = React.useCallback((updatedAt: string) => {
+    ownSaveTimes.current.add(new Date(updatedAt).getTime());
+    setLoadedUpdatedAt(updatedAt);
+    setChangedElsewhere(false);
+    setConflict(false);
+  }, []);
   
   // Use optimized hooks for invoice editing and data loading
   const { updateInvoice: updateInvoiceWithHook, isSubmitting: isInvoiceSubmitting } = useOptimizedInvoiceEdit();
@@ -218,6 +227,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
       
       console.log("Formatted date for form:", formattedDate);
       setDate(formattedDate);
+      setCompletedOn(invoiceData.completed_at ? toOrgDateInputValue(invoiceData.completed_at) : '');
       
       setStatus(invoiceData.status);
       setTaxRate(invoiceData.tax_rate ?? orgDefaultTaxRate);
@@ -248,7 +258,10 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
         { event: 'UPDATE', schema: 'public', table: 'invoices', filter: `id=eq.${invoiceData.id}` },
         (payload) => {
           const incoming = (payload.new as any)?.updated_at as string | undefined;
-          if (incoming && loadedUpdatedAt && incoming !== loadedUpdatedAt) {
+          const incomingMs = incoming ? new Date(incoming).getTime() : NaN;
+          // Saves made from this screen (e.g. the payments box) are not "elsewhere"
+          if (ownSaveTimes.current.has(incomingMs)) return;
+          if (incoming && loadedUpdatedAt && incomingMs !== new Date(loadedUpdatedAt).getTime()) {
             setChangedElsewhere(true);
           }
         }
@@ -538,6 +551,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
           customer_id: selectedCustomerId,
           vehicle_id: selectedVehicleId,
           date: toOrgDayStart(date),
+          completed_at: completedOn && ['completed', 'partial', 'paid'].includes(status) ? toOrgDayStart(completedOn) : undefined,
           status: status,
           tax_rate: taxRate,
           discount_type: discountType,
@@ -829,6 +843,23 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
             />
             <p className="text-xs text-gray-500 mt-1">Current date value: {date}</p>
           </div>
+
+          {/* Work completed on - revenue counts on this day */}
+          {isEditing && ['completed', 'partial', 'paid'].includes(status) && (
+            <div>
+              <Label htmlFor="completed-on">Work completed on</Label>
+              <Input
+                id="completed-on"
+                type="date"
+                value={completedOn}
+                onChange={(e) => {
+                  setCompletedOn(e.target.value);
+                  userHasChangedForm.current = true;
+                }}
+              />
+              <p className="text-xs text-muted-foreground mt-1">Revenue counts on this day. Leave empty to use today.</p>
+            </div>
+          )}
 
           {/* Status Selection - Only show when editing */}
           {isEditing && (

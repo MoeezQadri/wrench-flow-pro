@@ -141,7 +141,7 @@ const InvoicingReport = () => {
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader>
-            <CardTitle>Total Revenue</CardTitle>
+            <CardTitle>Total Invoiced</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold break-words">{formatCurrency(totalRevenue)}</div>
