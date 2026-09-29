@@ -72,3 +72,11 @@ Result: a big job invoiced this month but finished next month shows its revenue 
 - Chart: `dashboard-service.fetchChartData` selects `category, invoice_id` on expenses and filters with `isInventoryOrJobCostExpense` to match `calculateProfitAndLoss`.
 - Revenue timing: migration adds nullable `invoices.completed_at timestamptz`; trigger sets it (if null) when status enters completed/partial/paid and clears it on open/in-progress/estimate/declined; backfill `completed_at = date` for existing completed/partial/paid. Shared helper `isRecognizedRevenue(invoice)` + `revenueDate(invoice)` in `invoice-calculations.ts`, used by dashboard-service (query by `completed_at` range), FinancialReport, FinanceReport, Reports, InvoicingReport. Receivables logic unchanged. Editable date field in InvoiceForm for completed invoices.
 - Verify: typecheck, build, and a before/after timing of the save path; manual test of add payment then Save (no warning) on an existing invoice.
+
+## Testing after all changes
+- Automated checks of the money math: revenue only for completed work, dated by completion; COGS on the same date; chart expenses exclude part purchases; receivables and payables unchanged.
+- Database check: the completion date is set, kept, and cleared correctly when the status changes, and the backfill covered every completed/partial/paid invoice.
+- Compare dashboard, chart, Finance and reports totals for the same period against a direct database calculation; they must match.
+- Save-path checks: stock, payments, linked jobs and rollback give the same results as before, and saves take fewer server trips.
+- Load every affected screen in the preview and confirm no errors.
+- Limit: I can't sign in to your shop accounts here, so I'll give you a short click-through list (add a payment then save, over/under payment, complete an invoice, check the dashboard) for the signed-in steps.
