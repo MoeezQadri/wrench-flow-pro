@@ -42,38 +42,41 @@ const applyInventoryChanges = async (
   const partIds = new Set<string>([...before.keys(), ...after.keys()]);
   if (partIds.size === 0) return;
 
-  for (const partId of partIds) {
-    const previous = before.get(partId) || 0;
-    const current = after.get(partId) || 0;
+  // One read for every affected part instead of one per part
+  const { data: parts, error } = await supabase
+    .from('parts')
+    .select('id, quantity, invoice_ids')
+    .in('id', [...partIds]);
+
+  if (error) throw new Error(`Failed to read part for stock update: ${error.message}`);
+
+  const updates = (parts || []).map((part: any) => {
+    const previous = before.get(part.id) || 0;
+    const current = after.get(part.id) || 0;
     const delta = previous - current; // positive: give stock back
-
-    const { data: part, error } = await supabase
-      .from('parts')
-      .select('quantity, invoice_ids')
-      .eq('id', partId)
-      .maybeSingle();
-
-    if (error) throw new Error(`Failed to read part for stock update: ${error.message}`);
-    if (!part) continue;
 
     const invoiceIds: string[] = part.invoice_ids || [];
     const nextInvoiceIds = current > 0
       ? [...new Set([...invoiceIds, invoiceId])]
       : invoiceIds.filter(id => id !== invoiceId);
 
-    if (delta === 0 && nextInvoiceIds.length === invoiceIds.length) continue;
+    if (delta === 0 && nextInvoiceIds.length === invoiceIds.length) return null;
 
-    const { error: updateError } = await supabase
+    return supabase
       .from('parts')
       .update({
         quantity: Math.max(0, (part.quantity || 0) + delta),
         invoice_ids: nextInvoiceIds,
         updated_at: new Date().toISOString()
       })
-      .eq('id', partId);
+      .eq('id', part.id)
+      .then(({ error: updateError }) => {
+        if (updateError) throw new Error(`Failed to update part stock: ${updateError.message}`);
+      });
+  }).filter(Boolean);
 
-    if (updateError) throw new Error(`Failed to update part stock: ${updateError.message}`);
-  }
+  // Each part row is independent, so the updates can run together
+  await Promise.all(updates);
 };
 
 /**
@@ -268,8 +271,11 @@ export const createInvoiceOptimized = async (invoiceData: CreateInvoiceData): Pr
       await applyInventoryChanges(new Map(), countPartQuantities(savedItems), invoiceId);
     }
 
-    await linkSelectedTasks(savedItems, invoiceId);
-    await syncLaborTasks(savedItems, invoiceId, invoice.organization_id);
+    // Picked jobs and new labour lines touch different lines, so run them together
+    await Promise.all([
+      linkSelectedTasks(savedItems, invoiceId),
+      syncLaborTasks(savedItems, invoiceId, invoice.organization_id)
+    ]);
 
     // Payments
     const paymentsToReturn: Payment[] = [];
@@ -408,8 +414,10 @@ export const updateInvoiceOptimized = async (invoiceData: Invoice): Promise<Invo
       id
     );
 
-    await linkSelectedTasks(savedItems, id);
-    await syncLaborTasks(savedItems, id, invoiceResult.organization_id);
+    await Promise.all([
+      linkSelectedTasks(savedItems, id),
+      syncLaborTasks(savedItems, id, invoiceResult.organization_id)
+    ]);
   }
 
   // Persist payments row by row (insert / update / remove) so a payment recorded
