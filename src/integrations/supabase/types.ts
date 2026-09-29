@@ -418,6 +418,7 @@ export type Database = {
       }
       invoices: {
         Row: {
+          completed_at: string | null
           created_at: string | null
           customer_id: string
           date: string | null
@@ -433,6 +434,7 @@ export type Database = {
           vehicle_id: string
         }
         Insert: {
+          completed_at?: string | null
           created_at?: string | null
           customer_id: string
           date?: string | null
@@ -448,6 +450,7 @@ export type Database = {
           vehicle_id: string
         }
         Update: {
+          completed_at?: string | null
           created_at?: string | null
           customer_id?: string
           date?: string | null
