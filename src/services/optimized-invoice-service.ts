@@ -357,8 +357,10 @@ export const updateInvoiceOptimized = async (invoiceData: Invoice): Promise<Invo
       discount_value,
       notes,
       status,
+      // Only sent when the staff member set it; the database fills it otherwise
+      ...((invoiceData as any).completed_at ? { completed_at: (invoiceData as any).completed_at } : {}),
       updated_at: new Date().toISOString()
-    })
+    } as any)
     .eq('id', id);
 
   // Optimistic lock: the row must still be the version this screen loaded.

@@ -46,6 +46,8 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
   const [selectedVehicleId, setSelectedVehicleId] = useState("");
   const [date, setDate] = useState(orgToday());
+  // Day the work was completed; revenue counts on this date
+  const [completedOn, setCompletedOn] = useState<string>('');
   const [status, setStatus] = useState<InvoiceStatus>(isEditing ? (invoiceData?.status || 'open') : initialStatus);
   const [taxRate, setTaxRate] = useState(orgDefaultTaxRate);
   const [discountType, setDiscountType] = useState<'none' | 'percentage' | 'fixed'>('none');
@@ -225,6 +227,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
       
       console.log("Formatted date for form:", formattedDate);
       setDate(formattedDate);
+      setCompletedOn(invoiceData.completed_at ? toOrgDateInputValue(invoiceData.completed_at) : '');
       
       setStatus(invoiceData.status);
       setTaxRate(invoiceData.tax_rate ?? orgDefaultTaxRate);
@@ -548,6 +551,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
           customer_id: selectedCustomerId,
           vehicle_id: selectedVehicleId,
           date: toOrgDayStart(date),
+          completed_at: completedOn && ['completed', 'partial', 'paid'].includes(status) ? toOrgDayStart(completedOn) : undefined,
           status: status,
           tax_rate: taxRate,
           discount_type: discountType,
@@ -839,6 +843,23 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
             />
             <p className="text-xs text-gray-500 mt-1">Current date value: {date}</p>
           </div>
+
+          {/* Work completed on - revenue counts on this day */}
+          {isEditing && ['completed', 'partial', 'paid'].includes(status) && (
+            <div>
+              <Label htmlFor="completed-on">Work completed on</Label>
+              <Input
+                id="completed-on"
+                type="date"
+                value={completedOn}
+                onChange={(e) => {
+                  setCompletedOn(e.target.value);
+                  userHasChangedForm.current = true;
+                }}
+              />
+              <p className="text-xs text-muted-foreground mt-1">Revenue counts on this day. Leave empty to use today.</p>
+            </div>
+          )}
 
           {/* Status Selection - Only show when editing */}
           {isEditing && (
