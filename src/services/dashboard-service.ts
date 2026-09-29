@@ -113,19 +113,6 @@ export async function fetchDashboardData(startDate: Date, endDate: Date): Promis
     // Calculate current period metrics
     const billableInvoices = invoices?.filter(invoice => !isNonBillable(invoice.status)) || [];
     const totalRevenue = revenueInvoices.reduce((sum, invoice) => sum + revenueOf(invoice), 0);
-    const _unusedRevenue = billableInvoices.reduce((sum, invoice) => {
-      const invoiceWithItems = {
-        ...invoice,
-        items: invoice.invoice_items,
-        id: invoice.id || '',
-        customer_id: invoice.customer_id || '',
-        vehicle_id: invoice.vehicle_id || '',
-        status: invoice.status as any
-      } as any;
-      const invoiceBreakdown = calculateInvoiceBreakdown(invoiceWithItems);
-      // Revenue excludes tax collected, matching the reports.
-      return sum + invoiceBreakdown.revenueExTax;
-    }, 0) || 0;
 
     const totalInvoices = billableInvoices.length;
     const activeTasks = tasks?.filter(task => task.status === 'in-progress').length || 0;
@@ -136,19 +123,6 @@ export async function fetchDashboardData(startDate: Date, endDate: Date): Promis
     // Calculate previous period metrics
     const previousBillableInvoices = previousInvoices?.filter(invoice => !isNonBillable(invoice.status)) || [];
     const previousRevenue = previousRevenueInvoices.reduce((sum, invoice) => sum + revenueOf(invoice), 0);
-    const _unusedPrevious = previousBillableInvoices.reduce((sum, invoice) => {
-      const invoiceWithItems = {
-        ...invoice,
-        items: invoice.invoice_items,
-        id: invoice.id || '',
-        customer_id: invoice.customer_id || '',
-        vehicle_id: invoice.vehicle_id || '',
-        status: invoice.status as any
-      } as any;
-      const invoiceBreakdown = calculateInvoiceBreakdown(invoiceWithItems);
-      // Revenue excludes tax collected, matching the reports.
-      return sum + invoiceBreakdown.revenueExTax;
-    }, 0) || 0;
 
     const previousInvoicesCount = previousBillableInvoices.length;
     const previousActiveTasks = previousTasks?.filter(task => task.status === 'in-progress').length || 0;
@@ -188,31 +162,17 @@ export async function fetchChartData(startDate: Date, endDate: Date): Promise<Ch
     const startIso = startDate.toISOString();
     const endIso = endDate.toISOString();
 
-    // Fetch invoices with items
-    const { data: invoices, error: invoicesError } = await supabase
-      .from('invoices')
-      .select(`
-        date,
-        status,
-        tax_rate,
-        discount_type,
-        discount_value,
-        invoice_items(quantity, price),
-        payments(amount)
-      `)
-      .gte('date', startIso)
-      .lte('date', endIso);
-
-    if (invoicesError) throw invoicesError;
-
-    // Fetch expenses
-    const { data: expenses, error: expensesError } = await supabase
-      .from('expenses')
-      .select('date, amount')
-      .gte('date', startIso)
-      .lte('date', endIso);
-
-    if (expensesError) throw expensesError;
+    // Invoices by invoice date (for the count) and by completion date (for revenue)
+    const [invoicesRes, revenueInvoices, expensesRes] = await Promise.all([
+      supabase.from('invoices').select('date, status').gte('date', startIso).lte('date', endIso),
+      fetchRecognizedRevenueInvoices(startIso, endIso, 'completed_at, status, tax_rate, discount_type, discount_value, invoice_items(quantity, price)'),
+      supabase.from('expenses').select('date, amount, category, invoice_id').gte('date', startIso).lte('date', endIso)
+    ]);
+    if (invoicesRes.error) throw invoicesRes.error;
+    if (expensesRes.error) throw expensesRes.error;
+    const invoices = invoicesRes.data;
+    // Overhead only: part purchases are stock, counted through cost of parts sold
+    const expenses = (expensesRes.data || []).filter(expense => !isInventoryOrJobCostExpense(expense));
 
     // Generate all days in the range
     const days = eachDayOfInterval({ start: startDate, end: endDate });
@@ -221,23 +181,10 @@ export async function fetchChartData(startDate: Date, endDate: Date): Promise<Ch
     const chartData: ChartData[] = days.map(day => {
       const dayStr = format(day, 'yyyy-MM-dd');
       
-      // Calculate revenue for this day
-      const dayRevenue = invoices
-        ?.filter(invoice => !isNonBillable(invoice.status) && formatOrgDate(invoice.date || '', 'yyyy-MM-dd', '') === dayStr)
-        .reduce((sum, invoice) => {
-          const invoiceWithItems = {
-            ...invoice,
-            items: invoice.invoice_items,
-            id: '',
-            customer_id: '',
-            vehicle_id: '',
-            status: invoice.status as any
-          } as any;
-          const invoiceBreakdown = calculateInvoiceBreakdown(invoiceWithItems);
-          // Revenue excludes tax collected, matching the reports.
-          return sum + invoiceBreakdown.revenueExTax;
-
-        }, 0) || 0;
+      // Revenue for work completed on this day
+      const dayRevenue = revenueInvoices
+        .filter(invoice => formatOrgDate(invoice.completed_at || '', 'yyyy-MM-dd', '') === dayStr)
+        .reduce((sum, invoice) => sum + revenueOf(invoice), 0);
 
       // Calculate expenses for this day
       const dayExpenses = expenses
