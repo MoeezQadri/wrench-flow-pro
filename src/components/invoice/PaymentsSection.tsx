@@ -32,9 +32,11 @@ interface PaymentsSectionProps {
   setPayments: React.Dispatch<React.SetStateAction<Payment[]>>;
   total: number;
   invoiceId?: string;
+  /** Called with the invoice's new "last changed" time after this box saves it */
+  onInvoiceSaved?: (updatedAt: string) => void;
 }
 
-const PaymentsSection: React.FC<PaymentsSectionProps> = ({ payments, setPayments, total, invoiceId }) => {
+const PaymentsSection: React.FC<PaymentsSectionProps> = ({ payments, setPayments, total, invoiceId, onInvoiceSaved }) => {
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("");
   const [paymentNotes, setPaymentNotes] = useState("");
@@ -74,15 +76,22 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({ payments, setPayments
   // the saved invoice disagree until the form itself is saved.
   const persistInvoiceFields = useCallback(async (fields: Record<string, unknown>) => {
     if (!invoiceId) return;
-    const { error } = await supabase
+    const updatedAt = new Date().toISOString();
+    const { data, error } = await supabase
       .from('invoices')
-      .update({ ...fields, updated_at: new Date().toISOString() })
-      .eq('id', invoiceId);
+      .update({ ...fields, updated_at: updatedAt } as any)
+      .eq('id', invoiceId)
+      .select('updated_at')
+      .maybeSingle();
     if (error) {
       console.error('Error saving invoice after payment:', error);
       toast.error('The payment was saved, but the invoice status could not be updated. Save the invoice to finish.');
+      return;
     }
-  }, [invoiceId]);
+    // Tell the invoice screen this change was its own, so it is not mistaken
+    // for somebody else editing the invoice.
+    onInvoiceSaved?.((data as any)?.updated_at || updatedAt);
+  }, [invoiceId, onInvoiceSaved]);
 
   const savePayment = useCallback(async (allowOverpayment: boolean) => {
     const amount = parseFloat(paymentAmount);
