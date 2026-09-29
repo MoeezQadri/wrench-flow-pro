@@ -74,6 +74,13 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
   const submissionLock = useRef(false);
   const submissionTimeoutRef = useRef<any>(null);
   const submissionId = useRef<string | null>(null);
+  const ownSaveTimes = useRef<Set<number>>(new Set());
+  const handleOwnInvoiceSave = React.useCallback((updatedAt: string) => {
+    ownSaveTimes.current.add(new Date(updatedAt).getTime());
+    setLoadedUpdatedAt(updatedAt);
+    setChangedElsewhere(false);
+    setConflict(false);
+  }, []);
   
   // Use optimized hooks for invoice editing and data loading
   const { updateInvoice: updateInvoiceWithHook, isSubmitting: isInvoiceSubmitting } = useOptimizedInvoiceEdit();
@@ -248,7 +255,10 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
         { event: 'UPDATE', schema: 'public', table: 'invoices', filter: `id=eq.${invoiceData.id}` },
         (payload) => {
           const incoming = (payload.new as any)?.updated_at as string | undefined;
-          if (incoming && loadedUpdatedAt && incoming !== loadedUpdatedAt) {
+          const incomingMs = incoming ? new Date(incoming).getTime() : NaN;
+          // Saves made from this screen (e.g. the payments box) are not "elsewhere"
+          if (ownSaveTimes.current.has(incomingMs)) return;
+          if (incoming && loadedUpdatedAt && incomingMs !== new Date(loadedUpdatedAt).getTime()) {
             setChangedElsewhere(true);
           }
         }
