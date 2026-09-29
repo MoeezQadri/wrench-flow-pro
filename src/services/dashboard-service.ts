@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { isWithinInterval, parseISO, format, eachDayOfInterval } from "date-fns";
-import { calculateInvoiceBreakdown } from "@/utils/invoice-calculations";
+import { calculateInvoiceBreakdown, isInventoryOrJobCostExpense, REVENUE_STATUSES } from "@/utils/invoice-calculations";
 import { isNonBillable } from "@/utils/invoice-status";
 import { formatOrgDate, toOrgDayBoundary } from "@/utils/datetime";
 
@@ -25,6 +25,21 @@ export interface ChartData {
   expenses: number;
   invoices: number;
 }
+
+// Revenue is recognised when the work is completed, on the completion date
+const fetchRecognizedRevenueInvoices = async (fromIso: string, toIso: string, select: string) => {
+  const { data, error } = await supabase
+    .from('invoices')
+    .select(select)
+    .in('status', REVENUE_STATUSES as unknown as string[])
+    .gte('completed_at' as any, fromIso)
+    .lte('completed_at' as any, toIso);
+  if (error) throw error;
+  return (data || []) as any[];
+};
+
+const revenueOf = (invoice: any) =>
+  calculateInvoiceBreakdown({ ...invoice, items: invoice.invoice_items } as any).revenueExTax;
 
 export async function fetchDashboardData(startDate: Date, endDate: Date): Promise<DashboardData> {
   try {
@@ -90,9 +105,15 @@ export async function fetchDashboardData(startDate: Date, endDate: Date): Promis
       .gte('created_at', previousStartIso)
       .lte('created_at', previousEndIso);
 
+    const [revenueInvoices, previousRevenueInvoices] = await Promise.all([
+      fetchRecognizedRevenueInvoices(startIso, endIso, 'status, tax_rate, discount_type, discount_value, invoice_items(quantity, price)'),
+      fetchRecognizedRevenueInvoices(previousStartIso, previousEndIso, 'status, tax_rate, discount_type, discount_value, invoice_items(quantity, price)')
+    ]);
+
     // Calculate current period metrics
     const billableInvoices = invoices?.filter(invoice => !isNonBillable(invoice.status)) || [];
-    const totalRevenue = billableInvoices.reduce((sum, invoice) => {
+    const totalRevenue = revenueInvoices.reduce((sum, invoice) => sum + revenueOf(invoice), 0);
+    const _unusedRevenue = billableInvoices.reduce((sum, invoice) => {
       const invoiceWithItems = {
         ...invoice,
         items: invoice.invoice_items,
@@ -110,11 +131,12 @@ export async function fetchDashboardData(startDate: Date, endDate: Date): Promis
     const activeTasks = tasks?.filter(task => task.status === 'in-progress').length || 0;
     const newCustomers = customers?.length || 0;
     const completedJobs = tasks?.filter(task => task.status === 'completed').length || 0;
-    const averageJobValue = totalInvoices > 0 ? totalRevenue / totalInvoices : 0;
+    const averageJobValue = revenueInvoices.length > 0 ? totalRevenue / revenueInvoices.length : 0;
 
     // Calculate previous period metrics
     const previousBillableInvoices = previousInvoices?.filter(invoice => !isNonBillable(invoice.status)) || [];
-    const previousRevenue = previousBillableInvoices.reduce((sum, invoice) => {
+    const previousRevenue = previousRevenueInvoices.reduce((sum, invoice) => sum + revenueOf(invoice), 0);
+    const _unusedPrevious = previousBillableInvoices.reduce((sum, invoice) => {
       const invoiceWithItems = {
         ...invoice,
         items: invoice.invoice_items,
@@ -132,7 +154,7 @@ export async function fetchDashboardData(startDate: Date, endDate: Date): Promis
     const previousActiveTasks = previousTasks?.filter(task => task.status === 'in-progress').length || 0;
     const previousNewCustomers = previousCustomers?.length || 0;
     const previousCompletedJobs = previousTasks?.filter(task => task.status === 'completed').length || 0;
-    const previousAverageJobValue = previousInvoicesCount > 0 ? previousRevenue / previousInvoicesCount : 0;
+    const previousAverageJobValue = previousRevenueInvoices.length > 0 ? previousRevenue / previousRevenueInvoices.length : 0;
 
     // Calculate percentage changes (handle division by zero and round to nearest integer)
     const calculateChange = (current: number, previous: number): number => {
