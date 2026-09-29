@@ -234,3 +234,17 @@ export const calculateInvoiceTotalWithBreakdown = (invoice: Invoice): {
     balanceDue: breakdown.balanceDue
   };
 };
+/** Statuses where the work is done, so the invoice counts as revenue */
+export const REVENUE_STATUSES = ['completed', 'partial', 'paid'] as const;
+
+/**
+ * Revenue (and its cost of parts) is recognised when the work is completed,
+ * whether or not it has been paid. Open / in-progress work, estimates and
+ * declined quotes are not revenue yet.
+ */
+export const isRecognizedRevenue = (invoice: { status?: string | null }): boolean =>
+  !!invoice.status && (REVENUE_STATUSES as readonly string[]).includes(invoice.status);
+
+/** The date revenue counts on: the day the work was completed. */
+export const revenueDate = (invoice: { completed_at?: string | null; date?: string | null }): string =>
+  invoice.completed_at || invoice.date || '';
