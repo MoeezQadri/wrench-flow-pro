@@ -51,6 +51,7 @@ const getRevenueData = async (): Promise<any[]> => {
     .select(`
       id, 
       date, 
+      completed_at,
       status, 
       tax_rate,
       discount_type,
