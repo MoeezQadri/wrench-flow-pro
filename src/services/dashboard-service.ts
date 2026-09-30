@@ -106,8 +106,8 @@ export async function fetchDashboardData(startDate: Date, endDate: Date): Promis
       .lte('created_at', previousEndIso);
 
     const [revenueInvoices, previousRevenueInvoices] = await Promise.all([
-      fetchRecognizedRevenueInvoices(startIso, endIso, 'status, tax_rate, discount_type, discount_value, invoice_items(quantity, price)'),
-      fetchRecognizedRevenueInvoices(previousStartIso, previousEndIso, 'status, tax_rate, discount_type, discount_value, invoice_items(quantity, price)')
+      fetchRecognizedRevenueInvoices(startIso, endIso, 'status, tax_rate, discount_type, discount_value, invoice_items(quantity, price), payments(amount)'),
+      fetchRecognizedRevenueInvoices(previousStartIso, previousEndIso, 'status, tax_rate, discount_type, discount_value, invoice_items(quantity, price), payments(amount)')
     ]);
 
     // Calculate current period metrics
@@ -165,7 +165,7 @@ export async function fetchChartData(startDate: Date, endDate: Date): Promise<Ch
     // Invoices by invoice date (for the count) and by completion date (for revenue)
     const [invoicesRes, revenueInvoices, expensesRes] = await Promise.all([
       supabase.from('invoices').select('date, status').gte('date', startIso).lte('date', endIso),
-      fetchRecognizedRevenueInvoices(startIso, endIso, 'completed_at, status, tax_rate, discount_type, discount_value, invoice_items(quantity, price)'),
+      fetchRecognizedRevenueInvoices(startIso, endIso, 'completed_at, status, tax_rate, discount_type, discount_value, invoice_items(quantity, price), payments(amount)'),
       supabase.from('expenses').select('date, amount, category, invoice_id').gte('date', startIso).lte('date', endIso)
     ]);
     if (invoicesRes.error) throw invoicesRes.error;

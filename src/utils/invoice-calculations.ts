@@ -11,6 +11,8 @@ export interface InvoiceCalculationBreakdown {
   afterDiscount: number;
   /** Revenue earned, tax excluded. Tax collected is never income. */
   revenueExTax: number;
+  /** Payments above the invoice total, kept as revenue */
+  overpaymentIncome: number;
   taxAmount: number;
   taxRate: number;
   total: number;
@@ -36,6 +38,7 @@ export const calculateInvoiceBreakdown = (invoice: Invoice): InvoiceCalculationB
       discountValue: 0,
       afterDiscount: 0,
       revenueExTax: 0,
+      overpaymentIncome: 0,
       taxAmount: 0,
       taxRate: invoice.tax_rate || 0,
       total: 0,
@@ -81,7 +84,9 @@ export const calculateInvoiceBreakdown = (invoice: Invoice): InvoiceCalculationB
   // Calculate actual paid amount from payments array
   const paidAmount = invoice.payments?.reduce((sum, payment) => sum + payment.amount, 0) || 0;
   const balanceDue = total - paidAmount;
-  const revenueExTax = afterDiscount;
+  // Money kept above the total (overpayment) counts as untaxed revenue.
+  const overpaymentIncome = Math.max(0, paidAmount - total);
+  const revenueExTax = afterDiscount + (overpaymentIncome > 0.005 ? overpaymentIncome : 0);
   const grossProfit = revenueExTax - partsCost;
   const grossMargin = revenueExTax > 0 ? (grossProfit / revenueExTax) * 100 : 0;
 
@@ -92,6 +97,7 @@ export const calculateInvoiceBreakdown = (invoice: Invoice): InvoiceCalculationB
     discountValue,
     afterDiscount,
     revenueExTax,
+    overpaymentIncome: overpaymentIncome > 0.005 ? overpaymentIncome : 0,
     taxAmount,
     taxRate,
     total,

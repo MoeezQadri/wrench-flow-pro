@@ -147,6 +147,7 @@ const FinanceReport = () => {
         completed_on: formatOrgDate(revenueDate(invoice)),
         amount: formatCurrency(invoiceBreakdown.total),
         revenue_before_tax: formatCurrency(invoiceBreakdown.revenueExTax),
+        extra_paid: formatCurrency(invoiceBreakdown.overpaymentIncome),
         parts_cost: formatCurrency(invoiceBreakdown.partsCost),
         gross_profit: formatCurrency(invoiceBreakdown.grossProfit),
         gross_margin: `${invoiceBreakdown.grossMargin.toFixed(1)}%`,
