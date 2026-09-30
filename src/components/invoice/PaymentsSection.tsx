@@ -437,7 +437,7 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({ payments, setPayments
                 Received {formatCurrency(amountEntered)}. Amount due: {formatCurrency(Math.max(remainingBalance, 0))}.
                 Change to give back: {formatCurrency(overpayChange)}.
                 <br /><br />
-                If you continue, the full {formatCurrency(amountEntered)} is recorded as payment and the extra counts as revenue.
+                If you continue, the full {formatCurrency(amountEntered)} is recorded as payment and the extra {formatCurrency(overpayChange)} will be recorded as revenue (not returned as change).
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
