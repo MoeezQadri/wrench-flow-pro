@@ -213,6 +213,12 @@ const FinancialReport = () => {
           <div>
             <h1 className="text-3xl font-bold">Financial Report</h1>
             <p className="text-muted-foreground">Receivables, payables and cash flow analysis</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Receivables and payables show what is owed right now. Revenue is dated by work completed on; expenses by expense date.
+              {' '}{loadingData ? 'Loading latest figures…' : (
+                <button type="button" className="underline" onClick={() => reloadData()}>Refresh</button>
+              )}
+            </p>
             <div className="text-sm text-muted-foreground mt-1">
               Period: {selectedCalendarDay(appliedDateRange.startDate)} - {selectedCalendarDay(appliedDateRange.endDate)}
             </div>

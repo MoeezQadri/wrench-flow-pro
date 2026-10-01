@@ -72,6 +72,7 @@ const InvoicingReport = () => {
             </Link>
           </Button>
           <h1 className="text-3xl font-bold tracking-tight">Invoicing Report</h1>
+          <p className="text-xs text-muted-foreground">By invoice date.{loadingData ? ' Loading latest figures…' : ''}</p>
         </div>
         <div className="mt-4 sm:mt-0">
           <DateRangePicker
