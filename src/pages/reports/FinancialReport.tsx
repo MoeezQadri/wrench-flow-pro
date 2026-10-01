@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -28,7 +28,15 @@ import { toast } from 'sonner';
 import { calendarDayDifference, formatOrgDate, isOrgDayWithinRange, orgToday, selectedCalendarDay, toOrgDateInputValue } from '@/utils/datetime';
 
 const FinancialReport = () => {
-  const { invoices, expenses, vendors, payables: payables_ } = useDataContext();
+  const { invoices, expenses, vendors, payables: payables_, loadInvoices, loadExpenses, loadPayables, loadVendors } = useDataContext();
+  const [loadingData, setLoadingData] = useState(true);
+  // This report loads its own data, so it never depends on another page being opened first.
+  const reloadData = () => {
+    setLoadingData(true);
+    return Promise.allSettled([loadInvoices(), loadExpenses(), loadPayables(), loadVendors()]).finally(() => setLoadingData(false));
+  };
+  useEffect(() => { reloadData(); // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const { formatCurrency } = useOrganizationSettings();
   const [dateRange, setDateRange] = useState({
     startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
@@ -56,8 +64,9 @@ const FinancialReport = () => {
   };
 
   // Receivables = outstanding balances of billable, unpaid invoices; quotes are not debt.
+  // Receivables are what is owed right now, whatever the invoice date.
   const filteredInvoices = filterByDateRange(invoices, 'date');
-  const receivables = getReceivableInvoices(filteredInvoices);
+  const receivables = getReceivableInvoices(invoices);
   const totalReceivables = calculateTotalReceivables(receivables);
 
   // Calculate overdue receivables
@@ -204,6 +213,12 @@ const FinancialReport = () => {
           <div>
             <h1 className="text-3xl font-bold">Financial Report</h1>
             <p className="text-muted-foreground">Receivables, payables and cash flow analysis</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Receivables and payables show what is owed right now. Revenue is dated by work completed on; expenses by expense date.
+              {' '}{loadingData ? 'Loading latest figures…' : (
+                <button type="button" className="underline" onClick={() => reloadData()}>Refresh</button>
+              )}
+            </p>
             <div className="text-sm text-muted-foreground mt-1">
               Period: {selectedCalendarDay(appliedDateRange.startDate)} - {selectedCalendarDay(appliedDateRange.endDate)}
             </div>
