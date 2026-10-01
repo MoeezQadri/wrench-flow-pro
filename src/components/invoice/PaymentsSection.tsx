@@ -421,6 +421,9 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({ payments, setPayments
               {formatCurrency(Math.max(remainingBalance, 0))}
             </span>
           </div>
+          {total > 0 && remainingBalance <= 0.005 && (status === 'open' || status === 'in-progress') && (
+            <p className="text-sm text-muted-foreground">Paid in full, work not marked complete. Set the status to Completed when the job is done.</p>
+          )}
           {canEditPayments && remainingBalance > 0.005 && status !== 'paid' && (
             <div className="pt-2">
               <Button
