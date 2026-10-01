@@ -519,6 +519,9 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
       return;
     }
 
+    // Work marked Completed that is already fully paid closes straight to Paid.
+    const effectiveStatus: InvoiceStatus = status === 'completed' && totals.total > 0 && recordedPayments >= totals.total - 0.005 ? 'paid' : status;
+
     // Reset error states
     setNetworkIssue(false);
     setFormErrors([]);
@@ -551,8 +554,8 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
           customer_id: selectedCustomerId,
           vehicle_id: selectedVehicleId,
           date: toOrgDayStart(date),
-          completed_at: completedOn && ['completed', 'partial', 'paid'].includes(status) ? toOrgDayStart(completedOn) : undefined,
-          status: status,
+          completed_at: completedOn && ['completed', 'partial', 'paid'].includes(effectiveStatus) ? toOrgDayStart(completedOn) : undefined,
+          status: effectiveStatus,
           tax_rate: taxRate,
           discount_type: discountType,
           discount_value: discountValue,
@@ -635,7 +638,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
           notes: notes,
           items: mergedItems,
           payments: payments,
-          status: status
+          status: effectiveStatus
         };
 
         console.log("Calling optimized invoice creation with:", invoiceCreationData);

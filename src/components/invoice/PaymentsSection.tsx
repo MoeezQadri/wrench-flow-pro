@@ -165,11 +165,14 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({ payments, setPayments
       setPaymentNotes("");
 
       // Update invoice status based on payments
+      // Payments never finish a job: only invoices whose work is already
+      // Completed/Partial move to Paid or Partial. Open/In Progress keep their status.
       const newTotalPaid = totalPaid + amount;
-      if (newTotalPaid >= total - 0.005) {
+      const workDone = status === 'completed' || status === 'partial';
+      if (workDone && newTotalPaid >= total - 0.005) {
         setValue("status", "paid", { shouldDirty: true });
         await persistInvoiceFields({ status: 'paid' });
-      } else if (newTotalPaid > 0) {
+      } else if (status === 'completed' && newTotalPaid > 0) {
         setValue("status", "partial", { shouldDirty: true });
         await persistInvoiceFields({ status: 'partial' });
       }
@@ -180,7 +183,7 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({ payments, setPayments
       savingRef.current = false;
       setIsSavingPayment(false);
     }
-  }, [paymentAmount, paymentMethod, paymentNotes, payments, total, invoiceId, resolveOrganizationId, addPayment, setPayments, setValue, persistInvoiceFields, formatCurrency]);
+  }, [paymentAmount, paymentMethod, paymentNotes, payments, total, invoiceId, resolveOrganizationId, addPayment, setPayments, setValue, persistInvoiceFields, formatCurrency, status]);
 
   const handleAddPayment = useCallback(async () => {
     if (!paymentAmount || !paymentMethod) {
@@ -231,21 +234,24 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({ payments, setPayments
 
       // Update invoice status based on remaining payments
       const totalPaid = updatedPayments.reduce((sum, payment) => sum + payment.amount, 0);
-      let newStatus: string | null = null;
-      if (totalPaid <= 0.005) {
-        newStatus = "open";
-      } else if (totalPaid < total - 0.005) {
-        newStatus = "partial";
-      } else {
-        newStatus = "paid";
+      // Only invoices whose work is done move between Completed/Partial/Paid.
+      if (['completed', 'partial', 'paid'].includes(status)) {
+        let newStatus: string;
+        if (totalPaid < total - 0.005) {
+          newStatus = totalPaid > 0.005 ? "partial" : "completed";
+        } else {
+          newStatus = "paid";
+        }
+        if (newStatus !== status) {
+          setValue("status", newStatus);
+          await persistInvoiceFields({ status: newStatus });
+        }
       }
-      setValue("status", newStatus);
-      await persistInvoiceFields({ status: newStatus });
     } catch (error) {
       console.error("Error removing payment:", error);
       // Error already handled by the hook with toast
     }
-  }, [invoiceId, removePayment, payments, setPayments, setValue, total, persistInvoiceFields]);
+  }, [invoiceId, removePayment, payments, setPayments, setValue, total, persistInvoiceFields, status]);
 
   // "Close with discount": turn the leftover balance into a fixed discount so
   // the invoice closes as Paid and the books still balance.
@@ -415,6 +421,9 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({ payments, setPayments
               {formatCurrency(Math.max(remainingBalance, 0))}
             </span>
           </div>
+          {total > 0 && remainingBalance <= 0.005 && (status === 'open' || status === 'in-progress') && (
+            <p className="text-sm text-muted-foreground">Paid in full, work not marked complete. Set the status to Completed when the job is done.</p>
+          )}
           {canEditPayments && remainingBalance > 0.005 && status !== 'paid' && (
             <div className="pt-2">
               <Button
