@@ -16,10 +16,10 @@ import { formatOrgDate, isOrgDayWithinRange } from '@/utils/datetime';
 const InvoicingReport = () => {
   const [startDate, setStartDate] = useState<Date>(subDays(new Date(), 30));
   const [endDate, setEndDate] = useState<Date>(new Date());
-  const { invoices, loadInvoices } = useDataContext();
+  const { invoices, customers, loadInvoices, loadCustomers } = useDataContext();
   const [loadingData, setLoadingData] = useState(true);
   useEffect(() => {
-    loadInvoices().finally(() => setLoadingData(false));
+    Promise.allSettled([loadInvoices(), loadCustomers()]).finally(() => setLoadingData(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const { formatCurrency } = useOrganizationSettings();
