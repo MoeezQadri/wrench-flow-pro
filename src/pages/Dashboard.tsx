@@ -21,9 +21,14 @@ import { useDebounce } from '@/hooks/useDebounce';
 import { useDataCache } from '@/hooks/useDataCache';
 import { toast } from "sonner";
 import PageWrapper from '@/components/PageWrapper';
+import { useAuthContext } from '@/context/auth-context';
+import { getOrgTimezone } from '@/utils/datetime';
 
 const Dashboard = () => {
   const { formatCurrency, organizationInfo } = useOrganizationSettings();
+  // Wait for the shop (and its time zone) so day boundaries are always the shop's own.
+  const { organization } = useAuthContext();
+  const orgReady = !!organization;
   const [startDate, setStartDate] = useState<Date>(subDays(new Date(), 30));
   const [endDate, setEndDate] = useState<Date>(new Date());
   const [isLoading, setIsLoading] = useState(false);
@@ -54,11 +59,12 @@ const Dashboard = () => {
 
   // Memoize cache keys based on date range
   const cacheKey = useMemo(() => 
-    `${debouncedStartDate.toISOString()}-${debouncedEndDate.toISOString()}`, 
-    [debouncedStartDate, debouncedEndDate]
+    `${organization?.id}-${getOrgTimezone()}-${debouncedStartDate.toDateString()}-${debouncedEndDate.toDateString()}`, 
+    [debouncedStartDate, debouncedEndDate, organization?.id, organization?.timezone]
   );
 
   const loadDashboardData = useCallback(async (force = false) => {
+    if (!orgReady) return;
     setIsLoading(true);
     try {
       const metricsData = await fetchWithCache(
@@ -74,9 +80,10 @@ const Dashboard = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [debouncedStartDate, debouncedEndDate, cacheKey, fetchWithCache]);
+  }, [debouncedStartDate, debouncedEndDate, cacheKey, fetchWithCache, orgReady]);
 
   const loadChartData = useCallback(async (force = false) => {
+    if (!orgReady) return;
     setChartLoading(true);
     try {
       const chartDataResult = await fetchWithCache(
@@ -92,7 +99,7 @@ const Dashboard = () => {
     } finally {
       setChartLoading(false);
     }
-  }, [debouncedStartDate, debouncedEndDate, cacheKey, fetchWithCache]);
+  }, [debouncedStartDate, debouncedEndDate, cacheKey, fetchWithCache, orgReady]);
 
   // Load data when debounced dates change
   useEffect(() => {

@@ -47,11 +47,11 @@ export async function fetchDashboardData(startDate: Date, endDate: Date): Promis
     const endIso = toOrgDayBoundary(endDate, true);
 
     // Calculate previous period dates (same duration before current period)
-    const duration = endDate.getTime() - startDate.getTime();
-    const previousEndDate = new Date(startDate.getTime());
-    const previousStartDate = new Date(startDate.getTime() - duration);
-    const previousStartIso = previousStartDate.toISOString();
-    const previousEndIso = previousEndDate.toISOString();
+    // Previous period: the same number of whole shop days, ending the day before.
+    const dayMs = 24 * 60 * 60 * 1000;
+    const spanDays = Math.max(1, Math.round((new Date(endIso).getTime() - new Date(startIso).getTime()) / dayMs));
+    const previousStartIso = new Date(new Date(startIso).getTime() - spanDays * dayMs).toISOString();
+    const previousEndIso = new Date(new Date(startIso).getTime() - 1).toISOString();
 
     // Fetch current period data
     const { data: invoices, error: invoicesError } = await supabase
@@ -159,8 +159,8 @@ export async function fetchDashboardData(startDate: Date, endDate: Date): Promis
 
 export async function fetchChartData(startDate: Date, endDate: Date): Promise<ChartData[]> {
   try {
-    const startIso = startDate.toISOString();
-    const endIso = endDate.toISOString();
+    const startIso = toOrgDayBoundary(startDate);
+    const endIso = toOrgDayBoundary(endDate, true);
 
     // Invoices by invoice date (for the count) and by completion date (for revenue)
     const [invoicesRes, revenueInvoices, expensesRes] = await Promise.all([

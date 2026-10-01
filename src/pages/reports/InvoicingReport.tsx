@@ -16,7 +16,12 @@ import { formatOrgDate, isOrgDayWithinRange } from '@/utils/datetime';
 const InvoicingReport = () => {
   const [startDate, setStartDate] = useState<Date>(subDays(new Date(), 30));
   const [endDate, setEndDate] = useState<Date>(new Date());
-  const { invoices, customers, payments } = useDataContext();
+  const { invoices, loadInvoices } = useDataContext();
+  const [loadingData, setLoadingData] = useState(true);
+  useEffect(() => {
+    loadInvoices().finally(() => setLoadingData(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const { formatCurrency } = useOrganizationSettings();
 
   // Filter invoices for the selected date range
@@ -44,9 +49,9 @@ const InvoicingReport = () => {
 
   // Count every payment on these invoices, including partial ones on open invoices.
   const billableInvoiceIds = new Set(billableInvoices.map(inv => inv.id));
-  const paidAmount = payments
-    .filter(payment => billableInvoiceIds.has(payment.invoice_id))
-    .reduce((sum, payment) => sum + Number(payment.amount), 0);
+  void billableInvoiceIds;
+  const paidAmount = billableInvoices.reduce(
+    (sum, invoice) => sum + (invoice.payments || []).reduce((s, p) => s + Number(p.amount || 0), 0), 0);
 
   const outstandingAmount = Math.max(0, totalRevenue - paidAmount);
 
