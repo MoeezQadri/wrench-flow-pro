@@ -25,4 +25,5 @@ Add a Delete action to the Expenses page, visible only to owner and admin (not m
 ## Technical notes
 
 - `src/pages/Expenses.tsx`: add `userCanDeleteExpenses = hasPermission(currentUser, 'expenses', 'delete') && ['owner','admin'].includes(currentUser.role)`; add an `AlertDialog` holding the expense pending deletion; call `removeExpense` from context, then `Promise.all([loadExpenses(), loadPayables()])`.
+- Block rule: before showing/allowing delete, look up the linked invoice (`expense.invoice_id`) in the context invoices; if its status is `completed`, `partial` or `paid`, hide the Delete button (and guard the confirm path the same way in case of a stale screen).
 - No migration needed; existing expenses RLS delete policy already scopes by organization.
