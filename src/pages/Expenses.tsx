@@ -14,6 +14,7 @@ import {
 import { 
   Plus, 
   Pencil, 
+  Trash2,
   DollarSign, 
   Calendar,
   ArrowUpCircle,
@@ -21,6 +22,16 @@ import {
   Receipt,
   Wrench
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import ExpenseDialog from "@/components/expense/ExpenseDialog";
 import { MarkAsPaidButton } from "@/components/expense/MarkAsPaidButton";
