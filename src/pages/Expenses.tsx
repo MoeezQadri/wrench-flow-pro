@@ -318,6 +318,15 @@ const Expenses = () => {
                             await loadExpenses();
                           }}
                         />
+                        {userCanDeleteExpenses && !isExpenseDeleteBlocked(expense) && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setExpenseToDelete(expense)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        )}
 
                       </div>
                     </TableCell>
