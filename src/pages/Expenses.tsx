@@ -14,6 +14,7 @@ import {
 import { 
   Plus, 
   Pencil, 
+  Trash2,
   DollarSign, 
   Calendar,
   ArrowUpCircle,
@@ -21,6 +22,16 @@ import {
   Receipt,
   Wrench
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import ExpenseDialog from "@/components/expense/ExpenseDialog";
 import { MarkAsPaidButton } from "@/components/expense/MarkAsPaidButton";
@@ -35,9 +46,11 @@ const Expenses = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState<Expense | undefined>(undefined);
   const [expensesList, setExpensesList] = useState<Expense[]>([]);
+  const [expenseToDelete, setExpenseToDelete] = useState<Expense | undefined>(undefined);
+  const [isDeleting, setIsDeleting] = useState(false);
   const { currentUser } = useAuthContext();
   const { formatCurrency } = useOrganizationSettings();
-  const { expenses, addExpense, updateExpense, loadExpenses, payables, loadPayables } = useDataContext();
+  const { expenses, addExpense, updateExpense, removeExpense, loadExpenses, payables, loadPayables, invoices } = useDataContext();
 
   // Bills back the payment status shown on each expense
   React.useEffect(() => {
@@ -48,6 +61,35 @@ const Expenses = () => {
   // Check permissions
   const userCanManageExpenses = hasPermission(currentUser, 'expenses', 'manage') || hasPermission(currentUser, 'expenses', 'create');
   const userCanEditExpenses = hasPermission(currentUser, 'expenses', 'edit');
+  const userCanDeleteExpenses = hasPermission(currentUser, 'expenses', 'delete') && ['owner', 'admin'].includes(currentUser?.role ?? '');
+
+  // Expenses linked to a finished job (completed/partial/paid invoice) are part
+  // of that job's accounts and must not be deleted.
+  const isExpenseDeleteBlocked = (expense: Expense) => {
+    const invoiceId = (expense as any).invoice_id;
+    if (!invoiceId) return false;
+    const invoice = invoices.find(i => i.id === invoiceId);
+    return !!invoice && ['completed', 'partial', 'paid'].includes(invoice.status);
+  };
+
+  const handleDeleteExpense = async () => {
+    if (!expenseToDelete) return;
+    if (isExpenseDeleteBlocked(expenseToDelete)) {
+      toast.error("This expense belongs to a completed or paid invoice and can't be deleted.");
+      setExpenseToDelete(undefined);
+      return;
+    }
+    setIsDeleting(true);
+    try {
+      await removeExpense(expenseToDelete.id);
+      await Promise.all([loadExpenses(), loadPayables()]);
+      setExpenseToDelete(undefined);
+    } catch (error) {
+      console.error("Error deleting expense:", error);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   const handleAddExpense = () => {
     setSelectedExpense(undefined);
@@ -276,6 +318,15 @@ const Expenses = () => {
                             await loadExpenses();
                           }}
                         />
+                        {userCanDeleteExpenses && !isExpenseDeleteBlocked(expense) && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setExpenseToDelete(expense)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        )}
 
                       </div>
                     </TableCell>
@@ -313,6 +364,37 @@ const Expenses = () => {
         onSave={handleSaveExpense}
         expense={selectedExpense}
       />
+
+      <AlertDialog open={!!expenseToDelete} onOpenChange={(open) => !open && setExpenseToDelete(undefined)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this expense?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {expenseToDelete && (
+                <>
+                  <span className="block font-medium text-foreground">
+                    {formatOrgDate(expenseToDelete.date, "MMM dd, yyyy")} · {expenseToDelete.category} · {formatCurrency(expenseToDelete.amount)}
+                    {expenseToDelete.vendor_name ? ` · ${expenseToDelete.vendor_name}` : ""}
+                  </span>
+                  <span className="block mt-2">
+                    This will also remove the linked bill and any payment history recorded against it. This cannot be undone.
+                  </span>
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handleDeleteExpense(); }}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? "Deleting…" : "Delete expense"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       </div>
     </PageWrapper>
   );
