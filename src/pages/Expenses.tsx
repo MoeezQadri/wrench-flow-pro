@@ -46,9 +46,11 @@ const Expenses = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState<Expense | undefined>(undefined);
   const [expensesList, setExpensesList] = useState<Expense[]>([]);
+  const [expenseToDelete, setExpenseToDelete] = useState<Expense | undefined>(undefined);
+  const [isDeleting, setIsDeleting] = useState(false);
   const { currentUser } = useAuthContext();
   const { formatCurrency } = useOrganizationSettings();
-  const { expenses, addExpense, updateExpense, loadExpenses, payables, loadPayables } = useDataContext();
+  const { expenses, addExpense, updateExpense, removeExpense, loadExpenses, payables, loadPayables, invoices } = useDataContext();
 
   // Bills back the payment status shown on each expense
   React.useEffect(() => {
@@ -59,6 +61,35 @@ const Expenses = () => {
   // Check permissions
   const userCanManageExpenses = hasPermission(currentUser, 'expenses', 'manage') || hasPermission(currentUser, 'expenses', 'create');
   const userCanEditExpenses = hasPermission(currentUser, 'expenses', 'edit');
+  const userCanDeleteExpenses = hasPermission(currentUser, 'expenses', 'delete') && ['owner', 'admin'].includes(currentUser?.role ?? '');
+
+  // Expenses linked to a finished job (completed/partial/paid invoice) are part
+  // of that job's accounts and must not be deleted.
+  const isExpenseDeleteBlocked = (expense: Expense) => {
+    const invoiceId = (expense as any).invoice_id;
+    if (!invoiceId) return false;
+    const invoice = invoices.find(i => i.id === invoiceId);
+    return !!invoice && ['completed', 'partial', 'paid'].includes(invoice.status);
+  };
+
+  const handleDeleteExpense = async () => {
+    if (!expenseToDelete) return;
+    if (isExpenseDeleteBlocked(expenseToDelete)) {
+      toast.error("This expense belongs to a completed or paid invoice and can't be deleted.");
+      setExpenseToDelete(undefined);
+      return;
+    }
+    setIsDeleting(true);
+    try {
+      await removeExpense(expenseToDelete.id);
+      await Promise.all([loadExpenses(), loadPayables()]);
+      setExpenseToDelete(undefined);
+    } catch (error) {
+      console.error("Error deleting expense:", error);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   const handleAddExpense = () => {
     setSelectedExpense(undefined);
