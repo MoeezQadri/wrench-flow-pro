@@ -364,6 +364,37 @@ const Expenses = () => {
         onSave={handleSaveExpense}
         expense={selectedExpense}
       />
+
+      <AlertDialog open={!!expenseToDelete} onOpenChange={(open) => !open && setExpenseToDelete(undefined)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this expense?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {expenseToDelete && (
+                <>
+                  <span className="block font-medium text-foreground">
+                    {formatOrgDate(expenseToDelete.date, "MMM dd, yyyy")} · {expenseToDelete.category} · {formatCurrency(expenseToDelete.amount)}
+                    {expenseToDelete.vendor_name ? ` · ${expenseToDelete.vendor_name}` : ""}
+                  </span>
+                  <span className="block mt-2">
+                    This will also remove the linked bill and any payment history recorded against it. This cannot be undone.
+                  </span>
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handleDeleteExpense(); }}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? "Deleting…" : "Delete expense"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       </div>
     </PageWrapper>
   );
