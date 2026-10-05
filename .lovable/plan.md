@@ -13,7 +13,7 @@ Add a Delete action to the Expenses page, visible only to owner and admin (not m
 - A trash icon next to Edit / Mark as Paid on each expense row.
 - Clicking it opens a confirmation dialog naming the expense (date, category, amount, vendor) and warning clearly: "This will also remove the linked bill and any payment history recorded against it. This cannot be undone."
 - On confirm, the expense is deleted using the existing `removeExpense` function; the database automatically removes the linked bill. The expense disappears from everywhere it appears: the Expenses page (both workshop and invoice expenses), Payable Management — including paid (cash-out) records and any payment history on its bill — all reports (Expenses, Financial, dashboard figures), and the vendor's details (what you owe them and their payment history). The expense list and bills reload so every screen reflects the removal immediately.
-- If the expense was linked to an invoice as a job cost, the invoice itself and its lines are untouched — only the cost is removed, so profit on that job goes up. Part stock quantities are never changed.
+- If the expense is linked to an invoice whose work is complete or paid, deletion is not allowed — the Delete action is hidden (or refused with a clear message) for those expenses, since the cost is part of a finished job's accounts. For expenses on open or in-progress invoices, the invoice itself and its lines are untouched — only the cost is removed, so profit on that job goes up. Part stock quantities are never changed.
 - On failure, an error message is shown and nothing is removed.
 
 ## What stays the same
