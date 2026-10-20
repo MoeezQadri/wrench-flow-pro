@@ -47,21 +47,22 @@ Today's 121 records move like this: 47 open, 11 in progress, 4 completed, 13 par
 8. **Your Google Analytics and Ads tracking** isn't affected.
 
 ## Checked against the database, tabs and delete rules
-- **Database:** the allowed stages are open, in-progress, completed, partial, paid, estimate and declined. No new values or changes to stored data are needed, so links from payments, jobs, parts, expenses and bills stay the same.
+- **Database:** the allowed stages today are open, in-progress, completed, partial, paid, estimate and declined. They're renamed as in the table above. Only the stage name on each record changes, so links from payments, jobs, parts, expenses and bills stay the same. The database's own rules (the "work completed on" date and the invoice delete check) are updated in the same step.
 - **Tabs / filters:** the Invoices page has one status dropdown today, with Open, In Progress, Paid, Overdue and the rest. It splits into the two lists with renamed choices. "Overdue" isn't a saved stage. It stays a filter on the Invoices list only (past due date and not fully paid).
 - **Deleting a work order or invoice:** same as today. Owner/admin only, refused if payments exist, stock is returned, jobs are released, and its job-cost expenses are removed. Your rule adds one thing: Completed, Partial and Payment completed can't be deleted. You'd reopen it first.
 - **Deleting payments:** today a payment can be removed even on a Paid invoice. That conflicts with your rule, so on Payment completed the bin icon is hidden. Removing a payment on Payment pending or Partial stays allowed, and the stage recalculates. Today's fix stays in, so a deleted payment can't come back.
 - **Deleting a job (task):** today, deleting a job that's billed on an invoice leaves the invoice line but removes the link. From now on, a job linked to a Completed or later invoice can't be deleted, the same rule as expenses. On Approved or Work in progress it can still be deleted.
 - **Assigning jobs:** only to Approved or Work in progress work orders. Today you can also assign to completed invoices, which would change locked lines.
 - **Expense delete block** (completed/partial/paid) already matches the new "Completed" lock. No change needed.
-- **Revenue, receivables, dashboard:** unchanged, because the saved stages don't change.
+- **Revenue, receivables, dashboard:** the same rules, switched to the new names. Before and after figures are compared to prove nothing moved.
 - **What could break:** pages or exports that show the raw status text ("open", "paid"), CSV exports and filters saved in links. All are covered by the shared name list and a full search before finishing.
 
 ## Technical details
-- Keep the DB `status` values. Add `src/utils/invoice-status.ts` STATUS_LABELS + `stageOf(status)` ('estimate' | 'work_order' | 'invoice'); replace all hard-coded labels and badges.
-- Routes: `/work-orders` (status IN estimate, declined, open, in-progress) and `/invoices` (completed, partial, paid). Detail, edit and new reuse InvoiceForm with a stage-aware title. Redirect old detail URLs.
-- InvoiceForm: `lockItems = ['completed','partial','paid'].includes(status)` disables the items/customer/vehicle sections. `lockAll = status === 'paid'` makes the form read-only. The status picker for paid shows "Reopen" only when role is owner/admin; otherwise no picker.
-- optimized-invoice-service `updateInvoiceOptimized`: when the saved status is completed/partial/paid, skip item, stock and task writes and reject item changes. Allow paid edits only from owner/admin reopen.
-- Optional DB guard (migration trigger): block invoice_items insert/update/delete when the parent invoice status is completed/partial/paid. This also protects against stale screens.
-- Estimate conversion: button sets status 'open'.
+- Migration: drop invoices_status_check. UPDATE the mapping (open→approved, in-progress→work_in_progress, completed→payment_pending, partial→partial_payment, paid→payment_completed). Add a new CHECK that allows the new values plus the old ones during the switch period. Add a BEFORE INSERT/UPDATE trigger that converts old→new. Rewrite set_invoice_completed_at and delete_invoice_cascade/invoice_delete_preview to use the new names, keeping completed_at. A follow-up migration after publish drops the old names from the CHECK.
+- Code: `InvoiceStatus` type gets the new values. `src/utils/invoice-status.ts` holds STATUS_LABELS, `stageOf(status)`, and the shared sets WORK_ORDER_STATUSES, INVOICE_STATUSES and REVENUE_STATUSES = payment_pending/partial_payment/payment_completed. Replace every literal in invoice-calculations, dashboard-service, reports, PaymentsSection, InvoiceForm, Expenses delete block, AssignToInvoiceDialog, the invoice service and CSV export.
+- Routes: `/work-orders` (estimate, declined, approved, work_in_progress) and `/invoices` (payment_pending, partial_payment, payment_completed). Detail, edit and new reuse InvoiceForm with a stage-aware title. Redirect old detail URLs.
+- InvoiceForm: `lockItems` applies to the invoice stages, so the items/customer/vehicle sections are disabled. `lockAll` applies to payment_completed, which makes the form read-only. The status picker shows "Reopen" only to owner/admin on payment_completed.
+- The invoice save skips item, stock and task writes for the invoice stages.
+- DB guard trigger: block invoice_items insert/update/delete when the parent is in an invoice stage. This also protects against stale screens.
+- Estimate conversion: button sets status 'approved'.
 - Tests: bun tests for stageOf/labels, the lock rules per status, and reopen allowed only for owner/admin. Then typecheck and build, and you check while signed in.
