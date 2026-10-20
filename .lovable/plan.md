@@ -41,6 +41,17 @@ All 121 existing invoices map over directly. Nothing in the saved data changes.
 7. **Discount after payment.** Changing the discount on Partial can push payments over or under the total. The status recalculates and the "change / close with discount" dialogs still apply.
 8. **Your Google Analytics and Ads tracking** isn't affected.
 
+## Checked against the database, tabs and delete rules
+- **Database:** the allowed stages are open, in-progress, completed, partial, paid, estimate and declined. No new values or changes to stored data are needed, so links from payments, jobs, parts, expenses and bills stay the same.
+- **Tabs / filters:** the Invoices page has one status dropdown today, with Open, In Progress, Paid, Overdue and the rest. It splits into the two lists with renamed choices. "Overdue" isn't a saved stage. It stays a filter on the Invoices list only (past due date and not fully paid).
+- **Deleting a work order or invoice:** same as today. Owner/admin only, refused if payments exist, stock is returned, jobs are released, and its job-cost expenses are removed. Your rule adds one thing: Completed, Partial and Payment completed can't be deleted. You'd reopen it first.
+- **Deleting payments:** today a payment can be removed even on a Paid invoice. That conflicts with your rule, so on Payment completed the bin icon is hidden. Removing a payment on Payment pending or Partial stays allowed, and the stage recalculates. Today's fix stays in, so a deleted payment can't come back.
+- **Deleting a job (task):** today, deleting a job that's billed on an invoice leaves the invoice line but removes the link. From now on, a job linked to a Completed or later invoice can't be deleted, the same rule as expenses. On Approved or Work in progress it can still be deleted.
+- **Assigning jobs:** only to Approved or Work in progress work orders. Today you can also assign to completed invoices, which would change locked lines.
+- **Expense delete block** (completed/partial/paid) already matches the new "Completed" lock. No change needed.
+- **Revenue, receivables, dashboard:** unchanged, because the saved stages don't change.
+- **What could break:** pages or exports that show the raw status text ("open", "paid"), CSV exports and filters saved in links. All are covered by the shared name list and a full search before finishing.
+
 ## Technical details
 - Keep the DB `status` values. Add `src/utils/invoice-status.ts` STATUS_LABELS + `stageOf(status)` ('estimate' | 'work_order' | 'invoice'); replace all hard-coded labels and badges.
 - Routes: `/work-orders` (status IN estimate, declined, open, in-progress) and `/invoices` (completed, partial, paid). Detail, edit and new reuse InvoiceForm with a stage-aware title. Redirect old detail URLs.
