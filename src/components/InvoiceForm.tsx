@@ -91,7 +91,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
   const userCanReopen = canReopen(lockUser?.role);
   const itemsLocked = isEditing && isInvoiceStage(savedStatus);
   const allLocked = isEditing && isPaymentCompleted(savedStatus);
-  const statusOptions = React.useMemo(() => {
+  const baseStatusOptions = React.useMemo(() => {
     const o = (value: InvoiceStatus) => ({ value, label: value === 'payment_pending' && !isInvoiceStage(savedStatus) ? 'Completed' : statusLabel(value) });
     if (savedStatus === 'estimate' || savedStatus === 'declined') return [o('estimate'), o('approved'), o('declined')];
     if (!isInvoiceStage(savedStatus)) return [o('approved'), o('work_in_progress'), o('payment_pending')];
@@ -103,6 +103,9 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
       : ['work_in_progress', 'approved'];
     return [...current, ...earlier.filter(s => s !== savedStatus).map(o)];
   }, [savedStatus, userCanReopen]);
+  const statusOptions = baseStatusOptions.some(opt => opt.value === status)
+    ? baseStatusOptions
+    : [{ value: status, label: statusLabel(status) }, ...baseStatusOptions];
 
   // Use optimized hooks for invoice editing and data loading
   const { updateInvoice: updateInvoiceWithHook, isSubmitting: isInvoiceSubmitting } = useOptimizedInvoiceEdit();
