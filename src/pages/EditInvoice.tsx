@@ -45,7 +45,8 @@ const EditInvoice = () => {
           if (foundInvoice) {
             // Check if invoice status allows editing
             // Completed means the work is done but money is still due, so it stays editable.
-            const canEdit = ['open', 'in-progress', 'partial', 'draft', 'estimate', 'completed'].includes(foundInvoice.status);
+            // Fully paid invoices open only for owner/admin, who may reopen them.
+            const canEdit = foundInvoice.status !== 'declined' && (foundInvoice.status !== 'payment_completed' || ['owner', 'admin'].includes(currentUser?.role ?? ''));
 
             if (!canEdit) {
               toast.error("This invoice cannot be edited in its current status.");

@@ -17,10 +17,10 @@ const InvoiceDetailsFields = () => {
   
   // Get values with safe defaults
   const discountType = form.watch("discountType") || "none";
-  const status = form.watch("status") || "open";
+  const status = form.watch("status") || "approved";
   
   // Discounts can be adjusted on active billing documents and estimates.
-  const canEditDiscount = ['open', 'in-progress', 'completed', 'partial', 'estimate'].includes(status);
+  const canEditDiscount = ['approved', 'work_in_progress', 'payment_pending', 'partial_payment', 'estimate'].includes(status);
 
   return (
     <div className="grid gap-6 md:grid-cols-2">
