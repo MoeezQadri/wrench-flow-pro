@@ -1,3 +1,4 @@
+import { isInvoiceStage } from '@/utils/invoice-status';
 import { supabase } from '@/integrations/supabase/client';
 import { Invoice, InvoiceItem, Part, Task, Payment, InvoiceStatus } from '@/types';
 
@@ -385,7 +386,11 @@ export const updateInvoiceOptimized = async (invoiceData: Invoice): Promise<Invo
 
   let savedItems: InvoiceItem[] = items || [];
 
-  if (items) {
+  // Completed work (an invoice stage) keeps its parts and labour exactly as they
+  // were; only an owner/admin reopen to a work order allows line changes again.
+  const itemsLocked = isInvoiceStage(previous.status) && isInvoiceStage(status);
+
+  if (items && !itemsLocked) {
     const { data: existingItems, error: existingError } = await supabase
       .from('invoice_items')
       .select('*')
