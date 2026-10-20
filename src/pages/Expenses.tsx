@@ -69,7 +69,7 @@ const Expenses = () => {
     const invoiceId = (expense as any).invoice_id;
     if (!invoiceId) return false;
     const invoice = invoices.find(i => i.id === invoiceId);
-    return !!invoice && ['completed', 'partial', 'paid'].includes(invoice.status);
+    return !!invoice && ['payment_pending', 'partial_payment', 'payment_completed'].includes(invoice.status);
   };
 
   const handleDeleteExpense = async () => {

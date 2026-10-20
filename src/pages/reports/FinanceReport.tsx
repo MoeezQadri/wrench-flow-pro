@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { statusLabel } from '@/utils/invoice-status';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, Download, Filter } from "lucide-react";
@@ -281,10 +282,10 @@ const FinanceReport = () => {
                       <div className="text-right">
                         <p className="font-medium">{formatCurrency(invoiceBreakdown.total)}</p>
                         <p className={`text-xs ${
-                          invoice.status === 'paid' ? 'text-green-600' : 
+                          invoice.status === 'payment_completed' ? 'text-green-600' : 
                           invoice.status === 'overdue' ? 'text-red-600' : 'text-yellow-600'
                         }`}>
-                          {invoice.status}
+                          {statusLabel(invoice.status)}
                         </p>
                       </div>
                     </div>

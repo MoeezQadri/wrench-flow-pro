@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { statusLabel, stageTitle } from '@/utils/invoice-status';
 import { useParams, Link } from 'react-router-dom';
 import { Customer, Vehicle, Invoice } from '@/types';
 import { calculateInvoiceTotalWithBreakdown } from '@/utils/invoice-calculations';
@@ -394,14 +395,14 @@ const CustomerDetails: React.FC = () => {
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
                             <h4 className="font-semibold">
-                              Invoice #{invoice.id.slice(0, 8)}
+                              {stageTitle(invoice.status)} #{invoice.id.slice(0, 8)}
                             </h4>
                             <Badge variant={
-                              invoice.status === 'paid' ? 'default' : 
+                              invoice.status === 'payment_completed' ? 'default' : 
                               invoice.status === 'overdue' ? 'destructive' : 
                               'secondary'
                             }>
-                              {invoice.status}
+                              {statusLabel(invoice.status)}
                             </Badge>
                           </div>
                           <div className="flex items-center gap-4 text-sm text-muted-foreground">

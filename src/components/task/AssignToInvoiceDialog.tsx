@@ -17,7 +17,8 @@ import { toast } from "sonner";
 import { X, FileText, Wrench } from "lucide-react";
 import { useOrganizationSettings } from "@/hooks/useOrganizationSettings";
 
-const OPEN_STATUSES = ['open', 'in-progress', 'partial', 'completed'];
+// Jobs can only be added to work orders still being worked on
+const OPEN_STATUSES = ['approved', 'work_in_progress'];
 
 interface EligibleInvoice {
   id: string;
