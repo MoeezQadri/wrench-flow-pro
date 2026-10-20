@@ -9,10 +9,12 @@ import { Invoice } from "@/types";
 import { useDataContext } from "@/context/data/DataContext";
 import { useSmartDataLoading } from "@/hooks/useSmartDataLoading";
 import { PagePermissionGuard } from "@/components/PagePermissionGuard";
+import { useAuthContext } from "@/context/AuthContext";
 
 const EditInvoice = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { currentUser } = useAuthContext();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
   const { getInvoiceById, fetchInvoiceById, loadInvoices, loadCustomers } = useDataContext();

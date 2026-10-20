@@ -10,6 +10,8 @@ import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
 import { useSmartDataLoading } from '@/hooks/useSmartDataLoading';
 import { PermissionGuard } from '@/components/PermissionGuard';
 import StatusBadge from '@/components/StatusBadge';
+import { stageTitle, canReopen, canDeleteStage } from '@/utils/invoice-status';
+import { useAuthContext } from '@/context/AuthContext';
 import { formatOrgDate, toOrgDayStart } from '@/utils/datetime';
 import DeleteInvoiceDialog from '@/components/invoice/DeleteInvoiceDialog';
 
@@ -21,6 +23,8 @@ const InvoiceDetails: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const { currentUser } = useAuthContext();
+  const currentUserRole = currentUser?.role;
   const {
 
     getInvoiceById,
