@@ -97,6 +97,17 @@ export const useTasks = () => {
 
     const removeTask = async (id: string) => {
         try {
+            // A job billed on completed work is part of that invoice's accounts
+            const { data: linked } = await supabase
+                .from('tasks')
+                .select('invoice_id, invoices(status)')
+                .eq('id', id)
+                .maybeSingle();
+            const linkedStatus = (linked as any)?.invoices?.status as string | undefined;
+            if (linkedStatus && ['payment_pending', 'partial_payment', 'payment_completed'].includes(linkedStatus)) {
+                toast.error("This job is billed on completed work and can't be deleted. Reopen the work order first.");
+                throw new Error('Task linked to completed work');
+            }
             const { error } = await supabase.from('tasks').delete().eq('id', id);
             if (error) {
                 console.error('Error removing task:', error);
