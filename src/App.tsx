@@ -121,7 +121,9 @@ function App() {
                     <Route index element={<Dashboard />} />
                     <Route path="customers" element={<Customers />} />
                     <Route path="customers/:id" element={<CustomerDetails />} />
-                    <Route path="invoices" element={<Invoices />} />
+                    <Route path="work-orders" element={<Invoices view="work_orders" />} />
+                    <Route path="work-orders/new" element={<NewInvoice />} />
+                    <Route path="invoices" element={<Invoices view="invoices" />} />
                     <Route path="invoices/new" element={<NewInvoice />} />
                     <Route path="invoices/:id" element={<InvoiceDetails />} />
                     <Route path="invoices/:id/edit" element={<EditInvoice />} />

@@ -49,6 +49,13 @@ const navItems = [
     action: 'view' as const,
   },
   {
+    title: 'Work Orders',
+    href: '/work-orders',
+    icon: FileText,
+    resource: 'invoices',
+    action: 'view' as const,
+  },
+  {
     title: 'Invoices',
     href: '/invoices',
     icon: FileText,
