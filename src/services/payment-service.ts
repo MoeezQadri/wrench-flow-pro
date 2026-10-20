@@ -15,6 +15,11 @@ export interface UpdatePaymentData extends Partial<CreatePaymentData> {
   id: string;
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Database payment ids are UUIDs; payments held on screen use short temp ids. */
+export const isSavedPaymentId = (id?: string | null): boolean => !!id && UUID_RE.test(id);
+
 export const paymentService = {
   async createPayment(paymentData: CreatePaymentData): Promise<Payment> {
     console.log('[PaymentService] Creating payment:', paymentData);
@@ -192,6 +197,10 @@ export const paymentService = {
         }
         return;
       }
+
+      // A saved payment (database id) that is no longer in the database was
+      // deleted — never bring it back. Only on-screen payments (temp ids) are new.
+      if (isSavedPaymentId(payment.id)) return;
 
       const { data: inserted, error } = await supabase
         .from('payments')

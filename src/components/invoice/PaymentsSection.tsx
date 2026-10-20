@@ -223,14 +223,13 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({ payments, setPayments
   const handleRemovePayment = useCallback(async (paymentId: string) => {
     try {
       if (invoiceId) {
-        // If we have an invoice ID, remove from database
+        // Remove from the database first; local state only changes on success.
         await removePayment(paymentId);
-        console.log("PAYMENTS_SECTION: Payment removed from database:", paymentId);
       }
 
-      // Update local state
+      // Functional update so the invoice screen never keeps a stale copy
       const updatedPayments = payments.filter(payment => payment.id !== paymentId);
-      setPayments(updatedPayments);
+      setPayments(prev => prev.filter(payment => payment.id !== paymentId));
 
       // Update invoice status based on remaining payments
       const totalPaid = updatedPayments.reduce((sum, payment) => sum + payment.amount, 0);
