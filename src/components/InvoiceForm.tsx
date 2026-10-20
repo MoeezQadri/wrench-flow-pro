@@ -1,3 +1,4 @@
+import { isInvoiceStage, isPaymentCompleted, canReopen, statusLabel, stageTitle } from '@/utils/invoice-status';
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useForm, FormProvider } from "react-hook-form";
@@ -37,7 +38,7 @@ interface InvoiceFormProps {
   initialStatus?: InvoiceStatus;
 }
 
-const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceData = null, initialStatus = 'open' }) => {
+const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceData = null, initialStatus = 'approved' }) => {
   const navigate = useNavigate();
   const { formatCurrency, getCurrencySymbol } = useOrganizationSettings();
   const { organization } = useAuthContext();
@@ -48,7 +49,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
   const [date, setDate] = useState(orgToday());
   // Day the work was completed; revenue counts on this date
   const [completedOn, setCompletedOn] = useState<string>('');
-  const [status, setStatus] = useState<InvoiceStatus>(isEditing ? (invoiceData?.status || 'open') : initialStatus);
+  const [status, setStatus] = useState<InvoiceStatus>(isEditing ? (invoiceData?.status || 'approved') : initialStatus);
   const [taxRate, setTaxRate] = useState(orgDefaultTaxRate);
   const [discountType, setDiscountType] = useState<'none' | 'percentage' | 'fixed'>('none');
   const [discountValue, setDiscountValue] = useState(0);
@@ -84,6 +85,25 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
     setConflict(false);
   }, []);
   
+  // Locks follow the status saved in the database, not the picker
+  const { currentUser: lockUser } = useAuthContext();
+  const savedStatus: InvoiceStatus = (isEditing ? invoiceData?.status : undefined) || status;
+  const userCanReopen = canReopen(lockUser?.role);
+  const itemsLocked = isEditing && isInvoiceStage(savedStatus);
+  const allLocked = isEditing && isPaymentCompleted(savedStatus);
+  const statusOptions = React.useMemo(() => {
+    const o = (value: InvoiceStatus) => ({ value, label: value === 'payment_pending' && !isInvoiceStage(savedStatus) ? 'Completed' : statusLabel(value) });
+    if (savedStatus === 'estimate' || savedStatus === 'declined') return [o('estimate'), o('approved'), o('declined')];
+    if (!isInvoiceStage(savedStatus)) return [o('approved'), o('work_in_progress'), o('payment_pending')];
+    // Invoice stages follow payments; owner/admin may move it back
+    const current = [o(savedStatus)];
+    if (!userCanReopen) return current;
+    const earlier: InvoiceStatus[] = savedStatus === 'payment_completed'
+      ? ['partial_payment', 'payment_pending', 'work_in_progress', 'approved']
+      : ['work_in_progress', 'approved'];
+    return [...current, ...earlier.filter(s => s !== savedStatus).map(o)];
+  }, [savedStatus, userCanReopen]);
+
   // Use optimized hooks for invoice editing and data loading
   const { updateInvoice: updateInvoiceWithHook, isSubmitting: isInvoiceSubmitting } = useOptimizedInvoiceEdit();
   const { smartLoad, isLoaded } = useSmartDataLoading();
@@ -91,7 +111,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
   // Initialize react-hook-form with proper default values
   const form = useForm({
     defaultValues: {
-      status: 'open' as InvoiceStatus,
+      status: 'approved' as InvoiceStatus,
       discountType: 'none' as 'none' | 'percentage' | 'fixed',
       discountValue: 0,
       taxRate: orgDefaultTaxRate,
@@ -510,17 +530,20 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
 
     // An invoice can only be Paid or Partial when real payments back it up
     const recordedPayments = payments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
-    if (status === 'paid' && recordedPayments < totals.total - 0.005) {
+    if (status === 'payment_completed' && savedStatus !== 'payment_completed' && recordedPayments < totals.total - 0.005) {
       toast.error("Add payment details before marking this invoice as paid. Recorded payments must cover the invoice total.");
       return;
     }
-    if (status === 'partial' && recordedPayments <= 0) {
+    if (status === 'partial_payment' && recordedPayments <= 0) {
       toast.error("Add at least one payment before marking this invoice as partially paid.");
       return;
     }
 
-    // Work marked Completed that is already fully paid closes straight to Paid.
-    const effectiveStatus: InvoiceStatus = status === 'completed' && totals.total > 0 && recordedPayments >= totals.total - 0.005 ? 'paid' : status;
+    // Work order marked Completed becomes an invoice whose payment stage follows the money received.
+    const completingNow = status === 'payment_pending' && !isInvoiceStage(savedStatus);
+    const effectiveStatus: InvoiceStatus = completingNow && totals.total > 0
+      ? (recordedPayments >= totals.total - 0.005 ? 'payment_completed' : recordedPayments > 0.005 ? 'partial_payment' : 'payment_pending')
+      : status;
 
     // Reset error states
     setNetworkIssue(false);
@@ -554,7 +577,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
           customer_id: selectedCustomerId,
           vehicle_id: selectedVehicleId,
           date: toOrgDayStart(date),
-          completed_at: completedOn && ['completed', 'partial', 'paid'].includes(effectiveStatus) ? toOrgDayStart(completedOn) : undefined,
+          completed_at: completedOn && isInvoiceStage(effectiveStatus) ? toOrgDayStart(completedOn) : undefined,
           status: effectiveStatus,
           tax_rate: taxRate,
           discount_type: discountType,
@@ -815,6 +838,14 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {itemsLocked && (
+            <div className="rounded-lg border p-3 text-sm text-muted-foreground">
+              {allLocked
+                ? (userCanReopen ? 'Payment completed — this invoice is closed. Change the status to reopen it, then save.' : 'Payment completed — this invoice is closed and can no longer be edited.')
+                : 'Work is completed — parts, labour, customer and vehicle are locked. Payments, discount, tax and notes can still be changed.'}
+            </div>
+          )}
+          <fieldset disabled={itemsLocked} className="space-y-6 disabled:opacity-80">
           {/* Customer and Vehicle Selection */}
           <CustomerVehicleSelection
             selectedCustomerId={selectedCustomerId}
@@ -848,7 +879,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
           </div>
 
           {/* Work completed on - revenue counts on this day */}
-          {isEditing && ['completed', 'partial', 'paid'].includes(status) && (
+          {isEditing && isInvoiceStage(status) && (
             <div>
               <Label htmlFor="completed-on">Work completed on</Label>
               <Input
@@ -869,7 +900,8 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
             <div>
               <Label htmlFor="status">Status</Label>
               <Select 
-                value={status || 'open'} 
+                value={status || 'approved'} 
+                disabled={statusOptions.length <= 1}
                 onValueChange={(value: InvoiceStatus) => {
                   console.log('Status changing to:', value);
                   setStatus(value);
@@ -880,15 +912,9 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="estimate">Estimate</SelectItem>
-                  <SelectItem value="open">Open</SelectItem>
-                  <SelectItem value="in-progress">In Progress</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="paid">Paid</SelectItem>
-                  <SelectItem value="partial">Partial Payment</SelectItem>
-                  <SelectItem value="overdue">Overdue</SelectItem>
-                  <SelectItem value="draft">Draft</SelectItem>
-                  <SelectItem value="declined">Declined</SelectItem>
+                  {statusOptions.map(option => (
+                    <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -973,6 +999,9 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
             formatCurrency={formatCurrency}
           />
 
+          </fieldset>
+
+          <fieldset disabled={allLocked} className="space-y-6">
           {/* Tax Rate and Discount */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
@@ -1047,6 +1076,8 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
             />
           </div>
 
+          </fieldset>
+
           {/* Totals */}
           <div className="bg-gray-50 p-4 rounded-lg">
             <div className="space-y-2">
@@ -1085,7 +1116,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
           <Button 
             type="submit" 
             className="w-full" 
-            disabled={isSubmitting || isInvoiceSubmitting || submissionLock.current}
+            disabled={isSubmitting || isInvoiceSubmitting || submissionLock.current || (allLocked && !userCanReopen)}
           >
             {isSubmitting || isInvoiceSubmitting ? (
               <>
@@ -1093,7 +1124,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
                 {isEditing ? "Updating..." : "Creating..."}
               </>
             ) : (
-              isEditing ? "Update Invoice" : "Create Invoice"
+              isEditing ? `Update ${stageTitle(savedStatus)}` : `Create ${stageTitle(status)}`
             )}
           </Button>
         </form>
