@@ -193,7 +193,7 @@ export const calculateBalanceDue = (invoice: Invoice): number => {
 export const getReceivableInvoices = (invoices: Invoice[]): Invoice[] => {
   return invoices.filter(
     invoice =>
-      invoice.status !== 'paid' &&
+      invoice.status !== 'payment_completed' &&
       !isNonBillable(invoice.status) &&
       calculateBalanceDue(invoice) > 0
   );
@@ -241,7 +241,7 @@ export const calculateInvoiceTotalWithBreakdown = (invoice: Invoice): {
   };
 };
 /** Statuses where the work is done, so the invoice counts as revenue */
-export const REVENUE_STATUSES = ['completed', 'partial', 'paid'] as const;
+export const REVENUE_STATUSES = ['payment_pending', 'partial_payment', 'payment_completed'] as const;
 
 /**
  * Revenue (and its cost of parts) is recognised when the work is completed,
