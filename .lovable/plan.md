@@ -17,22 +17,27 @@ Estimate ──convert──> Work Order ─────────────
 - **Owner/admin only:** "Reopen" on a Payment completed invoice moves it back to any earlier step: Partial, Payment pending, Completed, Work in progress or Approved. Other roles don't see it.
 - **Menu and pages:** "Invoices" splits into **Work Orders** (Estimates, Approved, Work in progress) and **Invoices** (Payment pending, Partial, Payment completed). Both appear in the menu, and each list only shows its own stage. Links and buttons are renamed to match.
 
-## Approach: rename, don't rebuild
-The app already has these stages under other names. So we change what people see, not how invoices are saved:
+## Approach: rename the stages in the database too
+The stored stage names change to the new ones, and every existing record moves over in one step:
 
-| Today | New name |
-|---|---|
-| Estimate / Declined | Estimate / Declined |
-| Open | Work order: Approved |
-| In progress | Work order: Work in progress |
-| Completed (money still due) | Invoice: Payment pending |
-| Partial | Invoice: Partial payment |
-| Paid | Invoice: Payment completed |
+| Stored today | Stored after | Shown as |
+|---|---|---|
+| estimate / declined | estimate / declined | Estimate / Declined |
+| open | approved | Work order: Approved |
+| in-progress | work_in_progress | Work order: Work in progress |
+| completed | payment_pending | Invoice: Payment pending |
+| partial | partial_payment | Invoice: Partial payment |
+| paid | payment_completed | Invoice: Payment completed |
 
-All 121 existing invoices map over directly. Nothing in the saved data changes.
+Today's 121 records move like this: 47 open, 11 in progress, 4 completed, 13 partial and 46 paid. Job stages (pending, in progress, completed) are a separate list and stay the same.
+
+**How it's done safely, in one go:** the allowed-stages rule, the "work completed on" automatic date, the invoice delete check, the stored data and all app code switch together. For the few minutes before you publish, the live site could send old names. So for a short time the database accepts both and quietly converts old names to new ones. Once the new version is published, we remove the old names.
 
 ## Risks and how we handle them
-1. **Revenue and reports shift.** We keep the saved values as they are. Revenue still counts from Completed, dated by "work completed on". Dashboard and report figures stay identical.
+1. **Revenue and reports shift.** Every revenue, receivables, dashboard and report rule is switched to the new names in the same change. Before and after, we compare this month's and last month's dashboard numbers for Gearhead Garage and AutoFirst, and they must match exactly. "Work completed on" dates are kept.
+9. **The live site is briefly out of step with the database.** Handled by the short "accept both, convert old to new" period above. Nothing is refused or lost while you publish.
+10. **A missed old name in the code.** An invoice in a missed spot would show blank or fail to save. We search the code for every old name and add a test that fails if one is left.
+11. **Undo.** The migration includes a reverse mapping, so the old names can be restored if something goes wrong.
 2. **Missed wording.** "Invoice" appears on about 40 screens. We put all names in one shared list and search for every leftover "Open", "Paid" and "Invoice" before finishing.
 3. **Editing a closed invoice.** Locked parts and labour also lock in the save itself, not just on screen. Stock and job links can't change after completion.
 4. **Reopening causes double stock or revenue.** Reopening only changes the stage. Stock was already taken when the parts were added, so it doesn't move. Reopening to Work in progress or Approved takes it out of revenue until it's completed again (the current rule).
