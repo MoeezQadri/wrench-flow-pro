@@ -29,7 +29,7 @@ export const createInvoiceWithAutoAssignment = async (invoiceData: {
         discount_type: invoiceData.discountType,
         discount_value: invoiceData.discountValue,
         notes: invoiceData.notes,
-        status: 'open'
+        status: 'approved'
       })
       .select()
       .single();

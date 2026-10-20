@@ -10,6 +10,8 @@ import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
 import { useSmartDataLoading } from '@/hooks/useSmartDataLoading';
 import { PermissionGuard } from '@/components/PermissionGuard';
 import StatusBadge from '@/components/StatusBadge';
+import { stageTitle, canReopen, canDeleteStage } from '@/utils/invoice-status';
+import { useAuthContext } from '@/context/AuthContext';
 import { formatOrgDate, toOrgDayStart } from '@/utils/datetime';
 import DeleteInvoiceDialog from '@/components/invoice/DeleteInvoiceDialog';
 
@@ -21,6 +23,8 @@ const InvoiceDetails: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const { currentUser } = useAuthContext();
+  const currentUserRole = currentUser?.role;
   const {
 
     getInvoiceById,
@@ -107,16 +111,16 @@ const InvoiceDetails: React.FC = () => {
   const breakdown = calculateInvoiceBreakdown(invoice);
   const { subtotal, tax, total, paidAmount, balanceDue } = calculateInvoiceTotalWithBreakdown(invoice);
 
-  const changeStatus = async (nextStatus: 'open' | 'declined') => {
+  const changeStatus = async (nextStatus: 'approved' | 'declined') => {
     setIsUpdatingStatus(true);
     try {
-      const updates = nextStatus === 'open'
+      const updates = nextStatus === 'approved'
         ? { status: nextStatus, date: toOrgDayStart(new Date()) }
         : { status: nextStatus };
       const updated = await updateInvoice(invoice.id, updates);
       setInvoice({ ...invoice, ...updated });
       await loadInvoices();
-      toast.success(nextStatus === 'open' ? 'Estimate converted to invoice.' : 'Estimate marked as declined.');
+      toast.success(nextStatus === 'approved' ? 'Estimate converted to an approved work order.' : 'Estimate marked as declined.');
     } catch (error) {
       console.error('Error changing invoice status:', error);
       toast.error('Unable to update this document.');
@@ -127,7 +131,7 @@ const InvoiceDetails: React.FC = () => {
 
   const handleShare = async () => {
     const shareData = {
-      title: `${invoice.status === 'estimate' ? 'Estimate' : 'Invoice'} #${invoice.id.substring(0, 8)}`,
+      title: `${stageTitle(invoice.status)} #${invoice.id.substring(0, 8)}`,
       text: `${invoice.status === 'estimate' ? 'Estimate' : 'Invoice'} for ${customerName}`,
       url: window.location.href,
     };
@@ -169,29 +173,29 @@ const InvoiceDetails: React.FC = () => {
 
       <div className="bg-white p-6 rounded-lg shadow">
         <div className="flex justify-between items-center mb-6 gap-4">
-          <h2 className="text-xl font-semibold">{invoice.status === 'estimate' ? 'Estimate' : 'Invoice'} #{invoice.id.substring(0, 8)}</h2>
+          <h2 className="text-xl font-semibold">{stageTitle(invoice.status)} #{invoice.id.substring(0, 8)}</h2>
           <div className="flex gap-2 flex-wrap justify-end print:hidden">
             <StatusBadge status={invoice.status} />
             <PermissionGuard resource="invoices" action="edit">
               {invoice.status === 'estimate' && (
                 <>
-                  <Button variant="default" size="sm" onClick={() => changeStatus('open')} disabled={isUpdatingStatus}>
-                    Convert to Invoice
+                  <Button variant="default" size="sm" onClick={() => changeStatus('approved')} disabled={isUpdatingStatus}>
+                    Convert to Work Order
                   </Button>
                   <Button variant="outline" size="sm" onClick={() => changeStatus('declined')} disabled={isUpdatingStatus}>
                     Mark Declined
                   </Button>
                 </>
               )}
-              {invoice.status !== 'paid' && invoice.status !== 'completed' && invoice.status !== 'declined' && (
+              {invoice.status !== 'declined' && (invoice.status !== 'payment_completed' || canReopen(currentUserRole)) && (
                 <Button variant="outline" size="sm" asChild>
                   <Link to={`/invoices/${invoice.id}/edit`}>
-                    Edit {invoice.status === 'estimate' ? 'Estimate' : 'Invoice'}
+                    {invoice.status === 'payment_completed' ? 'Reopen' : `Edit ${stageTitle(invoice.status)}`}
                   </Link>
                 </Button>
               )}
             </PermissionGuard>
-            <PermissionGuard resource="invoices" action="delete">
+            {canDeleteStage(invoice.status) && <PermissionGuard resource="invoices" action="delete">
               <Button
                 variant="outline"
                 size="sm"
@@ -199,9 +203,9 @@ const InvoiceDetails: React.FC = () => {
                 className="text-destructive hover:text-destructive"
               >
                 <Trash2 className="h-4 w-4 mr-2" />
-                Delete {invoice.status === 'estimate' ? 'Estimate' : 'Invoice'}
+                Delete {stageTitle(invoice.status)}
               </Button>
-            </PermissionGuard>
+            </PermissionGuard>}
 
           </div>
         </div>

@@ -72,8 +72,8 @@ const AssignToInvoiceDialog: React.FC<AssignToInvoiceDialogProps> = ({
         return;
       }
 
-      if (invoice.status === 'paid' || invoice.status === 'completed') {
-        toast.error('Cannot assign parts to paid or completed invoices');
+      if (!['approved', 'work_in_progress', 'estimate'].includes(invoice.status)) {
+        toast.error('Parts can only be added to work orders that are not completed yet');
         return;
       }
 

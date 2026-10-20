@@ -189,7 +189,7 @@ export const syncPartToInvoiceItems = async (partId: string, newQuantity: number
     // Update invoice items if needed (for open/in-progress invoices only)
     for (const item of invoiceItems || []) {
       const invoice = (item as any).invoices;
-      if (invoice.status === 'open' || invoice.status === 'in-progress') {
+      if (invoice.status === 'approved' || invoice.status === 'work_in_progress') {
         // Could implement logic here to adjust invoice item quantities
         // based on part availability, but for now we'll just log
         console.log(`Part ${partId} quantity changed - may affect invoice item ${item.id}`);
@@ -217,7 +217,7 @@ export const syncTaskToInvoiceItems = async (taskId: string, updatedTask: Partia
     // Update invoice items if needed (for open/in-progress invoices only)
     for (const item of invoiceItems || []) {
       const invoice = (item as any).invoices;
-      if (invoice.status === 'open' || invoice.status === 'in-progress') {
+      if (invoice.status === 'approved' || invoice.status === 'work_in_progress') {
         // Update invoice item with task changes
         const updates: any = {};
         if (updatedTask.price !== undefined) updates.price = updatedTask.price;

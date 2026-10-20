@@ -9,10 +9,12 @@ import { Invoice } from "@/types";
 import { useDataContext } from "@/context/data/DataContext";
 import { useSmartDataLoading } from "@/hooks/useSmartDataLoading";
 import { PagePermissionGuard } from "@/components/PagePermissionGuard";
+import { useAuthContext } from "@/context/AuthContext";
 
 const EditInvoice = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { currentUser } = useAuthContext();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
   const { getInvoiceById, fetchInvoiceById, loadInvoices, loadCustomers } = useDataContext();
@@ -45,7 +47,8 @@ const EditInvoice = () => {
           if (foundInvoice) {
             // Check if invoice status allows editing
             // Completed means the work is done but money is still due, so it stays editable.
-            const canEdit = ['open', 'in-progress', 'partial', 'draft', 'estimate', 'completed'].includes(foundInvoice.status);
+            // Fully paid invoices open only for owner/admin, who may reopen them.
+            const canEdit = foundInvoice.status !== 'declined' && (foundInvoice.status !== 'payment_completed' || ['owner', 'admin'].includes(currentUser?.role ?? ''));
 
             if (!canEdit) {
               toast.error("This invoice cannot be edited in its current status.");

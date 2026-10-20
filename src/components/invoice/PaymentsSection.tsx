@@ -56,7 +56,8 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({ payments, setPayments
   const status = watch("status");
 
   // Estimates and declined quotes are not payable documents.
-  const canEditPayments = status !== "estimate" && status !== "declined";
+  // Estimates are not payable; fully paid invoices are closed (owner/admin reopen first).
+  const canEditPayments = status !== "estimate" && status !== "declined" && status !== "payment_completed";
 
   // The invoice itself is the source of truth for the shop, so a payment on an
   // existing invoice is never held back just because the screen has no org id.
@@ -168,13 +169,13 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({ payments, setPayments
       // Payments never finish a job: only invoices whose work is already
       // Completed/Partial move to Paid or Partial. Open/In Progress keep their status.
       const newTotalPaid = totalPaid + amount;
-      const workDone = status === 'completed' || status === 'partial';
-      if (workDone && newTotalPaid >= total - 0.005) {
-        setValue("status", "paid", { shouldDirty: true });
-        await persistInvoiceFields({ status: 'paid' });
-      } else if (status === 'completed' && newTotalPaid > 0) {
-        setValue("status", "partial", { shouldDirty: true });
-        await persistInvoiceFields({ status: 'partial' });
+      const workDone = status === 'payment_pending' || status === 'partial_payment';
+      if (workDone) {
+        const next = newTotalPaid >= total - 0.005 ? 'payment_completed' : newTotalPaid > 0.005 ? 'partial_payment' : 'payment_pending';
+        if (next !== status) {
+          setValue("status", next, { shouldDirty: true });
+          await persistInvoiceFields({ status: next });
+        }
       }
     } catch (error) {
       console.error("Error adding payment:", error);
@@ -234,12 +235,12 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({ payments, setPayments
       // Update invoice status based on remaining payments
       const totalPaid = updatedPayments.reduce((sum, payment) => sum + payment.amount, 0);
       // Only invoices whose work is done move between Completed/Partial/Paid.
-      if (['completed', 'partial', 'paid'].includes(status)) {
+      if (['payment_pending', 'partial_payment', 'payment_completed'].includes(status)) {
         let newStatus: string;
         if (totalPaid < total - 0.005) {
-          newStatus = totalPaid > 0.005 ? "partial" : "completed";
+          newStatus = totalPaid > 0.005 ? "partial_payment" : "payment_pending";
         } else {
-          newStatus = "paid";
+          newStatus = "payment_completed";
         }
         if (newStatus !== status) {
           setValue("status", newStatus);
@@ -277,9 +278,9 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({ payments, setPayments
     const newDiscountValue = Math.round((existingFixed + extraDiscount) * 100) / 100;
     setValue("discount_type", "fixed", { shouldDirty: true });
     setValue("discount_value", newDiscountValue, { shouldDirty: true });
-    setValue("status", "paid", { shouldDirty: true });
-    await persistInvoiceFields({ discount_type: 'fixed', discount_value: newDiscountValue, status: 'paid' });
-    toast.success(`Discount of ${formatCurrency(balance)} applied — invoice closed as Paid.`);
+    setValue("status", "payment_completed", { shouldDirty: true });
+    await persistInvoiceFields({ discount_type: 'fixed', discount_value: newDiscountValue, status: 'payment_completed' });
+    toast.success(`Discount of ${formatCurrency(balance)} applied — invoice closed as Payment completed.`);
   }, [payments, total, watch, setValue, persistInvoiceFields, formatCurrency]);
 
   // Calculate totals
@@ -420,10 +421,10 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({ payments, setPayments
               {formatCurrency(Math.max(remainingBalance, 0))}
             </span>
           </div>
-          {total > 0 && remainingBalance <= 0.005 && (status === 'open' || status === 'in-progress') && (
-            <p className="text-sm text-muted-foreground">Paid in full, work not marked complete. Set the status to Completed when the job is done.</p>
+          {total > 0 && remainingBalance <= 0.005 && (status === 'approved' || status === 'work_in_progress') && (
+            <p className="text-sm text-muted-foreground">Paid in full, work not marked complete. Mark the work order Completed when the job is done.</p>
           )}
-          {canEditPayments && remainingBalance > 0.005 && status !== 'paid' && (
+          {canEditPayments && remainingBalance > 0.005 && (status === 'payment_pending' || status === 'partial_payment') && (
             <div className="pt-2">
               <Button
                 type="button"

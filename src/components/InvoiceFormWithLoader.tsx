@@ -13,7 +13,7 @@ interface InvoiceFormWithLoaderProps {
   initialStatus?: InvoiceStatus;
 }
 
-export function InvoiceFormWithLoader({ isEditing = false, invoiceData = null, initialStatus = 'open' }: InvoiceFormWithLoaderProps) {
+export function InvoiceFormWithLoader({ isEditing = false, invoiceData = null, initialStatus = 'approved' }: InvoiceFormWithLoaderProps) {
   const { customers, parts, tasks, mechanics } = useDataContext();
   const { loadMultipleDataTypes, getLoadingState } = useIncrementalDataLoading();
   const [isReady, setIsReady] = useState(false);

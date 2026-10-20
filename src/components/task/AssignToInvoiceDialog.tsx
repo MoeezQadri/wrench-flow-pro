@@ -1,3 +1,4 @@
+import { statusLabel } from '@/utils/invoice-status';
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   Dialog,
@@ -17,7 +18,8 @@ import { toast } from "sonner";
 import { X, FileText, Wrench } from "lucide-react";
 import { useOrganizationSettings } from "@/hooks/useOrganizationSettings";
 
-const OPEN_STATUSES = ['open', 'in-progress', 'partial', 'completed'];
+// Jobs can only be added to work orders still being worked on
+const OPEN_STATUSES = ['approved', 'work_in_progress'];
 
 interface EligibleInvoice {
   id: string;
@@ -89,7 +91,7 @@ const AssignToInvoiceDialog: React.FC<AssignToInvoiceDialogProps> = ({
   const removeLine = async (invoiceId: string) => {
     const { data: inv } = await supabase.from('invoices').select('status').eq('id', invoiceId).maybeSingle();
     if (inv && !OPEN_STATUSES.includes(inv.status)) {
-      throw new Error(`Invoice #${invoiceId.substring(0, 8)} is ${inv.status}, so its lines can't be changed.`);
+      throw new Error(`Invoice #${invoiceId.substring(0, 8)} is ${statusLabel(inv.status)}, so its lines can't be changed.`);
     }
     const { error } = await supabase
       .from('invoice_items')
@@ -244,7 +246,7 @@ const AssignToInvoiceDialog: React.FC<AssignToInvoiceDialogProps> = ({
                   >
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-sm font-medium">#{inv.id.substring(0, 8)} · {inv.customer}</span>
-                      <Badge variant="outline" className="capitalize">{inv.status}</Badge>
+                      <Badge variant="outline" className="capitalize">{statusLabel(inv.status)}</Badge>
                     </div>
                     {inv.vehicle && <div className="text-xs text-muted-foreground mt-1">{inv.vehicle}</div>}
                   </button>

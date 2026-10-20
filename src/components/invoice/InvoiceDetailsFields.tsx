@@ -17,10 +17,10 @@ const InvoiceDetailsFields = () => {
   
   // Get values with safe defaults
   const discountType = form.watch("discountType") || "none";
-  const status = form.watch("status") || "open";
+  const status = form.watch("status") || "approved";
   
   // Discounts can be adjusted on active billing documents and estimates.
-  const canEditDiscount = ['open', 'in-progress', 'completed', 'partial', 'estimate'].includes(status);
+  const canEditDiscount = ['approved', 'work_in_progress', 'payment_pending', 'partial_payment', 'estimate'].includes(status);
 
   return (
     <div className="grid gap-6 md:grid-cols-2">
@@ -71,7 +71,7 @@ const InvoiceDetailsFields = () => {
             <FormLabel>Status</FormLabel>
             <Select 
               onValueChange={field.onChange} 
-              value={field.value || "open"}
+              value={field.value || "approved"}
             >
               <FormControl>
                 <SelectTrigger className="h-10">
@@ -80,11 +80,11 @@ const InvoiceDetailsFields = () => {
               </FormControl>
               <SelectContent>
                 <SelectItem value="estimate">Estimate</SelectItem>
-                <SelectItem value="open">Open</SelectItem>
-                <SelectItem value="in-progress">In Progress</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-                <SelectItem value="partial">Partial Payment</SelectItem>
-                <SelectItem value="paid">Paid</SelectItem>
+                <SelectItem value="approved">Approved</SelectItem>
+                <SelectItem value="work_in_progress">Work in progress</SelectItem>
+                <SelectItem value="payment_pending">Payment pending</SelectItem>
+                <SelectItem value="partial_payment">Partial payment</SelectItem>
+                <SelectItem value="payment_completed">Payment completed</SelectItem>
                 <SelectItem value="declined">Declined</SelectItem>
               </SelectContent>
             </Select>

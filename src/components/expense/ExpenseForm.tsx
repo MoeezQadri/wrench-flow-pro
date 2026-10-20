@@ -89,7 +89,7 @@ const ExpenseForm = ({ defaultValues, onSubmit, formId }: ExpenseFormProps) => {
       
       // Filter for active invoices only (open, in-progress)
       const activeInvoicesList = invoices_.filter(invoice => 
-        invoice.status === 'open' || invoice.status === 'in-progress'
+        invoice.status === 'approved' || invoice.status === 'work_in_progress'
       );
       setActiveInvoices(activeInvoicesList);
     };

@@ -15,9 +15,16 @@ import { PageWrapper } from '@/components/PageWrapper';
 import { formatOrgDate } from '@/utils/datetime';
 import StatusBadge from '@/components/StatusBadge';
 import DeleteInvoiceDialog from '@/components/invoice/DeleteInvoiceDialog';
+import { stageOf, canDeleteStage, canReopen } from '@/utils/invoice-status';
 
 
-const Invoices: React.FC = () => {
+interface InvoicesProps {
+  view?: 'work_orders' | 'invoices';
+}
+
+const Invoices: React.FC<InvoicesProps> = ({ view = 'invoices' }) => {
+  const isWorkOrders = view === 'work_orders';
+  const noun = isWorkOrders ? 'work orders' : 'invoices';
   const [searchTerm, setSearchTerm] = useState<string>('');
   const debouncedSearchTerm = useDebounce(searchTerm, 250);
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -51,9 +58,21 @@ const Invoices: React.FC = () => {
     return customer ? customer.name : 'Unknown Customer';
   };
 
+  // Each list shows only its own stage
+  const stageInvoices = useMemo(
+    () => contextInvoices.filter(invoice => {
+      const stage = stageOf(invoice.status);
+      return isWorkOrders ? stage !== 'invoice' : stage === 'invoice';
+    }),
+    [contextInvoices, isWorkOrders]
+  );
+
+  // Reset the filter when switching between the two lists
+  React.useEffect(() => { setStatusFilter('all'); }, [view]);
+
   // Filter and sort invoices
   const filteredAndSortedInvoices = useMemo(() => {
-    let filtered = contextInvoices.filter(invoice => {
+    let filtered = stageInvoices.filter(invoice => {
       const customerName = getCustomerName(invoice.customer_id);
       const invoiceId = invoice.id.substring(0, 8);
       
@@ -64,7 +83,10 @@ const Invoices: React.FC = () => {
         invoiceId.toLowerCase().includes(search);
       
       // Status filter
-      const matchesStatus = statusFilter === 'all' || invoice.status === statusFilter;
+      const matchesStatus = statusFilter === 'all'
+        || (statusFilter === 'overdue'
+          ? invoice.status !== 'payment_completed' && !!invoice.due_date && new Date(invoice.due_date) < new Date()
+          : invoice.status === statusFilter);
       
       return matchesSearch && matchesStatus;
     });
@@ -103,7 +125,7 @@ const Invoices: React.FC = () => {
     });
 
     return filtered;
-  }, [contextInvoices, contextCustomers, debouncedSearchTerm, statusFilter, sortBy, sortOrder]);
+  }, [stageInvoices, contextCustomers, debouncedSearchTerm, statusFilter, sortBy, sortOrder]);
 
   const toggleSortOrder = () => {
     setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
@@ -122,15 +144,15 @@ const Invoices: React.FC = () => {
 
   return (
     <PageWrapper
-      title="Invoices"
-      subtitle="Manage customer invoices"
+      title={isWorkOrders ? 'Work Orders' : 'Invoices'}
+      subtitle={isWorkOrders ? 'Estimates and jobs in progress' : 'Completed work and payments'}
       loadData={loadData}
       headerActions={
-        userCanManageInvoices && (
+        userCanManageInvoices && isWorkOrders && (
           <Button asChild>
-            <Link to="/invoices/new">
+            <Link to="/work-orders/new">
               <Plus className="h-4 w-4 mr-2" />
-              New Invoice
+              New Work Order
             </Link>
           </Button>
         )
@@ -141,7 +163,7 @@ const Invoices: React.FC = () => {
         <div className="relative">
           <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search invoices or customers..."
+            placeholder={`Search ${noun} or customers...`}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
@@ -155,14 +177,21 @@ const Invoices: React.FC = () => {
           </SelectTrigger>
           <SelectContent>
              <SelectItem value="all">All Statuses</SelectItem>
-             <SelectItem value="estimate">Estimates</SelectItem>
-             <SelectItem value="open">Open</SelectItem>
-             <SelectItem value="in-progress">In Progress</SelectItem>
-             <SelectItem value="completed">Completed</SelectItem>
-             <SelectItem value="partial">Partial</SelectItem>
-             <SelectItem value="paid">Paid</SelectItem>
-             <SelectItem value="overdue">Overdue</SelectItem>
-             <SelectItem value="declined">Declined</SelectItem>
+             {isWorkOrders ? (
+               <>
+                 <SelectItem value="estimate">Estimates</SelectItem>
+                 <SelectItem value="approved">Approved</SelectItem>
+                 <SelectItem value="work_in_progress">Work in progress</SelectItem>
+                 <SelectItem value="declined">Declined</SelectItem>
+               </>
+             ) : (
+               <>
+                 <SelectItem value="payment_pending">Payment pending</SelectItem>
+                 <SelectItem value="partial_payment">Partial payment</SelectItem>
+                 <SelectItem value="payment_completed">Payment completed</SelectItem>
+                 <SelectItem value="overdue">Overdue</SelectItem>
+               </>
+             )}
           </SelectContent>
         </Select>
 
@@ -191,7 +220,7 @@ const Invoices: React.FC = () => {
       {contextCustomers.length === 0 && (
         <div className="p-4 mb-4 bg-warning/10 border border-warning/20 rounded-md">
           <p className="text-warning-foreground">
-            No customers found. Please add customers before creating invoices.
+            No customers found. Please add customers before creating work orders.
           </p>
           <Link to="/customers" className="text-primary hover:underline mt-2 inline-block">
             Go to Customers page
@@ -201,14 +230,14 @@ const Invoices: React.FC = () => {
 
       {/* Results Summary */}
       <div className="mb-4 text-sm text-muted-foreground">
-        Showing {filteredAndSortedInvoices.length} of {contextInvoices.length} invoices
+        Showing {filteredAndSortedInvoices.length} of {stageInvoices.length} {noun}
       </div>
 
       {filteredAndSortedInvoices.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground">
-          {contextInvoices.length === 0 
-            ? "No invoices found. Create a new invoice to get started."
-            : "No invoices match your search criteria."
+          {stageInvoices.length === 0
+            ? (isWorkOrders ? 'No work orders found. Create a new work order to get started.' : 'No invoices yet. Work orders appear here once they are completed.')
+            : `No ${noun} match your search criteria.`
           }
         </div>
       ) : (
@@ -216,7 +245,7 @@ const Invoices: React.FC = () => {
           <table className="min-w-full bg-card">
             <thead>
               <tr>
-                <th className="py-2 px-4 border-b text-left">Invoice #</th>
+                <th className="py-2 px-4 border-b text-left">{isWorkOrders ? 'Work Order #' : 'Invoice #'}</th>
                 <th className="py-2 px-4 border-b text-left">Customer</th>
                 <th className="py-2 px-4 border-b text-left">Date</th>
                 <th className="py-2 px-4 border-b text-left">Status</th>
@@ -257,7 +286,7 @@ const Invoices: React.FC = () => {
                         >
                           View
                         </Link>
-                        {userCanEditInvoices && invoice.status !== 'paid' && invoice.status !== 'declined' && (
+                        {userCanEditInvoices && invoice.status !== 'payment_completed' && invoice.status !== 'declined' && (
                           <Link
                             to={`/invoices/${invoice.id}/edit`}
                             className="text-success hover:text-success/80 underline"
@@ -265,15 +294,18 @@ const Invoices: React.FC = () => {
                             Edit
                           </Link>
                         )}
-                        {userCanEditInvoices && invoice.status === 'paid' && (
-                          <span
-                            className="text-muted-foreground"
-                            title="Paid invoices are view only. Remove a payment first to change it."
-                          >
-                            Paid — view only
-                          </span>
+                        {userCanEditInvoices && invoice.status === 'payment_completed' && (
+                          canReopen(currentUser?.role) ? (
+                            <Link to={`/invoices/${invoice.id}/edit`} className="text-success hover:text-success/80 underline">
+                              Reopen
+                            </Link>
+                          ) : (
+                            <span className="text-muted-foreground" title="Fully paid invoices are view only. An owner or admin can reopen them.">
+                              Payment completed — view only
+                            </span>
+                          )
                         )}
-                        {userCanDeleteInvoices && (
+                        {userCanDeleteInvoices && canDeleteStage(invoice.status) && (
                           <button
                             type="button"
                             onClick={() => setInvoiceToDelete(invoice)}

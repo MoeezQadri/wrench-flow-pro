@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from "react";
+import { statusLabel } from '@/utils/invoice-status';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -38,9 +39,9 @@ const InvoicingReport = () => {
   const totalInvoices = filteredInvoices.length;
   const estimateInvoices = filteredInvoices.filter(inv => inv.status === 'estimate').length;
   const declinedInvoices = filteredInvoices.filter(inv => inv.status === 'declined').length;
-  const paidInvoices = billableInvoices.filter(inv => inv.status === 'paid').length;
-  const openInvoices = billableInvoices.filter(inv => inv.status === 'open').length;
-  const overdueInvoices = billableInvoices.filter(inv => inv.status === 'overdue').length;
+  const paidInvoices = billableInvoices.filter(inv => inv.status === 'payment_completed').length;
+  const openInvoices = billableInvoices.filter(inv => inv.status === 'approved' || inv.status === 'work_in_progress').length;
+  const overdueInvoices = billableInvoices.filter(inv => inv.status !== 'payment_completed' && !!inv.due_date && new Date(inv.due_date) < new Date()).length;
 
   const totalRevenue = billableInvoices.reduce((sum, invoice) => {
     const invoiceBreakdown = calculateInvoiceBreakdown(invoice);
@@ -223,11 +224,11 @@ const InvoicingReport = () => {
                       <TableCell>{formatCurrency(invoiceTotal)}</TableCell>
                       <TableCell>
                         <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          invoice.status === 'paid' ? 'bg-green-100 text-green-800' :
+                          invoice.status === 'payment_completed' ? 'bg-green-100 text-green-800' :
                           invoice.status === 'overdue' ? 'bg-red-100 text-red-800' :
                           'bg-yellow-100 text-yellow-800'
                         }`}>
-                          {invoice.status}
+                          {statusLabel(invoice.status)}
                         </div>
                       </TableCell>
                       <TableCell>
