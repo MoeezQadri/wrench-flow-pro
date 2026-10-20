@@ -409,6 +409,13 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
     form.setValue('status', status);
   }, [status, form]);
 
+  // The payments box moves the payment stage itself; keep the picker in step
+  const formStatus = form.watch('status') as InvoiceStatus;
+  useEffect(() => {
+    if (formStatus && formStatus !== status) setStatus(formStatus);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formStatus]);
+
   // Calculate totals including discount (matching calculateInvoiceBreakdown logic)
   const calculateTotals = () => {
     const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
