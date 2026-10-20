@@ -71,7 +71,7 @@ const InvoiceDetailsFields = () => {
             <FormLabel>Status</FormLabel>
             <Select 
               onValueChange={field.onChange} 
-              value={field.value || "open"}
+              value={field.value || "approved"}
             >
               <FormControl>
                 <SelectTrigger className="h-10">
@@ -80,11 +80,11 @@ const InvoiceDetailsFields = () => {
               </FormControl>
               <SelectContent>
                 <SelectItem value="estimate">Estimate</SelectItem>
-                <SelectItem value="open">Open</SelectItem>
-                <SelectItem value="in-progress">In Progress</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-                <SelectItem value="partial">Partial Payment</SelectItem>
-                <SelectItem value="paid">Paid</SelectItem>
+                <SelectItem value="approved">Approved</SelectItem>
+                <SelectItem value="work_in_progress">Work in progress</SelectItem>
+                <SelectItem value="payment_pending">Payment pending</SelectItem>
+                <SelectItem value="partial_payment">Partial payment</SelectItem>
+                <SelectItem value="payment_completed">Payment completed</SelectItem>
                 <SelectItem value="declined">Declined</SelectItem>
               </SelectContent>
             </Select>
