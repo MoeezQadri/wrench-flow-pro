@@ -59,7 +59,7 @@ export async function createTestData() {
       .insert([{
         customer_id: customer.id,
         vehicle_id: vehicle.id,
-        status: 'open',
+        status: 'approved',
         date: new Date().toISOString(),
         due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
         tax_rate: 7.5,

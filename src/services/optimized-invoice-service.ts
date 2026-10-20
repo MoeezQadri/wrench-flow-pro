@@ -217,7 +217,7 @@ export const createInvoiceOptimized = async (invoiceData: CreateInvoiceData): Pr
   }
 
   const invoiceId = crypto.randomUUID();
-  const status = invoiceData.status || 'open';
+  const status = invoiceData.status || 'approved';
   console.log('Creating optimized invoice:', invoiceId, 'with total amount:', totalAmount);
 
   const { data: invoice, error: invoiceError } = await supabase
