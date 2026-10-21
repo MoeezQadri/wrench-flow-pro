@@ -887,10 +887,11 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
             />
             <p className="text-xs text-gray-500 mt-1">Current date value: {date}</p>
           </div>
+          </fieldset>
 
-          {/* Work completed on - revenue counts on this day */}
+          {/* Work completed on - revenue counts on this day (editable until payment completed) */}
           {isEditing && isInvoiceStage(status) && (
-            <div>
+            <fieldset disabled={allLocked}>
               <Label htmlFor="completed-on">Work completed on</Label>
               <Input
                 id="completed-on"
@@ -902,10 +903,11 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
                 }}
               />
               <p className="text-xs text-muted-foreground mt-1">Revenue counts on this day. Leave empty to use today.</p>
-            </div>
+            </fieldset>
           )}
 
-          {/* Status Selection - Only show when editing */}
+          {/* Status Selection - Only show when editing. Kept outside the locked
+              sections so owner/admin can always reopen completed work. */}
           {isEditing && (
             <div>
               <Label htmlFor="status">Status</Label>
@@ -929,6 +931,8 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
               </Select>
             </div>
           )}
+
+          <fieldset disabled={itemsLocked} className="space-y-6 disabled:opacity-80">
 
           {/* Show auto-assignment notification */}
           {showAutoItems && !isEditing && (
