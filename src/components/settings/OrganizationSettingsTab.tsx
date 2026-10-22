@@ -164,7 +164,7 @@ const OrganizationSettingsTab = () => {
         .from('invoices')
         .update({ tax_rate: savedTaxRate, updated_at: new Date().toISOString() } as any)
         .eq('organization_id', currentUser.organization_id)
-        .in('status', ['approved', 'work_in_progress', 'payment_pending', 'partial_payment'])
+        .in('status', ['approved', 'work_in_progress', 'work_completed', 'payment_pending', 'partial_payment'])
         .select('id');
 
       if (error) {

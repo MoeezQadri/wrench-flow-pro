@@ -20,7 +20,7 @@ const InvoiceDetailsFields = () => {
   const status = form.watch("status") || "approved";
   
   // Discounts can be adjusted on active billing documents and estimates.
-  const canEditDiscount = ['approved', 'work_in_progress', 'payment_pending', 'partial_payment', 'estimate'].includes(status);
+  const canEditDiscount = ['approved', 'work_in_progress', 'work_completed', 'payment_pending', 'partial_payment', 'estimate'].includes(status);
 
   return (
     <div className="grid gap-6 md:grid-cols-2">

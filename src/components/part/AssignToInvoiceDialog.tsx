@@ -72,7 +72,7 @@ const AssignToInvoiceDialog: React.FC<AssignToInvoiceDialogProps> = ({
         return;
       }
 
-      if (!['approved', 'work_in_progress', 'estimate'].includes(invoice.status)) {
+      if (!['approved', 'work_in_progress', 'work_completed', 'estimate'].includes(invoice.status)) {
         toast.error('Parts can only be added to work orders that are not completed yet');
         return;
       }

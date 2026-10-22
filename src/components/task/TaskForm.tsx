@@ -114,7 +114,7 @@ const TaskForm = ({ defaultValues, onSubmit, formId, task }: TaskFormProps) => {
         
         // Filter for active invoices only (open, in-progress)
         const activeInvoicesList = invoices_.filter(invoice => 
-          invoice.status === 'approved' || invoice.status === 'work_in_progress'
+          invoice.status === 'approved' || invoice.status === 'work_in_progress' || invoice.status === 'work_completed'
         );
         setActiveInvoices(activeInvoicesList);
         
