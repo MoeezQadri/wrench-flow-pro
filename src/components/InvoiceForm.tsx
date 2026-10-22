@@ -728,7 +728,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
         
         // Show success and navigate only after full completion
         toast.success("Invoice created successfully!");
-        navigate("/invoices");
+        navigate(isInvoiceStage(effectiveStatus) ? "/invoices" : "/work-orders");
       }
     } catch (error) {
       console.error(`Error saving invoice (submission ${currentSubmissionId}):`, error);

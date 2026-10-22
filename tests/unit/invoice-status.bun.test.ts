@@ -49,3 +49,18 @@ describe('work completed stays a work order', () => {
     expect(statusLabel('work_completed')).toBe('Work completed');
   });
 });
+
+import { canSaveWithoutItems } from '../../src/utils/invoice-status';
+describe('saving without lines', () => {
+  test('work orders may be saved with no lines', () => {
+    expect(canSaveWithoutItems('approved')).toBe(true);
+    expect(canSaveWithoutItems('work_in_progress')).toBe(true);
+    expect(canSaveWithoutItems('work_completed')).toBe(true);
+  });
+  test('estimates and invoices need lines', () => {
+    expect(canSaveWithoutItems('estimate')).toBe(false);
+    expect(canSaveWithoutItems('payment_pending')).toBe(false);
+    expect(canSaveWithoutItems('partial_payment')).toBe(false);
+    expect(canSaveWithoutItems('payment_completed')).toBe(false);
+  });
+});
