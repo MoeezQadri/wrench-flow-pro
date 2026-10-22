@@ -206,12 +206,14 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({ payments, setPayments
 
     const totalPaid = payments.reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
 
-    if (total <= 0) {
+    // Work orders take advances at any amount, even before any lines exist.
+    const isWorkOrderStage = ['approved', 'work_in_progress', 'work_completed'].includes(status);
+    if (!isWorkOrderStage && total <= 0) {
       toast.error("Add invoice lines first — this invoice has no amount to pay against.");
       return;
     }
 
-    if (totalPaid + amount > total + 0.005) {
+    if (!isWorkOrderStage && totalPaid + amount > total + 0.005) {
       // More than due: tell the staff member the change first, and only record
       // the full amount as revenue once they confirm.
       setOverpayDialogOpen(true);
