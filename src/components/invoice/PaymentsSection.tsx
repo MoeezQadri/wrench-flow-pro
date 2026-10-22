@@ -261,6 +261,8 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({ payments, setPayments
     const totalPaid = payments.reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
     const balance = total - totalPaid;
     if (balance <= 0.005) return;
+    // Work orders never change stage from the payments box
+    if (!['payment_pending', 'partial_payment'].includes(status)) return;
 
     const taxRate = Number(watch("tax_rate")) || 0;
     const currentType = watch("discount_type") || 'none';

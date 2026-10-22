@@ -1176,7 +1176,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => { moveToInvoiceRef.current = true; setStatus('payment_pending'); }}>
+                  <AlertDialogAction onClick={() => { moveToInvoiceRef.current = true; setTimeout(() => formElRef.current?.requestSubmit(), 0); }}>
                     Move to invoice
                   </AlertDialogAction>
                 </AlertDialogFooter>
