@@ -50,6 +50,9 @@ export const isWorkOrder = (status?: string | null): boolean =>
 export const isPaymentCompleted = (status?: string | null): boolean =>
   status === 'payment_completed';
 
+/** Work orders may be saved with no lines (e.g. to take an advance); estimates and invoices may not. */
+export const canSaveWithoutItems = (status?: string | null): boolean => isWorkOrder(status);
+
 /** Line items may change only before work is completed. */
 export const canEditItems = (status?: string | null): boolean => !isInvoiceStage(status);
 
