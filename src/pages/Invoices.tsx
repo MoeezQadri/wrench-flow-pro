@@ -251,13 +251,16 @@ const Invoices: React.FC<InvoicesProps> = ({ view = 'invoices' }) => {
                 <th className="py-2 px-4 border-b text-left">Date</th>
                 <th className="py-2 px-4 border-b text-left">Status</th>
                 <th className="py-2 px-4 border-b text-left">Amount</th>
+                <th className="py-2 px-4 border-b text-left">{isWorkOrders ? 'Advance received' : 'Paid'}</th>
                 <th className="py-2 px-4 border-b text-left">Actions</th>
               </tr>
             </thead>
             <tbody>
               {filteredAndSortedInvoices.map(invoice => {
                 // Calculate final total for display
-                const finalTotal = calculateInvoiceTotal(invoice);
+                const breakdown = calculateInvoiceBreakdown(invoice);
+                const finalTotal = breakdown.total;
+                const paid = breakdown.paidAmount;
                 const customerName = getCustomerName(invoice.customer_id);
 
                 return (
@@ -278,6 +281,9 @@ const Invoices: React.FC<InvoicesProps> = ({ view = 'invoices' }) => {
                     </td>
                     <td className="py-2 px-4 border-b">
                       {formatCurrency(finalTotal)}
+                    </td>
+                    <td className="py-2 px-4 border-b">
+                      {paid > 0 ? formatCurrency(paid) : <span className="text-muted-foreground">—</span>}
                     </td>
                     <td className="py-2 px-4 border-b">
                       <div className="flex space-x-2">
