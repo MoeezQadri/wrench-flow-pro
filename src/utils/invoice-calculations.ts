@@ -31,6 +31,8 @@ export interface InvoiceCalculationBreakdown {
  */
 export const calculateInvoiceBreakdown = (invoice: Invoice): InvoiceCalculationBreakdown => {
   if (!invoice.items || invoice.items.length === 0) {
+    // A work order with no lines yet can still hold an advance payment.
+    const advancePaid = invoice.payments?.reduce((sum, payment) => sum + payment.amount, 0) || 0;
     return {
       subtotal: 0,
       discountAmount: 0,
@@ -42,8 +44,8 @@ export const calculateInvoiceBreakdown = (invoice: Invoice): InvoiceCalculationB
       taxAmount: 0,
       taxRate: invoice.tax_rate || 0,
       total: 0,
-      paidAmount: 0,
-      balanceDue: 0,
+      paidAmount: advancePaid,
+      balanceDue: -advancePaid,
       partsCost: 0,
       partLinesMissingCost: 0,
       grossProfit: 0,
