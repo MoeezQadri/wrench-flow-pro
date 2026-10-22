@@ -1,0 +1,2 @@
+ALTER TABLE public.invoices DROP CONSTRAINT invoices_status_check;
+ALTER TABLE public.invoices ADD CONSTRAINT invoices_status_check CHECK (status = ANY (ARRAY['estimate','declined','approved','work_in_progress','work_completed','payment_pending','partial_payment','payment_completed','open','in-progress','completed','partial','paid']));
