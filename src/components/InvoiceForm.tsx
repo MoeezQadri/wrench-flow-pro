@@ -558,10 +558,14 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
       return;
     }
 
-    // Work order marked Completed becomes an invoice whose payment stage follows the money received.
-    const completingNow = status === 'payment_pending' && !isInvoiceStage(savedStatus);
-    const effectiveStatus: InvoiceStatus = completingNow && totals.total > 0
-      ? (recordedPayments >= totals.total - 0.005 ? 'payment_completed' : recordedPayments > 0.005 ? 'partial_payment' : 'payment_pending')
+    // Only the "Move to invoice" button turns a work order into an invoice.
+    const movingToInvoice = moveToInvoiceRef.current;
+    moveToInvoiceRef.current = false;
+    const savedIsWorkOrder = isEditing && isWorkOrder(savedStatus);
+    const invoiceTarget: InvoiceStatus = totals.total > 0 && recordedPayments >= totals.total - 0.005
+      ? 'payment_completed' : recordedPayments > 0.005 ? 'partial_payment' : 'payment_pending';
+    const effectiveStatus: InvoiceStatus = savedIsWorkOrder
+      ? (isWorkOrder(status) ? status : savedStatus)
       : status;
 
     // Reset error states
