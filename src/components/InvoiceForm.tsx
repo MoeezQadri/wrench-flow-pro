@@ -414,10 +414,6 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
   // Update the form status when status state changes
   useEffect(() => {
     form.setValue('status', status);
-    if (moveToInvoiceRef.current && status === 'payment_pending') {
-      moveToInvoiceRef.current = false;
-      setTimeout(() => formElRef.current?.requestSubmit(), 0);
-    }
   }, [status, form]);
 
   // The payments box moves the payment stage itself; keep the picker in step
@@ -622,13 +618,22 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
           setLoadedUpdatedAt((result as any).updated_at || null);
           setChangedElsewhere(false);
 
+          if (savedIsWorkOrder && movingToInvoice) {
+            const { error: moveError } = await (supabase as any).rpc('move_work_order_to_invoice', {
+              p_invoice_id: invoiceData.id,
+              p_status: invoiceTarget,
+            });
+            if (moveError) throw new Error(moveError.message);
+          }
+
           // Refresh just this invoice instead of re-downloading every invoice
           if (fetchInvoiceById) {
             await fetchInvoiceById(invoiceData.id);
           }
 
-          toast.success("Invoice updated successfully!");
-          navigate("/invoices");
+          const goesToInvoices = savedIsWorkOrder ? movingToInvoice : isInvoiceStage(effectiveStatus);
+          toast.success(savedIsWorkOrder && movingToInvoice ? "Moved to invoice." : `${stageTitle(effectiveStatus)} updated.`);
+          navigate(goesToInvoices ? "/invoices" : "/work-orders");
         } else {
           throw new Error("Update returned no result");
         }
