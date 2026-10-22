@@ -1,4 +1,4 @@
-import { isInvoiceStage } from '@/utils/invoice-status';
+import { isInvoiceStage, canSaveWithoutItems } from '@/utils/invoice-status';
 import { supabase } from '@/integrations/supabase/client';
 import { Invoice, InvoiceItem, Part, Task, Payment, InvoiceStatus } from '@/types';
 
@@ -208,17 +208,20 @@ const buildItemRow = (item: InvoiceItem, invoiceId: string, organizationId: stri
 export const createInvoiceOptimized = async (invoiceData: CreateInvoiceData): Promise<Invoice> => {
   if (!invoiceData.customerId) throw new Error('Customer ID is required');
   if (!invoiceData.vehicleId) throw new Error('Vehicle ID is required');
-  if (!invoiceData.items || invoiceData.items.length === 0) {
+  const status = invoiceData.status || 'approved';
+  const items = invoiceData.items || [];
+  // Work orders may be created empty so an advance can be taken before work starts
+  const allowEmpty = canSaveWithoutItems(status);
+  if (items.length === 0 && !allowEmpty) {
     throw new Error('At least one item is required');
   }
 
-  const totalAmount = invoiceData.items.reduce((sum, item) => sum + (item.quantity * item.price), 0);
-  if (totalAmount === 0) {
+  const totalAmount = items.reduce((sum, item) => sum + (item.quantity * item.price), 0);
+  if (totalAmount === 0 && !(allowEmpty && items.length === 0)) {
     throw new Error('Cannot create invoice with zero total amount. Please check item prices.');
   }
 
   const invoiceId = crypto.randomUUID();
-  const status = invoiceData.status || 'approved';
   console.log('Creating optimized invoice:', invoiceId, 'with total amount:', totalAmount);
 
   const { data: invoice, error: invoiceError } = await supabase
@@ -244,39 +247,42 @@ export const createInvoiceOptimized = async (invoiceData: CreateInvoiceData): Pr
 
   try {
     const stockStatus = isNonStockStatus(status);
+    let savedItems: InvoiceItem[] = [];
 
-    // Resolve custom parts first so every line is saved with its part_id
-    const resolvedItems = await ensureInventoryParts(
-      invoiceData.items,
-      invoiceId,
-      invoice.organization_id,
-      !stockStatus
-    );
+    if (items.length > 0) {
+      // Resolve custom parts first so every line is saved with its part_id
+      const resolvedItems = await ensureInventoryParts(
+        items,
+        invoiceId,
+        invoice.organization_id,
+        !stockStatus
+      );
 
-    const itemRows = resolvedItems.map(item => buildItemRow(item, invoiceId, invoice.organization_id));
+      const itemRows = resolvedItems.map(item => buildItemRow(item, invoiceId, invoice.organization_id));
 
-    const { error: itemsError } = await supabase
-      .from('invoice_items')
-      .insert(itemRows as any);
+      const { error: itemsError } = await supabase
+        .from('invoice_items')
+        .insert(itemRows as any);
 
-    if (itemsError) {
-      throw new Error(`Failed to create invoice items: ${itemsError.message}`);
+      if (itemsError) {
+        throw new Error(`Failed to create invoice items: ${itemsError.message}`);
+      }
+
+      savedItems = resolvedItems.map((item, index) => ({
+        ...item,
+        id: itemRows[index].id
+      }));
+
+      if (!stockStatus) {
+        await applyInventoryChanges(new Map(), countPartQuantities(savedItems), invoiceId);
+      }
+
+      // Picked jobs and new labour lines touch different lines, so run them together
+      await Promise.all([
+        linkSelectedTasks(savedItems, invoiceId),
+        syncLaborTasks(savedItems, invoiceId, invoice.organization_id)
+      ]);
     }
-
-    const savedItems: InvoiceItem[] = resolvedItems.map((item, index) => ({
-      ...item,
-      id: itemRows[index].id
-    }));
-
-    if (!stockStatus) {
-      await applyInventoryChanges(new Map(), countPartQuantities(savedItems), invoiceId);
-    }
-
-    // Picked jobs and new labour lines touch different lines, so run them together
-    await Promise.all([
-      linkSelectedTasks(savedItems, invoiceId),
-      syncLaborTasks(savedItems, invoiceId, invoice.organization_id)
-    ]);
 
     // Payments
     const paymentsToReturn: Payment[] = [];

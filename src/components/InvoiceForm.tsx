@@ -1,4 +1,4 @@
-import { isInvoiceStage, isPaymentCompleted, canReopen, statusLabel, stageTitle, isWorkOrder } from '@/utils/invoice-status';
+import { isInvoiceStage, isPaymentCompleted, canReopen, statusLabel, stageTitle, isWorkOrder, canSaveWithoutItems } from '@/utils/invoice-status';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
@@ -653,13 +653,14 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
         
         console.log("Items after deduplication and merging:", mergedItems);
 
-        // Enhanced final validation before creation
-        if (mergedItems.length === 0) {
+        // Work orders may be created empty (e.g. to take an advance before work starts)
+        const emptyAllowed = canSaveWithoutItems(effectiveStatus);
+        if (mergedItems.length === 0 && !emptyAllowed) {
           throw new Error("No valid items to add to invoice after processing");
         }
 
         const totalAmount = mergedItems.reduce((sum, item) => sum + (item.quantity * item.price), 0);
-        if (totalAmount === 0) {
+        if (totalAmount === 0 && mergedItems.length > 0) {
           console.error("Zero amount invoice detected:", {
             originalItems: items,
             mergedItems: mergedItems,
@@ -727,7 +728,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
         
         // Show success and navigate only after full completion
         toast.success("Invoice created successfully!");
-        navigate("/invoices");
+        navigate(isInvoiceStage(effectiveStatus) ? "/invoices" : "/work-orders");
       }
     } catch (error) {
       console.error(`Error saving invoice (submission ${currentSubmissionId}):`, error);

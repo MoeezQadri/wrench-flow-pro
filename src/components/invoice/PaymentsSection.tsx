@@ -94,11 +94,15 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({ payments, setPayments
     onInvoiceSaved?.((data as any)?.updated_at || updatedAt);
   }, [invoiceId, onInvoiceSaved]);
 
-  const savePayment = useCallback(async (allowOverpayment: boolean) => {
+  const savePayment = useCallback(async (allowOverpaymentArg: boolean) => {
     const amount = parseFloat(paymentAmount);
     const totalPaid = payments.reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
     const amountDue = Math.max(total - totalPaid, 0);
-    const change = allowOverpayment ? Math.max(amount - amountDue, 0) : 0;
+    // Work orders take advances of any amount (even before any lines exist), so
+    // the "more than due" limit never applies to them and no change is noted.
+    const isAdvance = ['approved', 'work_in_progress', 'work_completed'].includes(status);
+    const allowOverpayment = allowOverpaymentArg || isAdvance;
+    const change = allowOverpaymentArg && !isAdvance ? Math.max(amount - amountDue, 0) : 0;
 
     savingRef.current = true;
     setIsSavingPayment(true);
@@ -221,7 +225,7 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({ payments, setPayments
     }
 
     await savePayment(false);
-  }, [paymentAmount, paymentMethod, payments, total, savePayment]);
+  }, [paymentAmount, paymentMethod, payments, total, savePayment, status]);
 
   const handleRemovePayment = useCallback(async (paymentId: string) => {
     try {
