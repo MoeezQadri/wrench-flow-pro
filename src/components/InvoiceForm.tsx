@@ -1,4 +1,5 @@
-import { isInvoiceStage, isPaymentCompleted, canReopen, statusLabel, stageTitle } from '@/utils/invoice-status';
+import { isInvoiceStage, isPaymentCompleted, canReopen, statusLabel, stageTitle, isWorkOrder } from '@/utils/invoice-status';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useForm, FormProvider } from "react-hook-form";
@@ -50,6 +51,8 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
   // Day the work was completed; revenue counts on this date
   const [completedOn, setCompletedOn] = useState<string>('');
   const [status, setStatus] = useState<InvoiceStatus>(isEditing ? (invoiceData?.status || 'approved') : initialStatus);
+  const moveToInvoiceRef = useRef(false);
+  const formElRef = useRef<HTMLFormElement>(null);
   const [taxRate, setTaxRate] = useState(orgDefaultTaxRate);
   const [discountType, setDiscountType] = useState<'none' | 'percentage' | 'fixed'>('none');
   const [discountValue, setDiscountValue] = useState(0);
@@ -92,15 +95,16 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
   const itemsLocked = isEditing && isInvoiceStage(savedStatus);
   const allLocked = isEditing && isPaymentCompleted(savedStatus);
   const baseStatusOptions = React.useMemo(() => {
-    const o = (value: InvoiceStatus) => ({ value, label: value === 'payment_pending' && !isInvoiceStage(savedStatus) ? 'Completed' : statusLabel(value) });
+    const o = (value: InvoiceStatus) => ({ value, label: statusLabel(value) });
     if (savedStatus === 'estimate' || savedStatus === 'declined') return [o('estimate'), o('approved'), o('declined')];
-    if (!isInvoiceStage(savedStatus)) return [o('approved'), o('work_in_progress'), o('payment_pending')];
+    // Work orders only move to an invoice through the "Move to invoice" button
+    if (!isInvoiceStage(savedStatus)) return [o('approved'), o('work_in_progress'), o('work_completed')];
     // Invoice stages follow payments; owner/admin may move it back
     const current = [o(savedStatus)];
     if (!userCanReopen) return current;
     const earlier: InvoiceStatus[] = savedStatus === 'payment_completed'
-      ? ['partial_payment', 'payment_pending', 'work_in_progress', 'approved']
-      : ['work_in_progress', 'approved'];
+      ? ['partial_payment', 'payment_pending', 'work_completed', 'work_in_progress', 'approved']
+      : ['work_completed', 'work_in_progress', 'approved'];
     return [...current, ...earlier.filter(s => s !== savedStatus).map(o)];
   }, [savedStatus, userCanReopen]);
   const statusOptions = baseStatusOptions.some(opt => opt.value === status)
@@ -410,6 +414,10 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
   // Update the form status when status state changes
   useEffect(() => {
     form.setValue('status', status);
+    if (moveToInvoiceRef.current && status === 'payment_pending') {
+      moveToInvoiceRef.current = false;
+      setTimeout(() => formElRef.current?.requestSubmit(), 0);
+    }
   }, [status, form]);
 
   // The payments box moves the payment stage itself; keep the picker in step
@@ -463,7 +471,8 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
       errors.push("Please select a date");
     }
 
-    if (items.length === 0) {
+    // Work orders may be saved empty (e.g. to take an advance before work starts)
+    if (items.length === 0 && !isWorkOrder(status)) {
       errors.push("Please add at least one item to the invoice");
     }
 
@@ -847,7 +856,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form ref={formElRef} onSubmit={handleSubmit} className="space-y-6">
           {itemsLocked && (
             <div className="rounded-lg border p-3 text-sm text-muted-foreground">
               {allLocked
@@ -1141,6 +1150,30 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
               isEditing ? `Update ${stageTitle(savedStatus)}` : `Create ${stageTitle(status)}`
             )}
           </Button>
+
+          {isEditing && !isInvoiceStage(savedStatus) && savedStatus !== 'estimate' && savedStatus !== 'declined' && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button type="button" variant="secondary" className="w-full" disabled={isSubmitting || isInvoiceSubmitting}>
+                  Move to invoice
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Move this work order to an invoice?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Parts, labour, customer and vehicle will be locked. Payments, discount, tax and notes can still be changed. Its payment stage will follow the money already received.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => { moveToInvoiceRef.current = true; setStatus('payment_pending'); }}>
+                    Move to invoice
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
         </form>
       </div>
     </FormProvider>

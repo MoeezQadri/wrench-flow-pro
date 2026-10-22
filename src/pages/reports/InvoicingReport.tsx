@@ -40,7 +40,7 @@ const InvoicingReport = () => {
   const estimateInvoices = filteredInvoices.filter(inv => inv.status === 'estimate').length;
   const declinedInvoices = filteredInvoices.filter(inv => inv.status === 'declined').length;
   const paidInvoices = billableInvoices.filter(inv => inv.status === 'payment_completed').length;
-  const openInvoices = billableInvoices.filter(inv => inv.status === 'approved' || inv.status === 'work_in_progress').length;
+  const openInvoices = billableInvoices.filter(inv => inv.status === 'approved' || inv.status === 'work_in_progress' || inv.status === 'work_completed').length;
   const overdueInvoices = billableInvoices.filter(inv => inv.status !== 'payment_completed' && !!inv.due_date && new Date(inv.due_date) < new Date()).length;
 
   const totalRevenue = billableInvoices.reduce((sum, invoice) => {

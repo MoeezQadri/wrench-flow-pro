@@ -5,7 +5,7 @@ import type { InvoiceStatus } from '@/types';
  * -> Invoice (payment_pending, partial_payment, payment_completed).
  * "Completed" work is stored as payment_pending.
  */
-export const WORK_ORDER_STATUSES: InvoiceStatus[] = ['approved', 'work_in_progress'];
+export const WORK_ORDER_STATUSES: InvoiceStatus[] = ['approved', 'work_in_progress', 'work_completed'];
 export const INVOICE_STATUSES: InvoiceStatus[] = ['payment_pending', 'partial_payment', 'payment_completed'];
 export const ESTIMATE_STATUSES: InvoiceStatus[] = ['estimate', 'declined'];
 
@@ -17,6 +17,7 @@ export const STATUS_LABELS: Record<string, string> = {
   declined: 'Declined',
   approved: 'Approved',
   work_in_progress: 'Work in progress',
+  work_completed: 'Work completed',
   payment_pending: 'Payment pending',
   partial_payment: 'Partial payment',
   payment_completed: 'Payment completed',
