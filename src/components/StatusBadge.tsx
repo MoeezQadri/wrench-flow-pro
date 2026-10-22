@@ -8,6 +8,7 @@ interface StatusBadgeProps {
 const STYLES: Record<string, string> = {
   approved: 'bg-yellow-100 text-yellow-800 border-yellow-200',
   work_in_progress: 'bg-blue-100 text-blue-800 border-blue-200',
+  work_completed: 'bg-teal-100 text-teal-800 border-teal-200',
   payment_pending: 'bg-green-100 text-green-800 border-green-200',
   partial_payment: 'bg-orange-100 text-orange-800 border-orange-200',
   payment_completed: 'bg-purple-100 text-purple-800 border-purple-200',

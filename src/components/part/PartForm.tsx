@@ -86,7 +86,7 @@ const PartForm = ({ defaultValues, onSubmit, formId, invoice, invoiceId, part, i
         const invoices = invoices_;
         // Parts can only be attached to estimates and work orders that aren't completed yet
         const activeInvoices = invoices.filter(inv =>
-          ["estimate", "approved", "work_in_progress"].includes(inv.status)
+          ["estimate", "approved", "work_in_progress", "work_completed"].includes(inv.status)
         );
         setAvailableInvoices(activeInvoices);
       } catch (error) {

@@ -182,6 +182,7 @@ const Invoices: React.FC<InvoicesProps> = ({ view = 'invoices' }) => {
                  <SelectItem value="estimate">Estimates</SelectItem>
                  <SelectItem value="approved">Approved</SelectItem>
                  <SelectItem value="work_in_progress">Work in progress</SelectItem>
+                 <SelectItem value="work_completed">Work completed</SelectItem>
                  <SelectItem value="declined">Declined</SelectItem>
                </>
              ) : (
