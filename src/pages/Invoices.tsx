@@ -283,6 +283,9 @@ const Invoices: React.FC<InvoicesProps> = ({ view = 'invoices' }) => {
                       {formatCurrency(finalTotal)}
                     </td>
                     <td className="py-2 px-4 border-b">
+                      {paid > 0 ? formatCurrency(paid) : <span className="text-muted-foreground">—</span>}
+                    </td>
+                    <td className="py-2 px-4 border-b">
                       <div className="flex space-x-2">
                         <Link
                           to={`/invoices/${invoice.id}`}
