@@ -1,4 +1,4 @@
-import { isInvoiceStage } from '@/utils/invoice-status';
+import { isInvoiceStage, canSaveWithoutItems } from '@/utils/invoice-status';
 import { supabase } from '@/integrations/supabase/client';
 import { Invoice, InvoiceItem, Part, Task, Payment, InvoiceStatus } from '@/types';
 
