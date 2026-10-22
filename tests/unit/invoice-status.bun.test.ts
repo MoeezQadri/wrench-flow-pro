@@ -40,3 +40,12 @@ describe('work order / invoice stages', () => {
     expect(statusLabel('payment_completed')).toBe('Payment completed');
   });
 });
+
+describe('work completed stays a work order', () => {
+  test('work_completed is editable work order', () => {
+    expect(stageOf('work_completed')).toBe('work_order');
+    expect(canEditItems('work_completed')).toBe(true);
+    expect(canDeleteStage('work_completed')).toBe(true);
+    expect(statusLabel('work_completed')).toBe('Work completed');
+  });
+});
