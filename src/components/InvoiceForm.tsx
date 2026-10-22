@@ -414,10 +414,6 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
   // Update the form status when status state changes
   useEffect(() => {
     form.setValue('status', status);
-    if (moveToInvoiceRef.current && status === 'payment_pending') {
-      moveToInvoiceRef.current = false;
-      setTimeout(() => formElRef.current?.requestSubmit(), 0);
-    }
   }, [status, form]);
 
   // The payments box moves the payment stage itself; keep the picker in step
@@ -558,10 +554,14 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
       return;
     }
 
-    // Work order marked Completed becomes an invoice whose payment stage follows the money received.
-    const completingNow = status === 'payment_pending' && !isInvoiceStage(savedStatus);
-    const effectiveStatus: InvoiceStatus = completingNow && totals.total > 0
-      ? (recordedPayments >= totals.total - 0.005 ? 'payment_completed' : recordedPayments > 0.005 ? 'partial_payment' : 'payment_pending')
+    // Only the "Move to invoice" button turns a work order into an invoice.
+    const movingToInvoice = moveToInvoiceRef.current;
+    moveToInvoiceRef.current = false;
+    const savedIsWorkOrder = isEditing && isWorkOrder(savedStatus);
+    const invoiceTarget: InvoiceStatus = totals.total > 0 && recordedPayments >= totals.total - 0.005
+      ? 'payment_completed' : recordedPayments > 0.005 ? 'partial_payment' : 'payment_pending';
+    const effectiveStatus: InvoiceStatus = savedIsWorkOrder
+      ? (isWorkOrder(status) ? status : savedStatus)
       : status;
 
     // Reset error states
@@ -618,13 +618,22 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
           setLoadedUpdatedAt((result as any).updated_at || null);
           setChangedElsewhere(false);
 
+          if (savedIsWorkOrder && movingToInvoice) {
+            const { error: moveError } = await (supabase as any).rpc('move_work_order_to_invoice', {
+              p_invoice_id: invoiceData.id,
+              p_status: invoiceTarget,
+            });
+            if (moveError) throw new Error(moveError.message);
+          }
+
           // Refresh just this invoice instead of re-downloading every invoice
           if (fetchInvoiceById) {
             await fetchInvoiceById(invoiceData.id);
           }
 
-          toast.success("Invoice updated successfully!");
-          navigate("/invoices");
+          const goesToInvoices = savedIsWorkOrder ? movingToInvoice : isInvoiceStage(effectiveStatus);
+          toast.success(savedIsWorkOrder && movingToInvoice ? "Moved to invoice." : `${stageTitle(effectiveStatus)} updated.`);
+          navigate(goesToInvoices ? "/invoices" : "/work-orders");
         } else {
           throw new Error("Update returned no result");
         }
@@ -1167,7 +1176,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => { moveToInvoiceRef.current = true; setStatus('payment_pending'); }}>
+                  <AlertDialogAction onClick={() => { moveToInvoiceRef.current = true; setTimeout(() => formElRef.current?.requestSubmit(), 0); }}>
                     Move to invoice
                   </AlertDialogAction>
                 </AlertDialogFooter>

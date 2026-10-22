@@ -1436,6 +1436,10 @@ export type Database = {
         }
         Returns: string
       }
+      move_work_order_to_invoice: {
+        Args: { p_invoice_id: string; p_status: string }
+        Returns: string
+      }
       superadmin_login: {
         Args: { password_hash: string; username: string }
         Returns: Json
