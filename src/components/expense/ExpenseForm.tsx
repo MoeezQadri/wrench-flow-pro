@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect , useMemo } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -64,7 +64,18 @@ const ExpenseForm = ({ defaultValues, onSubmit, formId }: ExpenseFormProps) => {
   const { vendors, invoices: invoices_ } = useDataContext();
   const { getCurrencySymbol } = useOrganizationSettings();
   const [isVendorDialogOpen, setIsVendorDialogOpen] = useState(false);
-  const [vendorsList, setVendorsList] = useState<Vendor[]>(vendors as Vendor[]);
+  // Vendors may still be loading when the form opens, so derive the list
+  // instead of copying it once; newly added vendors are kept alongside.
+  const [addedVendors, setAddedVendors] = useState<Vendor[]>([]);
+  const vendorsList = useMemo(() => {
+    const base = (vendors as Vendor[]) || [];
+    return [...base, ...addedVendors.filter(a => !base.some(v => v.id === a.id))];
+  }, [vendors, addedVendors]);
+  const { loadVendors } = useDataContext() as any;
+  useEffect(() => {
+    if ((!vendors || vendors.length === 0) && typeof loadVendors === 'function') loadVendors();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [invoices, setInvoices] = useState<any[]>([]);
   const [activeInvoices, setActiveInvoices] = useState<any[]>([]);
 
@@ -122,7 +133,7 @@ const ExpenseForm = ({ defaultValues, onSubmit, formId }: ExpenseFormProps) => {
 
   // Handler for when a new vendor is added
   const handleVendorAdded = (vendor: Vendor) => {
-    setVendorsList((prev) => [...prev, vendor]);
+    setAddedVendors((prev) => [...prev, vendor]);
     // Optionally select the new vendor
     form.setValue("vendorId", vendor.id);
   };
