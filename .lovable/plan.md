@@ -1,15 +1,26 @@
-# Where to record money paid to the owner
+# Better part and vendor pickers
 
-No changes needed. This is where the feature already lives:
+## What's wrong today
+- **Parts:** the "Inventory Part" picker in Add Item is a plain dropdown. With many parts it shows only a few rows, has no search, and squeezes name, selling price and cost onto one line.
+- **Vendors:** the vendor pickers (Add Item, Add Part, Add Expense) are the same plain dropdown. It moves around while you scroll and jumps when the list finishes loading or a new vendor is added.
 
-1. Open **Finance** in the side menu.
-2. Scroll to the bottom, below the **Bills** box.
-3. Find the **Owner drawings** box and click **Add drawing**.
-4. Enter the date, amount, owner name, how it was paid, and any notes, then click **Save**.
-5. Each entry can be edited (pencil icon) or deleted (bin icon).
+## The better experience: a search-as-you-type picker
+One shared picker used for both parts and vendors:
+- Click the field and a box opens with a **search bar at the top**; typing narrows the list right away (by name, and for parts also part number).
+- The box is **wider and taller** (about the width of the form, up to ~400px high) and stays put; only the list inside scrolls.
+- **Parts rows** show two lines: part name on top, then selling price, cost and stock in small grey text, so nothing is cut off.
+- A "Create a new part" / "Add new vendor" option sits **pinned at the bottom**, so it's always reachable without scrolling. If your search finds nothing, it offers "Add '<what you typed>'".
+- Keyboard works: arrow keys to move, Enter to pick.
+- On phones it opens full width.
 
-Only owners and admins see this box. Other team members don't see it at all.
+## Where it changes
+- Add/Edit Item: Inventory Part picker and Vendor picker.
+- Add/Edit Part: Vendor picker.
+- Add/Edit Expense: Vendor picker.
 
-The totals appear in **Reports → Finance**: Net profit, Owner drawings, and Retained in business (net profit minus drawings). Drawings are not counted as expenses, so they don't lower profit.
+Nothing about saving, prices or costs changes; only how you pick.
 
-If you'd rather have it higher on the page or in its own menu item, say so and I'll move it.
+## Technical details
+- New `src/components/ui/searchable-select.tsx` built on existing `Popover` + `Command` (cmdk): props `options {value,label,sublabel,keywords}`, `value`, `onChange`, `placeholder`, `footerAction {label,onSelect}`. PopoverContent width = trigger width (min 320px), CommandList `max-h-[400px]`, `modal` so it works inside dialogs.
+- Replace the `Select` in InvoiceItemForm.tsx (parts ~l.349, vendors ~l.479), PartForm.tsx (~l.282), ExpenseForm.tsx (~l.318, keeps "none" option).
+- Footer actions open the existing VendorDialog / "custom" part mode.
