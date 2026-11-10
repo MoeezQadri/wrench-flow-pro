@@ -592,6 +592,45 @@ export type Database = {
         }
         Relationships: []
       }
+      owner_drawings: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          date: string
+          id: string
+          notes: string | null
+          organization_id: string | null
+          owner_name: string
+          payment_method: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          id?: string
+          notes?: string | null
+          organization_id?: string | null
+          owner_name: string
+          payment_method?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          id?: string
+          notes?: string | null
+          organization_id?: string | null
+          owner_name?: string
+          payment_method?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       parts: {
         Row: {
           category: string | null
