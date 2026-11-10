@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { SearchPicker } from "@/components/ui/search-picker";
 import {
   Dialog,
   DialogContent,
@@ -346,22 +347,24 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
           {type === 'part' && (
             <div>
               <Label htmlFor="inventoryPart">Inventory Part</Label>
-              <Select value={selectedPartId || "custom"} onValueChange={handlePartSelection}>
-                <SelectTrigger id="inventoryPart">
-                  <SelectValue placeholder="Create a new part" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="custom">Create a new part</SelectItem>
-                  {(availableParts || []).map((part) => (
-                    <SelectItem key={part.id} value={part.id}>
-                      {part.name} — {formatCurrency(part.price)} selling / {formatCurrency(part.cost || 0)} cost
-                    </SelectItem>
-                  ))}
-                  {(availableParts || []).length === 0 && (
-                    <SelectItem value="no-parts" disabled>No inventory parts available</SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
+              <SearchPicker
+                id="inventoryPart"
+                value={selectedPartId || "custom"}
+                onChange={handlePartSelection}
+                placeholder="Search inventory or create a new part"
+                searchPlaceholder="Search parts by name or number…"
+                emptyText="No matching parts."
+                options={[
+                  { value: "custom", label: "Create a new part" },
+                  ...(availableParts || []).map((part: any) => ({
+                    value: part.id,
+                    label: part.name,
+                    sublabel: `${part.part_number ? part.part_number + " · " : ""}Sell ${formatCurrency(part.price)} · Cost ${formatCurrency(part.cost || 0)}${part.quantity != null ? ` · Stock ${part.quantity}` : ""}`,
+                    keywords: [part.part_number || ""],
+                  })),
+                ]}
+                footerAction={{ label: "Create a new part", onSelect: (q) => { handlePartSelection("custom"); if (q) setPartName(q); } }}
+              />
               <p className="text-xs text-muted-foreground mt-1">
                 Existing parts inherit their saved purchase cost and vendor.
               </p>
@@ -476,18 +479,16 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
               <div>
                 <Label htmlFor="vendorSelect">Vendor (Required)</Label>
                 <div className="flex gap-2">
-                  <Select value={selectedVendorId} onValueChange={setSelectedVendorId}>
-                    <SelectTrigger className="flex-1">
-                      <SelectValue placeholder="Select vendor for part" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {vendors.map((vendor: Vendor) => (
-                        <SelectItem key={vendor.id} value={vendor.id}>
-                          {vendor.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <SearchPicker
+                    className="flex-1"
+                    value={selectedVendorId}
+                    onChange={setSelectedVendorId}
+                    placeholder="Select vendor for part"
+                    searchPlaceholder="Search vendors…"
+                    emptyText="No matching vendors."
+                    options={vendors.map((v: Vendor) => ({ value: v.id, label: v.name }))}
+                    footerAction={{ label: "Add new vendor", onSelect: () => setIsVendorDialogOpen(true) }}
+                  />
                   <Button
                     type="button"
                     variant="outline"

@@ -1,4 +1,5 @@
 
+import { SearchPicker } from "@/components/ui/search-picker";
 import React, { useState, useEffect , useMemo } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -317,25 +318,18 @@ const ExpenseForm = ({ defaultValues, onSubmit, formId }: ExpenseFormProps) => {
                 <FormItem>
                   <FormLabel>Vendor</FormLabel>
                   <div className="flex space-x-2">
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      value={field.value || "none"}
-                    >
-                      <FormControl>
-                        <SelectTrigger className="flex-1">
-                          <SelectValue placeholder="Select a vendor" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="none">None</SelectItem>
-                        {vendorsList.map((vendor) => (
-                          <SelectItem key={vendor.id} value={vendor.id}>
-                            {vendor.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <FormControl>
+                      <SearchPicker
+                        className="flex-1"
+                        value={field.value || "none"}
+                        onChange={field.onChange}
+                        placeholder="Select a vendor"
+                        searchPlaceholder="Search vendors…"
+                        emptyText="No matching vendors."
+                        options={[{ value: "none", label: "None" }, ...vendorsList.map((v) => ({ value: v.id, label: v.name }))]}
+                        footerAction={{ label: "Add new vendor", onSelect: () => setIsVendorDialogOpen(true) }}
+                      />
+                    </FormControl>
                     <Button
                       type="button"
                       size="icon"

@@ -1,4 +1,5 @@
 
+import { SearchPicker } from "@/components/ui/search-picker";
 import React, { useState, useEffect } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -280,24 +281,16 @@ const PartForm = ({ defaultValues, onSubmit, formId, invoice, invoiceId, part, i
           render={({ field }) => (
             <FormItem>
               <FormLabel>Vendor</FormLabel>
-              <Select
-                onValueChange={field.onChange}
-                defaultValue={field.value}
-                value={field.value}
-              >
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a vendor" />
-                  </SelectTrigger>
-                </FormControl>
-                  <SelectContent>
-                   {vendors.map((vendor) => (
-                     <SelectItem key={vendor.id} value={vendor.id}>
-                       {vendor.name}
-                     </SelectItem>
-                   ))}
-                 </SelectContent>
-              </Select>
+              <FormControl>
+                <SearchPicker
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="Select a vendor"
+                  searchPlaceholder="Search vendors…"
+                  emptyText="No matching vendors."
+                  options={vendors.map((v) => ({ value: v.id, label: v.name }))}
+                />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}
