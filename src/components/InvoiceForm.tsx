@@ -257,12 +257,21 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
       setCompletedOn(invoiceData.completed_at ? toOrgDateInputValue(invoiceData.completed_at) : '');
       
       setStatus(invoiceData.status);
+      // Keep the form's copy in step right away, otherwise the payments-box sync
+      // below copies the form default ("approved") back over the loaded stage.
+      form.setValue('status', invoiceData.status);
       setTaxRate(invoiceData.tax_rate ?? orgDefaultTaxRate);
       setDiscountType(invoiceData.discount_type || 'none');
       setDiscountValue(invoiceData.discount_value || 0);
       setNotes(invoiceData.notes || "");
       setItems(invoiceData.items || []);
       setPayments(invoiceData.payments || []);
+      // Always show the payments as saved right now, never an older copy.
+      const loadedId = invoiceData.id;
+      supabase.from('payments').select('*').eq('invoice_id', loadedId).order('date', { ascending: true })
+        .then(({ data, error }) => {
+          if (!error && data && invoiceData?.id === loadedId) setPayments(data as any);
+        });
       setLoadedUpdatedAt((invoiceData as any).updated_at || null);
       setConflict(false);
       setChangedElsewhere(false);

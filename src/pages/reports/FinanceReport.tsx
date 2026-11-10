@@ -14,6 +14,7 @@ import { exportToCSV } from '@/utils/csv-export';
 import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
 import { calculateInvoiceBreakdown, calculateProfitAndLoss, isInventoryOrJobCostExpense, isRecognizedRevenue, revenueDate } from '@/utils/invoice-calculations';
 import { isNonBillable } from '@/utils/invoice-status';
+import { totalDrawings, retainedInBusiness } from '@/utils/owner-drawings';
 import { formatOrgDate, isOrgDayWithinRange, selectedCalendarDay } from '@/utils/datetime';
 
 // Interface for expenses matching Supabase schema
@@ -100,6 +101,11 @@ const FinanceReport = () => {
     loadFinanceData();
   }, []);
 
+  const [drawings, setDrawings] = useState<{ date: string; amount: number }[]>([]);
+  useEffect(() => {
+    (supabase as any).from('owner_drawings').select('date, amount').then(({ data }: any) => setDrawings(data || []));
+  }, []);
+
   // Filter data based on date range
   const filteredExpenses = expenses.filter(expense => {
     try {
@@ -126,6 +132,9 @@ const FinanceReport = () => {
   const grossProfit = pnl.grossProfit;
   const operatingExpenses = pnl.operatingExpenses;
   const netProfit = pnl.netProfit;
+  // Owner drawings never change profit; shown after it as money taken out.
+  const periodDrawings = totalDrawings(drawings.filter(d => isOrgDayWithinRange(d.date, startDate, endDate)));
+  const retained = retainedInBusiness(netProfit, periodDrawings);
   const inventoryPurchases = filteredExpenses
     .filter(expense => isInventoryOrJobCostExpense(expense))
     .reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
@@ -241,6 +250,14 @@ const FinanceReport = () => {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardContent className="pt-4 grid gap-2 text-sm sm:grid-cols-3">
+          <div><p className="text-muted-foreground">Net profit</p><p className="text-lg font-semibold">{formatCurrency(netProfit)}</p></div>
+          <div><p className="text-muted-foreground">Owner drawings</p><p className="text-lg font-semibold">− {formatCurrency(periodDrawings)}</p></div>
+          <div><p className="text-muted-foreground">Retained in business</p><p className="text-lg font-semibold">{formatCurrency(retained)}</p></div>
+        </CardContent>
+      </Card>
 
       {pnl.partLinesMissingCost > 0 && (
         <Card className="border-yellow-500/50 bg-yellow-500/5">
