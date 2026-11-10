@@ -1,5 +1,5 @@
 
-import { SearchableSelect } from "@/components/ui/searchable-select";
+import { SearchPicker } from "@/components/ui/search-picker";
 import React, { useState, useEffect } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -282,7 +282,7 @@ const PartForm = ({ defaultValues, onSubmit, formId, invoice, invoiceId, part, i
             <FormItem>
               <FormLabel>Vendor</FormLabel>
               <FormControl>
-                <SearchableSelect
+                <SearchPicker
                   value={field.value}
                   onChange={field.onChange}
                   placeholder="Select a vendor"

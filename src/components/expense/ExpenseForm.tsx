@@ -1,5 +1,5 @@
 
-import { SearchableSelect } from "@/components/ui/searchable-select";
+import { SearchPicker } from "@/components/ui/search-picker";
 import React, { useState, useEffect , useMemo } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -319,7 +319,7 @@ const ExpenseForm = ({ defaultValues, onSubmit, formId }: ExpenseFormProps) => {
                   <FormLabel>Vendor</FormLabel>
                   <div className="flex space-x-2">
                     <FormControl>
-                      <SearchableSelect
+                      <SearchPicker
                         className="flex-1"
                         value={field.value || "none"}
                         onChange={field.onChange}

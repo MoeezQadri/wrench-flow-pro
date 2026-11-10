@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { SearchableSelect } from "@/components/ui/searchable-select";
+import { SearchPicker } from "@/components/ui/search-picker";
 import {
   Dialog,
   DialogContent,
@@ -347,7 +347,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
           {type === 'part' && (
             <div>
               <Label htmlFor="inventoryPart">Inventory Part</Label>
-              <SearchableSelect
+              <SearchPicker
                 id="inventoryPart"
                 value={selectedPartId || "custom"}
                 onChange={handlePartSelection}
@@ -479,7 +479,7 @@ const InvoiceItemForm: React.FC<InvoiceItemFormProps> = ({
               <div>
                 <Label htmlFor="vendorSelect">Vendor (Required)</Label>
                 <div className="flex gap-2">
-                  <SearchableSelect
+                  <SearchPicker
                     className="flex-1"
                     value={selectedVendorId}
                     onChange={setSelectedVendorId}
