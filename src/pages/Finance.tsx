@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import OwnerDrawings from '@/components/finance/OwnerDrawings';
 import BillPartDetails from '@/components/vendor/BillPartDetails';
 import { TrendingDown, Building, CreditCard } from 'lucide-react';
 import { useOrganizationSettings } from '@/hooks/useOrganizationSettings';
@@ -174,6 +175,8 @@ const Finance = () => {
           </Tabs>
         </CardContent>
       </Card>
+
+      <OwnerDrawings />
 
       <PayableDialog
         open={isPayableDialogOpen}
