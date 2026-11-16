@@ -1,5 +1,5 @@
-import { describe, expect, test } from 'bun:test';
-import { stageOf, canEditItems, canEditMoney, canReopen, canDeleteStage, statusLabel } from '../../src/utils/invoice-status';
+import { workOrderStatusToSave, describe, expect, test } from 'bun:test';
+import { workOrderStatusToSave, stageOf, canEditItems, canEditMoney, canReopen, canDeleteStage, statusLabel } from '../../src/utils/invoice-status';
 import { REVENUE_STATUSES } from '../../src/utils/invoice-calculations';
 
 describe('work order / invoice stages', () => {
@@ -63,4 +63,10 @@ describe('saving without lines', () => {
     expect(canSaveWithoutItems('partial_payment')).toBe(false);
     expect(canSaveWithoutItems('payment_completed')).toBe(false);
   });
+});
+
+test('Update keeps a Work completed work order as Work completed unless the user picks another stage', () => {
+  expect(workOrderStatusToSave('work_completed', 'approved', false)).toBe('work_completed');
+  expect(workOrderStatusToSave('work_completed', 'approved', true)).toBe('approved');
+  expect(workOrderStatusToSave('work_completed', 'payment_pending', true)).toBe('work_completed');
 });
