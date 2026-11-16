@@ -77,3 +77,10 @@ export const isBillable = (status?: string | null): boolean => !isNonBillable(st
 
 export const billableInvoices = <T extends { status?: string | null }>(invoices: T[]): T[] =>
   invoices.filter((invoice) => isBillable(invoice.status));
+
+/** Stage saved when pressing Update on an existing work order: the opened stage, unless the user picked another work-order stage. */
+export const workOrderStatusToSave = (
+  savedStatus: InvoiceStatus,
+  currentStatus: InvoiceStatus,
+  userPicked: boolean,
+): InvoiceStatus => (userPicked && isWorkOrder(currentStatus) ? currentStatus : savedStatus);

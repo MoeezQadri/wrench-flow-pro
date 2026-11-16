@@ -18,6 +18,7 @@ import {
 import { Trash2 } from "lucide-react";
 import { Payment } from "@/types";
 import { useFormContext } from "react-hook-form";
+type InvoiceStatusValue = any;
 import { nanoid } from "nanoid";
 import { useOrganizationSettings } from "@/hooks/useOrganizationSettings";
 import { usePayments } from "@/context/data/hooks/usePayments";
@@ -28,6 +29,7 @@ import { formatOrgDate } from '@/utils/datetime';
 import { supabase } from '@/integrations/supabase/client';
 
 interface PaymentsSectionProps {
+  onStatusChange?: (status: InvoiceStatusValue) => void;
   payments: Payment[];
   setPayments: React.Dispatch<React.SetStateAction<Payment[]>>;
   total: number;
@@ -36,7 +38,7 @@ interface PaymentsSectionProps {
   onInvoiceSaved?: (updatedAt: string) => void;
 }
 
-const PaymentsSection: React.FC<PaymentsSectionProps> = ({ payments, setPayments, total, invoiceId, onInvoiceSaved }) => {
+const PaymentsSection: React.FC<PaymentsSectionProps> = ({ payments, setPayments, total, invoiceId, onInvoiceSaved, onStatusChange }) => {
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("");
   const [paymentNotes, setPaymentNotes] = useState("");
@@ -178,6 +180,7 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({ payments, setPayments
         const next = newTotalPaid >= total - 0.005 ? 'payment_completed' : newTotalPaid > 0.005 ? 'partial_payment' : 'payment_pending';
         if (next !== status) {
           setValue("status", next, { shouldDirty: true });
+          onStatusChange?.(next);
           await persistInvoiceFields({ status: next });
         }
       }
@@ -250,6 +253,7 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({ payments, setPayments
         }
         if (newStatus !== status) {
           setValue("status", newStatus);
+          onStatusChange?.(newStatus);
           await persistInvoiceFields({ status: newStatus });
         }
       }
@@ -287,6 +291,7 @@ const PaymentsSection: React.FC<PaymentsSectionProps> = ({ payments, setPayments
     setValue("discount_type", "fixed", { shouldDirty: true });
     setValue("discount_value", newDiscountValue, { shouldDirty: true });
     setValue("status", "payment_completed", { shouldDirty: true });
+    onStatusChange?.("payment_completed");
     await persistInvoiceFields({ discount_type: 'fixed', discount_value: newDiscountValue, status: 'payment_completed' });
     toast.success(`Discount of ${formatCurrency(balance)} applied — invoice closed as Payment completed.`);
   }, [payments, total, watch, setValue, persistInvoiceFields, formatCurrency]);
