@@ -425,12 +425,8 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
     form.setValue('status', status);
   }, [status, form]);
 
-  // The payments box moves the payment stage itself; keep the picker in step
-  const formStatus = form.watch('status') as InvoiceStatus;
-  useEffect(() => {
-    if (formStatus && formStatus !== status) setStatus(formStatus);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formStatus]);
+  // Only a stage the user picks in the Status dropdown may change a work order's stage on Update.
+  const userPickedStatusRef = useRef(false);
 
   // Calculate totals including discount (matching calculateInvoiceBreakdown logic)
   const calculateTotals = () => {
@@ -570,7 +566,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
     const invoiceTarget: InvoiceStatus = totals.total > 0 && recordedPayments >= totals.total - 0.005
       ? 'payment_completed' : recordedPayments > 0.005 ? 'partial_payment' : 'payment_pending';
     const effectiveStatus: InvoiceStatus = savedIsWorkOrder
-      ? (isWorkOrder(status) ? status : savedStatus)
+      ? workOrderStatusToSave(savedStatus, status, userPickedStatusRef.current)
       : status;
 
     // Reset error states
@@ -945,6 +941,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
                 onValueChange={(value: InvoiceStatus) => {
                   console.log('Status changing to:', value);
                   setStatus(value);
+                  userPickedStatusRef.current = true;
                   userHasChangedForm.current = true;
                 }}
               >
@@ -1147,6 +1144,7 @@ const InvoiceForm: React.FC<InvoiceFormProps> = ({ isEditing = false, invoiceDat
           {/* Estimates are quotes, so they cannot receive payments. */}
           {status !== 'estimate' && status !== 'declined' && (
             <PaymentsSection
+              onStatusChange={(s: InvoiceStatus) => setStatus(s)}
               payments={payments}
               setPayments={setPayments}
               total={totals.total}
